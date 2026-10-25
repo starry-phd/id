@@ -41,8 +41,8 @@
 - 尚未實作的 API 不得在 README／進度報告宣稱「串接已完成」。
 
 ## D. 執行限制
-- 此 Repo 裡建立 Issue、寫入規範**不會自動啟動五個獨立 AI 執行緒**。要真的平行開發，仍需各個有 GitHub 存取權的 Codex／Agent 執行環境讀取自己的 Issue，持續依授權事件執行與回寫。
-- AI-0 要統籌，但沒有實際可運作的跨 Agent dispatcher／排程／持續執行環境前，不能承諾無人觸發時自動工作。
+- 此 Repo 裡建立 Issue、寫入規範**不會自動啟動五個獨立 AI 執行緒**。要真的平行開發，仍需各個有 GitHub 存取權的 GitHub Copilot Cloud Agent（需另行授權/觸發）或其他已授權 Agent 執行環境讀取自己的 Issue，持續依授權事件執行與回寫。
+- AI-0 要統籌，但沒有實際可運作的跨 Agent dispatcher／排程／持續執行環境前，不能承諾無人觸發時自動工作。PUBLIC Repo 目前不支援原生 GitHub Copilot Automations。
 - 遵守 GitHub AI API 安全 SOP：序列化寫入、去重、保守限流、只用需要的資源權限；無高頻 polling 或重複 CI。
 - 無 AI-0 驗收及業主發布授權，不合併 main、不動 Production／正式 D1／真實付款；文檔規範初始化之例外限本次批准的規劃寫入。
 
