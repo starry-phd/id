@@ -1,5 +1,7 @@
 name: Starry Codex agent (controlled)
 on:
+  issue_comment:
+    types: [created]
   workflow_dispatch:
     inputs:
       agent:
@@ -17,7 +19,10 @@ concurrency:
 jobs:
   develop:
     name: 'Codex ${{ matrix.agent }}'
-    if: ${{ github.actor == 'yukidu' && github.ref == 'refs/heads/main' }}
+    if: >-
+      ${{ github.actor == 'yukidu' &&
+          ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+           (github.event_name == 'issue_comment' && github.event.issue.number == 1 && github.event.comment.body == '/codex-run-all')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -28,7 +33,7 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        agent: ${{ fromJSON(inputs.agent == 'ALL' && '["AI-1","AI-2","AI-3","AI-4"]' || format('["{0}"]', inputs.agent)) }}
+        agent: ${{ fromJSON((github.event_name == 'issue_comment' || inputs.agent == 'ALL') && '["AI-1","AI-2","AI-3","AI-4"]' || format('["{0}"]', inputs.agent)) }}
     steps:
       - uses: actions/checkout@v4
         with:
