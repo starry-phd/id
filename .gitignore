@@ -1,0 +1,17 @@
+# GitHub agent ephemeral context; never commit task scratch files
+.agent-input/
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+*.pem
+*.p12
+*.pfx
+*.key
+*.jks
+*.keystore
+node_modules/
+.expo/
+dist/
+coverage/
