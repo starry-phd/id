@@ -1,0 +1,100 @@
+name: Starry gated deployment
+on:
+  workflow_run:
+    workflows: ['Starry CI']
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Deploy to staging, or request protected production release.'
+        required: true
+        type: choice
+        options: [staging, production]
+      confirmation:
+        description: 'Production only: type DEPLOY-STARRY-PRODUCTION'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: starry-deploy-${{ github.event_name == 'workflow_dispatch' && inputs.target || 'staging' }}
+  cancel-in-progress: false
+
+jobs:
+  staging:
+    name: Starry staging deployment
+    if: |
+      ${{ vars.STARRY_STAGING_ENABLED == 'true' &&
+         ((github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main') ||
+         (github.event_name == 'workflow_dispatch' && inputs.target == 'staging' && github.actor == 'yukidu' && github.ref == 'refs/heads/main')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify Starry-only build manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f package-lock.json
+          test -f apps/api/wrangler.toml
+          test -f package.json
+      - name: Install pinned dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Deploy Starry staging Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx --no-install wrangler deploy --config apps/api/wrangler.toml --env staging
+
+  production:
+    name: Starry production (protected environment)
+    if: |
+      ${{ github.event_name == 'workflow_dispatch' &&
+         inputs.target == 'production' &&
+         inputs.confirmation == 'DEPLOY-STARRY-PRODUCTION' &&
+         github.actor == 'yukidu' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify Starry production build manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f package.json
+          test -f package-lock.json
+          test -f apps/api/wrangler.toml
+      - run: npm ci --no-audit --no-fund
+      - name: Deploy Starry production Worker (explicit release only)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx --no-install wrangler deploy --config apps/api/wrangler.toml --env production
