@@ -3,6 +3,15 @@
 > GitHub Owner: `starry-phd`; personal administrator: `yukidu`.
 > 狀態：全新開發；此檔是工程分工規則，不代表五個 AI 已自行啟動，也不是任何功能完成、CI 通過或 Production 上線的證明。
 
+## 最新業主指令｜GitHub-only 五 AI 協作、H-Global 暫停（優先於下列一般規範）
+1. **AI-0、AI-1、AI-2、AI-3、AI-4 的所有工作交接僅透過此 Repo 的 GitHub Issues、PR、Commit、CI 和版本化文件；業主不負責在 AI 對話之間人工轉貼。** 詳見 [GitHub 交接協定](docs/ai/HANDOFF-PROTOCOL.md)。
+2. **Starry 是目前唯一開發標的。H-Global1985 的功能、Repo、Cloudflare Workers/D1、資料庫、登入、付款、部署一律暫停**，除非業主日後明確解除。任何 AI 不得替 H-Global 進行代工或順便開發。
+3. **保留未來會員基本資料跨品牌 API 接口**，僅在 Starry 端預留契約／禁用的抽象層與 Mock；不得建立 H-Global 實作或串接真正服務。詳見 [未來雙品牌會員 API 預留契約（DISABLED）](docs/contracts/FUTURE-HGLOBAL-MEMBER-API.md)。
+4. 兩品牌獨立 Auth／User ID／Session／D1／Secrets；未來僅在雙方各自驗證、本人同意與指定欄位獲核准後，透過版本化 API 交換基本資料。**預設停用、失敗即拒絕，不依 Email／姓名合併，不共享資料庫。**
+5. 跨 AI 提問與交接必須在來源 Issue／PR 留有證據，將依賴與交接連結貼到接手 AI 的 Issue；不得以 ChatGPT 口頭消息取代 GitHub 留痕。
+6. **GitHub 留下任務不會自動執行另外四個 AI**；只有在對應 Codex／Agent 執行環境已連線、讀取 Issue 且收到實際執行觸發時才會啟動。不得聲稱五組已同時實作而沒有 PR／CI 證據。
+7. 僅需業主批准涉及產品決策、付費、Production 或高風險操作時請示；業主**不需人工轉達工程交接**。
+
 ## 0. 共同依據與適用範圍
 - 本 Repo 僅用於 **Starry ID** 全新架構。沿用已核准的產品需求、人工審閱後的第一波交接包；不沿用舊 GitHub Repo 原始碼、舊資料庫、舊 secrets、歷史 PR 或部署狀態。
 - 以「第一波《開發清單交接包》」及 DEV-A～DEV-I 經核准部分為需求依據；**標示待人工審閱、互相衝突或尚未定案者不可直接當作實作需求**。
