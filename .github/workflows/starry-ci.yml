@@ -1,0 +1,98 @@
+name: Starry CI
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never expose deployment credentials or write permission to untrusted PR code.
+permissions:
+  contents: read
+
+concurrency:
+  group: starry-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-policy:
+    name: Repository policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      app_ready: ${{ steps.app.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check Starry repo policy and tracked file names
+        run: python3 scripts/ci/validate_repository.py
+      - name: Detect actual app test scaffold
+        id: app
+        shell: bash
+        run: |
+          if test -f package.json && test -f package-lock.json; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "App code/tests not initialized; repository policy PASS is NOT app-test PASS."
+          fi
+
+  app-tests:
+    name: App typecheck, lint and tests
+    needs: repository-policy
+    if: needs.repository-policy.outputs.app_ready == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Require actual quality scripts
+        run: |
+          node -e 'const s=require("./package.json").scripts||{}; for(const k of ["typecheck","lint","test"]) if(!s[k]) throw Error("Missing "+k)'
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+
+  staging:
+    name: Starry staging (opt-in, after CI)
+    needs: [repository-policy, app-tests]
+    if: >-
+      ${{ github.event_name == 'push' &&
+          github.ref == 'refs/heads/main' &&
+          vars.STARRY_STAGING_ENABLED == 'true' &&
+          needs.app-tests.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Fail closed until Starry Worker scaffold and environment exist
+        shell: bash
+        run: |
+          test -f apps/api/wrangler.toml
+          test -f package-lock.json
+          test -f package.json
+      - run: npm ci --no-audit --no-fund
+      - name: Deploy Starry staging Worker only
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN:-}"
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}"
+          npx --no-install wrangler deploy --config apps/api/wrangler.toml --env staging
