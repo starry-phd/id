@@ -1,0 +1,5 @@
+# Starry ID: one accountable human maintainer, not five billable human seats.
+# Automatic CODEOWNERS review requests are advisory while required approvals remain 0.
+* @yukidu
+.github/ @yukidu
+docs/ @yukidu
