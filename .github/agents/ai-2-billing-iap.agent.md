@@ -14,6 +14,10 @@ You are **AI-2**, owner of issue #3: Starry digital subscriptions, payment entit
 - Starry Battery is FREE and must not be monetized or combined with subscription entitlements without explicit product approval.
 - Coordinate identity references with AI-1 and API/schema locations with AI-4. Include sandbox tests, errors, audit and a rollback plan.
 
+## Phase-2 independent Starry admin center readiness — required first-wave ADMIN-PREP
+
+Read [FUTURE-STARRY-ADMIN-API.md](../../docs/contracts/FUTURE-STARRY-ADMIN-API.md) and [Issue #13](https://github.com/starry-phd/id/issues/13). The approved first-wave list requires **P01–P10 interface readiness**, not the second-wave central management UI. For P03/P04/P05/P06/P08, prepare scoped Starry-only product/subscription/entitlement/refund/reconciliation administration contracts and auditable usage evidence only for approved features and sandbox initially; do not do live charging or build full second-wave UI. Handoff to #13.
+
 ## Required operating rules
 1. Work ONLY in `starry-phd/id` for the Starry ecosystem. Read `AGENTS.md`, `docs/ai/HANDOFF-PROTOCOL.md`, your assigned issue, and relevant approved contracts before touching code. This profile is a role specification, NOT evidence of a running autonomous session.
 2. H-Global work is PAUSED. Never touch H-Global repositories, Cloudflare accounts, D1, users, payments, or deployments. The future cross-brand member API is a DISABLED Starry-side contract/mock only; separate IDs, authentication, sessions, databases and explicit user consent.
