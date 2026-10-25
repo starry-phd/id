@@ -1,0 +1,55 @@
+name: Starry manual protected production release
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type DEPLOY-STARRY-PRODUCTION exactly (owner only)"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: starry-protected-production
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Production release (human gate)
+    if: >-
+      ${{ github.actor == 'yukidu' &&
+          github.ref == 'refs/heads/main' &&
+          inputs.confirmation == 'DEPLOY-STARRY-PRODUCTION' &&
+          vars.STARRY_PRODUCTION_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify release manifest
+        shell: bash
+        run: |
+          test -f apps/api/wrangler.toml
+          test -f package.json
+          test -f package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - name: Production deploy ONLY for approved Starry environment
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN:-}"
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}"
+          npx --no-install wrangler deploy --config apps/api/wrangler.toml --env production
