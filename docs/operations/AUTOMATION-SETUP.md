@@ -9,6 +9,12 @@
 - A separate Starry Cloudflare connection for starry.phd@gmail.com exists; the yukidu Cloudflare account is different. Deployment credentials have NOT been supplied or verified.
 - Team billing is user-reported, NOT independently audited.
 
+## Owner decision (2026-10-26, Taiwan time): PAUSE paid Codex automation
+- The project owner elected NOT to activate the Codex/OpenAI Platform API-key-powered GitHub Actions runner. ChatGPT Pro is NOT a substitute for an API key, and no separate API spend is authorized.
+- `.github/workflows/starry-agent.yml` has an unconditional `false &&` job guard: even if a comment or workflow_dispatch matches, the paid agent job must be skipped. **Never remove this guard without a new explicit owner instruction**.
+- Do not create/configure `OPENAI_API_KEY`, do not post `/codex-run-all`, and do not merge PR #7 as a claim that paid agents are live.
+- Continue with ChatGPT Pro-assisted GitHub Issues/branches/PRs and no-API GitHub CI. Deployments remain separately gated and NOT authorized by this decision.
+
 ## What this PR actually configures
 1. starry-ci.yml: automatically checks PRs/pushes to main for documented public-repo rules; real app TypeScript/lint/tests run only AFTER AI-4 adds a root package-lock.json and mandatory scripts. A PASS before then is only a policy PASS, not application CI.
 2. starry-agent.yml: official OpenAI Codex Action; trusted yukidu may dispatch AI-1..AI-4 singly or ALL serially. Each reads its existing GitHub Issue, works in a dedicated branch, creates a DRAFT PR, posts the PR link and SHA back to GitHub Issue. No background work without an explicit workflow trigger. API requests are independently billed.
