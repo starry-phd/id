@@ -11,6 +11,13 @@
 - Cloudflare `id-starry` 的 Workers Builds 自動建置目前停用；沒有核准正式部署。所有實際進度以 GitHub CI／PR／Issue 證據為準。
 - 組織 Admin／Copilot 授權／Secret／安全與 Environment 待驗證，詳 [GitHub Team × Copilot readiness](docs/operations/GITHUB-TEAM-COPILOT-READINESS.md) 和 [Issue #8](https://github.com/starry-phd/id/issues/8)。
 
+## 第二波超級／中央管理中心接入預留（ADMIN-PREP｜第一波必備，2026-10-26 GitHub 補齊）
+- 依已核准的《第一波〈開發清單交接包〉》ADMIN-PREP，**本輪 Starry 第一波開發必須把 P01～P10 接入基礎納入可驗收交付**，詳 [Starry 第二波管理 API 預留契約](docs/contracts/FUTURE-STARRY-ADMIN-API.md) 及 [ADMIN-PREP #13](https://github.com/starry-phd/id/issues/13)。
+- P01 App registry/brand/app/env；P02 OpenAPI/version/scopes；P03 域內保護管理 API；P04 Starry-only Admin/Auth/高風險驗權；P05 事件 schema；P06 稽核；P07 健康/告警；P08 成本計量；P09 Repo/CI/EAS/Cloudflare 發布證據；P10 設定版本/Feature Flags。
+- **第一波只做已核准業務必要的管理能力及安全最小操作途徑，不建立第二波完整 12×5=60 管理中心 UI、60 個空端點、超級 DB gateway 或 H-Global 管理員。** 第二波未來另立 React/TypeScript Mobile-first Web/PWA，獨立品牌登入、API、密鑰、資料及部署，這是介面設計預留而非已上線。
+- AI-0 負責合約對照與 Gate；AI-1 Starry Auth/Admin principal/會員；AI-2 Billing/IAP 的當期管理接口；AI-3 免費 Battery/通知/稽核/復原；AI-4 AppRegistry/OpenAPI/SDK/健康成本/部署證據。**每組 Draft PR 必須交代相關 P01～P10 項目**，不能只交普通會員/訂單 CRUD，留下日後管理後台無法安全連接。
+- 未來雙品牌「會員基本資料 API」和第二波「品牌獨立管理中心接口」完全不同，不因會員同步而授予跨品牌管理員權限。H-Global 仍暫停。
+
 ## 最新業主指令｜GitHub-only 五 AI 協作、H-Global 暫停（優先於下列一般規範）
 1. **AI-0、AI-1、AI-2、AI-3、AI-4 的所有工作交接僅透過此 Repo 的 GitHub Issues、PR、Commit、CI 和版本化文件；業主不負責在 AI 對話之間人工轉貼。** 詳見 [GitHub 交接協定](docs/ai/HANDOFF-PROTOCOL.md)。
 2. **Starry 是目前唯一開發標的。H-Global1985 的功能、Repo、Cloudflare Workers/D1、資料庫、登入、付款、部署一律暫停**，除非業主日後明確解除。任何 AI 不得替 H-Global 進行代工或順便開發。
