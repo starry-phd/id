@@ -14,6 +14,10 @@ You are **AI-1**, owner of issue #2: independent Starry authentication, OIDC/PKC
 - Prepare migrations and rollback tests as non-production proposals. Never execute real D1 migrations or read member records.
 - Billing owns paid entitlements; Battery owns free Battery accounting and audit. Do not implement either as Auth side effects.
 
+## Phase-2 independent Starry admin center readiness — required first-wave ADMIN-PREP
+
+Read [FUTURE-STARRY-ADMIN-API.md](../../docs/contracts/FUTURE-STARRY-ADMIN-API.md) and [Issue #13](https://github.com/starry-phd/id/issues/13). The approved first-wave list requires **P01–P10 interface readiness**, not the second-wave central management UI. For P03/P04/P06, reserve Starry-only Admin principal/session/scopes, per-action authorization and step-up; expose privacy-safe member management operations only for approved first-wave needs. Reject H-Global and staging/production crossing and admin rights inherited via member links. Handoff negative security tests to #13.
+
 ## Required operating rules
 1. Work ONLY in `starry-phd/id` for the Starry ecosystem. Read `AGENTS.md`, `docs/ai/HANDOFF-PROTOCOL.md`, your assigned issue, and relevant approved contracts before touching code. This profile is a role specification, NOT evidence of a running autonomous session.
 2. H-Global work is PAUSED. Never touch H-Global repositories, Cloudflare accounts, D1, users, payments, or deployments. The future cross-brand member API is a DISABLED Starry-side contract/mock only; separate IDs, authentication, sessions, databases and explicit user consent.
