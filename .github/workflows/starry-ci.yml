@@ -16,6 +16,8 @@ concurrency:
 jobs:
   repository-policy:
     name: Repository policy
+    outputs:
+      has_app_lockfile: ${{ steps.detect-app.outputs.present }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -24,10 +26,21 @@ jobs:
           persist-credentials: false
       - name: Validate repository boundary and tracked file names
         run: python3 scripts/ci/validate_repository.py
+      - name: Detect application lockfile
+        id: detect-app
+        shell: bash
+        run: |
+          if test -f package-lock.json; then
+            echo 'present=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'present=false' >> "$GITHUB_OUTPUT"
+            echo 'Starry app not yet initialized: application test job will be skipped.'
+          fi
 
   app-tests:
     name: App typecheck, lint and tests
-    if: ${{ hashFiles('package-lock.json') != '' }}
+    needs: repository-policy
+    if: needs.repository-policy.outputs.has_app_lockfile == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
