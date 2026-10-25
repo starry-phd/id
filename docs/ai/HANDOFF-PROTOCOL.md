@@ -53,3 +53,9 @@
 - [ ] 認定已核准的 Starry ID 功能規格及跨品牌預留欄位待決清單
 - [ ] AI-1／AI-4 設計並提交預留契約；AI-0 Gate 1 審閱
 - [ ] 各組實際 Draft PR 與 CI 檢查
+
+## F. 第二波超級／中央管理中心 ADMIN-PREP（已同意的第一波預留）
+- 第一波 Starry 程式必須在 #13 留下 P01～P10 驗收證據；正式規格見 [FUTURE-STARRY-ADMIN-API.md](../contracts/FUTURE-STARRY-ADMIN-API.md)，以經核准主清單 ADMIN-PREP 為優先。
+- GitHub AI-0/1/2/3/4 在自己的 Issue、Draft PR 交接時附上該模組的 App/Brand/Env/管理 scopes/事件/稽核/監控成本/發行證據、是否已真正實作與測試。AI-4 標準化 OpenAPI/SDK；AI-1 Starry 管理員驗證；AI-2 Billing；AI-3 Battery/稽核；AI-0 Gate。
+- 這項預留不啟動第二波 60 個中心的完整 React 管理 UI、不建跨品牌超級權限、不摸 H-Global。它與 #6 的未來會員基本資料跨品牌同步是兩種不同接口。
+

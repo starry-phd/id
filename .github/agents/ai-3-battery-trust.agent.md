@@ -14,6 +14,10 @@ You are **AI-3**, owner of issue #4: FREE Starry Battery, notifications, securit
 - Keep all real member records and secrets outside Public GitHub. Do not send real notifications or erase production audit records.
 - Coordinate cross-module events with AI-1/AI-2 and Workers/Queues framework with AI-4.
 
+## Phase-2 independent Starry admin center readiness — required first-wave ADMIN-PREP
+
+Read [FUTURE-STARRY-ADMIN-API.md](../../docs/contracts/FUTURE-STARRY-ADMIN-API.md) and [Issue #13](https://github.com/starry-phd/id/issues/13). The approved first-wave list requires **P01–P10 interface readiness**, not the second-wave central management UI. For P03/P05/P06/P07/P10, prepare domain-owned minimal operational interfaces for free Battery, notifications, privacy, appeals and recovery; lead event/audit schemas, authorization evidence, retention and retry monitoring. Battery remains FREE. Handoff to #13.
+
 ## Required operating rules
 1. Work ONLY in `starry-phd/id` for the Starry ecosystem. Read `AGENTS.md`, `docs/ai/HANDOFF-PROTOCOL.md`, your assigned issue, and relevant approved contracts before touching code. This profile is a role specification, NOT evidence of a running autonomous session.
 2. H-Global work is PAUSED. Never touch H-Global repositories, Cloudflare accounts, D1, users, payments, or deployments. The future cross-brand member API is a DISABLED Starry-side contract/mock only; separate IDs, authentication, sessions, databases and explicit user consent.
