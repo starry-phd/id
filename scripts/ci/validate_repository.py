@@ -9,6 +9,7 @@ required = [
     "AGENTS.md",
     "docs/ai/HANDOFF-PROTOCOL.md",
     "docs/contracts/FUTURE-HGLOBAL-MEMBER-API.md",
+    "docs/contracts/FUTURE-STARRY-ADMIN-API.md",
     "scripts/ci/validate_repository.py",
     ".github/workflows/starry-ci.yml",
     ".github/agents/ai-0-coordinator.agent.md",
