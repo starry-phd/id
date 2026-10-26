@@ -11,11 +11,13 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "lint": "eslint apps packages/sdk/src --max-warnings 0",
-    "test": "node --experimental-strip-types --test apps/api/test/*.test.mjs packages/sdk/test/*.test.mjs",
+    "lint": "eslint apps packages/sdk/src packages/contracts/src packages/billing-contracts/src packages/ai3/src packages/integration/src modules/starry-auth/src --max-warnings 0",
+    "test": "node --experimental-strip-types --test apps/api/test/*.test.mjs packages/sdk/test/*.test.mjs packages/contracts/test/*.test.mjs modules/starry-auth/test/*.test.mjs packages/billing-contracts/test/*.test.mjs packages/ai3/test/*.test.mjs packages/integration/test/*.test.mjs",
     "api:dev": "wrangler dev --config apps/api/wrangler.toml --env staging",
     "web:dev": "npm run web --workspace @starry/id-app",
-    "api:check": "wrangler deploy --dry-run --config apps/api/wrangler.toml --env staging"
+    "api:check": "wrangler deploy --dry-run --config apps/api/wrangler.toml --env staging",
+    "gate2:sqlite": "python3 -m unittest discover -s modules/starry-auth/test -p test_schema.py -v && python3 scripts/ci/gate2_sqlite.py",
+    "gate2:check": "npm run typecheck && npm run lint && npm test && npm run gate2:sqlite && npm run api:check"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
