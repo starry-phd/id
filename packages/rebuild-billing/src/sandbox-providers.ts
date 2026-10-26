@@ -221,8 +221,10 @@ export async function verifyGoogleSandboxRtdn(
   const purchaseToken=notification.purchaseToken;
   check(typeof purchaseToken==='string'&&purchaseToken.length>0&&purchaseToken.length<=4096,
     'GOOGLE_PURCHASE_TOKEN_DENIED');
-  const product=keyFromString(notification.subscriptionId);
-  check(registry.catalog[product]==='subscription','GOOGLE_SKU_DENIED');
+  check(notification.version==='1.0' && Number.isSafeInteger(notification.notificationType)
+    && notification.notificationType>=1 && notification.notificationType<=22,'GOOGLE_RTDN_TYPE_DENIED');
+  // Current RTDN SubscriptionNotification does NOT carry subscriptionId. Product authority
+  // comes from authenticated subscriptionsv2.get lineItems, not the RTDN body.
   const response=record(await trust.querySubscriptionV2(registry.storeAppId,purchaseToken));
   check(response.packageName===registry.storeAppId &&
     response.testPurchase!==undefined && response.testPurchase!==null &&
@@ -230,7 +232,8 @@ export async function verifyGoogleSandboxRtdn(
   const lineItems=response.lineItems;
   check(Array.isArray(lineItems)&&lineItems.length===1,'GOOGLE_LINE_ITEM_DENIED');
   const item=record(lineItems[0]);
-  check(item.productId===product,'GOOGLE_SKU_DENIED');
+  const product=keyFromString(item.productId);
+  check(registry.catalog[product]==='subscription','GOOGLE_SKU_DENIED');
   const binding=record(response.externalAccountIdentifiers);
   const accountBinding=keyFromString(binding.obfuscatedExternalAccountId);
   const stateMap:Record<string,StoreState>={
@@ -248,7 +251,7 @@ export async function verifyGoogleSandboxRtdn(
   return {
     brandId:'starry',appId:registry.appId,store:'google',storeEnvironment:'sandbox',
     storeAppId:registry.storeAppId,sku:product,kind:'subscription',
-    originalTransactionId:opaqueRef,transactionId:keyFromString(response.latestOrderId),
+    originalTransactionId:opaqueRef,transactionId:keyFromString(item.latestSuccessfulOrderId),
     providerEventId:'google_m_'+keyFromString(message.messageId),
     accountBinding,periodStartedAt:started,effectiveAt:dateIso(message.publishTime),
     expiresAt:expires,state,
