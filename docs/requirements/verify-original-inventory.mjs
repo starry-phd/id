@@ -6,7 +6,7 @@ if(!Array.isArray(inv.entries)||inv.entries.length!==128)bad('not 128 headings')
 const ids=new Set();
 const count={legacy_function:0,admin_prep:0,new_architecture_rule:0};
 for(const item of inv.entries){
- if(!/^(\d{2}\\.\d{2}|P\d{2}|N\d{2})$/.test(item.id))bad('bad id '+item.id);
+ if(!/^(?:[0-9]{2}[.][0-9]{2}|P[0-9]{2}|N[0-9]{2})$/.test(item.id))bad('bad id '+item.id);
  if(ids.has(item.id))bad('duplicate '+item.id);
  ids.add(item.id);
  if(!item.title||item.review_state!=='not_reconciled'||!item.source_url)bad('bad source-only row '+item.id);
