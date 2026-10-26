@@ -3,6 +3,8 @@
  * Approved ADMIN-PREP P01/P05; NOT a user authentication or admin permission service.
  */
 export const STARRY_BRAND_ID = 'starry' as const;
+/** Only approved metadata schema; new versions require explicit Gate review. */
+export const STARRY_EVENT_SCHEMA_VERSION = '0.1' as const;
 export type StarryEnvironment = 'development' | 'staging' | 'production';
 
 export interface StarryResourceScope {
@@ -104,6 +106,7 @@ export function isStarryEventEnvelope(value: unknown): value is StarryEventEnvel
     && Object.hasOwn(value, 'environment')
     && value.brand_id === STARRY_BRAND_ID
     && isStarryEnvironment(value.environment)
+    && value.schema_version === STARRY_EVENT_SCHEMA_VERSION
     && (!Object.hasOwn(value, 'idempotency_key') || safeLabel(value.idempotency_key));
 }
 
