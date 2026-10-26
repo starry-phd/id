@@ -79,6 +79,12 @@ export interface BillingP05Candidate {
   readonly actor_ref: string; readonly resource_ref: string; readonly result: 'recorded';
   readonly classification: 'metadata_only';
 }
+/** Object identity proves this exact snapshot came through the server planner;
+ * does NOT alone prove official Apple PKI / Google API trust sources are real. */
+const issuedBillingPlans=new WeakSet<object>();
+export function isServerBillingPlan(value:unknown):value is Extract<Plan,{disposition:'new'}> {
+  return typeof value==='object' && value!==null && issuedBillingPlans.has(value);
+}
 export type Plan =
   | {readonly disposition: 'duplicate'; readonly idempotencyKey: string}
   | {readonly disposition: 'new'; readonly idempotencyKey: string; readonly payloadDigest: string;
@@ -217,6 +223,12 @@ export async function planSandboxPurchase(
     actor_ref:actorRef,resource_ref:eventKey,result:'recorded',
     classification:'metadata_only',
   };
-  return {disposition:'new',idempotencyKey:eventKey,payloadDigest,owner,
-    snapshot:s,entitlement:chosen.projection,outbox,p05,entitlementChanged:chosen.changed};
+  const planned=Object.freeze({
+    disposition:'new' as const,idempotencyKey:eventKey,payloadDigest,
+    owner:Object.freeze({...owner}),snapshot:Object.freeze({...s}),
+    entitlement:Object.freeze({...chosen.projection}),outbox:Object.freeze({...outbox}),
+    p05:Object.freeze({...p05}),entitlementChanged:chosen.changed,
+  });
+  issuedBillingPlans.add(planned);
+  return planned;
 }
