@@ -37,7 +37,7 @@ test('JWKS expires, unknown KID throttle and rotates after 30 seconds',async()=>
  assert.equal(calls,1);
  assert.equal(await cache.keysFor('apple','unknown-kid',now+31),null);
  assert.equal(calls,2);
- assert.equal(await cache.keysFor('apple','valid-kid',now+100),null);
+ assert.ok(await cache.keysFor('apple','valid-kid',now+100));
  assert.equal(calls,3);
 });
 test('reject remote injected private key, duplicate kid, HS256, weak RSA and invalid issuer',async()=>{
