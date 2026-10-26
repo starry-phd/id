@@ -57,7 +57,9 @@ test('stage order is ID then free Battery then Billing, never an automatic relea
  const z=planStageOrder({identity:'offline_pass',battery:'blocked',billing:'offline_pass'});
  assert.deepEqual(z.ready_for_review,['identity']);
  assert.deepEqual(z.blocked,['battery','billing']);
- for(const invalid of [null,[],{identity:'approved',battery:'blocked',billing:'blocked'},
+ const revoked=Proxy.revocable({identity:'blocked',battery:'blocked',billing:'blocked'},{});
+ revoked.revoke();
+ for(const invalid of [null,[],revoked.proxy,{identity:'approved',battery:'blocked',billing:'blocked'},
    {identity:'offline_pass',billing:'offline_pass'},
    {identity:'blocked',battery:'blocked',billing:'blocked',admin:true}]){
   assert.throws(()=>planStageOrder(invalid),/STAGE_INPUT_DENIED/);

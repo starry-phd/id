@@ -27,8 +27,9 @@ const decision=(allowed:boolean,reason:AccessDecision['reason']):AccessDecision=
    verified_identity:false as const,live_deployment:false as const});
 const OWN_KEYS = new Set(['brand_id','app_id','environment','operation','auth_service_available']);
 function data(v:unknown):v is Record<string,unknown>{
-  if(!v||typeof v!=='object'||Array.isArray(v))return false;
+  if(!v||typeof v!=='object')return false;
   try {
+    if(Array.isArray(v))return false;
     const proto=Object.getPrototypeOf(v);
     if(proto!==Object.prototype&&proto!==null)return false;
     const keys=Reflect.ownKeys(v);
@@ -60,9 +61,10 @@ export function inspectStarryAccess(input:unknown):AccessDecision{
 export function planStageOrder(input:unknown):Readonly<{
   ready_for_review: readonly Stage[]; blocked:readonly Stage[]; release_authorized:false;
 }>{
-  if(!input||typeof input!=='object'||Array.isArray(input))throw Error('STAGE_INPUT_DENIED');
+  if(!input||typeof input!=='object')throw Error('STAGE_INPUT_DENIED');
   let names:(string|symbol)[];
   try{
+    if(Array.isArray(input))throw Error('STAGE_INPUT_DENIED');
     if(Object.getPrototypeOf(input)!==Object.prototype)throw Error('STAGE_INPUT_DENIED');
     names=Reflect.ownKeys(input);
   }catch{throw Error('STAGE_INPUT_DENIED');}
