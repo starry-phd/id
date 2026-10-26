@@ -42,6 +42,13 @@ export function isStarryEnvironment(value: unknown): value is StarryEnvironment 
   return value === 'development' || value === 'staging' || value === 'production';
 }
 
+/** Reject informal, offset-less or invalid event timestamps. */
+function isRfc3339Timestamp(value: unknown): value is string {
+  return typeof value === 'string'
+    && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(value)
+    && Number.isFinite(Date.parse(value));
+}
+
 /**
  * Reject unknown fields so tokens, secrets and personal data cannot be appended
  * accidentally to the shared envelope; domain payloads need separate schemas.
@@ -57,6 +64,7 @@ export function isStarryEventEnvelope(value: unknown): value is StarryEventEnvel
     && Object.hasOwn(value, 'environment')
     && value.brand_id === STARRY_BRAND_ID
     && isStarryEnvironment(value.environment)
+    && isRfc3339Timestamp(value.occurred_at)
     && (value.idempotency_key === undefined || nonEmpty(value.idempotency_key));
 }
 
