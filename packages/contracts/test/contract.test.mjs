@@ -17,6 +17,7 @@ test('P05: accepts valid Starry event envelope', () => {
   assert.equal(STARRY_BRAND_ID, 'starry');
   assert.equal(isStarryEventEnvelope(valid), true);
   assert.equal(isStarryEventEnvelope({...valid, idempotency_key: 'retry-1'}), true);
+  assert.equal(isStarryEventEnvelope({...valid, occurred_at: '2026-10-26T08:00:00+08:00'}), true);
 });
 
 test('P05: rejects cross-brand, bad environment, extra fields and malformed event', () => {
@@ -24,6 +25,9 @@ test('P05: rejects cross-brand, bad environment, extra fields and malformed even
   assert.equal(isStarryEventEnvelope({...valid, environment: 'test-production'}), false);
   assert.equal(isStarryEventEnvelope({...valid, access_token: 'secret'}), false);
   assert.equal(isStarryEventEnvelope({...valid, event_id: ' '}), false);
+  assert.equal(isStarryEventEnvelope({...valid, occurred_at: 'yesterday'}), false);
+  assert.equal(isStarryEventEnvelope({...valid, occurred_at: '2026-10-26'}), false);
+  assert.equal(isStarryEventEnvelope({...valid, occurred_at: '2026-10-26T25:00:00Z'}), false);
   assert.equal(isStarryEventEnvelope({...valid, idempotency_key: ''}), false);
   assert.equal(isStarryEventEnvelope(null), false);
   assert.equal(isStarryEventEnvelope(Object.create(valid)), false);
