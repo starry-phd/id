@@ -26,9 +26,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      # Bootstrap only: package-lock not yet committed. No deployment credentials.
+      # Reproducible locked install, no deployment credentials.
       - name: Install workspace dependencies for scaffold verification
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Typecheck TypeScript Worker and Expo app
         run: npm run typecheck
       - name: Lint actual application source
@@ -37,5 +37,3 @@ jobs:
         run: npm test
       - name: Check Worker staging bundle without deployment
         run: npm run api:check
-      - name: Capture dependency lockfile for follow-up committed CI
-        run: node -e "const fs=require('node:fs'); console.log('AI4_LOCKFILE_BEGIN'+JSON.stringify(fs.readFileSync('package-lock.json','utf8'))+'AI4_LOCKFILE_END')"
