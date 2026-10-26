@@ -30,5 +30,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run TypeScript runtime contract tests (no install, no secrets)
+      - name: Strict TypeScript compile for shared contract
+        run: npx --yes --package typescript@5.9.3 tsc --noEmit --project tsconfig.contracts.json
+      - name: Run TypeScript runtime contract tests (no secrets)
         run: node --experimental-strip-types --test packages/contracts/test/*.test.mjs
