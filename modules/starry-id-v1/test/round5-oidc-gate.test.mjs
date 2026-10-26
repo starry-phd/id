@@ -74,10 +74,10 @@ test('reject fake flags/getters, wrong provider and wrong scope',async()=>{
   {scope:{...scope,brand_id:'hglobal'}},{scope:{...scope,environment:'production'}},
   {scope:{...scope,app_id:'other'}},
  ]) {
-  const y=await fixture(options);
   if(options.scope.brand_id!=='starry'||options.scope.environment==='production'){
    await assert.rejects(async()=>fixture(options),/OIDC_SCOPE_DENIED/);
   }else{
+   const y=await fixture(options);
    assert.equal(await y.handle.handle(payload,now),null);
   }
  }
