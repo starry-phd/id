@@ -37,3 +37,21 @@ CREATE TABLE IF NOT EXISTS ai3_delivery_dedupe (
   PRIMARY KEY(brand_id,app_id,environment,event_type,idempotency_key)
 );
 -- Retention/purge require policy + separately audited controlled procedure; no generic UPDATE/DELETE to admin UI.
+
+-- AI-2 alone writes transaction/entitlement/outbox; AI-3 alone writes redacted audit inbox.
+-- Design only; atomic insert, append-only controls and retention require Gate approval.
+CREATE TABLE IF NOT EXISTS ai3_billing_audit_inbox (
+ brand_id TEXT NOT NULL CHECK(brand_id='starry'),
+ app_id TEXT NOT NULL,
+ environment TEXT NOT NULL CHECK(environment IN ('development','staging','production')),
+ store_environment TEXT NOT NULL CHECK(store_environment='sandbox'),
+ event_id TEXT NOT NULL,
+ event_type TEXT NOT NULL CHECK(event_type IN ('billing.purchase_verified','billing.renewed','billing.refund_recorded','billing.entitlement_changed')),
+ provider_event_id TEXT NOT NULL,
+ transaction_ref TEXT NOT NULL,
+ occurred_at TEXT NOT NULL,
+ decision TEXT NOT NULL CHECK(decision IN ('ready','stale_audit_only')),
+ PRIMARY KEY(brand_id,app_id,environment,provider_event_id),
+ UNIQUE(brand_id,app_id,environment,event_id)
+);
+CREATE INDEX IF NOT EXISTS ai3_billing_scope_order ON ai3_billing_audit_inbox(brand_id,app_id,environment,transaction_ref,occurred_at DESC);
