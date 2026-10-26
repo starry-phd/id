@@ -3,7 +3,7 @@
  * Neither this package nor an HTTP request performs OIDC or store verification.
  */
 import {
-  assertStarryResourceScope, isStarryEventEnvelope,
+  assertStarryResourceScope, assertStarryEventForScope, isStarryEventEnvelope,
   type StarryEventEnvelope, type StarryResourceScope,
 } from '../../contracts/src/index.ts';
 import {
@@ -17,7 +17,7 @@ import {
   type ProviderVerifiedEvent, type Store,
 } from '../../billing-contracts/src/index.ts';
 import {
-  assertAuditRead, idempotencyNamespace, isEventEnvelope,
+  bindAi3TrustedOperations, idempotencyNamespace, isEventEnvelope,
 } from '../../ai3/src/index.ts';
 
 export interface TrustedBackendState {
@@ -50,16 +50,22 @@ function requirePermission(state: TrustedBackendState, operation: Operation, now
   if (!result.allowed) throw new Error(result.reason);
 }
 /** Public client cannot grant an admin scope, even by passing adminVerified=true. */
-export function assertTrustedAuditRead(
+export async function assertTrustedAuditRead(
   source: TrustedBackendSource, clientRequestedScope: unknown, now: number,
-): void {
+): Promise<void> {
   const state = requireBackend(source, clientRequestedScope, now);
-  requirePermission(state, { resource: 'system', action: 'read' }, now);
+  requirePermission(state, { resource: 'audit', action: 'read' }, now);
   if (state.verified_step_up_at === null || !Number.isSafeInteger(state.verified_step_up_at)
     || state.verified_step_up_at > now || now - state.verified_step_up_at > 300
     || state.session?.step_up_until === null || state.session?.step_up_until === undefined
     || state.session.step_up_until <= now) throw new Error('AUDIT_STEP_UP_REQUIRED');
-  assertAuditRead(state.scope, clientRequestedScope, true, 'audit:read');
+  // AI-3's operation receives an internal policy decision AFTER server-side AI-1 authorization.
+  const ai3 = bindAi3TrustedOperations(state.scope, {
+    authorizeAdmin: async () => ({allowed:true}),
+    authorizeSession: async () => ({allowed:true}),
+    resolveNotificationDelivery: async () => null,
+  });
+  await ai3.assertAuditRead(clientRequestedScope);
 }
 export interface TrustedSandboxBillingState {
   readonly auth: TrustedBackendState;
@@ -92,8 +98,8 @@ export function projectServerVerifiedSandboxEvent(
   if (!candidate.provider_verified_event) throw new Error('SERVER_PROVIDER_VERIFICATION_REQUIRED');
   return applyVerifiedEvent(candidate.current, candidate.provider_verified_event, {
     brandId: state.scope.brand_id,
-    /** AI-2's sandbox environment is a store axis, NOT runtime Worker environment. */
-    environment: 'sandbox',
+    environment: state.scope.environment,
+    storeEnvironment: 'sandbox',
     appId: state.scope.app_id,
     store: candidate.store,
     storeAppId: candidate.store_app_id,
@@ -124,25 +130,26 @@ export function assertTrustedRefundReview(
   if (!candidate.server_approval_id) throw new Error('SERVER_APPROVAL_REQUIRED');
   assertRefundReviewAuthorized({
     brandId: state.scope.brand_id,
-    environment: candidate.store_environment,
+    environment: state.scope.environment,
+    storeEnvironment: candidate.store_environment,
     appIds: [state.scope.app_id],
     scopes: ['billing:refund:review'], // only minted after AI-1 scoped grant success
     stepUpAt: new Date(state.verified_step_up_at * 1000).toISOString(),
   }, {
     brandId: state.scope.brand_id,
-    environment: 'sandbox', appId: state.scope.app_id,
+    environment: state.scope.environment, storeEnvironment: 'sandbox', appId: state.scope.app_id,
     reason, approvalId: candidate.server_approval_id,
   }, new Date(now * 1000).toISOString());
 }
 /** Canonical #19 validates client-facing event shape BEFORE AI-3 audit/dedupe.
- * AI-3 snapshot #21 only accepts UTC-Z, so this adapter normalizes a validated
- * RFC3339 offset to an equivalent UTC instant until its owner updates #21.
+ * AI-3 now supports offsets too; canonical AI-0 validates timestamps before
+ * normalizing to equivalent UTC for stable idempotency across representations.
  */
 export function canonicalAuditIdempotencyKey(
   trustedScope: StarryResourceScope, candidate: unknown,
 ): string {
   if (!isStarryEventEnvelope(candidate)) throw new Error('CANONICAL_EVENT_DENIED');
-  assertStarryResourceScope(trustedScope, candidate);
+  assertStarryEventForScope(trustedScope, candidate);
   const normalized: StarryEventEnvelope = {
     ...candidate, occurred_at: new Date(Date.parse(candidate.occurred_at)).toISOString(),
   };
