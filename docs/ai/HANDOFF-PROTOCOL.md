@@ -2,6 +2,17 @@
 > Owner: `starry-phd` · Repo: `starry-phd/id` · Status: decision recorded, agent execution not auto-triggered.
 > 本文件為 2026-10-26 業主最新決議；與舊交接方式衝突時，以本文件的「GitHub 交接」與「H-Global 暫停」限制優先。
 
+## 2026-10-26 最新執行模式（業主正式決議）
+**ChatGPT × 5 組人工喚醒 + GitHub 共享交接，不購買 Copilot Pro、不使用 Codex／OpenAI Platform API 自動執行。** 五組 ChatGPT 對話彼此不能直接叫醒，也不會共享所有聊天即時狀態；每次由業主開啟對應對話後，專責 AI 先讀 GitHub Issue、版本化契約、前手 PR／CI，再執行並留下證據。此決議優先於本文的過往 Copilot 條款。
+- AI-0 總管 → [Issue #1](https://github.com/starry-phd/id/issues/1)
+- AI-1 Auth／會員 → [Issue #2](https://github.com/starry-phd/id/issues/2)
+- AI-2 Billing／IAP → [Issue #3](https://github.com/starry-phd/id/issues/3)
+- AI-3 免費 Battery／安全／稽核 → [Issue #4](https://github.com/starry-phd/id/issues/4)
+- AI-4 Expo／Workers／OpenAPI → [Issue #5](https://github.com/starry-phd/id/issues/5)
+- **人工叫醒句型**：「繼續 starry-phd/id Issue #X。先讀 AGENTS.md、HANDOFF-PROTOCOL、相關 Issue／PR／CI，依已核准範圍完成本輪可交付內容，將 SHA、Draft PR、測試與阻塞寫回 GitHub。」
+- **接力**：當某組完成 GitHub HANDOFF，使用者可人工開啟下一組 ChatGPT 對話並只給 Issue 編號，不必貼完整交接包；若該聊天當次無 GitHub 存取權，仍須提供鏈接／授權後才能確實接力。
+- GitHub Actions 一般 CI／Dependabot 仍可依觸發自行執行，這**不是 AI-1～4 在背景工作**。正式部署、跨品牌 H-Global、真實個資與扣款不授權。
+
 ## A. 最高優先決議
 1. **五組 AI（AI-0、AI-1、AI-2、AI-3、AI-4）所有工程任務、疑問、決策、交接、測試證據、阻塞與驗收，均在此 GitHub Repo 進行。** 不要求業主在五組聊天之間複製／轉貼交接內容。
 2. 目前**只有 Starry ID / Starry 生態系範圍准許開發**；**H-Global1985 所有實作、雲端資源、會員資料庫、登入、API 服務、部署、GitHub Repo 操作一律暫停**，除非有新的明確業主決議解除暫停。
@@ -41,15 +52,15 @@
 - 尚未實作的 API 不得在 README／進度報告宣稱「串接已完成」。
 
 ## D. 執行限制
-- 此 Repo 裡建立 Issue、寫入規範**不會自動啟動五個獨立 AI 執行緒**。要真的平行開發，仍需各個有 GitHub 存取權的 GitHub Copilot Cloud Agent（需另行授權/觸發）或其他已授權 Agent 執行環境讀取自己的 Issue，持續依授權事件執行與回寫。
-- AI-0 要統籌，但沒有實際可運作的跨 Agent dispatcher／排程／持續執行環境前，不能承諾無人觸發時自動工作。PUBLIC Repo 目前不支援原生 GitHub Copilot Automations。
+- 此 Repo 裡建立 Issue、寫入規範**不會自動啟動五個 ChatGPT 對話**。目前採**業主人工喚醒**，各 ChatGPT 對話在當次互動中自行讀取 GitHub Issue 並回寫證據；未購買、不要求或自動啟用 Copilot Cloud Agent。
+- AI-0 為由業主人工喚醒的 ChatGPT 總管；不得承諾聊天在無人觸發時自動工作。過去 Copilot Automations 方案未採納，不列開發前置條件。
 - 遵守 GitHub AI API 安全 SOP：序列化寫入、去重、保守限流、只用需要的資源權限；無高頻 polling 或重複 CI。
 - 無 AI-0 驗收及業主發布授權，不合併 main、不動 Production／正式 D1／真實付款；文檔規範初始化之例外限本次批准的規劃寫入。
 
 ## E. 第一輪 Gate
 - [x] AI-0～4 GitHub Issues 建立
 - [x] GitHub-only handoff 決議寫入 repo
-- [ ] 驗證四組 AI 的執行環境是否真的綁定此 Repo 並能讀寫 Issue／PR
+- [ ] **人工喚醒各 ChatGPT AI 時**，分別驗證該次 GitHub 連接器可讀自己的 Issue／PR，並將完成證據回寫 GitHub；不需 Copilot 席位
 - [ ] 認定已核准的 Starry ID 功能規格及跨品牌預留欄位待決清單
 - [ ] AI-1／AI-4 設計並提交預留契約；AI-0 Gate 1 審閱
 - [ ] 各組實際 Draft PR 與 CI 檢查
