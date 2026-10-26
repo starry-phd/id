@@ -1,4 +1,5 @@
 /** Starry rebuild BILL-001 sandbox contract ONLY. Never use this as a store verifier. */
+import { isTrustedPrincipal } from '../../../modules/starry-id-v1/src/index.ts';
 export type RuntimeEnvironment = 'development' | 'staging' | 'production';
 export type StoreEnvironment = 'sandbox' | 'production';
 export type Store = 'apple' | 'google';
@@ -15,11 +16,7 @@ export interface ServerRegistry {
   readonly storeAppId: string;
   readonly catalog: Readonly<Record<string, ProductKind>>; // server-owned, approved test SKUs only
 }
-export interface VerifiedStarryIdentity {
-  readonly brandId: 'starry'; readonly appId: string;
-  readonly environment: RuntimeEnvironment; readonly userId: string;
-  readonly accountBinding: string; // from trusted Starry ID, never client
-}
+/** No exportable VerifiedStarryIdentity DTO: principal must be issued inside AI-1 WeakSet. */
 /** Must be constructed exclusively by a *real* authoritative store adapter in production.
  * This round uses a fake verifier solely in offline tests. */
 export interface AuthoritativeStoreSnapshot {
@@ -50,8 +47,12 @@ export interface DomainLedgerRead {
   existingEvent(eventKey: string): ExistingEvent | null;
 }
 export interface StarryAuthPort {
-  /** Must obtain current, non-revoked Starry ID principal from AI-1 per request. */
-  verifyCurrentIdentity(): VerifiedStarryIdentity | null;
+  /** Must call AI-1 createServerIdentityResolver on this request; never trust HTTP JSON. */
+  resolveTrustedPrincipal(): Promise<unknown>;
+  /** From server-owned Starry ID to provider binding mapping, never a client-supplied ID. */
+  accountBindingFor(sUserId: string, registry: ServerRegistry): Promise<string | null>;
+  /** Pseudonymous audit actor ref issued by trusted server, NOT raw s_user_id. */
+  opaqueActorRefFor(sUserId: string, registry: ServerRegistry): Promise<string | null>;
 }
 export interface StorePort {
   /** In real integration verify Apple JWS / Apple API or Google API, NOT client markers. */
@@ -69,12 +70,21 @@ export interface OutboxCandidate {
   readonly resourceType: 'billing_transaction'; readonly resourceId: string;
   readonly result: 'observed' | 'historical';
 }
+/** Candidate only: AI-0/AI-3 must approve a single shared P05 schema and audit receiver. */
+export interface BillingP05Candidate {
+  readonly brand_id: 'starry'; readonly app_id: string; readonly environment: RuntimeEnvironment;
+  readonly schema_version: 'billing.p05.v1-candidate';
+  readonly event_id: string; readonly event_type: 'billing.store_state_observed';
+  readonly occurred_at: string; readonly correlation_id: string; readonly idempotency_key: string;
+  readonly actor_ref: string; readonly resource_ref: string; readonly result: 'recorded';
+  readonly classification: 'metadata_only';
+}
 export type Plan =
   | {readonly disposition: 'duplicate'; readonly idempotencyKey: string}
   | {readonly disposition: 'new'; readonly idempotencyKey: string; readonly payloadDigest: string;
      readonly owner: PreviousPurchase; readonly snapshot: AuthoritativeStoreSnapshot;
      readonly entitlement: EntitlementProjection; readonly outbox: OutboxCandidate;
-     readonly entitlementChanged: boolean};
+     readonly p05: BillingP05Candidate; readonly entitlementChanged: boolean};
 function ensure(condition:unknown, error:string):asserts condition { if(!condition)throw new Error(error); }
 function identifier(value:unknown):value is string {
   return typeof value==='string' && /^[A-Za-z0-9._:-]{1,180}$/.test(value);
@@ -143,10 +153,22 @@ export async function planSandboxPurchase(
   const request=untrustedRequest as Record<string,unknown>;
   ensure(Object.keys(request).sort().join('|')==='evidence|store' && request.store===ports.registry.store
     && typeof request.evidence==='string' && request.evidence.length>0, 'CLIENT_CLAIMS_DENIED');
-  const principal=ports.auth.verifyCurrentIdentity();
-  ensure(principal!==null && principal.brandId==='starry' && principal.appId===ports.registry.appId
-    && principal.environment===ports.registry.environment && identifier(principal.userId)
-    && identifier(principal.accountBinding),'AUTH_DENIED');
+  const rawPrincipal=await ports.auth.resolveTrustedPrincipal();
+  // WeakSet-attestation in actual AI-1 module: structured clones/client JSON cannot mint identity.
+  ensure(isTrustedPrincipal(rawPrincipal)
+    && rawPrincipal.brand_id==='starry' && rawPrincipal.member_status==='active'
+    && rawPrincipal.app_id===ports.registry.appId
+    && rawPrincipal.environment===ports.registry.environment
+    && rawPrincipal.expires_at>Math.floor(nowMs/1000)
+    // In addition to AI-1 WeakSet provenance, require a fresh per-request resolution.
+    // No reuse of a prior request's principal even within AI-1's maximum 60s window.
+    && rawPrincipal.checked_at===Math.floor(nowMs/1000)
+    && identifier(rawPrincipal.s_user_id), 'AUTH_DENIED');
+  const userId=rawPrincipal.s_user_id;
+  const accountBinding=await ports.auth.accountBindingFor(userId,ports.registry);
+  const actorRef=await ports.auth.opaqueActorRefFor(userId,ports.registry);
+  ensure(identifier(accountBinding) && identifier(actorRef) && actorRef!==userId
+    && actorRef!==accountBinding,'SERVER_BINDING_DENIED');
   const s=ports.store.verifySandboxEvidence(request.evidence,ports.registry.store);
   ensure(s.brandId==='starry' && s.appId===ports.registry.appId
     && s.store===ports.registry.store && s.storeEnvironment==='sandbox'
@@ -155,7 +177,7 @@ export async function planSandboxPurchase(
     ensure(identifier(id),'PROVIDER_ID_DENIED');
   ensure(!/battery/i.test(s.sku) && s.kind===ports.registry.catalog[s.sku], 'SKU_DENIED');
   ensure(['PAID','RENEWED','REFUNDED','CHARGEBACK','EXPIRED','GRACE_PERIOD','ON_HOLD','REVOKED'].includes(s.state), 'STATE_DENIED');
-  ensure(s.accountBinding===principal.accountBinding,'ACCOUNT_BINDING_DENIED');
+  ensure(s.accountBinding===accountBinding,'ACCOUNT_BINDING_DENIED');
   const started=parseTime(s.periodStartedAt), effective=parseTime(s.effectiveAt);
   ensure(started<=effective,'EVENT_TIME_DENIED');
   if(s.kind==='subscription'&&(s.state==='PAID'||s.state==='RENEWED'))
@@ -163,10 +185,10 @@ export async function planSandboxPurchase(
   if(s.expiresAt!==null) parseTime(s.expiresAt);
   if(s.kind==='non_consumable')ensure(s.state!=='RENEWED','STATE_DENIED');
   const existingOwner=ports.ledger.ownerForOriginalTransaction(s);
-  ensure(existingOwner===null ||(existingOwner.userId===principal.userId
-    && existingOwner.accountBinding===principal.accountBinding),'PURCHASE_ALREADY_BOUND');
+  ensure(existingOwner===null ||(existingOwner.userId===userId
+    && existingOwner.accountBinding===accountBinding),'PURCHASE_ALREADY_BOUND');
   const owner:PreviousPurchase=existingOwner??{
-    userId:principal.userId,accountBinding:principal.accountBinding};
+    userId,accountBinding};
   // Unique domain-scoped key must NOT come from client, raw evidence, or a fake paid flag.
   const eventKey='b_'+await digest(JSON.stringify(['rebuild-billing-event-v1',
     ports.registry.brandId,ports.registry.appId,ports.registry.environment,
@@ -178,15 +200,23 @@ export async function planSandboxPurchase(
     ensure(seen.payloadDigest===payloadDigest,'IDEMPOTENCY_CONFLICT');
     return {disposition:'duplicate',idempotencyKey:eventKey};
   }
-  const previous=ports.ledger.latestEntitlement(s,principal.userId);
-  if(previous)ensure(previous.userId===principal.userId&&previous.appId===s.appId
+  const previous=ports.ledger.latestEntitlement(s,userId);
+  if(previous)ensure(previous.userId===userId&&previous.appId===s.appId
     && previous.originalTransactionId===s.originalTransactionId,'ENTITLEMENT_OWNER_DENIED');
-  const chosen=chooseEntitlement(s,previous,principal.userId,nowMs);
+  const chosen=chooseEntitlement(s,previous,userId,nowMs);
   const outbox:OutboxCandidate={eventId:s.providerEventId,eventType:'billing.store_state_observed',
     brandId:'starry',appId:ports.registry.appId,environment:ports.registry.environment,
     storeEnvironment:'sandbox',idempotencyKey:eventKey,
     correlationId:eventKey,resourceType:'billing_transaction',resourceId:s.transactionId,
     result:chosen.historical?'historical':'observed'};
+  const p05:BillingP05Candidate={
+    brand_id:'starry',app_id:ports.registry.appId,environment:ports.registry.environment,
+    schema_version:'billing.p05.v1-candidate',
+    event_id:eventKey,event_type:'billing.store_state_observed',
+    occurred_at:s.effectiveAt,correlation_id:eventKey,idempotency_key:eventKey,
+    actor_ref:actorRef,resource_ref:eventKey,result:'recorded',
+    classification:'metadata_only',
+  };
   return {disposition:'new',idempotencyKey:eventKey,payloadDigest,owner,
-    snapshot:s,entitlement:chosen.projection,outbox,entitlementChanged:chosen.changed};
+    snapshot:s,entitlement:chosen.projection,outbox,p05,entitlementChanged:chosen.changed};
 }
