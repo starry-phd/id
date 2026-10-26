@@ -2,7 +2,7 @@
  * Starry Expo entry-point contract. Member Auth is intentionally DISABLED until
  * AI-1 real OAuth/JWKS/session and AI-0 API Gate approval. No stored mock token.
  */
-import {STARRY_ID_TEMPLATE} from './brand-registry';
+import {STARRY_ID_TEMPLATE} from './brand-registry.ts';
 import type {PreviewSelfProfile} from '../../../packages/sdk/src/member-preview.ts';
 export type MemberView =
  |Readonly<{status:'disabled';message:string;profile:null}>
