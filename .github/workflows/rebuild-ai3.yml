@@ -1,7 +1,7 @@
 name: REBUILD AI-3 Trust Phase 0
 on:
   pull_request:
-    branches: [main, ai0/rebuild-round2-union-gate-20261026]
+    branches: [main, ai0/rebuild-round2-union-gate-20261026, ai0/rebuild-round3-union-gate-20261026]
     paths:
       - 'packages/rebuild-ai3/**'
       - '.github/workflows/rebuild-ai3.yml'
