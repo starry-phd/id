@@ -138,3 +138,62 @@ test('P05 uses actual pinned AI-0 #19 implementation for shared positive/negativ
   {...event,occurred_at:'2026-13-26T08:00:00Z'}
  ])assert.equal(isEventEnvelope(sample),isStarryEventEnvelope(sample),JSON.stringify(sample));
 });
+
+test('Pinned AI-1 real session/admin policy: suspended, deleted, revoked, stale, cross-scope denied',async(t)=>{
+ const path=process.env.AI1_GUARDS_MODULE;
+ if(!path){t.skip('CI pins AI-1 #22; standalone smoke may skip');return}
+ const {pathToFileURL}=await import('node:url');
+ const {authorizeSession,authorizeAdmin}=await import(pathToFileURL(path).href);
+ const now=1780000000;
+ const principal={brand_id:'starry',app_id:scope.app_id,environment:'staging',s_user_id:'uid_01',session_id:'sess_01',auth_version:2,expires_at:now+1000};
+ const session={s_user_id:'uid_01',session_id:'sess_01',app_id:scope.app_id,environment:'staging',auth_version:2,expires_at:now+1000,revoked_at:null,step_up_until:now+500};
+ const member={s_user_id:'uid_01',status:'active',auth_version:2};
+ const grant={s_user_id:'uid_01',brand_id:'starry',app_id:scope.app_id,environment:'staging',resource:'system',action:'read',expires_at:now+1000,revoked_at:null};
+ let liveSession=session,liveMember=member,liveGrant=grant,livePrincipal=principal;
+ const bound=bindAi3TrustedOperations(scope,{
+   authorizeSession:async(s)=>authorizeSession(s,livePrincipal,liveSession,liveMember,now),
+   authorizeAdmin:async(s,op)=>authorizeAdmin(s,livePrincipal,liveSession,liveMember,liveGrant,op,now),
+   resolveNotificationDelivery:async()=>({recipient_ref:'uid_01',allowed_channels:['inbox']})
+ });
+ await bound.assertAuditRead(scope);
+ const req={event,recipient_ref:'uid_01',channel:'inbox',template_id:'incident.notice'};
+ await bound.assertNotificationDelivery(req);
+ for(const status of ['suspended','deleted']){
+  liveMember={...member,status};
+  await assert.rejects(bound.assertAuditRead(scope),/ACCESS_DENIED/);
+  await assert.rejects(bound.assertNotificationDelivery(req),/DENIED/);
+ }
+ liveMember=member;liveGrant={...grant,revoked_at:now};
+ await assert.rejects(bound.assertAuditRead(scope),/ACCESS_DENIED/);
+ liveGrant=grant;liveSession={...session,revoked_at:now};
+ await assert.rejects(bound.assertAuditRead(scope),/ACCESS_DENIED/);
+ await assert.rejects(bound.assertNotificationDelivery(req),/DENIED/);
+ liveSession=session;livePrincipal={...principal,auth_version:1};
+ await assert.rejects(bound.assertAuditRead(scope),/ACCESS_DENIED/);
+ livePrincipal={...principal,app_id:'other-app'};
+ await assert.rejects(bound.assertAuditRead(scope),/ACCESS_DENIED/);
+});
+test('Pinned AI-2 reducer maintains transaction ownership, dedupe, out-of-order refund safeguards',async(t)=>{
+ const path=process.env.AI2_BILLING_MODULE;
+ if(!path){t.skip('CI pins AI-2 #23; standalone smoke may skip');return}
+ const {pathToFileURL}=await import('node:url');
+ const {applyVerifiedEvent}=await import(pathToFileURL(path).href);
+ const bs={brandId:'starry',environment:'sandbox',appId:scope.app_id,store:'apple',storeAppId:'test.bundle',
+  userId:'uid_01',accountBinding:'bind_01',evaluatedAt:'2026-10-26T00:00:00Z'};
+ const catalog=[{appId:scope.app_id,store:'apple',storeAppId:'test.bundle',productId:'test.monthly',kind:'subscription',entitlementKey:'pro'}];
+ const p={verifiedBy:'apple-app-store-server-api',store:'apple',storeEnvironment:'sandbox',storeAppId:'test.bundle',
+  appId:scope.app_id,productId:'test.monthly',transactionId:'txn_new',originalTransactionId:'txn_origin',
+  eventId:'provider_renewed',occurredAt:'2026-10-26T00:00:00Z',
+  expiresAt:'2026-11-26T00:00:00Z',accountBinding:'bind_01',lifecycle:'RENEWED'};
+ const applied=applyVerifiedEvent(null,p,bs,catalog);
+ assert.equal(applied.projection.entitlement,'active');
+ assert.equal(applyVerifiedEvent(applied.projection,p,bs,catalog,true).reason,'duplicate');
+ assert.equal(applyVerifiedEvent(applied.projection,{...p,eventId:'older_refund',occurredAt:'2026-10-25T00:00:00Z',lifecycle:'REFUNDED'},bs,catalog).reason,'stale');
+ assert.equal(applyVerifiedEvent(applied.projection,{...p,eventId:'newer_refund',occurredAt:'2026-10-27T00:00:00Z',lifecycle:'REFUNDED'},bs,catalog).projection.entitlement,'inactive');
+ for(const bad of [
+  {...p,verifiedBy:'client-paid'},
+  {...p,storeEnvironment:'production'},
+  {...p,appId:'wrong'},
+  {...p,productId:'battery.monthly'}
+ ])assert.throws(()=>applyVerifiedEvent(null,bad,bs,catalog));
+});

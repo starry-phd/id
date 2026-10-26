@@ -26,9 +26,15 @@ jobs:
         run: |
           git fetch --no-tags --depth=1 origin f1ee45098097cb511b4a0fa656bc3503a79c21c0
           git show f1ee45098097cb511b4a0fa656bc3503a79c21c0:packages/contracts/src/index.ts > "$RUNNER_TEMP/ai0-canonical.ts"
+          git fetch --no-tags --depth=1 origin 381b18f2eebb19fb9402fd50cd7169667df0e0f9
+          git show 381b18f2eebb19fb9402fd50cd7169667df0e0f9:modules/starry-auth/src/guards.ts > "$RUNNER_TEMP/ai1-guards.ts"
+          git fetch --no-tags --depth=1 origin 69b5283e93dc29036d2d47ab5af28f994bbd62d1
+          git show 69b5283e93dc29036d2d47ab5af28f994bbd62d1:packages/billing-contracts/src/index.ts > "$RUNNER_TEMP/ai2-billing.ts"
       - name: Syntax check and unit test (no npm dependencies)
         env:
           AI0_CANONICAL_MODULE: ${{ runner.temp }}/ai0-canonical.ts
+          AI1_GUARDS_MODULE: ${{ runner.temp }}/ai1-guards.ts
+          AI2_BILLING_MODULE: ${{ runner.temp }}/ai2-billing.ts
         run: |
           node --experimental-strip-types --check packages/ai3/src/index.ts
           node --experimental-strip-types --test packages/ai3/test/*.test.mjs
