@@ -80,7 +80,7 @@ export function createStarryD1Port(db:D1Database,serverScope:TrustedScope) {
     if(!safeId(args.s_user_id)||!positive(args.auth_version)||!positive(args.expected_revision)||
       !epoch(args.now)||typeof args.directory_opt_in!=='boolean'||typeof args.display_name_public!=='boolean'||
       (args.display_name!==null&&(typeof args.display_name!=='string'||
-      args.display_name.trim()!==args.display_name||args.display_name.length<1||args.display_name.length>80||/[\\x00-\\x1F\\x7F]/.test(args.display_name))))return false;
+      args.display_name.trim()!==args.display_name||args.display_name.length<1||args.display_name.length>80||/[\x00-\x1F\x7F]/.test(args.display_name))))return false;
     const result=await db.prepare("UPDATE starry_members SET display_name=?,directory_opt_in=?,display_name_public=?,profile_revision=profile_revision+1,updated_at=? WHERE s_user_id=? AND status='active' AND auth_version=? AND profile_revision=?")
       .bind(args.display_name,Number(args.directory_opt_in),Number(args.display_name_public),args.now,args.s_user_id,args.auth_version,args.expected_revision).run();
     return result.success!==false && result.meta?.changes===1;
