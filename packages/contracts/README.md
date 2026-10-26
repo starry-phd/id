@@ -1,20 +1,28 @@
-# Starry ID — first-wave P01/P05 TypeScript shared contracts
+# Starry ID — first-wave P01/P05 shared contracts
 
-**Draft PR only — not deployed and not connected to Auth, D1, payments or production.**
+**Status: Draft PR #19 only. No Auth, database, payment, Queue or deployed service.**
 
-This zero-dependency TypeScript package supplies the first shared contracts:
-- **P01**: `starry` brand and distinct app/environment scope; reject cross-brand / other-app / staging-to-production scope changes.
-- **P05**: versionable typed event envelope matching `docs/contracts/FUTURE-STARRY-ADMIN-API.md`; reject extra fields to avoid accidental secrets or private data in a shared event.
-- Cross-brand member synchronization is `false` and has no real adapter. `example-starry-app` is a test fixture, not a newly approved production `app_id`.
+- **P01 scope:** `assertStarryResourceScope(trusted, actual)` compares a server-derived Starry brand, App and runtime environment. Plain scope objects only; extra properties, inherited scope, another brand/App/environment or malformed `app_id` fail closed. This is defense in depth, **not** cryptographic identity or authorization.
+- **P05 event envelope:** `isStarryEventEnvelope(value)` checks the canonical metadata fields. Unknown fields are rejected. Machine labels allow 1–128 ASCII letters/digits and `._:-`, beginning with a letter/digit. Opaque IDs or event values outside this format require an explicit contract decision rather than silently accepting free-form text.
+- **P05 time:** `isRfc3339Timestamp(value)` accepts a real calendar date with explicit UTC `Z` or numeric timezone offset. Dates such as 2026-02-29 or April 31, no timezone, leap seconds, `24:00` and 10+ fraction digits are rejected. Timestamp precision / timezone representation should be normalized by the domain owner.
+- **Combined Gate:** `assertStarryEventForScope(trusted, value)` validates the event and checks it against a **trusted server-derived** Starry App/environment scope. It is not an authentication API.
+- **Disabled cross-brand sync:** `CROSS_BRAND_MEMBER_SYNC_ENABLED` is statically `false` and there is no live adapter or external network call.
 
-Scope checking is a **defense-in-depth contract guard, not authentication or admin authorization**: only pass trusted server-derived scope. AI-1 still owns Auth, scopes, RBAC/ABAC and step-up checks. AI-3 owns event retention and audit semantics. AI-4 owns Expo/Workers scaffold and the package-manager/lockfile.
+The guard blocks unknown keys and common unsafe labels; **it cannot detect every personal value or secret hidden inside an allowed string**. Domain owners must apply their specific event allowlists, user consent, privacy and audit rules. The trusted scope must never originate from a client supplied claim alone.
 
-Locally validated with Node 22 and `tsc --noEmit --project tsconfig.contracts.json` (TypeScript compiler 5.8.3), plus:
+**Coordination:** AI-0 owns this contract and PR #19; AI-1 owns verified Auth/Admin and permission decisions; AI-2 owns Billing sandbox; AI-3 owns actual domain event/audit semantics and data retention; AI-4 owns workspaces, OpenAPI/SDK, Worker adapter, CI integration and the root lockfile. PRs #20–#23 are separate Drafts; they are not merged into #19. Shared DTO parity/integration must be verified before Gate 2.
+
+## Verification
 
 ```sh
+tsc --noEmit --project tsconfig.contracts.json
 node --experimental-strip-types --test packages/contracts/test/*.test.mjs
 ```
 
-The new GitHub workflow checks only this contract suite. Existing `Starry CI` app typecheck/lint/tests remain **SKIPPED** until AI-4 builds an actual Expo/Workers app with root package manifest, lockfile and CI scripts. Do not misreport contract tests as whole-app tests.
+GitHub `.github/workflows/starry-contracts.yml` runs strict TypeScript and Node tests. This CI is not full Expo/Workers App testing. Prior standalone success does not prove cross-PR integration; check the exact latest SHA and workflow run before citing results.
 
-Sources: approved First Wave ADMIN-PREP, Issue #13; first-wave kickoff Issue #1; canonical repo `starry-phd/id`, never retired `starryphp` GitHub login. No H-Global work.
+- `example-starry-app` is a **test fixture**, not a formally registered production `app_id`.
+- App runtime `environment` (development/staging/production) is separate from Apple/Google `store_environment` (sandbox/production); no Store IAP code exists in this package.
+- No Production, staging deployment, external Cloudflare updates, real D1, payment or H-Global work is authorized.
+
+Sources: AGENTS.md; approved ADMIN-PREP #13; AI-0 #1; canonical repository `starry-phd/id`; the retired `starryphp` account is excluded.
