@@ -72,7 +72,7 @@ test('malformed Play response / another kind fails closed',async()=>{
  }
 });
 test('Google missing backend OAuth, provider outage reject safely',async()=>{
- const a=make({oauth:'client-invalid'});
+ const a=make({oauth:'short'});
  await assert.rejects(a.port.querySubscriptionV2('com.starry.test','tok'),/PLAY_SERVER_TOKEN_DENIED/);
  const b=make({networkError:true});
  await assert.rejects(b.port.querySubscriptionV2('com.starry.test','tok'),/PLAY_REQUERY_UNAVAILABLE/);
