@@ -153,3 +153,74 @@ test('wrong Starry scope cannot bypass Billing afterCommitOrder',async()=>{
   app_id:'starry.test',environment:'staging'},x.p.idempotencyKey);
  assert.equal(y,'unknown');
 });
+
+
+test('R6 missing committed row is not fraud: retry four times, then durable DLQ only, no quarantine',async()=>{
+ const x=await env();
+ for(let attempt=1;attempt<=4;attempt++){
+  const result=await x.consumer.consume(x.p.idempotencyKey,attempt);
+  assert.equal(result.outcome,'retry');
+  assert.equal(result.reason,'SOURCE_NOT_YET_COMMITTED');
+  assert.equal(result.ack_safe,false);
+  assert.ok(result.retry_after_ms>0);
+ }
+ const last=await x.consumer.consume(x.p.idempotencyKey,5);
+ assert.equal(last.outcome,'dlq_required');
+ assert.equal(last.reason,'SOURCE_NOT_YET_COMMITTED');
+ assert.equal(last.ack_safe,false);
+ assert.equal(x.state.inbox.size,0);
+ assert.equal(x.state.quarantine.length,0);
+ assert.equal(x.state.batchCount,0);
+});
+
+test('R6 failed DLQ persistence at max redelivery must retry without ACK and without quarantine',async()=>{
+ const x=await env();
+ const events=[];
+ const msg={body:{event_ref:x.p.idempotencyKey},attempts:5,
+  ack(){events.push('ACK');},retry(){events.push('RETRY');}};
+ const result=await dispatchQueueMessage(msg,x.consumer,{
+  persist:async()=>{events.push('DLQ_FAIL');throw new Error('offline DB unavailable');},
+ });
+ assert.equal(result,'retried');
+ assert.deepEqual(events,['DLQ_FAIL','RETRY']);
+ assert.equal(x.state.quarantine.length,0);
+});
+
+test('R6 only persistent DLQ matching event reference authorizes terminal ACK',async()=>{
+ const x=await env();
+ const events=[];
+ const msg={body:{event_ref:x.p.idempotencyKey},attempts:5,
+  ack(){events.push('ACK');},retry(){events.push('RETRY');}};
+ const wrong=await dispatchQueueMessage(msg,x.consumer,{
+  persist:async()=>({outcome:'durably_written',event_ref:'wrong-event'}),
+ });
+ assert.equal(wrong,'retried');
+ assert.deepEqual(events,['RETRY']);
+ events.length=0;
+ const correct=await dispatchQueueMessage(msg,x.consumer,{
+  persist:async(record)=>{
+   assert.equal(record.event_ref,x.p.idempotencyKey);
+   assert.equal(record.reason_code,'SOURCE_NOT_YET_COMMITTED');
+   assert.equal(record.attempt,5);
+   events.push('DLQ_PERSISTED');
+   return {outcome:'durably_written',event_ref:record.event_ref};
+  },
+ });
+ assert.equal(correct,'dlq_acked');
+ assert.deepEqual(events,['DLQ_PERSISTED','ACK']);
+ assert.equal(x.state.quarantine.length,0);
+});
+
+test('R6 delayed committed source can recover after earlier no-ACK retries without duplicate audit',async()=>{
+ const x=await env();
+ const first=await x.consumer.consume(x.p.idempotencyKey,1);
+ assert.equal(first.reason,'SOURCE_NOT_YET_COMMITTED');
+ await x.writer.commit(x.p,now);
+ const next=await x.consumer.consume(x.p.idempotencyKey,2);
+ assert.equal(next.outcome,'ack');
+ assert.equal(next.ack_safe,true);
+ const again=await x.consumer.consume(x.p.idempotencyKey,3);
+ assert.equal(again.outcome,'ack');
+ assert.equal(x.state.inbox.size,1);
+ assert.equal(x.state.quarantine.length,0);
+});
