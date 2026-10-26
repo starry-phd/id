@@ -1,0 +1,44 @@
+name: AI-4 Rebuild Phase0 Verification
+on:
+  pull_request:
+    paths:
+      - 'apps/**'
+      - 'packages/sdk/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'eslint.config.mjs'
+      - 'docs/adr/ADR-AI4-0002-*'
+      - '.github/workflows/ai4-rebuild-foundation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ai4-rebuild-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    name: Locked Node22 / strict TS / lint / contracts / Worker dry-run
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install (locked, no secrets)
+        run: npm ci --no-audit --no-fund
+      - name: TypeScript strict typecheck
+        run: npm run typecheck
+      - name: ESLint with no warnings
+        run: npm run lint
+      - name: Node unit and OpenAPI parity
+        run: npm test
+      - name: Validate PR25 SSOT seed registry
+        run: npm run ssot:validate
+      - name: Expo config smoke (NOT four-platform device builds)
+        run: npm run mobile:config
+      - name: Worker staging bundle validation (NO deployment)
+        run: npm run api:check
