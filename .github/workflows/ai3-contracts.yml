@@ -1,0 +1,36 @@
+name: AI-3 Trust Contracts
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/ai3/**'
+      - '.github/workflows/ai3-contracts.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ai3-contracts:
+    name: AI-3 unit and policy tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check and unit test (no npm dependencies)
+        run: |
+          node --experimental-strip-types --check packages/ai3/src/index.ts
+          node --experimental-strip-types --test packages/ai3/test/*.test.mjs
+      - name: Validate isolated D1 schema draft using SQLite in-memory only
+        run: |
+          python3 - <<'PY'
+          import sqlite3
+          with open('packages/ai3/schema/001_audit_design.sql',encoding='utf-8') as f:
+              migration=f.read()
+          conn=sqlite3.connect(':memory:')
+          conn.executescript(migration)
+          assert {'ai3_audit_events','ai3_delivery_dedupe'}.issubset({r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")})
+          PY
