@@ -1,0 +1,54 @@
+name: AI-0 Round 4 All Owner Union
+on:
+  pull_request:
+    paths:
+      - 'apps/**'
+      - 'modules/starry-id-v1/**'
+      - 'packages/**'
+      - 'docs/requirements/**'
+      - '.github/workflows/ai0-round4-union.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  all-owners-one-checkout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Locked CI and requirement audit
+        run: |
+          npm ci --no-audit --no-fund
+          npm run ssot:validate
+          node docs/requirements/verify-original-inventory.mjs
+      - name: TS lint Worker SDK Expo checks (no remote EAS)
+        run: |
+          npm run typecheck
+          npm run lint
+          npm test
+          npm run mobile:config
+          npm run api:check
+      - name: All owners strict TypeScript
+        run: |
+          ./node_modules/.bin/tsc --noEmit -p modules/starry-id-v1/tsconfig.json
+          ./node_modules/.bin/tsc --noEmit -p tsconfig.rebuild-billing.json
+          ./node_modules/.bin/tsc --noEmit -p packages/rebuild-ai3/tsconfig.json
+      - name: Full domain and cross-owner tests
+        run: |
+          node --experimental-strip-types --test modules/starry-id-v1/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-billing/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-ai3/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-ai3/integration/*.test.mjs
+          node --experimental-strip-types --test packages/ai0-contracts/test/*.test.mjs
+          node --experimental-strip-types --test packages/integration/test/*.test.mjs
+      - name: All three SQLite in-memory transactional suites
+        run: |
+          python3 -m unittest discover -s modules/starry-id-v1/test -p 'test_*.py' -v
+          python3 -m unittest discover -s packages/rebuild-billing/test -p 'test_*.py' -v
+          python3 -m unittest discover -s packages/rebuild-ai3/test -p 'test_*.py' -v

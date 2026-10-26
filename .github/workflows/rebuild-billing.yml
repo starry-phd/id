@@ -28,4 +28,4 @@ jobs:
       - name: Deterministic sandbox Node tests (no purchases)
         run: node --experimental-strip-types --test packages/rebuild-billing/test/*.test.mjs
       - name: In-memory SQLite transactional contract tests (no D1)
-        run: python3 -m unittest discover -s packages/rebuild-billing/test -p test_schema.py -v
+        run: python3 -m unittest discover -s packages/rebuild-billing/test -p 'test_*.py' -v

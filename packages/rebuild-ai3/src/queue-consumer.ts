@@ -42,6 +42,10 @@ export type Ai3InboxStore=Readonly<{
  claimAndAppendAtomically:(claim:Claim)=>Promise<ClaimOutcome>;
  recordQuarantine:(scope:Scope,eventRef:string,reason:string)=>Promise<void>;
 }>;
+/** Issued by AI-2 authoritative post-commit provider+entitlement snapshot only. */
+export type BillingSourceOrderPort=Readonly<{
+ afterCommitOrder:(scope:Scope,key:string)=>Promise<'current'|'superseded'|'unknown'>;
+}>;
 export type QueueDecision=Readonly<{
  outcome:'ack'|'quarantine_recorded'|'retry'|'dlq_required'|'hold';
  ack_safe:boolean;reason:string;retry_after_ms:number;
@@ -102,6 +106,7 @@ const outcome=(name:QueueDecision['outcome'],reason:string,ms=0):QueueDecision=>
 /** Plans acknowledgments only. Never invokes Cloudflare Queue ack/retry/DLQ. */
 export function createReliableBillingAuditConsumer(
  scope:Scope,authority:Ai0P05Authority,source:BillingCommittedReader,store:Ai3InboxStore,
+ order?:BillingSourceOrderPort,
 ){
  assertScope(scope,scope);
  // Fail closed. A real AI-0 version+validator must be supplied; no candidate
@@ -140,6 +145,13 @@ export function createReliableBillingAuditConsumer(
    try{approved=await authority.accepts(scope,record.p05)}
    catch{return defer('CANONICAL_VALIDATOR_UNAVAILABLE');}
    if(!approved)return quarantine('AI0_P05_NOT_APPROVED');
+   if(order){
+    let freshness:'current'|'superseded'|'unknown';
+    try{freshness=await order.afterCommitOrder(scope,eventRef);}
+    catch{return defer('BILLING_ORDER_UNAVAILABLE');}
+    if(freshness==='superseded')return quarantine('STALE_BILLING_EVENT');
+    if(freshness!=='current')return defer('BILLING_ORDER_UNCERTAIN');
+   }
    let audit:AuditMetadata;
    try{audit=auditProjection(record.p05)}
    catch{return quarantine('AUDIT_FIELDS_DENIED');}
@@ -154,4 +166,15 @@ export function createReliableBillingAuditConsumer(
    }catch{return defer('ATOMIC_INBOX_WRITE_FAILED');}
   },
  });
+}
+
+
+/** Fourth-round strict constructor: AI-2 server-only temporal proof is mandatory. */
+export function createRound4BillingAuditConsumer(
+ scope:Scope,authority:Ai0P05Authority,source:BillingCommittedReader,
+ store:Ai3InboxStore,order:BillingSourceOrderPort,
+){
+ if(!order||typeof order.afterCommitOrder!=='function')
+  throw new Error('AI3_BILLING_ORDER_AUTHORITY_REQUIRED');
+ return createReliableBillingAuditConsumer(scope,authority,source,store,order);
 }
