@@ -1,0 +1,24 @@
+name: AI-0 DEV-G API Surface and Handoff Preflight
+on:
+  pull_request:
+    paths:
+      - 'docs/api-handoff/**'
+      - '.github/workflows/ai0-api-handoff.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  api-handoff-snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Source-level API surface must stay release blocked, AI-5 is only proposed
+        run: |
+          node docs/api-handoff/verify-api-surface.mjs
+          node --test docs/api-handoff/test/*.test.mjs
