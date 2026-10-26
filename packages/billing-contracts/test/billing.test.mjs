@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { applyVerifiedEvent, assertRefundReviewAuthorized } from '../src/index.ts';
 
-const scope={brandId:'starry',environment:'sandbox',appId:'starry.demo',store:'apple',
+const scope={brandId:'starry',environment:'staging',storeEnvironment:'sandbox',appId:'starry.demo',store:'apple',
   storeAppId:'phd.starry.demo',userId:'s_test_user',accountBinding:'binding-1',
   evaluatedAt:'2026-10-26T08:00:00Z'};
 const products=[{appId:scope.appId,store:scope.store,storeAppId:scope.storeAppId,
@@ -49,6 +49,7 @@ test('cross-brand, production, store, app and package evidence rejected',()=>{
   reject(()=>applyVerifiedEvent(null,event,{...scope,brandId:'other'},products),/brand/);
   reject(()=>applyVerifiedEvent(null,event,{...scope,environment:'production'},products),/environment/);
   reject(()=>applyVerifiedEvent(null,{...event,storeEnvironment:'production'},scope,products),/environment/);
+  reject(()=>applyVerifiedEvent(null,event,{...scope,storeEnvironment:'production'},products),/environment/);
   reject(()=>applyVerifiedEvent(null,{...event,store:'google'},scope,products),/store mismatch/);
   reject(()=>applyVerifiedEvent(null,{...event,appId:'other'},scope,products),/app mismatch/);
   reject(()=>applyVerifiedEvent(null,{...event,storeAppId:'foreign.bundle'},scope,products),/app mismatch/);
@@ -75,7 +76,7 @@ test('Google evidence accepted only with matching registered package',()=>{
   assert.equal(applyVerifiedEvent(null,e,s,[{...products[0],store:'google',storeAppId:s.storeAppId}]).projection.entitlement,'active');
 });
 test('refund review needs Starry scope, app, reason, approval and recent step-up',()=>{
-  const p={brandId:'starry',environment:'sandbox',appIds:['starry.demo'],
+  const p={brandId:'starry',environment:'staging',storeEnvironment:'sandbox',appIds:['starry.demo'],
     scopes:['billing:refund:review'],stepUpAt:'2026-10-26T07:59:00Z'};
   const t={brandId:'starry',environment:'sandbox',appId:'starry.demo',reason:'case checked',approvalId:'review-1'};
   assert.doesNotThrow(()=>assertRefundReviewAuthorized(p,t,'2026-10-26T08:00:00Z'));
@@ -86,4 +87,5 @@ test('refund review needs Starry scope, app, reason, approval and recent step-up
   reject(()=>assertRefundReviewAuthorized(p,{...t,approvalId:''},'2026-10-26T08:00:00Z'),/approval/);
   reject(()=>assertRefundReviewAuthorized({...p,stepUpAt:null},t,'2026-10-26T08:00:00Z'),/step-up/);
   reject(()=>assertRefundReviewAuthorized(p,t,'2026-10-26T09:00:00Z'),/expired/);
+  reject(()=>assertRefundReviewAuthorized({...p,environment:'production'},t,'2026-10-26T08:00:00Z'),/environment/);
 });
