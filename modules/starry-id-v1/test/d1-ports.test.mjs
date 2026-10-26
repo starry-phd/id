@@ -54,3 +54,20 @@ test('Starry D1 account binding strict to App/Store sandbox row',async()=>{
  assert.equal(await p.readStoreBinding({...key,app_id:'foreign'}),null);
  assert.equal(await createStarryD1Port(mockDb({...row,store:'google'}).db,scope).readStoreBinding(key),null);
 });
+
+test('OAuth D1 state read and atomic consume bind App, env, provider, clientId',async()=>{
+ const state='st_'+ 'a'.repeat(40);
+ const challenge='a'.repeat(43);
+ const row={state,provider:'apple',app_id:'starry-id',environment:'staging',
+   client_id:'phd.starry.id',code_challenge:challenge,nonce:'nonce-test-opaque-01234567890',
+   expires_at:1793001000,consumed_at:null};
+ const m=mockDb(row,1),p=createStarryD1Port(m.db,scope);
+ assert.deepEqual(await p.readOAuthAttemptMeta(state),row);
+ assert.equal(await p.consumeOAuthAttemptCAS(state,'apple','phd.starry.id',1793000000),true);
+ assert.ok(m.calls[1].sql.includes('consumed_at IS NULL AND expires_at>?'));
+ assert.deepEqual(m.calls[1].args,[1793000000,state,'apple','starry-id','staging','phd.starry.id',1793000000]);
+ assert.equal(await createStarryD1Port(mockDb(null,0).db,scope).consumeOAuthAttemptCAS(state,'apple','phd.starry.id',1793000000),false);
+ assert.equal(await p.consumeOAuthAttemptCAS(state,'unknown','phd.starry.id',1793000000),false);
+ assert.equal(await p.readOAuthAttemptMeta('client-controlled-short'),null);
+ assert.equal(await createStarryD1Port(mockDb({...row,environment:'production'}).db,scope).readOAuthAttemptMeta(state),null);
+});
