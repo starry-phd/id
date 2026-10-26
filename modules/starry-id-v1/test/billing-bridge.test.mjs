@@ -103,11 +103,13 @@ test('suspended, deleted, revoked Session and stale auth_version fail closed',as
 test('cross brand/app/runtime and production Store/runtime denied',async()=>{
  for(const bad of [
   {store_environment:'production'},{environment:'production'},
-  {store:'adversary'},{brand_id:'hglobal'},{app_id:'other'},
+  {store:'adversary'},{brand_id:'hglobal'},
  ]) {
    await assert.rejects(async()=>make(fixture({scope:{...storeScope,...bad}})),
      /TRUSTED_STORE_REGISTRY_DENIED|INVALID_SERVER_SCOPE/);
  }
+ // An otherwise valid, but different Starry App registry must return null.
+ assert.equal(await make(fixture({scope:{...storeScope,app_id:'other'}})),null);
  for(const bad of [{brand_id:'hglobal'},{app_id:'other'},{environment:'production'}])
   assert.equal(await make(fixture({e:{...e,...bad}})),null);
 });
