@@ -52,7 +52,7 @@ async function fixture() {
   if(sql.includes('FROM billing_event e JOIN'))return null;
   if(sql.includes('FROM billing_atomic_receipt r'))return st.stored;
   throw Error('UNEXPECTED_BILLING_SQL');
- }};}},async batch(statements){
+ }};}};},async batch(statements){
   st.billingBatches++;
   if(st.billingAbort)throw Error('BILLING_ATOMIC_ROLLBACK');
   assert.equal(statements.length,5);
