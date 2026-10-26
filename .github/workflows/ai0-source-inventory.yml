@@ -1,0 +1,20 @@
+name: AI-0 Original Requirements Source Index
+on:
+  pull_request:
+    paths:
+      - 'docs/requirements/original-inventory.v0.json'
+      - 'docs/requirements/verify-original-inventory.mjs'
+      - '.github/workflows/ai0-source-inventory.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify source ID uniqueness and counts
+        run: node docs/requirements/verify-original-inventory.mjs
