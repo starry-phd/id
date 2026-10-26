@@ -15,7 +15,7 @@ export type Grant={s_user_id:string,brand_id:string,app_id:string,environment:st
 export type Operation={resource:Resource,action:Action};
 const deny=(reason:Reason):Decision=>({allowed:false,reason});
 const valid=(s:unknown)=>typeof s==='string'&&s.length>0&&s.trim()===s;
-const timestamp=(n:unknown)=>typeof n==='number'&&Number.isSafeInteger(n)&&n>=0;
+const timestamp=(n:unknown):n is number=>typeof n==='number'&&Number.isSafeInteger(n)&&n>=0;
 export function authorizeSession(scope:TrustedScope,p:VerifiedPrincipal|null,s:Session|null,m:Member|null,now:number):Decision {
   if(!p)return deny('AUTH_REQUIRED');
   if(scope.brand_id!=='starry'||!valid(scope.app_id)||!['development','staging','production'].includes(scope.environment)
