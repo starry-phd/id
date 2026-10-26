@@ -24,14 +24,13 @@ export type DeadLetterPort=Readonly<{
 const KEY=/^b_[a-f0-9]{64}$/;
 const REASON=/^[A-Z0-9_]{3,72}$/;
 function queueRef(value:unknown):unknown{
- if(value===null||typeof value!=='object'||Array.isArray(value))
-  return null;
  try {
+  if(value===null||typeof value!=='object'||Array.isArray(value))return null;
   if(Object.getPrototypeOf(value)!==Object.prototype)return null;
   const own=Reflect.ownKeys(value);
   if(own.length!==1||own[0]!=='event_ref')return null;
   const descriptor=Object.getOwnPropertyDescriptor(value,'event_ref');
-  return descriptor&&'value' in descriptor?descriptor.value:null;
+  return descriptor&&descriptor.enumerable===true&&'value' in descriptor?descriptor.value:null;
  }catch{return null;}
 }
 /** ONLY for trusted Worker composition; can be exercised without any cloud call. */
@@ -39,10 +38,16 @@ export async function dispatchQueueMessage(
  msg:QueueMessagePort,consumer:AuditConsumerPort,deadLetter:DeadLetterPort,
 ):Promise<'acked'|'retried'|'dlq_acked'>{
  const ref=queueRef(msg.body);
- const retry=(delaySeconds=1):'retried'=>{msg.retry({delaySeconds});return 'retried';};
- if(typeof ref!=='string'||!KEY.test(ref))return retry();
+ // After failed durable DLQ, delivery 6+ must not remain HOLD indefinitely.
+ // Cap policy evaluation at five; retain actual attempt for the DLQ receipt.
+ const retry=(seconds=1):'retried'=>{
+  const delaySeconds=Number.isFinite(seconds)?Math.max(1,Math.min(60,Math.ceil(seconds))):1;
+  msg.retry({delaySeconds});return 'retried';
+ };
+ if(typeof ref!=='string'||!KEY.test(ref)||!Number.isSafeInteger(msg.attempts)
+  ||msg.attempts<1)return retry();
  let decision:QueueDecision;
- try{decision=await consumer.consume(ref,msg.attempts);}
+ try{decision=await consumer.consume(ref,Math.min(msg.attempts,5));}
  catch{return retry();}
  if(decision.outcome==='ack'||decision.outcome==='quarantine_recorded'){
   if(decision.ack_safe!==true)return retry();
