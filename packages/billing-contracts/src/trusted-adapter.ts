@@ -3,15 +3,15 @@ import { applyVerifiedEvent, assertRefundReviewAuthorized } from './index.ts';
 import type { ApplyResult, CatalogEntry, Projection, ProviderVerifiedEvent,
   Scope, Store, WorkerEnvironment, StoreEnvironment } from './index.ts';
 
-/** Structurally matches AI-1 PR #22 VerifiedPrincipal v0.1; not a signature check. */
-export interface Ai1VerifiedPrincipal {
-  readonly brand_id: string;
-  readonly app_id: string;
-  readonly environment: string;
-  readonly s_user_id: string;
-  readonly session_id: string;
-  readonly auth_version: number;
-  readonly expires_at: number; // Unix seconds
+/** Output of AI-1 PR #22 v0.2 billingIdentityAdapter; NOT client-supplied JSON. */
+export interface Ai1BillingIdentity {
+  readonly brandId: 'starry';
+  readonly appId: string;
+  readonly runtimeEnvironment: WorkerEnvironment;
+  readonly storeEnvironment: 'sandbox';
+  readonly userId: string;
+  readonly authVersion: number;
+  readonly sessionId: string;
 }
 
 /** All values must be sourced from the Worker/server registry, NEVER HTTP claims. */
@@ -31,11 +31,13 @@ export interface ServerRefundPermission {
 }
 /** Integration contract. AI-1 owns ALL authentication and grant checks. */
 export interface Ai1AuthPort {
-  resolveVerifiedPrincipal(): Ai1VerifiedPrincipal | null;
-  assertActiveSession(p: Ai1VerifiedPrincipal, trusted: TrustedBillingRegistry, nowSeconds: number): void;
-  /** Authoritative persisted per-app grant, not an HTTP adminVerified flag. */
-  resolveRefundPermission(p: Ai1VerifiedPrincipal, trusted: TrustedBillingRegistry, nowSeconds: number): ServerRefundPermission | null;
-  accountBindingFor(p: Ai1VerifiedPrincipal, trusted: TrustedBillingRegistry): string;
+  /** The raw value is deliberately opaque; AI-1's WeakSet validates provenance. */
+  resolveTrustedPrincipal(): unknown;
+  /** Must call AI-1 billingIdentityAdapter on the module-issued principal. */
+  billingIdentity(principal: unknown, trusted: TrustedBillingRegistry, nowSeconds: number): Ai1BillingIdentity;
+  /** Must use AI-1 billingRefundReviewAdapter, enforce session/grant/step-up. */
+  resolveRefundPermission(principal: unknown, trusted: TrustedBillingRegistry, nowSeconds: number): ServerRefundPermission | null;
+  accountBindingFor(identity: Ai1BillingIdentity, trusted: TrustedBillingRegistry): string;
 }
 /** Stub ONLY until real Apple/Google server validation. Never use request.verifiedBy. */
 export interface StoreVerifierPort {
@@ -80,19 +82,20 @@ function checkedRegistry(c: TrustedBillingRegistry): void {
     && c.store_environment === 'sandbox', 'environment mismatch');
   requireValid(c.store === 'apple' || c.store === 'google', 'store mismatch');
 }
-function requireUser(ports: BillingPorts, isoNow: string): Ai1VerifiedPrincipal {
+function requireUser(ports: BillingPorts, isoNow: string): {principal: unknown; identity: Ai1BillingIdentity} {
   const c = ports.registry;
   checkedRegistry(c);
-  const p = ports.auth.resolveVerifiedPrincipal();
-  requireValid(p !== null, 'AUTH_REQUIRED');
-  requireValid(p.brand_id === c.brand_id && p.app_id === c.app_id && p.environment === c.environment
-    && validId(p.s_user_id) && validId(p.session_id) && Number.isSafeInteger(p.auth_version)
-    && p.auth_version > 0 && Number.isSafeInteger(p.expires_at), 'SCOPE_DENIED');
   const nowSeconds = Math.floor(parseTimestamp(isoNow) / 1000);
-  requireValid(p.expires_at > nowSeconds, 'SESSION_REVOKED');
-  // The port MUST consult AI-1's current persisted member, session revocation, auth_version.
-  ports.auth.assertActiveSession(p, c, nowSeconds);
-  return p;
+  const principal = ports.auth.resolveTrustedPrincipal();
+  requireValid(principal !== null && principal !== undefined, 'AUTH_REQUIRED');
+  // The callback must invoke AI-1 billingIdentityAdapter with the exact trusted
+  // server scope and store environment; its WeakSet rejects forged JSON.
+  const identity = ports.auth.billingIdentity(principal, c, nowSeconds);
+  requireValid(identity.brandId === c.brand_id && identity.appId === c.app_id
+    && identity.runtimeEnvironment === c.environment && identity.storeEnvironment === c.store_environment
+    && validId(identity.userId) && validId(identity.sessionId)
+    && Number.isSafeInteger(identity.authVersion) && identity.authVersion > 0, 'SCOPE_DENIED');
+  return {principal, identity};
 }
 /** P05 strict field mapping; call AI-0 canonical validator at AI-4 Gate 2 integration. */
 export function toCanonicalBillingEnvelope(
@@ -127,16 +130,16 @@ export function createSandboxBillingAdapter(ports: BillingPorts) {
       requireValid(exactObject(request, PURCHASE_KEYS)
         && Object.keys(request).length === 2 && request.store === ports.registry.store
         && Object.hasOwn(request, 'evidence'), 'CLIENT_CLAIMS_DENIED');
-      const p = requireUser(ports, now);
+      const {identity, principal} = requireUser(ports, now);
       const event = ports.verifier.verifySandboxEvidence(ports.registry.store, request.evidence);
       // Assert all server-verified scope and store fields BEFORE projection or audit mapping.
-      const accountBinding = ports.auth.accountBindingFor(p, ports.registry);
+      const accountBinding = ports.auth.accountBindingFor(identity, ports.registry);
       requireValid(validId(accountBinding), 'ACCOUNT_BINDING_REQUIRED');
       const scope: Scope = {
         brandId: ports.registry.brand_id, environment: ports.registry.environment,
         storeEnvironment: ports.registry.store_environment,
         appId: ports.registry.app_id, store: ports.registry.store,
-        storeAppId: ports.registry.store_app_id, userId: p.s_user_id,
+        storeAppId: ports.registry.store_app_id, userId: identity.userId,
         accountBinding, evaluatedAt: now,
       };
       // This flag is read only through the server-owned port, never client input.
@@ -150,11 +153,11 @@ export function createSandboxBillingAdapter(ports: BillingPorts) {
       requireValid(exactObject(request, REVIEW_KEYS) && Object.keys(request).length === 3
         && validId(request.transaction_ref) && validId(request.approval_id)
         && validId(request.reason), 'CLIENT_CLAIMS_DENIED');
-      const p = requireUser(ports, now);
+      const {identity, principal} = requireUser(ports, now);
       const nowSeconds = Math.floor(parseTimestamp(now) / 1000);
-      const auth = ports.auth.resolveRefundPermission(p, ports.registry, nowSeconds);
+      const auth = ports.auth.resolveRefundPermission(principal, ports.registry, nowSeconds);
       requireValid(auth !== null, 'ADMIN_DENIED');
-      assertRefundReviewAuthorized({brandId:p.brand_id, environment:ports.registry.environment,
+      assertRefundReviewAuthorized({brandId:identity.brandId, environment:ports.registry.environment,
         storeEnvironment:ports.registry.store_environment, appIds:auth.appIds,
         scopes:auth.scopes, stepUpAt:auth.stepUpAt},
       {brandId:ports.registry.brand_id, environment:ports.registry.environment,
