@@ -1,7 +1,7 @@
 name: REBUILD AI-3 Trust Phase 0
 on:
   pull_request:
-    branches: [main, ai0/rebuild-round2-union-gate-20261026, ai0/rebuild-round3-union-gate-20261026]
+    branches: [main, ai0/rebuild-round2-union-gate-20261026, ai0/rebuild-round3-union-gate-20261026, ai0/rebuild-round4-union-gate-20261026]
     paths:
       - 'packages/rebuild-ai3/**'
       - '.github/workflows/rebuild-ai3.yml'
@@ -40,5 +40,7 @@ jobs:
         env:
           AI0_P05_MODULE: ${{ runner.temp }}/ai0-p05.mjs
         run: node --experimental-strip-types --test packages/rebuild-ai3/integration/ai0-p05-contract.test.mjs
+      - name: Run current AI-2 #44 committed Billing to AI-3 Queue fault integration
+        run: node --experimental-strip-types --test packages/rebuild-ai3/integration/round5-billing-committed.test.mjs
       - name: SQLite in-memory atomicity simulation
         run: python3 -m unittest discover -s packages/rebuild-ai3/test -p 'test_*.py' -v

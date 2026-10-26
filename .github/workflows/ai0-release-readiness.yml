@@ -1,0 +1,24 @@
+name: AI-0 Offline Release Preflight (blocked until separately approved)
+on:
+  pull_request:
+    paths:
+      - 'docs/release-readiness/**'
+      - '.github/workflows/ai0-release-readiness.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate-blocked-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate complete Gate manifest and confirm deployment blocked
+        run: |
+          node docs/release-readiness/check-release-readiness.mjs --assert-blocked
+          node --test docs/release-readiness/test/*.test.mjs

@@ -1,0 +1,64 @@
+name: AI-0 Round 5 Five-Owner Union and Release Block Gate
+on:
+  pull_request:
+    paths:
+      - 'apps/**'
+      - 'modules/starry-id-v1/**'
+      - 'packages/**'
+      - 'docs/release-readiness/**'
+      - '.github/workflows/ai0-round5-union.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  latest-five-owners:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Locked npm, SSOT, Source and fail-closed 11 release gates
+        run: |
+          npm ci --no-audit --no-fund
+          npm run ssot:validate
+          node docs/requirements/verify-original-inventory.mjs
+          node docs/release-readiness/check-release-readiness.mjs --assert-blocked
+          node --test docs/release-readiness/test/*.test.mjs
+      - name: Workers, SDK, Expo, TypeScript, lint (NO EAS BUILD)
+        run: |
+          npm run typecheck
+          npm run lint
+          npm test
+          npm run mobile:config
+          npm run api:check
+      - name: All domain owners strict TypeScript
+        run: |
+          ./node_modules/.bin/tsc -p modules/starry-id-v1/tsconfig.json --noEmit
+          ./node_modules/.bin/tsc -p tsconfig.rebuild-billing.json --noEmit
+          ./node_modules/.bin/tsc -p packages/rebuild-ai3/tsconfig.json --noEmit
+      - name: All latest owner and candidate negative tests
+        run: |
+          node --experimental-strip-types --test modules/starry-id-v1/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-billing/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-ai3/test/*.test.mjs
+          node --experimental-strip-types --test packages/ai0-contracts/test/*.test.mjs
+          node --experimental-strip-types --test packages/integration/test/*.test.mjs
+      - name: AI-3 latest real AI-2 committed reader and Queue gate tests
+        run: |
+          node --experimental-strip-types --test packages/rebuild-ai3/integration/round5-billing-committed.test.mjs
+      - name: AI-3 canonical and historical pinned contracts - no skips
+        run: |
+          AI0_P05_MODULE="$GITHUB_WORKSPACE/packages/ai0-contracts/src/p05-candidate.mjs" node --experimental-strip-types --test packages/rebuild-ai3/integration/ai0-p05-contract.test.mjs
+          git fetch --no-tags --depth=1 origin c273a99e3bf2ea2bb2d8cd6da4904213d75dc291
+          git show c273a99e3bf2ea2bb2d8cd6da4904213d75dc291:packages/rebuild-billing/src/index.ts > "$RUNNER_TEMP/ai2-rebuild.ts"
+          AI2_REBUILD_MODULE="$RUNNER_TEMP/ai2-rebuild.ts" node --experimental-strip-types --test packages/rebuild-ai3/integration/pinned-ai2-contract.test.mjs
+      - name: Latest D1 sqlite memory atomicity tests
+        run: |
+          python3 -m unittest discover -s modules/starry-id-v1/test -p 'test_*.py' -v
+          python3 -m unittest discover -s packages/rebuild-billing/test -p 'test_*.py' -v
+          python3 -m unittest discover -s packages/rebuild-ai3/test -p 'test_*.py' -v
