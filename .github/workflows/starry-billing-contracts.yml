@@ -1,0 +1,30 @@
+name: Starry Billing Sandbox Contracts (AI-2)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/billing-contracts/**'
+      - 'docs/contracts/STARRY-BILLING-*'
+      - 'tsconfig.billing.json'
+      - '.github/workflows/starry-billing-contracts.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: billing-contracts-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  billing-contract-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Pinned TypeScript compiler (no secrets or deployment)
+        run: npm exec --yes --package=typescript@5.8.3 -- tsc --project tsconfig.billing.json
+      - name: Deterministic isolated sandbox contract tests
+        run: node --experimental-strip-types --test packages/billing-contracts/test/*.test.mjs
