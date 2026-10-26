@@ -1,0 +1,39 @@
+name: AI-4 Foundation Typecheck Lint Test
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'package.json'
+      - 'tsconfig.json'
+      - 'eslint.config.mjs'
+      - '.github/workflows/ai4-foundation-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ai4-foundation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  foundation:
+    name: AI-4 actual typecheck / lint / unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # Reproducible locked install, no deployment credentials.
+      - name: Install workspace dependencies for scaffold verification
+        run: npm ci --no-audit --no-fund
+      - name: Typecheck TypeScript Worker and Expo app
+        run: npm run typecheck
+      - name: Lint actual application source
+        run: npm run lint
+      - name: Run API unit tests
+        run: npm test
+      - name: Check Worker staging bundle without deployment
+        run: npm run api:check
