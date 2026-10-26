@@ -5,7 +5,8 @@
  */
 import {isTrustedPrincipal} from '../../../modules/starry-id-v1/src/index.ts';
 import type {TrustedScope} from '../../../modules/starry-id-v1/src/index.ts';
-import type {VerifiedStarryIdentity,OutboxCandidate} from '../../rebuild-billing/src/index.ts';
+import type {VerifiedStarryIdentity} from '../../../modules/starry-id-v1/src/billing-bridge.ts';
+import type {OutboxCandidate} from '../../rebuild-billing/src/index.ts';
 export function verifiedBillingIdentity(
   principal: unknown, scope: TrustedScope, now: number,
   lookupServerBinding: (sUserId:string)=>string|null,
