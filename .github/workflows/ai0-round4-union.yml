@@ -44,7 +44,10 @@ jobs:
           node --experimental-strip-types --test modules/starry-id-v1/test/*.test.mjs
           node --experimental-strip-types --test packages/rebuild-billing/test/*.test.mjs
           node --experimental-strip-types --test packages/rebuild-ai3/test/*.test.mjs
-          node --experimental-strip-types --test packages/rebuild-ai3/integration/*.test.mjs
+          AI0_P05_MODULE="$GITHUB_WORKSPACE/packages/ai0-contracts/src/p05-candidate.mjs" node --experimental-strip-types --test packages/rebuild-ai3/integration/ai0-p05-contract.test.mjs
+          git fetch --no-tags --depth=1 origin c273a99e3bf2ea2bb2d8cd6da4904213d75dc291
+          git show c273a99e3bf2ea2bb2d8cd6da4904213d75dc291:packages/rebuild-billing/src/index.ts > "$RUNNER_TEMP/ai2-rebuild.ts"
+          AI2_REBUILD_MODULE="$RUNNER_TEMP/ai2-rebuild.ts" node --experimental-strip-types --test packages/rebuild-ai3/integration/pinned-ai2-contract.test.mjs
           node --experimental-strip-types --test packages/ai0-contracts/test/*.test.mjs
           node --experimental-strip-types --test packages/integration/test/*.test.mjs
       - name: All three SQLite in-memory transactional suites
