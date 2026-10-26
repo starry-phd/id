@@ -47,10 +47,11 @@ async function googleFixtures(){
     email:'pubsub-push@fixture.iam.gserviceaccount.com',email_verified:true,iat:nowSeconds-30,exp:nowSeconds+300};
   const response={packageName:googleRegistry.storeAppId,testPurchase:{},
     subscriptionState:'SUBSCRIPTION_STATE_ACTIVE',startTime:'2026-10-26T08:00:00Z',
-    lineItems:[{productId:'test.monthly',expiryTime:'2026-11-26T08:00:00Z'}],
-    externalAccountIdentifiers:{obfuscatedExternalAccountId:'binding_001'},latestOrderId:'order_123'};
+    lineItems:[{productId:'test.monthly',expiryTime:'2026-11-26T08:00:00Z',
+      latestSuccessfulOrderId:'order_123'}],
+    externalAccountIdentifiers:{obfuscatedExternalAccountId:'binding_001'}};
   const rtdn={version:'1.0',packageName:googleRegistry.storeAppId,eventTimeMillis:String(nowMs),
-    subscriptionNotification:{version:'1.0',subscriptionId:'test.monthly',purchaseToken:'RAW_SENSITIVE_TOKEN',notificationType:2}};
+    subscriptionNotification:{version:'1.0',purchaseToken:'RAW_SENSITIVE_TOKEN',notificationType:2}};
   const delivery=async(mod={})=>{
     const claimsChanged={...claims,...mod.claims};
     const headerChanged={...h,...mod.header};
@@ -138,7 +139,7 @@ test('Google forged JWT/signature and missing push Bearer token reject',async()=
   await assert.rejects(verifyGoogleSandboxRtdn({...original,authorization:'Bearer '+parts[0]+'.'+enc({...f.claims,aud:'evil'})+'.'+parts[2]},googleRegistry,f.trust,nowSeconds),/JWS_SIGNATURE_DENIED/);
 });
 test('Google RTDN package/notification source/expired store/production/mismatched SKU denied',async()=>{
-  const wrong=[{packageName:'fake.package'},{subscriptionNotification:{subscriptionId:'battery.paid',purchaseToken:'a',notificationType:2}},{oneTimeProductNotification:{}}],
+  const wrong=[{packageName:'fake.package'},{subscriptionNotification:{version:'1.0',purchaseToken:'a',notificationType:99}},{oneTimeProductNotification:{}}],
     f=await googleFixtures();
   for(const payload of wrong)
     await assert.rejects(verifyGoogleSandboxRtdn(await f.delivery({payload:{...f.rtdn,...payload}}),googleRegistry,f.trust,nowSeconds));
