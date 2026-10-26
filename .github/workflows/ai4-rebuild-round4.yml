@@ -1,0 +1,50 @@
+name: AI-4 Round4 Offline Crypto D1 Queue + EAS Free Gate
+on:
+  pull_request:
+    paths:
+      - 'apps/**'
+      - '.github/workflows/ai4-rebuild-round4.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-integrated:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Locked install
+        run: npm ci --no-audit --no-fund
+      - name: AI-4 root verified
+        run: |
+          npm run typecheck
+          npm run lint
+          npm test
+          npm run mobile:config
+          npm run api:check
+      - name: Latest AI1 AI2 AI3 and AI0 strict TypeScript
+        run: |
+          ./node_modules/.bin/tsc --noEmit -p modules/starry-id-v1/tsconfig.json
+          ./node_modules/.bin/tsc --noEmit -p tsconfig.rebuild-billing.json
+          ./node_modules/.bin/tsc --noEmit -p packages/rebuild-ai3/tsconfig.json
+      - name: All latest domain Node and integration tests
+        run: |
+          node --experimental-strip-types --test modules/starry-id-v1/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-billing/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-ai3/test/*.test.mjs
+          node --experimental-strip-types --test packages/integration/test/*.test.mjs
+      - name: All domain SQLite in-memory tests
+        run: |
+          python3 -m unittest discover -s modules/starry-id-v1/test -p 'test_*.py' -v
+          python3 -m unittest discover -s packages/rebuild-billing/test -p 'test_*.py' -v
+          python3 -m unittest discover -s packages/rebuild-ai3/test -p 'test_*.py' -v
+      - name: SSOT seed and inventory only
+        run: |
+          npm run ssot:validate
+          node docs/requirements/verify-original-inventory.mjs
+      # Strict DEV-I rule: no eas build/update/workflow command in PR automation.
