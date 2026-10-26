@@ -47,7 +47,7 @@ test('real signature is insufficient: D1 resolver revokes/suspends/bumps version
    app_id:'starry-id',environment:'staging',expires_at:now+300,revoked_at:revoked,
    step_up_method:null,step_up_verified_at:null,step_up_expires_at:null});
  const resolver=createServerIdentityResolver({trusted_scope:scope,
-  verify_oidc_or_session:f.verify,read_member:async()=>member(),read_session:async()=>session(),
+  verify_oidc_or_session:raw=>f.verify(raw,now),read_member:async()=>member(),read_session:async()=>session(),
   identity_matches:async()=>true});
  let p=await resolver(token,now);
  assert.equal(readSelf(p,scope,member(),now).s_user_id,'s_001');
