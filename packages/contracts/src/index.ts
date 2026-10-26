@@ -31,41 +31,61 @@ const EVENT_FIELDS = new Set([
   'environment', 'occurred_at', 'correlation_id', 'resource_type',
   'resource_id', 'result', 'idempotency_key',
 ]);
+const SCOPE_FIELDS = new Set(['brand_id', 'app_id', 'environment']);
+const SAFE_LABEL = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 
+/** Short machine labels only; forbid control characters and free-form data. */
+function safeLabel(value: unknown): value is string {
+  return typeof value === 'string' && SAFE_LABEL.test(value);
+}
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const proto: unknown = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
 }
-function nonEmpty(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0;
+function allowedOwnKeys(value: Record<string, unknown>, keys: ReadonlySet<string>): boolean {
+  return Object.keys(value).every(key => keys.has(key));
 }
+
 export function isStarryEnvironment(value: unknown): value is StarryEnvironment {
   return value === 'development' || value === 'staging' || value === 'production';
 }
 
-/** Reject informal, offset-less or invalid event timestamps. */
-function isRfc3339Timestamp(value: unknown): value is string {
-  return typeof value === 'string'
-    && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(value)
-    && Number.isFinite(Date.parse(value));
+/**
+ * Require RFC3339 timezone and real calendar values. Offset-less times,
+ * invalid dates, leap seconds, and 24:00 rollover are intentionally rejected.
+ * Fractional seconds may use 1–9 digits.
+ */
+export function isRfc3339Timestamp(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const match = /^(\d{4})-(0[1-9]|1[0-2])-([0-2]\d|3[01])T([01]\d|2[0-3]):([0-5]\d):([0-5]\d)(?:\.(\d{1,9}))?(Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (year < 1) return false;
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return day <= days[month - 1] && Number.isFinite(Date.parse(value));
 }
 
 /**
- * Reject unknown fields so tokens, secrets and personal data cannot be appended
- * accidentally to the shared envelope; domain payloads need separate schemas.
+ * Reject unknown metadata fields and labels containing free-form content.
+ * This prevents accidental extras, but is NOT a universal PII/secret scanner.
  */
 export function isStarryEventEnvelope(value: unknown): value is StarryEventEnvelope {
-  if (!isRecord(value) || Object.keys(value).some(key => !EVENT_FIELDS.has(key))) return false;
+  if (!isRecord(value) || !allowedOwnKeys(value, EVENT_FIELDS)) return false;
   const required = [
     'event_id', 'event_type', 'schema_version', 'app_id', 'occurred_at',
     'correlation_id', 'resource_type', 'resource_id', 'result',
   ] as const;
-  if (!required.every(key => Object.hasOwn(value, key) && nonEmpty(value[key]))) return false;
-  return Object.hasOwn(value, 'brand_id')
+  return required.every(field => Object.hasOwn(value, field)
+    && (field === 'occurred_at' ? isRfc3339Timestamp(value[field]) : safeLabel(value[field])))
+    && Object.hasOwn(value, 'brand_id')
     && Object.hasOwn(value, 'environment')
     && value.brand_id === STARRY_BRAND_ID
     && isStarryEnvironment(value.environment)
-    && isRfc3339Timestamp(value.occurred_at)
-    && (value.idempotency_key === undefined || nonEmpty(value.idempotency_key));
+    && (!Object.hasOwn(value, 'idempotency_key') || safeLabel(value.idempotency_key));
 }
 
 /**
@@ -76,13 +96,29 @@ export function assertStarryResourceScope(
   trusted: StarryResourceScope,
   actual: unknown,
 ): asserts actual is StarryResourceScope {
-  if (!isRecord(actual)
-    || actual.brand_id !== STARRY_BRAND_ID
+  if (!isRecord(trusted) || !isRecord(actual)
+    || !allowedOwnKeys(actual, SCOPE_FIELDS)
+    || !safeLabel(trusted.app_id)
+    || !safeLabel(actual.app_id)
     || trusted.brand_id !== STARRY_BRAND_ID
-    || !nonEmpty(trusted.app_id)
+    || actual.brand_id !== STARRY_BRAND_ID
     || !isStarryEnvironment(trusted.environment)
+    || !isStarryEnvironment(actual.environment)
     || actual.app_id !== trusted.app_id
     || actual.environment !== trusted.environment) {
     throw new Error('STARRY_RESOURCE_SCOPE_DENIED');
   }
+}
+
+/** Bind a valid event to the server-derived Starry app/environment. */
+export function assertStarryEventForScope(
+  trusted: StarryResourceScope,
+  actual: unknown,
+): asserts actual is StarryEventEnvelope {
+  if (!isStarryEventEnvelope(actual)) throw new Error('STARRY_EVENT_ENVELOPE_DENIED');
+  assertStarryResourceScope(trusted, {
+    brand_id: actual.brand_id,
+    app_id: actual.app_id,
+    environment: actual.environment,
+  });
 }
