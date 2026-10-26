@@ -9,7 +9,8 @@ const p={brand_id:'starry',version:1,registration_grant:10,first_task_grant:6,
  max_debt:15,max_task_cost:12,
  rates:[{app_id:'starry-ai',task_type:'chat',price:7,version:1},
  {app_id:'starry-tools',task_type:'summarize',price:10,version:1}]};
-const auth=()=>({authorizePolicy:async()=>true,verifyRegistrationGrant:async()=>true,
+const auth=()=>({authorizePolicy:async()=>true,verifyMemberActive:async()=>true,
+ verifyRegistrationGrant:async()=>true,
  verifyTaskRequest:async()=>true,verifyTaskOutcome:async()=>true,
  verifyFirstEligibleTask:async()=>true,verifyAdminStepUp:async()=>true,
  verifyDeletion:async()=>true});
@@ -128,4 +129,10 @@ test('refuse unapproved amounts, cross-brand policy, duplicate App/task rates',a
  for(const bad of [{...p,registration_grant:-1},{...p,brand_id:'hglobal'},
   {...p,rates:[...p.rates,p.rates[0]]}])
   await assert.rejects(registrationGrant(newWallet(s),bad,auth(),1000),/POLICY|DUPLICATE_RATE/);
+});
+
+test('Auth outage or suspended/deleted member denies new Battery sensitive writes',async()=>{
+ const a=auth();const w=await initial();a.verifyMemberActive=async()=>false;
+ await assert.rejects(reserveTask(w,p,a,task(),2000),/MEMBER_AUTH_DENIED/);
+ await assert.rejects(adminCorrect(w,p,a,{ref:'r1',delta:2,reason_code:'ADMIN_FIX'},2000),/MEMBER_AUTH_DENIED/);
 });

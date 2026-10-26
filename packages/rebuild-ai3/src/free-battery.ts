@@ -19,6 +19,7 @@ export type Wallet=Readonly<{scope:Scope;revision:number;balance:number;overdraf
 /** Real AI-1 / AI-4 trusted server port REQUIRED; never accept a client-supplied port. */
 export type TrustedAuthority=Readonly<{
  authorizePolicy:(p:Policy)=>Promise<boolean>;
+ verifyMemberActive:(scope:Scope)=>Promise<boolean>;
  verifyRegistrationGrant:(scope:Scope)=>Promise<boolean>;
  verifyTaskRequest:(scope:Scope,ref:string,app:string,type:string)=>Promise<boolean>;
  verifyTaskOutcome:(scope:Scope,ref:string,result:'success'|'failure')=>Promise<boolean>;
@@ -71,6 +72,8 @@ async function authorized(w:Wallet,p:Policy,a:TrustedAuthority){
  if(w.revoked)fail('REVOKED');
  if(!a||typeof a.authorizePolicy!=='function'||await a.authorizePolicy(p)!==true)
   fail('AUTHORITY_DENIED');
+ if(typeof a.verifyMemberActive!=='function'||await a.verifyMemberActive(w.scope)!==true)
+  fail('MEMBER_AUTH_DENIED');
 }
 export function newWallet(scope:Scope):Wallet{
  scopeOk(scope);
