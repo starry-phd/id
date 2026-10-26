@@ -119,7 +119,6 @@ test('billing bridge allows ONLY real AI-1 sealed principal and server-owned acc
 test('canonical AI-2 sandbox planner consumes bridge identity, produces typed outbox, not rights issuance',async()=>{
  const f=await fixture();
  const minted=await createServerIdentityResolver(f.ports)(f.request(),now);
- const billingIdentity=verifiedBillingIdentity(minted,scope,now,()=>f.state.binding);
  const registry={brandId:'starry',appId:'starry-id',environment:'staging',
   storeEnvironment:'sandbox',store:'apple',storeAppId:'phd.starry.id.dev',catalog:{'test.monthly':'subscription'}};
  const verifiedSnapshot={brandId:'starry',appId:'starry-id',store:'apple',storeEnvironment:'sandbox',
