@@ -78,7 +78,7 @@ test('Google evidence accepted only with matching registered package',()=>{
 test('refund review needs Starry scope, app, reason, approval and recent step-up',()=>{
   const p={brandId:'starry',environment:'staging',storeEnvironment:'sandbox',appIds:['starry.demo'],
     scopes:['billing:refund:review'],stepUpAt:'2026-10-26T07:59:00Z'};
-  const t={brandId:'starry',environment:'sandbox',appId:'starry.demo',reason:'case checked',approvalId:'review-1'};
+  const t={brandId:'starry',environment:'staging',storeEnvironment:'sandbox',appId:'starry.demo',reason:'case checked',approvalId:'review-1'};
   assert.doesNotThrow(()=>assertRefundReviewAuthorized(p,t,'2026-10-26T08:00:00Z'));
   reject(()=>assertRefundReviewAuthorized({...p,scopes:[]},t,'2026-10-26T08:00:00Z'),/scope/);
   reject(()=>assertRefundReviewAuthorized(p,{...t,brandId:'other'},'2026-10-26T08:00:00Z'),/brand/);
