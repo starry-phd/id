@@ -1,0 +1,48 @@
+{
+  "schema_version": "starry-rollout.v0-draft",
+  "status": "SOURCE_ONLY_NOT_DEPLOYED",
+  "source_decisions": [
+    "Q93=A",
+    "Q103=A",
+    "Q105=A",
+    "Q106=A",
+    "Q107=B",
+    "Q108=A",
+    "Q117=A",
+    "Q118=A"
+  ],
+  "brand_id": "starry",
+  "member_service": "starry-id",
+  "store_app_for_id_service": false,
+  "expo_project": "development_harness_only",
+  "release_stages": [
+    "identity",
+    "battery",
+    "billing"
+  ],
+  "stages_release_approved": {
+    "identity": false,
+    "battery": false,
+    "billing": false
+  },
+  "regions_approved": [],
+  "membership_min_age": 18,
+  "age_self_declaration_is_verification": false,
+  "advertisements_enabled": false,
+  "cross_brand_sync_enabled": false,
+  "live_worker_sensitive_routes_enabled": false,
+  "public_worker_source_route": "GET /v1/health",
+  "kill_switch": {
+    "source": "Q124 AI_PROPOSED_PENDING_GATE",
+    "implemented_live": false,
+    "approved": false
+  },
+  "openapi_sdk": {
+    "baseline_version": "0.1.0",
+    "candidate_preview_module": "packages/sdk/src/staged-rollout.preview.ts",
+    "published_preview": false
+  },
+  "gate_0": "BLOCKED",
+  "gate_1": "BLOCKED",
+  "release_authorized": false
+}
