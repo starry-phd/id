@@ -24,9 +24,8 @@ export type DeadLetterPort=Readonly<{
 const KEY=/^b_[a-f0-9]{64}$/;
 const REASON=/^[A-Z0-9_]{3,72}$/;
 function queueRef(value:unknown):unknown{
- if(value===null||typeof value!=='object'||Array.isArray(value))
-  return null;
  try {
+  if(value===null||typeof value!=='object'||Array.isArray(value))return null;
   if(Object.getPrototypeOf(value)!==Object.prototype)return null;
   const own=Reflect.ownKeys(value);
   if(own.length!==1||own[0]!=='event_ref')return null;
