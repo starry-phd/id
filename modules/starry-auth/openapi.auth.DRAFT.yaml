@@ -1,0 +1,109 @@
+openapi: 3.1.0
+info:
+  title: Starry Auth and Member API - DRAFT, NOT DEPLOYED
+  version: 0.2.0-draft
+  description: >
+    AI-1 design only. No OIDC/JWKS/PKCE/session/Worker HTTP routes deployed.
+    x-internal TrustedStarryPrincipal is minted by backend only; never by request JSON.
+servers: []
+paths:
+  /v1/auth/oidc/exchange:
+    post:
+      summary: Candidate OIDC authorization code + PKCE exchange; requires backend JWKS verification
+      responses:
+        '501': {description: Not implemented}
+  /v1/auth/session:
+    get:
+      summary: Candidate current Starry session introspection (no admin grants from client)
+      security: [{StarrySession: []}]
+      responses:
+        '501': {description: Not implemented}
+  /v1/auth/logout:
+    post:
+      summary: Candidate versioned Starry session revocation
+      security: [{StarrySession: []}]
+      responses:
+        '501': {description: Not implemented}
+  /v1/members/me:
+    get:
+      summary: Candidate self-only member profile
+      security: [{StarrySession: []}]
+      responses:
+        '501': {description: Not implemented}
+components:
+  securitySchemes:
+    StarrySession: {type: http, scheme: bearer}
+  schemas:
+    TrustedStarryPrincipal:
+      type: object
+      readOnly: true
+      x-internal: true
+      description: >
+        Server-only ephemeral verified identity context, not an HTTP input or
+        client-issued token. Construct after signature/JWKS/PKCE or session
+        verification and fresh backend member/session/grant checks.
+      required: [brand_id, app_id, environment, s_user_id, session_id, auth_version, member_status, checked_at, session_expires_at, admin_scopes]
+      additionalProperties: false
+      properties:
+        brand_id: {type: string, const: starry}
+        app_id: {type: string}
+        environment: {type: string, enum: [development, staging, production]}
+        s_user_id: {type: string, description: Immutable Starry-only backend subject}
+        session_id: {type: string}
+        auth_version: {type: integer, minimum: 0}
+        member_status: {type: string, const: active}
+        checked_at: {type: integer, description: Backend Unix seconds}
+        session_expires_at: {type: integer, description: Backend Unix seconds}
+        admin_scopes:
+          type: array
+          uniqueItems: true
+          items: {type: string, enum: ['billing:refund:review', 'audit:read']}
+        step_up:
+          anyOf:
+            - type: object
+              required: [source, verified_at, expires_at]
+              additionalProperties: false
+              properties:
+                source: {type: string, const: verified-backend-session}
+                verified_at: {type: integer, description: Server-persisted Unix seconds}
+                expires_at: {type: integer, description: Server-persisted Unix seconds}
+            - type: 'null'
+    BillingIdentityAdapter:
+      type: object
+      x-internal: true
+      description: >
+        Internal trusted Auth-to-Billing projection; separate runtime environment
+        and sandbox store environment; NOT a ProviderVerifiedEvent or store-binding.
+      required: [brandId, appId, runtimeEnvironment, storeEnvironment, userId, authVersion, sessionId]
+      additionalProperties: false
+      properties:
+        brandId: {type: string, const: starry}
+        appId: {type: string}
+        runtimeEnvironment: {type: string, enum: [development, staging, production]}
+        storeEnvironment: {type: string, const: sandbox}
+        userId: {type: string}
+        authVersion: {type: integer}
+        sessionId: {type: string}
+    BillingRefundReviewAdapter:
+      type: object
+      x-internal: true
+      description: Internal sandbox refund REVIEW principal. Exact grant and 300-second step-up required.
+      required: [brandId, environment, appIds, scopes, stepUpAt]
+      additionalProperties: false
+      properties:
+        brandId: {type: string, const: starry}
+        environment: {type: string, const: sandbox}
+        appIds: {type: array, items: {type: string}, minItems: 1}
+        scopes: {type: array, items: {type: string, const: 'billing:refund:review'}}
+        stepUpAt: {type: string, format: date-time}
+    AuditReadActorAdapter:
+      type: object
+      x-internal: true
+      description: Metadata proof for AI-3 audit read. Caller cannot send adminVerified boolean.
+      required: [actor_kind, actor_id, permission, action]
+      additionalProperties: false
+      properties:
+        actor_kind: {type: string, const: user}
+        actor_id: {type: string}
+        permission: {type: string, const: 'audit:read'}
+        action: {type: string, const: 'audit:read'}

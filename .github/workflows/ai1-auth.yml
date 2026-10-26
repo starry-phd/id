@@ -1,0 +1,25 @@
+name: AI-1 Starry Auth Policy
+on:
+  pull_request:
+    paths:
+      - 'modules/starry-auth/**'
+      - '.github/workflows/ai1-auth.yml'
+permissions:
+  contents: read
+jobs:
+  auth-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Strict TypeScript
+        run: npm exec --yes --package=typescript@5.8.3 -- tsc -p modules/starry-auth/tsconfig.json --noEmit
+      - name: Unit security guards
+        run: node --experimental-strip-types --test modules/starry-auth/test/*.test.mjs
+      - name: In-memory SQLite schema and CAS
+        run: python3 -m unittest discover -s modules/starry-auth/test -p test_schema.py -v
