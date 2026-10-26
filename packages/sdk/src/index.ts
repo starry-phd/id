@@ -45,5 +45,5 @@ export interface DisabledMemberSyncPort {
   sync(): Promise<{ readonly ok: false; readonly code: typeof CROSS_BRAND_SYNC_STATUS }>;
 }
 export const disabledMemberSyncPort: DisabledMemberSyncPort = Object.freeze({
-  async sync() { return {ok: false, code: CROSS_BRAND_SYNC_STATUS}; },
+  async sync() { return {ok: false as const, code: CROSS_BRAND_SYNC_STATUS}; },
 });
