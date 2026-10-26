@@ -3,6 +3,13 @@
 > GitHub Owner: `starry-phd`; personal administrator: `yukidu`.
 > 狀態：全新開發；此檔是工程分工規則，不代表五個 AI 已自行啟動，也不是任何功能完成、CI 通過或 Production 上線的證明。
 
+## 2026-10-26 最高優先更新｜**第一波正式開始開發＋新 GitHub 唯一正確身份**
+- **由業主最新明確授權開始 Starry ID 第一波新架構程式開發**。立即依五 AI 人工喚醒分工，在安全分支完成可驗證程式與 Draft PR；**不是**自動正式部署授權。
+- **嚴格禁止再使用業主已捨棄、據告知已封鎖的舊 GitHub ID `starryphp`。** 2026-10-26 經 GitHub 直接查證：唯一正確 Repo 為 [`starry-phd/id`](https://github.com/starry-phd/id)，GitHub Organization `starry-phd`，由 `yukidu` 個人管理，`main` 為受保護正式分支；口語 `starry/id` 查無 repo。**不得讀／提交／部署到 `starryphp`、`starry/id`、`yukidu/id` 或任何其他未核准倉庫。**
+- 五個 ChatGPT 對話仍採業主**人工叫醒**，每組啟動時必須先讀 [新 Repo 與人工啟動交接](docs/ai/STARry-CANONICAL-REPO-KICKOFF.md)、本 AGENTS、自己的 GitHub Issue #1～#5、其他組最新 PR/SHA/CI；再在當次互動中開始／繼續工作並寫回 GitHub。
+- AI-4 #5 優先建立 RN/Expo/Workers/OpenAPI 真實程式基座。AI-1～3 現在即可各自開始已核准需求的獨立契約、測試規劃／非衝突實作，但 shared schema/CI/DB migrations 必須等 AI-0/AI-4 確認 ownership 和 Gate；不可自行撞檔。
+- 業主已撤回 US$10 Copilot Pro 方案，不啟用 Codex/OpenAI Platform API Key，自動化 GitHub Actions CI 繼續。H-Global 維持暫停；第二波超級管理中心僅做第一波 P01～P10 的必要接口預留，第二波 React/Vite 技術選型已記錄於 #15，第二波 UI 不啟動。
+
 ## 2026-10-26 最新業主決議｜**維持五個 ChatGPT 對話人工啟動，撤回購買 Copilot Pro**
 > 本節優先於以下歷史的 Copilot 啟用建議。這是**正式工作模式決議**，不是已完成程式開發的證據。
 1. **不購買 GitHub Copilot Pro US$10**，不將 GitHub Copilot Cloud Agent、Automations 或任何另付費 Agent 作為 Starry 第一波開發的先決條件。不得替業主開通、購買、建立超額預算或聲稱它們在執行。
