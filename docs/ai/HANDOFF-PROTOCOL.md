@@ -2,6 +2,14 @@
 > Owner: `starry-phd` · Repo: `starry-phd/id` · Status: decision recorded, agent execution not auto-triggered.
 > 本文件為 2026-10-26 業主最新決議；與舊交接方式衝突時，以本文件的「GitHub 交接」與「H-Global 暫停」限制優先。
 
+## 2026-10-26 正式開發啟動與 GitHub 帳號更正（最高優先）
+- 舊 GitHub ID `starryphp` 已由業主捨棄（據告知封鎖），**不可使用**。唯一 GitHub 真相來源為 [`starry-phd/id`](https://github.com/starry-phd/id)，Organization=`starry-phd`，管理帳號=`yukidu`。不是 `starry/id`、`yukidu/id`。
+- 先讀 [最新 Canonical Repo 與五組人工叫醒 SOP](STARry-CANONICAL-REPO-KICKOFF.md)。開始前讀 AGENTS、自己的 Issue #1～#5、其他組 PR/CI 交接；不能只憑舊對話猜。
+- 業主**已核准進入第一波實際程式開發**：每組分支／Draft PR＋真實 CI 測試；此授權**不包含**自動 merge、Production、正式 D1／會員資料與付款。
+- 四個其他 ChatGPT 對話必須由業主人工開啟，GitHub Issue 不會推播叫醒，Issue 上的交接說明不等於 Agent 在背景執行。
+- AI-4 基座先行，AI-1～3 可平行做自己已核准的契約和獨立測試，不能搶先改 AI-4 共用底層。
+- H-Global 持續暫停；Codex/OPENAI_API_KEY/Copilot Pro 均未採用。
+
 ## 2026-10-26 最新執行模式（業主正式決議）
 **ChatGPT × 5 組人工喚醒 + GitHub 共享交接，不購買 Copilot Pro、不使用 Codex／OpenAI Platform API 自動執行。** 五組 ChatGPT 對話彼此不能直接叫醒，也不會共享所有聊天即時狀態；每次由業主開啟對應對話後，專責 AI 先讀 GitHub Issue、版本化契約、前手 PR／CI，再執行並留下證據。此決議優先於本文的過往 Copilot 條款。
 - AI-0 總管 → [Issue #1](https://github.com/starry-phd/id/issues/1)
