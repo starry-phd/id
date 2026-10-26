@@ -123,7 +123,9 @@ test('self deletion requires separately backend verified and scoped confirmation
 test('cross-account confirmation and expired proof denied',async()=>{
  const p=await principal();
  const verifier=createDeletionChallengeVerifier(async ()=>({s_user_id:'other',session_id:'sid',expires_at:now+60}));
- assert.throws(()=>planSelfDeletion(p,scope,m,await verifier('x'),now),/DELETE_CONFIRMATION_REQUIRED/);
+ const foreignProof=await verifier('x');
+ assert.throws(()=>planSelfDeletion(p,scope,m,foreignProof,now),/DELETE_CONFIRMATION_REQUIRED/);
  const short=createDeletionChallengeVerifier(async ()=>({s_user_id:'s-001',session_id:'sid',expires_at:now}));
- assert.throws(()=>planSelfDeletion(p,scope,m,await short('x'),now),/DELETE_CONFIRMATION_REQUIRED/);
+ const expiredProof=await short('x');
+ assert.throws(()=>planSelfDeletion(p,scope,m,expiredProof,now),/DELETE_CONFIRMATION_REQUIRED/);
 });
