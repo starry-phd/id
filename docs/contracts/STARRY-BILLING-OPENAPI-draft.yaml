@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Starry Digital Billing Sandbox (DRAFT / NOT DEPLOYED)
   version: 0.1.0-draft
-  description: Proposed routes only. No real store adapter, backend authorization, base URL or deployment.
+  description: Proposed routes only. Runtime environment is development/staging; store_environment is sandbox. Both and app_id are backend-derived. No real store adapter, backend authorization, base URL or deployment.
 tags:
   - name: billing-proposal
 paths:
@@ -19,15 +19,14 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              required: [store, app_id, evidence]
+              required: [store, evidence]
               properties:
                 store: {type: string, enum: [apple, google]}
-                app_id: {type: string}
                 evidence: {type: string, description: Opaque JWS or purchase token, never log}
       responses:
         '202': {description: Pending authoritative store verification}
         '401': {description: Auth required}
-        '403': {description: App or environment denied}
+        '403': {description: Backend-derived app, runtime or store environment denied}
         '409': {description: Purchase already bound to another member}
         '422': {description: Unverified transaction or unregistered SKU}
         '503': {description: Store provider unavailable; fail closed}
@@ -37,11 +36,6 @@ paths:
       summary: Propose scoped read of own app entitlements
       operationId: proposeGetMyEntitlements
       security: [{starryMember: ['billing:entitlements:read:self']}]
-      parameters:
-        - name: app_id
-          in: query
-          required: true
-          schema: {type: string}
       responses:
         '200':
           description: Authenticated Starry member rights only
@@ -62,7 +56,7 @@ paths:
                         active: {type: boolean}
                         valid_until: {type: [string, 'null'], format: date-time}
         '401': {description: Auth required}
-        '403': {description: App scope denied}
+        '403': {description: Backend-derived app scope denied}
   /v1/admin/billing/refund-reviews:
     post:
       tags: [billing-proposal]
@@ -76,9 +70,8 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              required: [app_id, transaction_ref, approval_id, reason]
+              required: [transaction_ref, approval_id, reason]
               properties:
-                app_id: {type: string}
                 transaction_ref: {type: string}
                 approval_id: {type: string}
                 reason: {type: string, minLength: 1}
