@@ -62,6 +62,31 @@ test('P05: rejects unsafe machine metadata and undefined idempotency keys', () =
   assert.equal(isStarryEventEnvelope(new Date()), false);
 });
 
+test('P05: rejects hidden keys, Symbol secrets and getters without running accessors', () => {
+  const hidden = {...valid};
+  Object.defineProperty(hidden, 'access_token', {value: 'secret', enumerable: false});
+  assert.equal(isStarryEventEnvelope(hidden), false);
+  const symbol = {...valid, [Symbol('access_token')]: 'secret'};
+  assert.equal(isStarryEventEnvelope(symbol), false);
+
+  let getterCalls = 0;
+  const accessor = {...valid};
+  Object.defineProperty(accessor, 'event_id', {
+    enumerable: true, get() { getterCalls++; return 'evt-1'; },
+  });
+  assert.equal(isStarryEventEnvelope(accessor), false);
+  assert.equal(getterCalls, 0);
+
+  const scopeWithHiddenKey = {...trusted};
+  Object.defineProperty(scopeWithHiddenKey, 'session_token', {value: 'secret'});
+  assert.throws(() => assertStarryResourceScope(trusted, scopeWithHiddenKey), /SCOPE_DENIED/);
+
+  const revocable = Proxy.revocable({...valid}, {});
+  revocable.revoke();
+  assert.equal(isStarryEventEnvelope(revocable.proxy), false);
+  assert.equal(isStarryEventEnvelope({...valid, [Symbol('hidden')]: 'secret'}), false);
+});
+
 test('P01: environment values explicit', () => {
   assert.equal(isStarryEnvironment('staging'), true);
   assert.equal(isStarryEnvironment('production'), true);
