@@ -1,0 +1,34 @@
+name: Starry Shared Contracts (AI-0)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/contracts/**'
+      - 'tsconfig.contracts.json'
+      - '.github/workflows/starry-contracts.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'packages/contracts/**'
+      - 'tsconfig.contracts.json'
+      - '.github/workflows/starry-contracts.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: starry-contracts-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  contract-tests:
+    name: P01/P05 contract unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run TypeScript runtime contract tests (no install, no secrets)
+        run: node --experimental-strip-types --test packages/contracts/test/*.test.mjs
