@@ -1,4 +1,6 @@
-# Starry ID｜GitHub Team + Copilot 多角色協作就緒稽核與執行手冊
+# Starry ID｜GitHub Team + Copilot 多角色協作就緒稽核與執行手冊（Copilot 未採用，歷史參考）
+> **已撤回的選項（2026-10-26 業主最新決議）**：**不購買 US$10 GitHub Copilot Pro、不啟用 Copilot Cloud Agent／Automations**。現在使用五個 ChatGPT 對話人工喚醒並透過 GitHub Issue／PR 交接。本檔 Copilot 訂閱與設定步驟屬**歷史備用方案**，**不要照本檔啟用、付費或改 Repo Public/Private**。GitHub CI、main protection、審閱與安全環境 Gate 的規則仍有效；以 [AGENTS.md](../../AGENTS.md) 與 [HANDOFF-PROTOCOL.md](../ai/HANDOFF-PROTOCOL.md) 最新決議為準。
+
 > 2026-10-26 台灣時間。適用 `starry-phd/id`，非 H-Global；依業主指示不採用 OpenAI Codex / OpenAI Platform API Key。
 > 本文件及五個 .agent.md **只是可審閱的設定草案**。沒有證據前不得宣稱 Copilot 已購買、五組 AI 在背景執行、完整 App 測試通過或正式部署成功。
 
