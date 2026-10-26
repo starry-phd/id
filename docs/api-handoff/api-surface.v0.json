@@ -1,0 +1,94 @@
+{
+  "version": "0.1.0",
+  "as_of": "2026-10-26",
+  "source_commit": "b4e34c4dc1fc9425e8c2730e7d2421fcbb87d4f0",
+  "source_pr": "https://github.com/starry-phd/id/pull/52",
+  "scope": {
+    "brand": "starry",
+    "app_id": "starry-id",
+    "environments": [
+      "development",
+      "staging"
+    ],
+    "hglobal": "paused_separate_auth_d1_cloudflare_and_api"
+  },
+  "ownership": {
+    "current": "AI-4",
+    "proposed_future": "AI-5",
+    "ai5_activated": false,
+    "ai0": "architecture_contract_review_and_release_gates",
+    "domain_owned_api_implementations": {
+      "identity": "AI-1",
+      "billing": "AI-2",
+      "audit": "AI-3",
+      "worker_and_client": "AI-4"
+    }
+  },
+  "surfaces": [
+    {
+      "id": "HEALTH-GET",
+      "kind": "http",
+      "method": "GET",
+      "path": "/v1/health",
+      "status": "implemented_source_only_not_deployed",
+      "spec": "apps/api/openapi.yaml",
+      "handler": "apps/api/src/index.ts",
+      "client": "packages/sdk/src/index.ts",
+      "public_sdk_export": "createStarryHealthClient",
+      "auth": "none_liveness_only"
+    },
+    {
+      "id": "MEMBER-SELF-GET",
+      "kind": "http",
+      "method": "GET",
+      "path": "/v1/member/self",
+      "status": "test_only_disabled",
+      "spec": "apps/api/openapi.member.DRAFT.yaml",
+      "handler": "apps/api/src/member-contract.ts",
+      "client": "packages/sdk/src/member-preview.ts",
+      "public_sdk_export": null,
+      "auth": "server_verified_starry_session"
+    },
+    {
+      "id": "STORE-AUDIT-P05",
+      "kind": "internal_event",
+      "method": null,
+      "path": null,
+      "status": "candidate_nonpublishable",
+      "spec": "packages/ai0-contracts/README.md",
+      "handler": "packages/rebuild-ai3/src/queue-consumer.ts",
+      "client": null,
+      "public_sdk_export": null,
+      "auth": "server_committed_billing_only"
+    },
+    {
+      "id": "CROSS-BRAND-SYNC",
+      "kind": "internal_contract",
+      "method": null,
+      "path": null,
+      "status": "disabled",
+      "spec": "docs/contracts/FUTURE-HGLOBAL-MEMBER-API.md",
+      "handler": null,
+      "client": "packages/sdk/src/index.ts",
+      "public_sdk_export": "disabledMemberSyncPort",
+      "auth": "not_approved"
+    }
+  ],
+  "remaining_dev_g": [
+    "Separate brand/app registration, OAuth scopes and API caller identity on backend",
+    "Versioned OpenAPI and SDK output with backwards compatibility and automated API diff",
+    "API consumers/dependencies and change impact by app_id/brand/environment",
+    "Auth/protected route enablement only after AI-0 gates and owner approval",
+    "App-level rate limits, 401/403/409/429/5xx safety/error consistency",
+    "Cross-brand sync only via explicit consent with independent auth: not auto enabled",
+    "API management center UX and centralized key governance deferred"
+  ],
+  "safety": {
+    "api5_is_not_approved": true,
+    "live_api_publication_allowed": false,
+    "production_deploy_allowed": false,
+    "owner_permission_required": true,
+    "dev_i_eas_free_rules_apply": true
+  },
+  "verification_note": "GitHub source snapshot audit only; not a live endpoint scan or official OpenAPI/SDK production release claim."
+}
