@@ -1,0 +1,50 @@
+name: AI-4 Round5 Full Offline Vertical CI
+on:
+  pull_request:
+    paths:
+      - 'apps/**'
+      - 'packages/sdk/**'
+      - '.github/workflows/ai4-rebuild-round5.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-vertical:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Locked install
+        run: npm ci --no-audit --no-fund
+      - name: TS Lint root AI4 and secure cross-owner vertical
+        run: |
+          npm run typecheck
+          npm run lint
+          npm test
+      - name: Domain TS and all owner Node tests
+        run: |
+          ./node_modules/.bin/tsc -p modules/starry-id-v1/tsconfig.json --noEmit
+          ./node_modules/.bin/tsc -p tsconfig.rebuild-billing.json --noEmit
+          ./node_modules/.bin/tsc -p packages/rebuild-ai3/tsconfig.json --noEmit
+          node --experimental-strip-types --test modules/starry-id-v1/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-billing/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-ai3/test/*.test.mjs
+          node --experimental-strip-types --test packages/integration/test/*.test.mjs
+          node --test packages/ai0-contracts/test/*.test.mjs
+      - name: All domain SQLite memory tests
+        run: |
+          python3 -m unittest discover -s modules/starry-id-v1/test -p 'test_*.py' -v
+          python3 -m unittest discover -s packages/rebuild-billing/test -p 'test_*.py' -v
+          python3 -m unittest discover -s packages/rebuild-ai3/test -p 'test_*.py' -v
+      - name: Requirements Expo config Worker dry-run without deployment
+        run: |
+          npm run ssot:validate
+          node docs/requirements/verify-original-inventory.mjs
+          npm run mobile:config
+          npm run api:check
+      # DEV-I final 8 rules: no EAS Build/Update/Workflow or paid/native release in PR.
