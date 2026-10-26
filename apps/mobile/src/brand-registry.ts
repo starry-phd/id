@@ -26,8 +26,10 @@ export function assertStarryTemplate(value: unknown): StarryAppTemplate {
     || cfg.memberAuthEnabled !== false || cfg.crossBrandSyncEnabled !== false)
     throw new Error('STARRY_SCOPE_MISMATCH');
   if (!Array.isArray(cfg.platforms) || !Array.isArray(cfg.routes)
-    || cfg.platforms.length !== 4 || cfg.routes.length !== 6
-    || !STARRY_ID_TEMPLATE.platforms.every((x,i)=>cfg.platforms?.[i]===x)
-    || !STARRY_ID_TEMPLATE.routes.every((x,i)=>cfg.routes?.[i]===x)) throw new Error('INVALID_STARRY_TEMPLATE');
+    || cfg.platforms.length !== 4 || cfg.routes.length !== 6) throw new Error('INVALID_STARRY_TEMPLATE');
+  const platforms: unknown[] = cfg.platforms;
+  const routes: unknown[] = cfg.routes;
+  if (!STARRY_ID_TEMPLATE.platforms.every((x,i)=>platforms[i]===x)
+    || !STARRY_ID_TEMPLATE.routes.every((x,i)=>routes[i]===x)) throw new Error('INVALID_STARRY_TEMPLATE');
   return STARRY_ID_TEMPLATE;
 }
