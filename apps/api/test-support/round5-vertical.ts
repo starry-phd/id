@@ -18,7 +18,6 @@ import type {D1DatabasePort} from '../../../packages/rebuild-ai3/src/d1-audit-ad
 import {createRound4BillingAuditConsumer} from '../../../packages/rebuild-ai3/src/queue-consumer.ts';
 import {dispatchQueueMessage} from '../../../packages/rebuild-ai3/src/queue-transport.ts';
 import type {QueueMessagePort,DeadLetterPort} from '../../../packages/rebuild-ai3/src/queue-transport.ts';
-import {isCandidate,VERSION} from '../../../packages/ai0-contracts/src/p05-candidate.mjs';
 import {createOfflineRound4MemberWorker} from './round4-member-worker.ts';
 
 export type OfflineRound5Ports=Readonly<{
@@ -34,6 +33,7 @@ export type OfflineRound5Ports=Readonly<{
  serverOrder:Readonly<{afterCommitOrder:(scope:TrustedScope,key:string)=>
   Promise<'current'|'superseded'|'unknown'>}>;
  dlq:DeadLetterPort;
+ candidateAuthority:Readonly<{schemaVersion:string;accepts:(scope:TrustedScope,event:unknown)=>Promise<boolean>}>;
 }>;
 
 /**
@@ -68,10 +68,10 @@ export function createOfflineRound5Vertical(deps:OfflineRound5Ports){
  const audit=createAi3AuditD1Store(deps.auditDb,s);
  // The ONLY P05 gate here is an explicit OFFLINE fixture approval. This
  // must NEVER be used as a production policy/authority.
- const candidateAuthority=Object.freeze({schemaVersion:VERSION,
-  accepts:async (scope:TrustedScope,event:unknown):Promise<boolean> =>
-   isCandidate(event,scope) && deps.offline_fixture_only===true});
- const consumer=createRound4BillingAuditConsumer(s,candidateAuthority,
+ if(deps.candidateAuthority?.schemaVersion!=='billing.p05.v1-candidate'
+   ||typeof deps.candidateAuthority.accepts!=='function')
+  throw new Error('R5_AI0_CANDIDATE_GATE_REQUIRED');
+ const consumer=createRound4BillingAuditConsumer(s,deps.candidateAuthority,
   {readAfterCommit:billing.readAfterCommit},audit,deps.serverOrder);
  return Object.freeze({
   member,
