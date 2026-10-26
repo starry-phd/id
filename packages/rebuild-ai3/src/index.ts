@@ -27,8 +27,9 @@ const KEYS=new Set([
 const ID=/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const safeId=(v:unknown):v is string=>typeof v==='string'&&ID.test(v);
 function plain(v:unknown):v is Record<string,unknown>{
- if(v===null||typeof v!=='object'||Array.isArray(v))return false;
+ if(v===null||typeof v!=='object')return false;
  try{
+  if(Array.isArray(v))return false;
   const p=Object.getPrototypeOf(v);
   if(p!==Object.prototype&&p!==null)return false;
   return Reflect.ownKeys(v).every(k=>{
@@ -97,7 +98,11 @@ export function bindTrust(scope:Scope,port:TrustedAuthPort){
  };
  return Object.freeze({
   async auditRead(actual:unknown):Promise<void>{
-   assertScope(scope,actual);await allow('audit.read');
+   assertScope(scope,actual);
+   if(!plain(actual)||Reflect.ownKeys(actual).length!==3
+     ||Reflect.ownKeys(actual).some(k=>!['brand_id','app_id','environment'].includes(String(k))))
+     throw new Error('AI3_AUDIT_READ_DENIED');
+   await allow('audit.read');
   },
   async notification(input:unknown):Promise<Readonly<{event_id:string;recipient_ref:string;channel:string}>>{
    if(!plain(input)||Reflect.ownKeys(input).length!==NOTIF_KEYS.size
