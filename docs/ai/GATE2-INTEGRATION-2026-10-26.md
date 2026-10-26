@@ -6,7 +6,7 @@
 
 | Source owner | Draft PR | Fixed commit included |
 | --- | --- | --- |
-| AI-0 canonical P01/P05 | #19 | `741fb8572484e2390b3715854fcf27420592c80a` |
+| AI-0 canonical P01/P05 | #19 | `6ab3a29a66b161e78e20bf4154c905b0502ca7d4` |
 | AI-4 Expo Router/Workers/SDK/lockfile | #20 | `b381f9a23cf45f50c43a0dd211bcd67e1d7c642f` |
 | AI-3 free Battery/Audit/Notifications | #21 | `3b83d8c27fc2d3fd3835b12fbf955689195e746b` |
 | AI-1 Auth policy and opaque principal | #22 | `8932398f6050c15f1a5569c2cd7d7e4c7fa76867` |
