@@ -219,3 +219,80 @@ test('real AI-2 committed-reader database outage is retried and never acknowledg
  assert.equal((await f.consume(1)).res,'retried');
  assert.equal(f.auditDb.audit.size,0);
 });
+
+test('R6 source missing 1-4: retry without quarantine; 5 is durable DLQ only',async()=>{
+ const f=await fixture();
+ for(let attempt=1;attempt<5;attempt++){
+  const c=await f.consumer.consume(f.plan.idempotencyKey,attempt);
+  assert.equal(c.reason,'SOURCE_NOT_YET_COMMITTED');
+  assert.equal(c.outcome,'retry');assert.equal(c.ack_safe,false);
+  assert.equal((await f.consume(attempt)).res,'retried');
+  assert.equal(f.auditDb.audit.size,0);assert.equal(f.auditDb.quarantine.size,0);
+ }
+ assert.equal((await f.consume(5,false)).res,'retried');
+ const fifth=await f.consume(5,true);
+ assert.equal(fifth.res,'dlq_acked');
+ assert.equal(fifth.dlq[0].reason_code,'SOURCE_NOT_YET_COMMITTED');
+ assert.equal(f.auditDb.audit.size,0);assert.equal(f.auditDb.quarantine.size,0);
+ await f.billing.writer.commit(f.plan,now);
+ assert.equal((await f.consume(6)).res,'acked');
+ assert.equal(f.auditDb.audit.size,1);
+});
+test('R6 durable DLQ fails after retry budget: attempt 6+ safely retries',async()=>{
+ const f=await fixture();
+ assert.equal((await f.consume(5,false)).res,'retried');
+ assert.equal((await f.consume(6,false)).res,'retried');
+ const r=await f.consume(7,true);
+ assert.equal(r.res,'dlq_acked');
+ assert.equal(r.dlq[0].attempt,7);
+ assert.equal(f.auditDb.quarantine.size,0);
+});
+test('R6 12 repeated deliveries after ACK loss: one inbox, one audit, no entitlement rewrite',async()=>{
+ const f=await fixture();await f.billing.writer.commit(f.plan,now);
+ for(let a=1;a<=12;a++)assert.equal((await f.consume(a)).res,'acked');
+ assert.equal(f.auditDb.inbox.size,1);assert.equal(f.auditDb.audit.size,1);
+ assert.equal(f.auditDb.quarantine.size,0);
+ assert.equal(f.billing.state.batches,1);
+});
+test('R6 unresolved Billing order retries; never prematurely quarantines',async()=>{
+ const f=await fixture();await f.billing.writer.commit(f.plan,now);
+ f.order('unknown');
+ for(let a=1;a<=4;a++){
+  assert.equal((await f.consumer.consume(f.plan.idempotencyKey,a)).reason,'BILLING_ORDER_UNCERTAIN');
+  assert.equal((await f.consume(a)).res,'retried');
+ }
+ assert.equal(f.auditDb.audit.size,0);assert.equal(f.auditDb.quarantine.size,0);
+ assert.equal((await f.consume(5,false)).res,'retried');
+ f.order('current');
+ assert.equal((await f.consume(6)).res,'acked');
+ assert.equal(f.auditDb.audit.size,1);
+});
+test('R6 superseded refund remains persisted quarantine across many duplicate deliveries',async()=>{
+ const f=await fixture();await f.billing.writer.commit(f.plan,now);
+ f.order('superseded');
+ for(let a=1;a<=9;a++)assert.equal((await f.consume(a)).res,'acked');
+ assert.equal(f.auditDb.inbox.size,0);assert.equal(f.auditDb.audit.size,0);
+ assert.equal(f.auditDb.quarantine.size,1);
+ assert.equal(f.billing.state.batches,1);
+});
+test('R6 every D1 batch step crash: no partial inbox or audit, then successful retry',async()=>{
+ for(const step of [1,2,3,4]){
+  const f=await fixture();await f.billing.writer.commit(f.plan,now);
+  f.auditDb.failAt=step;
+  assert.equal((await f.consume(1)).res,'retried');
+  assert.equal(f.auditDb.inbox.size,0);assert.equal(f.auditDb.audit.size,0);
+  f.auditDb.failAt=0;
+  assert.equal((await f.consume(2)).res,'acked');
+  assert.equal(f.auditDb.inbox.size,1);assert.equal(f.auditDb.audit.size,1);
+ }
+});
+test('R6 quarantine D1 outage: cannot ACK until durable receipt, no audit insertion',async()=>{
+ const f=await fixture();await f.billing.writer.commit(f.plan,now);
+ f.gate(false);f.auditDb.failAt=1;
+ for(let a=1;a<=4;a++)assert.equal((await f.consume(a)).res,'retried');
+ assert.equal(f.auditDb.quarantine.size,0);
+ f.auditDb.failAt=0;
+ assert.equal((await f.consume(5)).res,'acked');
+ assert.equal((await f.consume(6)).res,'acked');
+ assert.equal(f.auditDb.quarantine.size,1);assert.equal(f.auditDb.audit.size,0);
+});
