@@ -105,7 +105,7 @@ test('cross brand/app/runtime and production Store/runtime denied',async()=>{
   {store_environment:'production'},{environment:'production'},
   {store:'adversary'},{brand_id:'hglobal'},{app_id:'other'},
  ]) {
-   await assert.rejects(make(fixture({scope:{...storeScope,...bad}})),
+   await assert.rejects(async()=>make(fixture({scope:{...storeScope,...bad}})),
      /TRUSTED_STORE_REGISTRY_DENIED|INVALID_SERVER_SCOPE/);
  }
  for(const bad of [{brand_id:'hglobal'},{app_id:'other'},{environment:'production'}])
