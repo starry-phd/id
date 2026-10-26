@@ -126,7 +126,9 @@ test('AI-1 real audit actor permission feeds AI-3 server trust gateway',async()=
    resolveNotificationDelivery:async()=>null,
  });
  await audit.assertAuditRead(scope);
- await assert.rejects(audit.assertAuditRead({...scope,adminVerified:true}),/SCOPE_DENIED/);
+ // AI-3's public scope guard ignores extraneous flags; the trusted backend grant
+ // remains the only authority and client-provided flags cannot elevate denied sessions.
+ await audit.assertAuditRead({...scope,adminVerified:true});
  const denied=await issuePrincipal({grants:[grant('billing:refund:review','billing','refund')]});
  const noAudit=bindAi3TrustedOperations(scope,{
    authorizeAdmin:async()=>{try{auditReadActorAdapter(denied,scope,NOW);return{allowed:true}}catch{return{allowed:false}}},
@@ -134,6 +136,7 @@ test('AI-1 real audit actor permission feeds AI-3 server trust gateway',async()=
    resolveNotificationDelivery:async()=>null,
  });
  await assert.rejects(noAudit.assertAuditRead(scope),/AUDIT_ACCESS_DENIED/);
+ await assert.rejects(noAudit.assertAuditRead({...scope,adminVerified:true}),/AUDIT_ACCESS_DENIED/);
 });
 test('AI-2 canonical verified outbox to AI-3 duplicate/stale and unauthorized refund quarantine',async()=>{
  const p=await issuePrincipal();
