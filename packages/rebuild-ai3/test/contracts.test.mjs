@@ -70,7 +70,7 @@ test('audit read checks server-owned verified authorization, not client adminVer
    outcome:allowed?'allow':'deny',subject_ref:'user_1',
  })});
  await gate.auditRead(scope);
- await assert.rejects(gate.auditRead({...scope,adminVerified:true}),/SCOPE_DENIED/);
+ await assert.rejects(gate.auditRead({...scope,adminVerified:true}),/AUDIT_READ_DENIED/);
  allowed=false;await assert.rejects(gate.auditRead(scope),/AUTH_DENIED/);
 });
 test('notification refuses forged recipient, client consent, secret or revoked session',async()=>{
