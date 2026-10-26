@@ -1,0 +1,64 @@
+name: AI-0 Round 6 Four-Owner Final Offline Gate (release BLOCKED)
+on:
+  pull_request:
+    paths:
+      - 'modules/starry-id-v1/**'
+      - 'packages/rebuild-billing/**'
+      - 'packages/rebuild-ai3/**'
+      - 'apps/**'
+      - 'docs/ai/AI0-ROUND6-FOUR-OWNER-GATE-20261026.md'
+      - '.github/workflows/ai0-round6-four-owner.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ai0-round6-final-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  all-four-same-checkout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Locked dependencies and requirements inventory
+        run: |
+          npm ci --no-audit --no-fund
+          npm run ssot:validate
+          node docs/requirements/verify-original-inventory.mjs
+      - name: Explicit 11/11 blocked gate and API release safety
+        run: |
+          node docs/release-readiness/check-release-readiness.mjs --assert-blocked
+          node --test docs/release-readiness/test/*.test.mjs
+          node docs/api-handoff/verify-api-surface.mjs
+          node --test docs/api-handoff/test/*.test.mjs
+          node --test apps/api/test/round6-governance.test.mjs
+      - name: Root TypeScript lint Expo configuration Workers dry run no deployment
+        run: |
+          npm run typecheck
+          npm run lint
+          npm test
+          npm run mobile:config
+          npm run api:check
+      - name: Strict four-owner TypeScript and all offline security Node tests
+        run: |
+          ./node_modules/.bin/tsc -p modules/starry-id-v1/tsconfig.json --noEmit
+          ./node_modules/.bin/tsc -p tsconfig.rebuild-billing.json --noEmit
+          ./node_modules/.bin/tsc -p packages/rebuild-ai3/tsconfig.json --noEmit
+          node --experimental-strip-types --test modules/starry-id-v1/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-billing/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-ai3/test/*.test.mjs
+          node --experimental-strip-types --test packages/ai0-contracts/test/*.test.mjs
+          node --experimental-strip-types --test packages/integration/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-ai3/integration/round5-billing-committed.test.mjs
+      - name: Real SQLite in-memory migration/rollback and concurrency simulations
+        run: |
+          python3 -m unittest discover -s modules/starry-id-v1/test -p 'test_*.py' -v
+          python3 -m unittest discover -s packages/rebuild-billing/test -p 'test_*.py' -v
+          python3 -m unittest discover -s packages/rebuild-ai3/test -p 'test_*.py' -v
+      # Do NOT call EAS Build/Update/Workflows, Cloudflare deploy, real D1/Queue migrations, secrets, or payments.
