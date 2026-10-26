@@ -15,7 +15,7 @@ const principal = Object.freeze({brand_id:'starry',app_id:'starry.demo',environm
 const session = Object.freeze({s_user_id:'s_user_1',session_id:'sess_1',app_id:'starry.demo',
   environment:'staging',auth_version:2,expires_at:NOW+3600,revoked_at:null,step_up_until:NOW+240});
 const auditGrant = Object.freeze({s_user_id:'s_user_1',brand_id:'starry',app_id:'starry.demo',
-  environment:'staging',resource:'system',action:'read',expires_at:NOW+3600,revoked_at:null});
+  environment:'staging',resource:'audit',action:'read',expires_at:NOW+3600,revoked_at:null});
 const refundGrant = Object.freeze({...auditGrant,resource:'billing',action:'refund'});
 const backend = (overrides={}) => ({scope:SCOPE, principal, session, member, grant:auditGrant,
   verified_step_up_at:NOW-60,...overrides});
@@ -47,40 +47,43 @@ test('canonical P05 blocks cross-brand/app/environment, credentials and bad time
     {...event,occurred_at:'2026-10-26T25:00:00Z'}])
     assert.throws(()=>canonicalAuditIdempotencyKey(SCOPE,e),/DENIED/);
 });
-test('Audit read obtains scoped backend grant, not client adminVerified',()=>{
-  assert.doesNotThrow(()=>assertTrustedAuditRead(audit(),SCOPE,NOW));
-  assert.throws(()=>assertTrustedAuditRead(audit(backend({grant:null})),
-    {...SCOPE,adminVerified:true},NOW),/ADMIN_DENIED/);
-  assert.throws(()=>assertTrustedAuditRead({loadTrustedState:()=>null},SCOPE,NOW),/TRUSTED_BACKEND/);
+test('Audit read obtains scoped backend grant, not client adminVerified',async ()=>{
+  await assert.doesNotReject(()=>assertTrustedAuditRead(audit(),SCOPE,NOW));
+  await assert.rejects(()=>assertTrustedAuditRead(audit(backend({grant:null})),
+    SCOPE,NOW),/ADMIN_DENIED/);
+  await assert.rejects(()=>assertTrustedAuditRead(audit(),{...SCOPE,adminVerified:true},NOW),/SCOPE_DENIED/);
+  await assert.rejects(()=>assertTrustedAuditRead({loadTrustedState:()=>null},SCOPE,NOW),/TRUSTED_BACKEND/);
 });
-test('Audit read blocks revoked session, suspended user, missing/old step-up',()=>{
+test('Audit read blocks revoked session, suspended user, missing/old step-up',async ()=>{
   const cases=[backend({session:{...session,revoked_at:NOW-1}}),
     backend({member:{...member,status:'suspended'}}),
     backend({verified_step_up_at:null}),
     backend({verified_step_up_at:NOW-301}),
     backend({session:{...session,step_up_until:NOW-1}})];
-  for(const state of cases)assert.throws(()=>assertTrustedAuditRead(audit(state),SCOPE,NOW));
+  for(const state of cases)await assert.rejects(()=>assertTrustedAuditRead(audit(state),SCOPE,NOW));
 });
-test('Audit denies mis-scoped trusted grant and client fake context',()=>{
+test('Audit denies mis-scoped trusted grant and client fake context',async ()=>{
   for(const state of [backend({grant:{...auditGrant,app_id:'foreign'}}),
     backend({grant:{...auditGrant,environment:'development'}}),
     backend({scope:{...SCOPE,brand_id:'hglobal'}}),
     backend({scope:{...SCOPE,environment:'production'}})])
-    assert.throws(()=>assertTrustedAuditRead(audit(state),SCOPE,NOW));
-  assert.throws(()=>assertTrustedAuditRead(audit(),{...SCOPE,app_id:'foreign',adminVerified:true},NOW));
+    await assert.rejects(()=>assertTrustedAuditRead(audit(state),SCOPE,NOW));
+  await assert.rejects(()=>assertTrustedAuditRead(audit(),{...SCOPE,app_id:'foreign',adminVerified:true},NOW));
 });
 test('Billing only consumes server verified event with split runtime/stores sandbox axes',()=>{
   const r=projectServerVerifiedSandboxEvent(order(),SCOPE,NOW);
   assert.equal(r.applied,true);
   assert.equal(r.projection.entitlement,'active');
-  assert.equal(r.projection.environment,'sandbox');
+  assert.equal(r.projection.environment,'staging');
+  assert.equal(r.projection.storeEnvironment,'sandbox');
   assert.equal(r.projection.appId,'starry.demo');
   assert.equal(r.projection.userId,'s_user_1');
 });
 test('client-supplied verifiedBy does not stand in for server provider verification',()=>{
   assert.throws(()=>projectServerVerifiedSandboxEvent(
-    order(billing({provider_verified_event:null})),{...SCOPE,verifiedBy:'apple-app-store-server-api'},NOW),
+    order(billing({provider_verified_event:null})),SCOPE,NOW),
     /SERVER_PROVIDER_VERIFICATION_REQUIRED/);
+  assert.throws(()=>projectServerVerifiedSandboxEvent(order(),{...SCOPE,verifiedBy:'apple-app-store-server-api'},NOW),/SCOPE_DENIED/);
   assert.throws(()=>projectServerVerifiedSandboxEvent({loadTrustedBilling:()=>null},SCOPE,NOW),
     /TRUSTED_BACKEND_CONTEXT_REQUIRED/);
 });
@@ -107,7 +110,8 @@ test('Refund reviewer must have AI-1 billing refund grant plus backend approval 
   const source=(c)=>({loadRefundContext:()=>c});
   assert.doesNotThrow(()=>assertTrustedRefundReview(source(base),SCOPE,'reason supplied',NOW));
   assert.throws(()=>assertTrustedRefundReview(source({...base,auth:backend({grant:auditGrant})}),
-    {...SCOPE,adminVerified:true},'fraud',NOW),/ADMIN_DENIED/);
+    SCOPE,'fraud',NOW),/ADMIN_DENIED/);
+  assert.throws(()=>assertTrustedRefundReview(source(base),{...SCOPE,adminVerified:true},'fraud',NOW),/SCOPE_DENIED/);
   assert.throws(()=>assertTrustedRefundReview(source({...base,server_approval_id:null}),
     SCOPE,'fraud',NOW),/SERVER_APPROVAL_REQUIRED/);
   assert.throws(()=>assertTrustedRefundReview(source({...base,auth:backend({
