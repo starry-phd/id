@@ -39,8 +39,9 @@ function safeLabel(value: unknown): value is string {
   return typeof value === 'string' && SAFE_LABEL.test(value);
 }
 function isRecord(value: unknown): value is Record<string, unknown> {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  if (typeof value !== 'object' || value === null) return false;
   try {
+    if (Array.isArray(value)) return false;
     const proto: unknown = Object.getPrototypeOf(value);
     return proto === Object.prototype || proto === null;
   } catch {
