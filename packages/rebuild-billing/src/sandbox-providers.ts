@@ -221,8 +221,9 @@ export async function verifyGoogleSandboxRtdn(
   const purchaseToken=notification.purchaseToken;
   check(typeof purchaseToken==='string'&&purchaseToken.length>0&&purchaseToken.length<=4096,
     'GOOGLE_PURCHASE_TOKEN_DENIED');
-  check(notification.version==='1.0' && Number.isSafeInteger(notification.notificationType)
-    && notification.notificationType>=1 && notification.notificationType<=22,'GOOGLE_RTDN_TYPE_DENIED');
+  const type=notification.notificationType;
+  check(notification.version==='1.0' && typeof type==='number' && Number.isSafeInteger(type)
+    && type>=1 && type<=22,'GOOGLE_RTDN_TYPE_DENIED');
   // Current RTDN SubscriptionNotification does NOT carry subscriptionId. Product authority
   // comes from authenticated subscriptionsv2.get lineItems, not the RTDN body.
   const response=record(await trust.querySubscriptionV2(registry.storeAppId,purchaseToken));
