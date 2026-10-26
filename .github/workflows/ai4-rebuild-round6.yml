@@ -1,0 +1,56 @@
+name: AI-4 Round6 Guard and Offline Integration
+on:
+  pull_request:
+    paths:
+      - 'apps/**'
+      - 'packages/sdk/**'
+      - 'docs/api-handoff/**'
+      - '.github/workflows/ai4-rebuild-round6.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ai4-r6-\x24{{ github.workflow }}-\x24{{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  offline-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Locked install
+        run: npm ci --no-audit --no-fund
+      - name: Root Expo Workers and SDK
+        run: |
+          npm run typecheck
+          npm run lint
+          npm test
+          npm run mobile:config
+          npm run api:check
+      - name: AI0 API source preflight and requirements
+        run: |
+          node docs/api-handoff/verify-api-surface.mjs
+          npm run ssot:validate
+          node docs/requirements/verify-original-inventory.mjs
+      - name: Cross-owner strict TS and Node negative tests
+        run: |
+          ./node_modules/.bin/tsc -p modules/starry-id-v1/tsconfig.json --noEmit
+          ./node_modules/.bin/tsc -p tsconfig.rebuild-billing.json --noEmit
+          ./node_modules/.bin/tsc -p packages/rebuild-ai3/tsconfig.json --noEmit
+          node --experimental-strip-types --test modules/starry-id-v1/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-billing/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-ai3/test/*.test.mjs
+          node --experimental-strip-types --test packages/integration/test/*.test.mjs
+          node --test packages/ai0-contracts/test/*.test.mjs
+      - name: SQLite memory only - no cloud bindings
+        run: |
+          python3 -m unittest discover -s modules/starry-id-v1/test -p 'test_*.py' -v
+          python3 -m unittest discover -s packages/rebuild-billing/test -p 'test_*.py' -v
+          python3 -m unittest discover -s packages/rebuild-ai3/test -p 'test_*.py' -v
+      # EAS Free: NEVER auto run EAS Build/Update/Workflows or Cloudflare deployment.
