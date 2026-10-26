@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022", "module": "NodeNext", "moduleResolution": "NodeNext",
-    "lib": ["ES2022"], "strict": true, "noEmit": true,
+    "lib": ["ES2022"], "strict": true, "noEmit": true, "allowImportingTsExtensions": true,
     "skipLibCheck": true, "forceConsistentCasingInFileNames": true
   },
   "include": ["packages/billing-contracts/src/**/*.ts"]
