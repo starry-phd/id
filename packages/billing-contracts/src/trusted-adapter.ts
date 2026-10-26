@@ -55,20 +55,6 @@ export interface BillingPorts {
   readonly correlationId: () => string; // generated internally, not from client
 }
 
-export interface CanonicalBillingEnvelope {
-  readonly event_id: string;
-  readonly event_type: string;
-  readonly schema_version: string;
-  readonly brand_id: 'starry';
-  readonly app_id: string;
-  readonly environment: WorkerEnvironment;
-  readonly occurred_at: string;
-  readonly correlation_id: string;
-  readonly resource_type: string;
-  readonly resource_id: string;
-  readonly result: string;
-  readonly idempotency_key?: string;
-}
 const PURCHASE_KEYS = new Set(['store', 'evidence']);
 const REVIEW_KEYS = new Set(['transaction_ref', 'reason', 'approval_id']);
 function requireValid(ok: unknown, message: string): asserts ok {
@@ -111,7 +97,7 @@ function requireUser(ports: BillingPorts, isoNow: string): Ai1VerifiedPrincipal 
 /** P05 strict field mapping; call AI-0 canonical validator at AI-4 Gate 2 integration. */
 export function toCanonicalBillingEnvelope(
   event: ProviderVerifiedEvent, c: TrustedBillingRegistry, correlationId: string,
-): CanonicalBillingEnvelope {
+) {
   checkedRegistry(c);
   requireValid(validId(correlationId) && validId(event.eventId) && validId(event.originalTransactionId), 'invalid event reference');
   requireValid(event.storeEnvironment === c.store_environment && event.store === c.store
@@ -136,7 +122,7 @@ export function createSandboxBillingAdapter(ports: BillingPorts) {
     /** HTTP payload is untrusted: only store and opaque evidence may be supplied. */
     evaluatePurchase(request: unknown, current: Projection | null, now: string): {
       readonly application: ApplyResult;
-      readonly event: CanonicalBillingEnvelope;
+      readonly event: ReturnType<typeof toCanonicalBillingEnvelope>;
     } {
       requireValid(exactObject(request, PURCHASE_KEYS)
         && Object.keys(request).length === 2 && request.store === ports.registry.store
