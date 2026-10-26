@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  STARRY_BRAND_ID, CROSS_BRAND_MEMBER_SYNC_ENABLED,
+  STARRY_BRAND_ID, STARRY_EVENT_SCHEMA_VERSION, CROSS_BRAND_MEMBER_SYNC_ENABLED,
   isStarryEventEnvelope, assertStarryResourceScope, isStarryEnvironment,
   isRfc3339Timestamp, assertStarryEventForScope, assertStarryIdempotentEventForScope,
 } from '../src/index.ts';
@@ -13,6 +13,16 @@ const valid = Object.freeze({
   resource_type: 'session', resource_id: 'session-1', result: 'success',
 });
 const trusted = {brand_id: 'starry', app_id: 'example-starry-app', environment: 'staging'};
+
+test('P05: rejects a new event schema version until Gate approval', () => {
+  assert.equal(STARRY_EVENT_SCHEMA_VERSION, '0.1');
+  assert.equal(isStarryEventEnvelope({...valid, schema_version:'0.1'}), true);
+  for (const schema_version of ['0.2', '1.0', 'latest', '0.1-preview']) {
+    assert.equal(isStarryEventEnvelope({...valid, schema_version}), false, schema_version);
+    assert.throws(() => assertStarryEventForScope(trusted,
+      {...valid, schema_version}), /ENVELOPE_DENIED/);
+  }
+});
 
 test('P05: accepts valid Starry event envelope', () => {
   assert.equal(STARRY_BRAND_ID, 'starry');
