@@ -144,8 +144,14 @@ export function createSandboxBillingD1Writer(deps:Readonly<{
    // Non-changing/historical events must be audit-only by a separately approved path.
    enforce(plan.entitlementChanged,'BILLING_HISTORICAL_AUDIT_GATE');
    const safePayload=JSON.stringify(p05);
-   enforce(safePayload.length<=4096&&!safePayload.includes(owner.userId)
-    &&!safePayload.includes(owner.accountBinding),'BILLING_OUTBOX_PII_DENIED');
+   const allowedP05=new Set(['brand_id','app_id','environment','schema_version',
+    'event_id','event_type','occurred_at','correlation_id','idempotency_key',
+    'actor_ref','resource_ref','result','classification']);
+   enforce(safePayload.length<=4096 && Object.keys(p05).length===13
+    && Object.keys(p05).every(k=>allowedP05.has(k))
+    && typeof p05.actor_ref==='string' && /^(anon|actor|audit|opaque)_[A-Za-z0-9._:-]{1,120}$/.test(p05.actor_ref)
+    && p05.actor_ref!==owner.userId&&p05.actor_ref!==owner.accountBinding,
+    'BILLING_OUTBOX_PII_DENIED');
    const statement=[
     db.prepare(ATOMIC_SQL.owner).bind(key,'starry',scope.appId,scope.environment,'sandbox',
       scope.store,scope.storeAppId,await hmac('billing-original-v1',s.originalTransactionId),
