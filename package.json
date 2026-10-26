@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "lint": "eslint apps packages/sdk/src --max-warnings 0",
+    "lint": "eslint apps packages/sdk/src packages/sdk/test-support packages/integration/src --max-warnings 0",
     "test": "node --experimental-strip-types --test apps/api/test/*.test.mjs apps/mobile/test/*.test.mjs packages/sdk/test/*.test.mjs",
     "ssot:validate": "node docs/requirements/validate.mjs",
     "api:dev": "wrangler dev --config apps/api/wrangler.toml --env staging",

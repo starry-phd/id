@@ -1,0 +1,57 @@
+name: AI-4 Rebuild Round2 Cross-Owner Contract CI
+on:
+  pull_request:
+    paths:
+      - 'apps/**'
+      - 'packages/integration/**'
+      - 'packages/sdk/**'
+      - 'package.json'
+      - 'tsconfig.json'
+      - 'eslint.config.mjs'
+      - '.github/workflows/ai4-rebuild-round2.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ai4-rebuild-round2-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  cross-owner:
+    name: Node22 / Starry secure Worker / Domain TS + SQLite / dry-run
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Locked install
+        run: npm ci --no-audit --no-fund
+      - name: Root TS, ESLint and all contract Node tests
+        run: |
+          npm run typecheck
+          npm run lint
+          npm test
+      - name: Canonical AI-1, AI-2, AI-3 TypeScript
+        run: |
+          ./node_modules/.bin/tsc --noEmit -p modules/starry-id-v1/tsconfig.json
+          ./node_modules/.bin/tsc --noEmit -p tsconfig.rebuild-billing.json
+          ./node_modules/.bin/tsc --noEmit -p packages/rebuild-ai3/tsconfig.json
+      - name: All three domain Node suites
+        run: |
+          node --experimental-strip-types --test modules/starry-id-v1/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-billing/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-ai3/test/*.test.mjs
+      - name: All three domain in-memory SQLite suites
+        run: |
+          python3 -m unittest discover -s modules/starry-id-v1/test -p test_schema.py -v
+          python3 -m unittest discover -s packages/rebuild-billing/test -p test_schema.py -v
+          python3 -m unittest discover -s packages/rebuild-ai3/test -p 'test_*.py' -v
+      - name: SSOT 25-seed registry (not full coverage)
+        run: npm run ssot:validate
+      - name: Expo config
+        run: npm run mobile:config
+      - name: Workers bundle dry-run ONLY
+        run: npm run api:check
