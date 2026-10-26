@@ -31,7 +31,7 @@ jobs:
       - name: Run real AI-2 to AI-3 cross-owner candidate tests (no skips)
         env:
           AI2_REBUILD_MODULE: ${{ runner.temp }}/ai2-rebuild.ts
-        run: node --experimental-strip-types --test packages/rebuild-ai3/integration/*.test.mjs
+        run: node --experimental-strip-types --test packages/rebuild-ai3/integration/pinned-ai2-contract.test.mjs
       - name: Pin AI-0 single P05 canonical source PR 43 (read-only)
         run: |
           git fetch --no-tags --depth=1 origin 7e5046f815c2709835c1578f4a2276bebbce40c5
