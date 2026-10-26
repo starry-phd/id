@@ -160,3 +160,6 @@ class BillingSchemaTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+# Union CI runs -p test_schema.py; import Round4 true-SQL tests into that suite.
+from test_round4_atomic import BillingD1BatchTests  # noqa: E402,F401
