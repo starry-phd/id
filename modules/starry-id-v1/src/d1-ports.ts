@@ -85,6 +85,32 @@ export function createStarryD1Port(db:D1Database,serverScope:TrustedScope) {
       .bind(args.display_name,Number(args.directory_opt_in),Number(args.display_name_public),args.now,args.s_user_id,args.auth_version,args.expected_revision).run();
     return result.success!==false && result.meta?.changes===1;
   },
+  /** OAuth state/PKCE challenge is Starry-owned; verifier secret held separately by AI-4. */
+  async readOAuthAttemptMeta(state:string):Promise<Readonly<{
+    state:string;provider:Provider;app_id:string;environment:TrustedScope['environment'];
+    client_id:string;code_challenge:string;nonce:string;expires_at:number;consumed_at:number|null;
+  }> | null>{
+    if(typeof state!=='string'||!(/^[A-Za-z0-9_-]{32,256}$/).test(state))return null;
+    const r=await db.prepare('SELECT state,provider,app_id,environment,client_id,code_challenge,nonce,expires_at,consumed_at FROM starry_oauth_attempts WHERE state=? AND app_id=? AND environment=?')
+      .bind(state,scope.app_id,scope.environment).first<{
+        state:string;provider:Provider;app_id:string;environment:TrustedScope['environment'];
+        client_id:string;code_challenge:string;nonce:string;expires_at:number;consumed_at:number|null;
+      }>();
+    if(!r||r.state!==state||r.app_id!==scope.app_id||r.environment!==scope.environment||
+       !['apple','google'].includes(r.provider)||!safeId(r.client_id)||
+       !/^[A-Za-z0-9_-]{43}$/.test(r.code_challenge)||
+       typeof r.nonce!=='string'||r.nonce.length<16||r.nonce.length>256||
+       !epoch(r.expires_at)||(r.consumed_at!==null&&!epoch(r.consumed_at)))return null;
+    return Object.freeze(r);
+  },
+  /** Single winner; return false if replay, expired, wrong App or environment. */
+  async consumeOAuthAttemptCAS(state:string,provider:Provider,clientId:string,now:number):Promise<boolean>{
+    if(typeof state!=='string'||!(/^[A-Za-z0-9_-]{32,256}$/).test(state)||
+       !['apple','google'].includes(provider)||!safeId(clientId)||!epoch(now))return false;
+    const r=await db.prepare('UPDATE starry_oauth_attempts SET consumed_at=? WHERE state=? AND provider=? AND app_id=? AND environment=? AND client_id=? AND consumed_at IS NULL AND expires_at>?')
+      .bind(now,state,provider,scope.app_id,scope.environment,clientId,now).run();
+    return r.success!==false&&r.meta?.changes===1;
+  },
   async revokeSessionCAS(sUserId:string,sessionId:string,authVersion:number,now:number):Promise<boolean>{
     if(!safeId(sUserId)||!safeId(sessionId)||!positive(authVersion)||!epoch(now))return false;
     const result=await db.prepare("UPDATE starry_sessions SET revoked_at=? WHERE s_user_id=? AND session_id=? AND app_id=? AND environment=? AND auth_version=? AND revoked_at IS NULL")
