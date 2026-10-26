@@ -1,0 +1,36 @@
+name: REBUILD AI-3 Trust Phase 0
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/rebuild-ai3/**'
+      - '.github/workflows/rebuild-ai3.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit-draft:
+    name: AI-3 rebuild contract / security
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: TypeScript strict typecheck
+        run: npm exec --yes --package=typescript@5.8.3 -- tsc -p packages/rebuild-ai3/tsconfig.json --noEmit
+      - name: Run negative tests and safety contracts
+        run: node --experimental-strip-types --test packages/rebuild-ai3/test/*.test.mjs
+      - name: Load exact AI-2 #29 sandbox implementation (read-only fixed SHA)
+        run: |
+          git fetch --no-tags --depth=1 origin c273a99e3bf2ea2bb2d8cd6da4904213d75dc291
+          git show c273a99e3bf2ea2bb2d8cd6da4904213d75dc291:packages/rebuild-billing/src/index.ts > "$RUNNER_TEMP/ai2-rebuild.ts"
+      - name: Run real AI-2 to AI-3 cross-owner candidate tests (no skips)
+        env:
+          AI2_REBUILD_MODULE: ${{ runner.temp }}/ai2-rebuild.ts
+        run: node --experimental-strip-types --test packages/rebuild-ai3/integration/*.test.mjs
+      - name: SQLite in-memory atomicity simulation
+        run: python3 -m unittest discover -s packages/rebuild-ai3/test -p 'test_*.py' -v
