@@ -16,7 +16,7 @@ export type CommittedRecord=Readonly<{
 const ID=/^[A-Za-z0-9._:-]{1,180}$/;
 const KEY=/^b_[a-f0-9]{64}$/;
 const DIGEST=/^[a-f0-9]{64}$/;
-const enforce=(ok:unknown,msg:string):asserts ok=>{if(!ok)throw new Error(msg);};
+function enforce(ok:unknown,msg:string):asserts ok {if(!ok)throw new Error(msg);}
 export const ATOMIC_SQL=Object.freeze({
  owner:[
  'INSERT INTO billing_owner (owner_key,brand_id,app_id,environment,store_environment,store,store_app_id,',
