@@ -1,0 +1,31 @@
+name: Rebuild Starry Billing Sandbox (AI-2)
+on:
+  pull_request:
+    paths:
+      - 'packages/rebuild-billing/**'
+      - 'tsconfig.rebuild-billing.json'
+      - 'docs/adr/0002-starry-iap-strategy.DRAFT.md'
+      - '.github/workflows/rebuild-billing.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: rebuild-billing-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  sandbox-contract-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Strict TypeScript 5.8.3 — no emit
+        run: npm exec --yes --package=typescript@5.8.3 -- tsc --project tsconfig.rebuild-billing.json
+      - name: Deterministic sandbox Node tests (no purchases)
+        run: node --experimental-strip-types --test packages/rebuild-billing/test/*.test.mjs
+      - name: In-memory SQLite transactional contract tests (no D1)
+        run: python3 -m unittest discover -s packages/rebuild-billing/test -p test_schema.py -v
