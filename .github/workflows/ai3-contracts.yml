@@ -20,7 +20,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Strict TypeScript typecheck
+        run: npm exec --yes --package=typescript@5.8.3 -- tsc -p packages/ai3/tsconfig.json --noEmit
+      - name: Check actual pinned AI-0 canonical source parity
+        run: |
+          git fetch --no-tags --depth=1 origin f1ee45098097cb511b4a0fa656bc3503a79c21c0
+          git show f1ee45098097cb511b4a0fa656bc3503a79c21c0:packages/contracts/src/index.ts > "$RUNNER_TEMP/ai0-canonical.ts"
       - name: Syntax check and unit test (no npm dependencies)
+        env:
+          AI0_CANONICAL_MODULE: ${{ runner.temp }}/ai0-canonical.ts
         run: |
           node --experimental-strip-types --check packages/ai3/src/index.ts
           node --experimental-strip-types --test packages/ai3/test/*.test.mjs
@@ -34,3 +42,5 @@ jobs:
           conn.executescript(migration)
           assert {'ai3_audit_events','ai3_delivery_dedupe'}.issubset({r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")})
           PY
+      - name: AI-3 in-memory billing audit uniqueness tests
+        run: python3 -m unittest discover -s packages/ai3/test -p 'test_*.py' -v

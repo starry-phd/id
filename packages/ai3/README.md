@@ -38,3 +38,14 @@ P01: trust-bound Starry app/env only. P02: OpenAPI integration pending AI-4. P03
 
 - Gate 1: approve Auth claims, events/schema version, Battery operations, notification preferences, retention/children privacy, anonymous appeal workflows.
 - Gate 2: integration negative tests, append-only integrity, parallel atomic D1 idempotency, out-of-order event and failure injection, 429/Retry-After, authorized DLQ replay, redaction, isolated D1 recovery drill, real CI test/typecheck with AI-4 scaffold.
+
+
+## Gate 1 -> Gate 2 second round
+
+AI-0 PR #19 (f1ee4509) uniquely owns shared P01/P05; the AI-3 local P05 candidate now matches RFC3339 UTC/offset semantics and checks parity against the exact pinned AI-0 TS source in CI. AI-4 will replace the temporary in-domain validation with the canonical import at multi-PR integration; this change does not create a second shared package.
+
+AI-1 PR #22 must supply real cryptographically verified Starry principal, persisted scoped session/member/grant, revocation/step-up and notification-consent authority through a **server-injected** gateway. There is no exported client-side adminVerified boolean. These mocks are not real authorization proof. Server must derive scope, recipient and consent; never accept them from request fields.
+
+AI-2 PR #23 alone owns and writes provider-verified Billing transactions/entitlements/outbox. AI-3 reads that trusted server-only outbox and exclusively appends redacted audit/inbox; invalid/refund-unverified/non-sandbox/payment-for-Battery events quarantine, duplicated events ignore, older events are marked audit-only, never overwrite entitlements. Store environment (sandbox) and service environment (development/staging/production) are independent. DB uniqueness must be committed atomically in AI-3-owned D1 by its single write owner; simulation does not establish real concurrency safety.
+
+Strict TS typecheck, Node contracts/parity/negative cases and isolated SQLite uniqueness tests are in dedicated CI. Still blocked: actual AI-1/Auth and AI-2 outbox wiring, AI-4 canonical import/Worker/workspace integration, official event names and schema versions, retention/legal holds and privacy deletion, recovery approval, refund reviews, actual D1/Queue/production. All PRs remain Draft; no merge or deployment.

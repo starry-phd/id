@@ -42,9 +42,10 @@ function safeLabel(value: unknown): value is string {
 function opaqueId(value: unknown): value is string {
   return typeof value === 'string' && OPAQUE_ID.test(value);
 }
-function utcTimestamp(value: unknown): boolean {
+/** Candidate #19's RFC3339 predicate; single shared owner remains AI-0. */
+function rfc3339Timestamp(value: unknown): boolean {
   return typeof value === 'string'
-    && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z$/.test(value)
+    && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(value)
     && Number.isFinite(Date.parse(value));
 }
 function environment(value: unknown): value is Environment {
@@ -56,7 +57,7 @@ export function isEventEnvelope(value: unknown): value is EventEnvelope {
   return value.brand_id === 'starry' && environment(value.environment)
     && safeLabel(value.app_id) && opaqueId(value.event_id)
     && safeLabel(value.event_type) && safeLabel(value.schema_version)
-    && utcTimestamp(value.occurred_at) && opaqueId(value.correlation_id)
+    && rfc3339Timestamp(value.occurred_at) && opaqueId(value.correlation_id)
     && safeLabel(value.resource_type) && opaqueId(value.resource_id)
     && safeLabel(value.result)
     && (value.idempotency_key === undefined || opaqueId(value.idempotency_key));
@@ -85,27 +86,88 @@ export function assertBatteryCapability(trusted: Scope, actual: unknown, capabil
   assertScope(trusted, actual);
   if (capability !== 'battery.policy.read') throw new Error('BATTERY_OPERATION_NOT_APPROVED');
 }
-/** adminVerified must come from AI-1 future verified principal; false fails closed. */
-export function assertAuditRead(trusted: Scope, actual: unknown, adminVerified: boolean, action: string): void {
-  assertScope(trusted, actual);
-  if (adminVerified !== true || action !== 'audit:read') throw new Error('AUDIT_ACCESS_DENIED');
+/** SERVER ONLY. AI-1 cryptographically verifies principals and reads live session/member/grant/consent state before returning these decisions. This is not an Auth service. */
+export type Ai1PolicyDecision = Readonly<{ allowed: boolean; reason?: string }>;
+export type Ai1ServerTrustGateway = Readonly<{
+  authorizeAdmin: (scope: Scope, operation: Readonly<{resource:'system';action:'read'}>) => Promise<Ai1PolicyDecision>;
+  authorizeSession: (scope: Scope) => Promise<Ai1PolicyDecision>;
+  resolveNotificationDelivery: (scope: Scope, event: EventEnvelope) => Promise<Readonly<{
+    recipient_ref: string; allowed_channels: readonly ('inbox'|'email'|'push')[];
+  }> | null>;
+}>;
+const NOTIFICATION_KEYS = new Set(['event','recipient_ref','channel','template_id']);
+function denial(code:string):never { throw new Error(code); }
+/** Dependency injection MUST be done by trusted Worker composition, never from an HTTP request/body. */
+export function bindAi3TrustedOperations(trusted:Scope, ai1:Ai1ServerTrustGateway) {
+  assertScope(trusted,trusted);
+  return Object.freeze({
+    async assertAuditRead(actual:unknown):Promise<void> {
+      assertScope(trusted,actual);
+      const decision=await ai1.authorizeAdmin(trusted,{resource:'system',action:'read'});
+      if(!record(decision)||decision.allowed!==true)denial('AUDIT_ACCESS_DENIED');
+    },
+    async assertNotificationDelivery(request:unknown):Promise<void> {
+      if(!record(request)||!allowedKeys(request,NOTIFICATION_KEYS)||!isEventEnvelope(request.event))
+        denial('NOTIFICATION_DENIED');
+      const event=request.event as EventEnvelope;
+      assertScope(trusted,event);
+      if(!opaqueId(request.recipient_ref)||!safeLabel(request.template_id)
+        ||!['inbox','email','push'].includes(String(request.channel)))denial('NOTIFICATION_DENIED');
+      const session=await ai1.authorizeSession(trusted);
+      if(!record(session)||session.allowed!==true)denial('NOTIFICATION_DENIED');
+      const prefs=await ai1.resolveNotificationDelivery(trusted,event);
+      if(!record(prefs)||!opaqueId(prefs.recipient_ref)
+        ||!Array.isArray(prefs.allowed_channels)
+        ||!prefs.allowed_channels.every(x=>['inbox','email','push'].includes(x))
+        ||request.recipient_ref!==prefs.recipient_ref
+        ||!prefs.allowed_channels.includes(request.channel))
+        denial('NOTIFICATION_DENIED');
+    }
+  });
 }
-/** Consent and recipient are provided by Starry Auth/notification preference owner. */
-export function assertNotificationRequest(
-  trusted: Scope,
-  request: unknown,
-  verifiedRecipient: string,
-  allowedChannels: readonly string[],
-): void {
-  if (!record(request) || !allowedKeys(request, new Set(['event', 'recipient_ref', 'channel', 'template_id'])))
-    throw new Error('NOTIFICATION_DENIED');
-  if (!isEventEnvelope(request.event)) throw new Error('NOTIFICATION_DENIED');
-  assertScope(trusted, request.event);
-  if (!opaqueId(verifiedRecipient) || request.recipient_ref !== verifiedRecipient
-    || !safeLabel(request.template_id)
-    || !['inbox', 'email', 'push'].includes(String(request.channel))
-    || !allowedChannels.includes(String(request.channel))) throw new Error('NOTIFICATION_DENIED');
+export type BillingAuditDisposition='ready'|'duplicate'|'stale_audit_only'|'quarantine';
+export type BillingAuditPlan=Readonly<{ disposition:BillingAuditDisposition; event_id?:string; dedupe_key?:string }>;
+/** AI-2 is the only writer of billing transactions/entitlements and its verified provider outbox. AI-3 owns only redacted audit append/receipt. No client paid/verified/refund booleans allowed. */
+export type Ai2VerifiedBillingOutboxEntry=Readonly<{
+  envelope:EventEnvelope; store:'apple'|'google'; store_environment:'sandbox';
+  provider_event_id:string; transaction_ref:string;
+}>;
+export type Ai2ServerBillingGateway=Readonly<{
+  readVerifiedOutbox:(outboxRef:string)=>Promise<unknown>;
+  alreadyAudited:(scope:Scope,providerEventId:string)=>Promise<boolean>;
+  latestAuditedAt:(scope:Scope,transactionRef:string)=>Promise<string|null>;
+  refundIsProviderVerified:(outboxRef:string)=>Promise<boolean>;
+}>;
+const BILLING_EVENTS=new Set([
+  'billing.purchase_verified','billing.renewed','billing.refund_recorded','billing.entitlement_changed',
+]);
+/** No D1 or Billing writes. The final caller must atomic-insert both provider event ID and event ID in AI-3's own redacted inbox before append/side effects. */
+export function bindAi3BillingAudit(trusted:Scope,ai2:Ai2ServerBillingGateway) {
+  assertScope(trusted,trusted);
+  return Object.freeze({
+    async plan(outboxRef:string):Promise<BillingAuditPlan> {
+      if(!opaqueId(outboxRef))return {disposition:'quarantine'};
+      const entry=await ai2.readVerifiedOutbox(outboxRef);
+      if(!record(entry)||!record(entry.envelope)||!isEventEnvelope(entry.envelope)
+        ||!['apple','google'].includes(String(entry.store))||entry.store_environment!=='sandbox'
+        ||!opaqueId(entry.provider_event_id)||!opaqueId(entry.transaction_ref)
+        ||!BILLING_EVENTS.has(entry.envelope.event_type))return {disposition:'quarantine'};
+      const event=entry.envelope;
+      try{assertScope(trusted,event)}catch{return {disposition:'quarantine'}}
+      if(!opaqueId(event.idempotency_key))return {disposition:'quarantine'};
+      if(event.event_type==='billing.refund_recorded'
+        &&await ai2.refundIsProviderVerified(outboxRef)!==true)return {disposition:'quarantine'};
+      const key=idempotencyNamespace(event);
+      if(await ai2.alreadyAudited(trusted,entry.provider_event_id))
+        return {disposition:'duplicate',event_id:event.event_id,dedupe_key:key};
+      const last=await ai2.latestAuditedAt(trusted,entry.transaction_ref);
+      if(last!==null&&(!rfc3339Timestamp(last)||Date.parse(event.occurred_at)<=Date.parse(last)))
+        return {disposition:'stale_audit_only',event_id:event.event_id,dedupe_key:key};
+      return {disposition:'ready',event_id:event.event_id,dedupe_key:key};
+    }
+  });
 }
+
 export type RetryDecision = Readonly<{
   disposition: 'retry' | 'dead_letter' | 'reject'; delay_ms: number;
 }>;
