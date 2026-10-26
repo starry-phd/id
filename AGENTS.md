@@ -3,7 +3,17 @@
 > GitHub Owner: `starry-phd`; personal administrator: `yukidu`.
 > 狀態：全新開發；此檔是工程分工規則，不代表五個 AI 已自行啟動，也不是任何功能完成、CI 通過或 Production 上線的證明。
 
-## 2026-10-26 最新落地狀態｜**非 Codex / GitHub Copilot 預備，AI 尚未自動執行**
+## 2026-10-26 最新業主決議｜**維持五個 ChatGPT 對話人工啟動，撤回購買 Copilot Pro**
+> 本節優先於以下歷史的 Copilot 啟用建議。這是**正式工作模式決議**，不是已完成程式開發的證據。
+1. **不購買 GitHub Copilot Pro US$10**，不將 GitHub Copilot Cloud Agent、Automations 或任何另付費 Agent 作為 Starry 第一波開發的先決條件。不得替業主開通、購買、建立超額預算或聲稱它們在執行。
+2. 固定 **五個 ChatGPT 對話角色**：AI-0 架構／總管／Gate；AI-1 Starry Auth／會員；AI-2 數位 Billing／IAP；AI-3 免費 Battery／通知／稽核；AI-4 Expo／Workers／OpenAPI／CI。由**業主親自打開對應聊天、發出啟動／繼續指令**；不須購買五份 ChatGPT 或 Copilot 訂閱。
+3. **不會自動喚醒**：GitHub Issue、PR 或 AGENTS.md 不會推送訊息至其他 ChatGPT 對話，關閉對話後普通 ChatGPT AI 不會持續在背景自行寫程式。每組須由使用者人工喚醒，才可在當次對話閱讀 GitHub 並工作；不要宣稱五組已全天候運轉。
+4. **AI 之間以 GitHub 為單一共享交接來源**：各組開始時讀取本檔及自己的 Issue #1～#5、HANDOFF-PROTOCOL.md、相關 PR／SHA／CI，再依當前證據執行；每次完成後把結果更新回 Issue／PR。若連接器當次無權限或無法讀取，應說明阻塞並提供短鏈接讓業主處理，不可憑空推定有共享聊天記憶。
+5. **使用者可以人工叫醒各個 AI，但不必人工複製大量工程交接內容**：僅需開啟相應聊天說「繼續你在 starry-phd/id 的 Issue #X，先讀最新 GitHub 交接，再在安全分支做 PR 和測試」。技術交接由讀取 GitHub 完成。
+6. GitHub Actions CI、main ruleset／PR Gate、Dependabot 仍持續有效；`.github/agents/*.agent.md` 為先前已合併的**備用、未啟用 Copilot 角色定義**，不表示付費 Copilot 存在。舊 PR #7 的 Codex 付費工作仍禁用。
+7. 保持 **H-Global 暫停**、第一波第二波 ADMIN-PREP P01～P10、第二波 V2.1 選型另案待辦、禁止未授權 Production／真實 D1／金流變更等規則不變。新 App 實作優先 AI-4 #5，由 AI-0 評審 Gate 後展開 AI-1～3。
+
+## 歷史技術紀錄｜GitHub Copilot 預備檔案（現不採用、不啟用）
 - 已合併 [PR #9](https://github.com/starry-phd/id/pull/9)：五個 GitHub Copilot 自訂角色 `.github/agents/`、GitHub CI、預設停用的 Staging／受保護 Production 工作流程。
 - [main GitHub CI](https://github.com/starry-phd/id/actions/runs/40244400726) 僅 `Repository policy` 真正 PASS；App typecheck/lint/tests SKIPPED，尚無 app scaffold。
 - 使用者正式否決現階段 Codex／OpenAI Platform API Key 背景自動執行；原 PR #7 PAUSED／不得合併；不得調用 `/codex-run-all`。
@@ -24,7 +34,7 @@
 3. **保留未來會員基本資料跨品牌 API 接口**，僅在 Starry 端預留契約／禁用的抽象層與 Mock；不得建立 H-Global 實作或串接真正服務。詳見 [未來雙品牌會員 API 預留契約（DISABLED）](docs/contracts/FUTURE-HGLOBAL-MEMBER-API.md)。
 4. 兩品牌獨立 Auth／User ID／Session／D1／Secrets；未來僅在雙方各自驗證、本人同意與指定欄位獲核准後，透過版本化 API 交換基本資料。**預設停用、失敗即拒絕，不依 Email／姓名合併，不共享資料庫。**
 5. 跨 AI 提問與交接必須在來源 Issue／PR 留有證據，將依賴與交接連結貼到接手 AI 的 Issue；不得以 ChatGPT 口頭消息取代 GitHub 留痕。
-6. **GitHub 留下任務不會自動執行另外四個 AI**；只有在對應已授權的 GitHub Copilot Cloud Agent 或其他 Agent 執行環境已連線、讀取 Issue 且收到實際執行觸發時才會啟動。不得聲稱五組已同時實作而沒有 PR／CI 證據。
+6. **GitHub 留下任務不會自動執行另外四個 ChatGPT AI**；每組由業主人工喚醒，當次聊天讀取所屬 GitHub Issue、更新 GitHub，且用 PR／CI 實證回報。付費 Copilot 角色設定僅為未採用備案，不可當成啟動條件。
 7. 僅需業主批准涉及產品決策、付費、Production 或高風險操作時請示；業主**不需人工轉達工程交接**。
 
 ## 0. 共同依據與適用範圍
@@ -49,7 +59,7 @@
 2. 每個 AI 使用自己的 Issue 與分支（建議 `ai1/`、`ai2/`、`ai3/`、`ai4/`、`ai0/` 前綴），修改範圍互不重疊；不得多人同時改動同一 DB migration／CI／shared 契約檔。
 3. 每組交付 **Draft PR**，包含關聯 Issue、檔案清單、測試指令/結果、SHA、風險、待決問題；不得因「寫完程式」就宣稱完成驗收。
 4. **未經 AI-0 Gate 驗收及業主授權，不得合併 main、部署 Production、操作正式 DB／金流、發布 App 或更改正式憑證。** 初始化空白 Repo 的本分工文件除外。
-5. GitHub Issues / PR / CI 是協作紀錄和交接真實來源；ChatGPT 對話不會因 Issue 自動喚醒其他 AI。**AI-1～AI-4 須由各自可用且已核准的 GitHub Copilot Cloud Agent 或其他 Agent 執行環境實際啟動、讀取其 Issue，才會開始工作。**
+5. GitHub Issues / PR / CI 是協作紀錄和交接真實來源；ChatGPT 對話不會因 Issue 自動喚醒其他 AI。**AI-1～AI-4 由業主人工開啟其 ChatGPT 對話並下指令啟動，每次讀取 GitHub 最新 Issue/PR 作為共享交接依據；非自動背景執行。**
 6. 公開 Repo 的外部 PR 不可在有正式部署密鑰的 CI 中執行；限制 Workflow 權限、採最小權限 Token、必要時使用環境保護與人工批准。
 7. 遵守既有《GitHub AI 自動化開發合規與防封鎖 SOP》：寫入請求保守速率、序列化 mutating API、冪等、避免重複 Issue／CI／高頻輪詢，遇限流或異常暫停並查核；限額不是規避平台政策的保證。
 
