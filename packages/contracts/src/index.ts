@@ -141,3 +141,25 @@ export function assertStarryEventForScope(
     environment: actual.environment,
   });
 }
+
+/**
+ * Audit/outbox delivery requires a stable, server-derived idempotency key.
+ * P05's base envelope intentionally permits the key to be absent; side-effect
+ * consumers MUST use this stronger guard before a dedupe or dispatch boundary.
+ *
+ * This only validates schema+scope+presence; it does NOT prove the key was
+ * server-issued, unique in persistent storage, or atomically committed.
+ */
+export type StarryIdempotentEventEnvelope = StarryEventEnvelope
+  & Readonly<{ idempotency_key: string }>;
+
+export function assertStarryIdempotentEventForScope(
+  trusted: StarryResourceScope,
+  actual: unknown,
+): asserts actual is StarryIdempotentEventEnvelope {
+  assertStarryEventForScope(trusted, actual);
+  if (!Object.hasOwn(actual, 'idempotency_key')
+    || !safeLabel(actual.idempotency_key)) {
+    throw new Error('STARRY_IDEMPOTENCY_KEY_REQUIRED');
+  }
+}
