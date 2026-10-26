@@ -68,7 +68,11 @@ export async function verifySignedOidcIdToken(token:unknown,expected:Readonly<{
     if(matches.length!==1)return null;
     const key=await crypto.subtle.importKey('jwk',matches[0],{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['verify']);
     const data=new TextEncoder().encode(parts[0]+'.'+parts[1]);
-    const ok=await crypto.subtle.verify('RSASSA-PKCS1-v1_5',key,base64urlToBytes(parts[2]),data);
+    // Copy decoded signature into a genuine ArrayBuffer for WebCrypto/TS 5.9.
+    const decodedSignature=base64urlToBytes(parts[2]);
+    const signatureBuffer=new ArrayBuffer(decodedSignature.byteLength);
+    new Uint8Array(signatureBuffer).set(decodedSignature);
+    const ok=await crypto.subtle.verify('RSASSA-PKCS1-v1_5',key,signatureBuffer,data);
     if(!ok)return null;
     const claims=parseObject<Record<string,unknown>>(decoder.decode(base64urlToBytes(parts[1])));
     if(claims.iss!==issuer.issuer || typeof claims.sub!=='string'||claims.sub.length<1||claims.sub.length>256||
