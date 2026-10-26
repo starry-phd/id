@@ -17,6 +17,7 @@
   "include": [
     "apps/api/src/**/*.ts",
     "apps/mobile/**/*.ts",
-    "apps/mobile/**/*.tsx"
+    "apps/mobile/**/*.tsx",
+    "packages/sdk/src/**/*.ts"
   ]
 }

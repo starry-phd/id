@@ -6,12 +6,13 @@
     "node": ">=22"
   },
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "packages/sdk"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "lint": "eslint apps --max-warnings 0",
-    "test": "node --experimental-strip-types --test apps/api/test/*.test.mjs",
+    "lint": "eslint apps packages/sdk/src --max-warnings 0",
+    "test": "node --experimental-strip-types --test apps/api/test/*.test.mjs packages/sdk/test/*.test.mjs",
     "api:dev": "wrangler dev --config apps/api/wrangler.toml --env staging",
     "web:dev": "npm run web --workspace @starry/id-app",
     "api:check": "wrangler deploy --dry-run --config apps/api/wrangler.toml --env staging"
