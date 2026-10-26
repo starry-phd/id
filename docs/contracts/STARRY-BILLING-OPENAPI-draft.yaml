@@ -1,0 +1,109 @@
+openapi: 3.1.0
+info:
+  title: Starry Digital Billing Sandbox (DRAFT / NOT DEPLOYED)
+  version: 0.1.0-draft
+  description: Proposed routes only. No real store adapter, backend authorization, base URL or deployment.
+tags:
+  - name: billing-proposal
+paths:
+  /v1/billing/purchases/verify:
+    post:
+      tags: [billing-proposal]
+      summary: Propose authenticated server verification of untrusted sandbox purchase evidence
+      operationId: proposeVerifySandboxPurchase
+      security: [{starryMember: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [store, app_id, evidence]
+              properties:
+                store: {type: string, enum: [apple, google]}
+                app_id: {type: string}
+                evidence: {type: string, description: Opaque JWS or purchase token, never log}
+      responses:
+        '202': {description: Pending authoritative store verification}
+        '401': {description: Auth required}
+        '403': {description: App or environment denied}
+        '409': {description: Purchase already bound to another member}
+        '422': {description: Unverified transaction or unregistered SKU}
+        '503': {description: Store provider unavailable; fail closed}
+  /v1/billing/entitlements:
+    get:
+      tags: [billing-proposal]
+      summary: Propose scoped read of own app entitlements
+      operationId: proposeGetMyEntitlements
+      security: [{starryMember: ['billing:entitlements:read:self']}]
+      parameters:
+        - name: app_id
+          in: query
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: Authenticated Starry member rights only
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  app_id: {type: string}
+                  entitlements:
+                    type: array
+                    items:
+                      type: object
+                      required: [key, active]
+                      properties:
+                        key: {type: string}
+                        active: {type: boolean}
+                        valid_until: {type: [string, 'null'], format: date-time}
+        '401': {description: Auth required}
+        '403': {description: App scope denied}
+  /v1/admin/billing/refund-reviews:
+    post:
+      tags: [billing-proposal]
+      summary: Propose sandbox refund review only — does not invoke store refund
+      operationId: proposeRefundReview
+      security: [{starryAdmin: ['billing:refund:review']}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [app_id, transaction_ref, approval_id, reason]
+              properties:
+                app_id: {type: string}
+                transaction_ref: {type: string}
+                approval_id: {type: string}
+                reason: {type: string, minLength: 1}
+      responses:
+        '202': {description: Manual review recorded, no refund executed}
+        '401': {description: Admin authentication required}
+        '403': {description: App, role, environment or step-up denied}
+        '409': {description: Review/idempotency conflict}
+components:
+  securitySchemes:
+    starryMember:
+      type: oauth2
+      description: Placeholder for AI-1 Starry OIDC flow, not configured
+      flows:
+        authorizationCode:
+          authorizationUrl: https://invalid.example/NOT_CONFIGURED
+          tokenUrl: https://invalid.example/NOT_CONFIGURED
+          scopes:
+            billing:entitlements:read:self: Read own rights
+    starryAdmin:
+      type: oauth2
+      description: Placeholder for AI-1 independent Starry admin and step-up
+      flows:
+        authorizationCode:
+          authorizationUrl: https://invalid.example/NOT_CONFIGURED
+          tokenUrl: https://invalid.example/NOT_CONFIGURED
+          scopes:
+            billing:refund:review: Sandbox reconciliation review only
