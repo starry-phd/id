@@ -134,6 +134,10 @@ export function createReliableBillingAuditConsumer(
    let record:unknown;
    try{record=await source.readAfterCommit(eventRef)}
    catch{return defer('SOURCE_UNAVAILABLE');}
+   // AI-2 readAfterCommit() legitimately returns null when an outbox transaction
+   // is not yet visible. This is an at-least-once consistency window, not a
+   // forged event: retry/DLQ WITHOUT quarantining or ACKing the Queue message.
+   if(record===null||record===undefined)return defer('SOURCE_NOT_YET_COMMITTED');
    if(!dataRecord(record)||record.committed!==true
      ||record.provider_verified!==true
      ||typeof record.payload_digest!=='string'||!DIGEST.test(record.payload_digest))
