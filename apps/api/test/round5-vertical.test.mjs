@@ -198,3 +198,44 @@ test('wrong scope, production runtime and fake queue identity fail before owner 
  assert.equal(await f.system.dispatchOffline({...f.queue(key),body:{event_ref:key,paid:true}}),'retried');
  assert.equal(f.st.queueActions.some(a=>a==='ack'),false);
 });
+
+
+test('round6: missing committed Billing source retries every pre-exhaustion delivery; no ACK, no quarantine, no DLQ',async()=>{
+ const f=await fixture();
+ const absent='b_'+'f'.repeat(64);
+ for(let attempt=1;attempt<=4;attempt++){
+  assert.equal(await f.system.dispatchOffline(f.queue(absent,attempt)),'retried');
+  assert.deepEqual(f.st.queueActions.at(-1)[0],'retry');
+  assert.equal(f.st.quarantine.size,0);
+  assert.equal(f.st.inbox.size,0);
+  assert.equal(f.st.audit.size,0);
+  assert.equal(f.st.dlq.length,0);
+  assert.equal(f.st.queueActions.includes('ack'),false);
+ }
+});
+test('round6: formerly missing source becomes ACK-safe only after authoritative Billing commit and AI3 atomic readback',async()=>{
+ const f=await fixture();
+ const r=await f.system.purchaseOffline(f.request(),'opaque:offline-sandbox',now);
+ const committed=f.st.stored;
+ f.st.stored=null; // Simulated visibility gap; no accepted HTTP claim may replace it.
+ for(let attempt=1;attempt<=3;attempt++){
+  assert.equal(await f.system.dispatchOffline(f.queue(r.eventRef,attempt)),'retried');
+  assert.equal(f.st.quarantine.size,0);
+  assert.equal(f.st.queueActions.includes('ack'),false);
+ }
+ f.st.stored=committed; // authoritative committed source is now visible
+ assert.equal(await f.system.dispatchOffline(f.queue(r.eventRef,4)),'acked');
+ assert.equal(f.st.audit.size,1);
+ assert.equal(f.st.inbox.size,1);
+ assert.equal(f.st.quarantine.size,0);
+ assert.equal(f.st.queueActions.filter(a=>a==='ack').length,1);
+});
+test('round6: forged committed-looking Queue body cannot replace missing AI2 source',async()=>{
+ const f=await fixture();
+ const absent='b_'+'c'.repeat(64);
+ for(const extras of [{committed:true,provider_verified:true},{authorization:'mock'},{p05:{}}]){
+  assert.equal(await f.system.dispatchOffline({...f.queue(absent),body:{event_ref:absent,...extras}}),'retried');
+  assert.equal(f.st.queueActions.includes('ack'),false);
+  assert.equal(f.st.quarantine.size,0);
+ }
+});

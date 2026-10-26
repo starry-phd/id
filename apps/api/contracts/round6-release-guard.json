@@ -1,0 +1,61 @@
+{
+  "schema": "ai4-api-release-guard.v1",
+  "snapshot": "2026-10-26",
+  "base_source_pr": 53,
+  "scope": {
+    "brand_id": "starry",
+    "app_id": "starry-id",
+    "environments": [
+      "development",
+      "staging"
+    ],
+    "hglobal_implementation": false
+  },
+  "owner": {
+    "api_sdk": "AI-4",
+    "proposed_ai5_activated": false
+  },
+  "public_api": {
+    "openapi_version": "0.1.0",
+    "implemented_routes": [
+      "GET /v1/health"
+    ],
+    "member_routes_published": false,
+    "public_sdk_exports": [
+      "CROSS_BRAND_SYNC_STATUS",
+      "DisabledMemberSyncPort",
+      "StarryEnvironment",
+      "StarryHealthClient",
+      "StarryLiveness",
+      "createStarryHealthClient",
+      "disabledMemberSyncPort"
+    ],
+    "release_authorized": false
+  },
+  "events": {
+    "p05_version": "billing.p05.v1-candidate",
+    "p05_publishable": false
+  },
+  "gates": {
+    "G00": "BLOCKED",
+    "G01": "BLOCKED",
+    "G02": "BLOCKED",
+    "G03": "BLOCKED",
+    "G04": "BLOCKED",
+    "G05": "BLOCKED",
+    "G06": "BLOCKED",
+    "G07": "BLOCKED",
+    "G08": "BLOCKED",
+    "G09": "BLOCKED",
+    "G10": "BLOCKED"
+  },
+  "devices": {
+    "default_eas_tier": "free",
+    "automated_per_pr_eas_build": false,
+    "staging_approved": false,
+    "testflight_approved": false,
+    "play_internal_approved": false,
+    "ios_android_device_verified": false
+  },
+  "no_live_bindings": true
+}
