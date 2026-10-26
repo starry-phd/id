@@ -3,7 +3,7 @@ import test from 'node:test';
 import {
   STARRY_BRAND_ID, CROSS_BRAND_MEMBER_SYNC_ENABLED,
   isStarryEventEnvelope, assertStarryResourceScope, isStarryEnvironment,
-  isRfc3339Timestamp, assertStarryEventForScope,
+  isRfc3339Timestamp, assertStarryEventForScope, assertStarryIdempotentEventForScope,
 } from '../src/index.ts';
 
 const valid = Object.freeze({
@@ -110,6 +110,22 @@ test('P01/P05: event scope binds to trusted Starry app and environment', () => {
   assert.throws(() => assertStarryEventForScope(trusted, {...valid, environment: 'production'}), /SCOPE_DENIED/);
   assert.throws(() => assertStarryEventForScope(trusted, {...valid, brand_id: 'hglobal'}), /ENVELOPE_DENIED/);
   assert.throws(() => assertStarryEventForScope(trusted, {...valid, access_token: 'secret'}), /ENVELOPE_DENIED/);
+});
+
+test('P05 audit/outbox: idempotency key is mandatory and server-scoped', () => {
+  const ready = {...valid, idempotency_key:'store.apple.evt-01'};
+  assert.doesNotThrow(() => assertStarryIdempotentEventForScope(trusted, ready));
+  assert.throws(() => assertStarryIdempotentEventForScope(trusted, valid), /IDEMPOTENCY_KEY_REQUIRED/);
+  assert.throws(() => assertStarryIdempotentEventForScope(trusted,
+    {...valid, idempotency_key:undefined}), /ENVELOPE_DENIED/);
+  assert.throws(() => assertStarryIdempotentEventForScope(trusted,
+    {...valid, idempotency_key:'user@example.com'}), /ENVELOPE_DENIED/);
+  assert.throws(() => assertStarryIdempotentEventForScope(trusted,
+    {...ready, app_id:'other-app'}), /SCOPE_DENIED/);
+  assert.throws(() => assertStarryIdempotentEventForScope(trusted,
+    {...ready, environment:'production'}), /SCOPE_DENIED/);
+  assert.throws(() => assertStarryIdempotentEventForScope(trusted,
+    {...ready, user_email:'user@example.com'}), /ENVELOPE_DENIED/);
 });
 
 test('cross-brand member sync remains disabled', () => {
