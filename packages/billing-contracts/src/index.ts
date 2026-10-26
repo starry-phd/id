@@ -3,10 +3,14 @@ export type Store = 'apple' | 'google';
 export type Kind = 'subscription' | 'non_consumable';
 export type Lifecycle = 'PURCHASED' | 'RENEWED' | 'GRACE_PERIOD' | 'ON_HOLD' | 'EXPIRED' | 'REFUNDED' | 'REVOKED';
 export type Entitlement = 'active' | 'inactive';
+/** Two independent trust axes: Worker runtime vs Apple/Google store. */
+export type WorkerEnvironment = 'development' | 'staging' | 'production';
+export type StoreEnvironment = 'sandbox' | 'production';
 
 export interface Scope {
   brandId: string;
-  environment: string;
+  environment: WorkerEnvironment; // server-controlled Worker environment
+  storeEnvironment: StoreEnvironment; // separate, server-controlled store environment
   appId: string;
   store: Store;
   storeAppId: string;
@@ -21,14 +25,14 @@ export interface CatalogEntry {
 /** Internal ONLY: produced after separate authoritative Apple/Google server validation. */
 export interface ProviderVerifiedEvent {
   verifiedBy: 'apple-app-store-server-api' | 'google-play-developer-api';
-  store: Store; storeEnvironment: 'sandbox'; storeAppId: string; appId: string;
+  store: Store; storeEnvironment: StoreEnvironment; storeAppId: string; appId: string;
   productId: string; transactionId: string; originalTransactionId: string;
   eventId: string; occurredAt: string; expiresAt?: string | null;
   accountBinding?: string | null;
   lifecycle: Lifecycle;
 }
 export interface Projection {
-  brandId: 'starry'; environment: 'sandbox'; appId: string; userId: string;
+  brandId: 'starry'; environment: WorkerEnvironment; storeEnvironment: 'sandbox'; appId: string; userId: string;
   store: Store; storeAppId: string; productId: string; entitlementKey: string;
   originalTransactionId: string; lastTransactionId: string;
   lastEventId: string; lastEventAt: string; expiresAt: string | null;
@@ -59,7 +63,9 @@ export function applyVerifiedEvent(
   previouslyProcessedEventId: boolean = false,
 ): ApplyResult {
   ensure(scope.brandId === 'starry', 'brand mismatch');
-  ensure(scope.environment === 'sandbox' && event.storeEnvironment === 'sandbox', 'environment mismatch');
+  ensure((scope.environment === 'development' || scope.environment === 'staging')
+    && scope.storeEnvironment === 'sandbox' && event.storeEnvironment === scope.storeEnvironment,
+    'environment mismatch');
   for (const value of [scope.appId, scope.storeAppId, scope.userId, scope.accountBinding,
     event.storeAppId, event.appId, event.productId, event.transactionId,
     event.originalTransactionId, event.eventId]) ensure(validId(value), 'invalid identifier');
@@ -78,7 +84,8 @@ export function applyVerifiedEvent(
   }
   ensure(item.kind === 'subscription' || event.lifecycle !== 'RENEWED', 'non-consumable cannot renew');
   if (current) {
-    ensure(current.brandId === 'starry' && current.environment === 'sandbox' &&
+    ensure(current.brandId === 'starry' && current.environment === scope.environment &&
+      current.storeEnvironment === scope.storeEnvironment &&
       current.appId === scope.appId && current.userId === scope.userId &&
       current.store === scope.store && current.storeAppId === scope.storeAppId &&
       current.productId === event.productId &&
@@ -98,7 +105,7 @@ export function applyVerifiedEvent(
   return {
     applied: true, reason: 'applied',
     projection: {
-      brandId: 'starry', environment: 'sandbox', appId: scope.appId,
+      brandId: 'starry', environment: scope.environment, storeEnvironment: 'sandbox', appId: scope.appId,
       userId: scope.userId, store: scope.store, storeAppId: scope.storeAppId,
       productId: event.productId, entitlementKey: item.entitlementKey,
       originalTransactionId: event.originalTransactionId,
@@ -109,17 +116,19 @@ export function applyVerifiedEvent(
   };
 }
 export interface RefundReviewPrincipal {
-  brandId: string; environment: string; appIds: readonly string[];
+  brandId: string; environment: WorkerEnvironment; storeEnvironment: StoreEnvironment; appIds: readonly string[];
   scopes: readonly string[]; stepUpAt: string | null;
 }
 /** Sandbox REVIEW authorization only, never an actual Apple/Google refund operation. */
 export function assertRefundReviewAuthorized(
   principal: RefundReviewPrincipal,
-  target: { brandId: string; environment: string; appId: string; reason: string; approvalId: string },
+  target: { brandId: string; environment: WorkerEnvironment; storeEnvironment: StoreEnvironment; appId: string; reason: string; approvalId: string },
   at: string,
 ): void {
   ensure(principal.brandId === 'starry' && target.brandId === 'starry', 'brand mismatch');
-  ensure(principal.environment === 'sandbox' && target.environment === 'sandbox', 'environment mismatch');
+  ensure((principal.environment === 'development' || principal.environment === 'staging')
+    && target.environment === principal.environment &&
+    principal.storeEnvironment === 'sandbox' && target.storeEnvironment === 'sandbox', 'environment mismatch');
   ensure(principal.appIds.includes(target.appId), 'app scope denied');
   ensure(principal.scopes.includes('billing:refund:review'), 'refund scope denied');
   ensure(validId(target.reason.trim()) && validId(target.approvalId), 'reason and approval required');
