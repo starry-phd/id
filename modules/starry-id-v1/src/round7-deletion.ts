@@ -26,7 +26,9 @@ export function createOfflineStarryAccountDeletion(deps:Readonly<{
    try{
     // Current member authority is re-read, never accepted as client JSON.
     const current=await read.readMember(p.s_user_id);
-    if(!current||current.status!=='active'||current.auth_version!==p.auth_version)return false;
+    if(!current||current.status!=='active'||current.auth_version!==p.auth_version||
+     !Number.isSafeInteger(current.profile_revision)||current.profile_revision<1||
+     current.profile_revision>=Number.MAX_SAFE_INTEGER)return false;
     // A second verified proof issued by the existing AI-1 backend verifier is mandatory.
     const next=planSelfDeletion(p,scope,current,challenge,now);
     const writes=[
