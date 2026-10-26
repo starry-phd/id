@@ -5,7 +5,7 @@ export default [
   {ignores:['**/node_modules/**','**/.expo/**','**/dist/**']},
   js.configs.recommended,
   {files:['apps/**/*.mjs'], languageOptions:{globals:{Request:'readonly'}}},
-  {files:['apps/**/*.{ts,tsx}','packages/sdk/src/**/*.ts'],
+  {files:['apps/**/*.{ts,tsx}','packages/**/src/**/*.ts','modules/**/src/**/*.ts'],
    languageOptions:{parser,parserOptions:{ecmaVersion:'latest',sourceType:'module',ecmaFeatures:{jsx:true}}},
    plugins:{'@typescript-eslint':plugin},
    rules:{'no-undef':'off','no-unused-vars':'off','@typescript-eslint/no-unused-vars':['error',{argsIgnorePattern:'^_'}]}
