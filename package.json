@@ -16,7 +16,7 @@
     "api:dev": "wrangler dev --config apps/api/wrangler.toml --env staging",
     "web:dev": "npm run web --workspace @starry/id-app",
     "api:check": "wrangler deploy --dry-run --config apps/api/wrangler.toml --env staging",
-    "gate2:sqlite": "python3 -m unittest discover -s modules/starry-auth/test -p test_schema.py -v && python3 scripts/ci/gate2_sqlite.py",
+    "gate2:sqlite": "python3 -m unittest discover -s modules/starry-auth/test -p test_schema.py -v && python3 -m unittest discover -s packages/ai3/test -p test_billing_sql.py -v && python3 scripts/ci/gate2_sqlite.py",
     "gate2:check": "npm run typecheck && npm run lint && npm test && npm run gate2:sqlite && npm run api:check"
   },
   "devDependencies": {
