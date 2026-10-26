@@ -205,3 +205,10 @@ test('historical refund retains entitlement yet yields separate pseudonymous aud
   assert.equal(oldRefund.outbox.result,'historical');
   assert.equal(oldRefund.p05.classification,'metadata_only');
 });
+
+test('AI-1 principal from the previous request cannot be reused even one second later',async()=>{
+  const f=fixture();
+  const sealed=await f.ports.auth.resolveTrustedPrincipal();
+  f.ports.auth.resolveTrustedPrincipal=async()=>sealed;
+  await denied(run(f,request,'2026-10-26T09:00:01Z'),/AUTH_DENIED/);
+});
