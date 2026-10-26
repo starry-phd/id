@@ -40,8 +40,8 @@ paths:
       security: [{StarrySession: []}]
       responses:
         '501': {description: NOT IMPLEMENTED}
-  /v1/starry-id/members/me:
-    delete:
+  /v1/starry-id/members/me/delete-confirmed:
+    post:
       summary: Candidate confirmed deletion + full session revoke; NOT DEPLOYED
       security: [{StarrySession: []}]
       responses:
