@@ -10,7 +10,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: ai4-r6-\x24{{ github.workflow }}-\x24{{ github.ref }}
+  group: ai4-r6-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   offline-contract:

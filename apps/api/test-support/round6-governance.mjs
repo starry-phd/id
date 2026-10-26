@@ -1,5 +1,6 @@
 /** AI-4 Round6 fail-closed repo source contract. REVIEW ONLY, no deployment decisions. */
 import {readFileSync} from 'node:fs';
+import {URL} from 'node:url';
 const file=(relative)=>readFileSync(new URL('../../../'+relative,import.meta.url),'utf8');
 export const loadRound6Inputs=()=>({
  policy:JSON.parse(file('apps/api/contracts/round6-release-guard.json')),
@@ -20,9 +21,9 @@ export function verifyRound6Guard({policy,openapi,worker,sdk,candidate,mobile}){
  fail(p?.openapi_version==='0.1.0'&&p.release_authorized===false
   &&p.member_routes_published===false
   &&JSON.stringify(p.implemented_routes)==='["GET /v1/health"]','LIVE_API_FLAG');
- const paths=[...openapi.matchAll(/^  (\/[^\s:]+):\s*$/gm)].map(m=>m[1]);
+ const paths=[...openapi.matchAll(/^ {2}(\/[^\s:]+):\s*$/gm)].map(m=>m[1]);
  fail(JSON.stringify(paths)==='["/v1/health"]'
-  &&/^  version: 0\.1\.0$/m.test(openapi)
+  &&/^ {2}version: 0\.1\.0$/m.test(openapi)
   &&/openapi: 3\.1\.0/.test(openapi),'OPENAPI_COMPAT');
  fail(worker.includes("url.pathname === '/v1/health'")
   &&!worker.includes('/v1/member')&&!worker.includes('/v1/billing')
