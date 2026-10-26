@@ -53,7 +53,7 @@ function setup(options={}){
   resolveTrustedPrincipal:async()=>options.forged??resolver({testOnly:true},storeState.now),
   readCommittedEntitlement:async(userId,offerId)=>{
    storeState.readCalls++;assert.equal(userId,'s_001');
-   assert.equal(offerId,baseOffer.offerId);
+   assert.equal(offerId,offers[0].offerId);
    if(storeState.error)throw new Error('offline-d1-failed');
    return storeState.row;
   },
