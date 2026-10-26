@@ -1,0 +1,16 @@
+name = "starry-id-api-local"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+[vars]
+STARRY_ENVIRONMENT = "development"
+STARRY_APP_ID = "starry-id"
+
+[env.staging]
+name = "starry-id-api-staging"
+workers_dev = false
+[env.staging.vars]
+STARRY_ENVIRONMENT = "staging"
+STARRY_APP_ID = "starry-id"
+# Deliberately no D1/R2/Queues bindings and no production environment.

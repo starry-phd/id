@@ -1,0 +1,38 @@
+openapi: 3.1.0
+info:
+  title: Starry ID foundation API (DRAFT - not deployed)
+  version: 0.1.0
+  description: Only the implemented liveness route is specified. No authenticated user or admin endpoints exist yet.
+paths:
+  /v1/health:
+    get:
+      summary: Unauthenticated liveness (NOT readiness)
+      operationId: getLiveness
+      responses:
+        '200':
+          description: Service process is responding
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [status, brand_id, app_id, environment, service, kind]
+                properties:
+                  status: {type: string, const: ok}
+                  brand_id: {type: string, const: starry}
+                  app_id: {type: string, const: starry-id}
+                  environment: {type: string, enum: [development, staging]}
+                  service: {type: string, const: id-api}
+                  kind: {type: string, const: liveness-only}
+        '503':
+          description: Environment disabled
+components:
+  schemas:
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: {type: string}
+            message: {type: string}

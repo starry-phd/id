@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Starry ID Dev",
+    "slug": "starry-id-dev",
+    "scheme": "starry-id-dev",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "phd.starry.id.dev"
+    },
+    "android": {
+      "package": "phd.starry.id.dev"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    }
+  }
+}

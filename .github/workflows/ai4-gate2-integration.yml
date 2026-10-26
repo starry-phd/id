@@ -1,0 +1,45 @@
+name: AI-4 Gate 2 Integration (Unrouted / Dry Run)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'modules/**'
+      - 'scripts/ci/gate2_sqlite.py'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'eslint.config.mjs'
+      - '.github/workflows/ai4-gate2-integration.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: gate2-integration-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  gate2:
+    name: Locked root TS / lint / all tests / SQLite / Worker dry-run
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Reproducible locked install
+        run: npm ci --no-audit --no-fund
+      - name: Strict TypeScript for all five pinned modules and glue
+        run: npm run typecheck
+      - name: Lint foundation and every domain source
+        run: npm run lint
+      - name: Run all Node core, SDK, domain, cross-module and negative tests
+        run: npm test
+      - name: Verify Auth CAS and Audit dedupe using SQLite memory only
+        run: npm run gate2:sqlite
+      - name: Workers staging package dry-run WITHOUT deployment
+        run: npm run api:check
