@@ -1,0 +1,28 @@
+{
+  "name": "starry-id-foundation",
+  "private": true,
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint apps --max-warnings 0",
+    "test": "node --experimental-strip-types --test apps/api/test/*.test.mjs",
+    "api:dev": "wrangler dev --config apps/api/wrangler.toml --env staging",
+    "web:dev": "npm run web --workspace @starry/id-app",
+    "api:check": "wrangler deploy --dry-run --config apps/api/wrangler.toml --env staging"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^22.18.0",
+    "@typescript-eslint/parser": "^8.46.2",
+    "@typescript-eslint/eslint-plugin": "^8.46.2",
+    "eslint": "^9.39.1",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.45.0"
+  }
+}
