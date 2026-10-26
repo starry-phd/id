@@ -22,4 +22,4 @@ jobs:
       - name: Node identity/profile security tests
         run: node --experimental-strip-types --test modules/starry-id-v1/test/*.test.mjs
       - name: SQLite in-memory auth/member schema CAS
-        run: python3 -m unittest discover -s modules/starry-id-v1/test -p test_schema.py -v
+        run: python3 -m unittest discover -s modules/starry-id-v1/test -p 'test_*.py' -v
