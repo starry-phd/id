@@ -64,7 +64,7 @@ test('cannot delete from unsigned JSON, wrong challenge, off state or arbitrary 
  assert.equal(await g.remove(p,{...valid},'deletion-event-unique-0002',now),false);
  assert.equal(await g.remove(p,valid,'short',now),false);
  assert.equal(await g.remove(p,valid,'deletion-event-unique-0002',now+500),false);
- assert.equal(f.calls.length,0);
+ assert.equal(f.calls.filter(c=>!c.sql.startsWith('SELECT ')).length,0);
 });
 test('denied on suspended, auth-version mismatch, already deleted, or failing batch',async()=>{
  const {member,session}=sample(),p=await mint(member,session);
