@@ -10,6 +10,7 @@ export const EVENT_KINDS=Object.freeze([
  'identity.session.revoked','identity.member.deleted','identity.grant.revoked',
  'security.access.denied','notification.delivery.queued','notification.delivery.rejected',
  'privacy.erasure.requested','appeal.received','audit.replay.requested',
+ 'billing.store_state_observed', // Candidate ONLY: AI-0 owns final canonical P05 decision.
 ] as const);
 export type EventKind=typeof EVENT_KINDS[number];
 export const CANDIDATE_VERSION='rebuild-ai3.0.1-candidate' as const;
@@ -163,4 +164,146 @@ export function erasureGate(v:unknown):Readonly<{disposition:'policy_pending';pe
   ||v.kind!=='member_erasure'||!safeId(v.request_ref))
   throw new Error('AI3_PRIVACY_DENIED');
  return {disposition:'policy_pending',performed:false};
+}
+
+
+/**
+ * Second-round candidate: AI-2 committed Billing outbox -> AI-0-owned P05
+ * validator -> AI-3 redacted audit inbox. No copied shared validator or DB writer.
+ * All ports MUST be bound by the trusted server composition; never HTTP input.
+ */
+export type P05Candidate=Readonly<{
+ event_id:string;event_type:'billing.store_state_observed';schema_version:string;
+ brand_id:'starry';app_id:string;environment:Environment;occurred_at:string;
+ correlation_id:string;resource_type:'billing_transaction';resource_id:string;
+ result:'observed'|'historical';idempotency_key:string;
+}>;
+export type Ai0CanonicalP05Port=Readonly<{
+ validateForScope:(scope:Scope,event:P05Candidate)=>boolean|Promise<boolean>;
+ schemaVersion:string; // AI-0 is the ONLY owner; not dictated by AI-3.
+}>;
+/** This is AI-2 #29's exact OutboxCandidate transport shape (not P05). */
+export type Ai2BillingOutbox=Readonly<{
+ eventId:string;eventType:'billing.store_state_observed';brandId:'starry';
+ appId:string;environment:Environment;storeEnvironment:'sandbox';
+ idempotencyKey:string;correlationId:string;resourceType:'billing_transaction';
+ resourceId:string;result:'observed'|'historical';
+}>;
+export type CommittedBillingAuditRow=Readonly<{
+ outbox:Ai2BillingOutbox;
+ occurred_at:string; // from AI-2 committed authoritative billing_event, NOT HTTP/clock
+ source_event_ref:string; // safe AI-2 server-only pseudonymous SHA256 id
+ resource_ref:string; // safe AI-2 server-only SHA256 transaction reference
+ payload_digest:string; // 64-hex SHA256 fingerprint of committed safe provider evidence
+ verified_provider:boolean; // derived from trusted AI-2 verified-store write path, NEVER client
+ committed:boolean; // row visible AFTER AI-2 owner/event/entitlement/outbox commit
+}>;
+export type Ai2CommittedOutboxReader=Readonly<{
+ readCommitted:(ref:string)=>Promise<unknown>;
+}>;
+export type ExistingAuditClaim=Readonly<{event_id:string;payload_digest:string}>;
+export type Ai3AuditClaimReader=Readonly<{
+ lookupByKey:(scope:Scope,key:string)=>Promise<ExistingAuditClaim|null>;
+ latestSourceTime:(scope:Scope,resource_ref:string)=>Promise<string|null>;
+}>;
+export type BillingAuditDecision=Readonly<{
+ disposition:'ready'|'duplicate'|'stale_audit_only'|'quarantine';
+ reason:string;
+ canonical?:P05Candidate;
+ audit?:AuditMetadata;
+ payload_digest?:string;
+}>;
+const AI2_OUTBOX_FIELDS=new Set([
+ 'eventId','eventType','brandId','appId','environment','storeEnvironment',
+ 'idempotencyKey','correlationId','resourceType','resourceId','result',
+]);
+const HEX64=/^[a-f0-9]{64}$/;
+const BILLKEY=/^b_[a-f0-9]{64}$/;
+const HASH_REF=/^[ar]_[a-f0-9]{64}$/;
+function isAi2Outbox(v:unknown):v is Ai2BillingOutbox{
+ if(!plain(v))return false;
+ try {
+  return Reflect.ownKeys(v).length===AI2_OUTBOX_FIELDS.size
+   &&Reflect.ownKeys(v).every(k=>AI2_OUTBOX_FIELDS.has(String(k)))
+   &&v.brandId==='starry'&&safeId(v.appId)&&validEnv(v.environment)
+   &&v.environment!=='production'&&v.storeEnvironment==='sandbox'
+   &&v.eventType==='billing.store_state_observed'
+   &&typeof v.idempotencyKey==='string'&&BILLKEY.test(v.idempotencyKey)
+   &&v.correlationId===v.idempotencyKey
+   &&safeId(v.eventId)&&v.resourceType==='billing_transaction'
+   &&safeId(v.resourceId)
+   &&(v.result==='observed'||v.result==='historical');
+ }catch{return false;}
+}
+/** Strict mapping candidate, no raw JWS/receipt/token/PII or store_environment leakage into P05. */
+export function mapAi2OutboxToP05(scope:Scope,raw:unknown,occurredAt:unknown,
+ schemaVersion:unknown,sourceEventRef:unknown,resourceRef:unknown):P05Candidate{
+ if(!isAi2Outbox(raw)||raw.appId!==scope.app_id||raw.environment!==scope.environment
+  ||scope.brand_id!=='starry'||!rfc3339(occurredAt)
+  ||!safeId(schemaVersion)||schemaVersion===''
+  ||typeof sourceEventRef!=='string'||!HASH_REF.test(sourceEventRef)||!sourceEventRef.startsWith('a_')
+  ||typeof resourceRef!=='string'||!HASH_REF.test(resourceRef)||!resourceRef.startsWith('r_'))
+  throw new Error('AI3_BILLING_SCOPE_OR_PAYLOAD_DENIED');
+ const canonical:P05Candidate=Object.freeze({
+  event_id:sourceEventRef,event_type:'billing.store_state_observed',
+  schema_version:schemaVersion,brand_id:'starry',app_id:scope.app_id,
+  environment:scope.environment,occurred_at:occurredAt,
+  correlation_id:raw.idempotencyKey,resource_type:'billing_transaction',
+  resource_id:resourceRef,result:raw.result,idempotency_key:raw.idempotencyKey,
+ });
+ return canonical;
+}
+/**
+ * Domain-only plan. AI-3 is sole writer of inbox+audit; AI-2 is sole writer
+ * of Billing and committed provider-verified outbox. Any real claim+audit
+ * MUST commit atomically; a plan/read cannot guarantee concurrency safety.
+ */
+export function bindBillingAuditBridge(scope:Scope,ai2:Ai2CommittedOutboxReader,
+ ai3:Ai3AuditClaimReader,ai0:Ai0CanonicalP05Port){
+ assertScope(scope,scope);
+ return Object.freeze({
+  async plan(ref:string):Promise<BillingAuditDecision>{
+   const reject=(reason:string):BillingAuditDecision=>({disposition:'quarantine',reason});
+   if(!safeId(ref))return reject('OUTBOX_REF_DENIED');
+   const record=await ai2.readCommitted(ref);
+   if(!plain(record)||record.committed!==true||record.verified_provider!==true
+    ||!isAi2Outbox(record.outbox)||!rfc3339(record.occurred_at)
+    ||typeof record.payload_digest!=='string'||!HEX64.test(record.payload_digest)
+    ||typeof ai0.schemaVersion!=='string'||!safeId(ai0.schemaVersion))
+    return reject('UNTRUSTED_OR_UNCOMMITTED_BILLING');
+   const sourceRef=record.source_event_ref;
+   const resRef=record.resource_ref;
+   let p05:P05Candidate;
+   try{
+    p05=mapAi2OutboxToP05(scope,record.outbox,record.occurred_at,
+     ai0.schemaVersion,sourceRef,resRef);
+   }catch{return reject('SCOPE_OR_FORMAT_DENIED');}
+   if(await ai0.validateForScope(scope,p05)!==true)
+    return reject('CANONICAL_P05_DENIED');
+   const current=await ai3.lookupByKey(scope,p05.idempotency_key);
+   if(current!==null){
+    if(!plain(current)||current.event_id!==p05.event_id
+      ||current.payload_digest!==record.payload_digest)return reject('IDEMPOTENCY_CONFLICT');
+    return {disposition:'duplicate',reason:'SAME_COMMITTED_PROVIDER_EVENT'};
+   }
+   // Never use payment event to mutate or restore an entitlement.
+   const latest=await ai3.latestSourceTime(scope,p05.resource_id);
+   const stale=latest!==null&&(!rfc3339(latest)
+    ||Date.parse(p05.occurred_at)<=Date.parse(latest));
+   const audit:AuditMetadata=Object.freeze({
+    schema_version:CANDIDATE_VERSION,brand_id:'starry',app_id:scope.app_id,
+    environment:scope.environment,event_id:p05.event_id,
+    event_type:'billing.store_state_observed',occurred_at:p05.occurred_at,
+    correlation_id:p05.correlation_id,idempotency_key:p05.idempotency_key,
+    resource_ref:p05.resource_id,actor_ref:'billing_verified_service',
+    result:'recorded',classification:'metadata_only',
+   });
+   if(!isAuditMetadata(audit))return reject('AI3_AUDIT_REDACTION_DENIED');
+   return Object.freeze({
+    disposition:stale?'stale_audit_only':'ready',
+    reason:stale?'HISTORICAL_AUDIT_NOT_ENTITLEMENT':'VERIFIED_COMMITTED_BILLING',
+    canonical:p05,audit,payload_digest:record.payload_digest,
+   });
+  },
+ });
 }

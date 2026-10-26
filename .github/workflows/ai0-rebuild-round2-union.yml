@@ -1,0 +1,52 @@
+name: AI-0 Rebuild Round 2 Union Gate
+on:
+  pull_request:
+    paths:
+      - 'apps/**'
+      - 'modules/starry-id-v1/**'
+      - 'packages/**'
+      - 'docs/requirements/**'
+      - 'docs/contracts/**'
+      - '.github/workflows/ai0-rebuild-round2-union.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  full-union-checkout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Locked dependency install and SSOT index
+        run: |
+          npm ci --no-audit --no-fund
+          npm run ssot:validate
+          node docs/requirements/verify-original-inventory.mjs
+      - name: Foundation and cross-owner contract checks
+        run: |
+          npm run typecheck
+          npm run lint
+          npm test
+          npm run mobile:config
+          npm run api:check
+      - name: Strict TS for all latest domain modules
+        run: |
+          ./node_modules/.bin/tsc -p modules/starry-id-v1/tsconfig.json --noEmit
+          ./node_modules/.bin/tsc -p tsconfig.rebuild-billing.json --noEmit
+          ./node_modules/.bin/tsc -p packages/rebuild-ai3/tsconfig.json --noEmit
+      - name: All latest owner negative tests (no skipped)
+        run: |
+          node --experimental-strip-types --test modules/starry-id-v1/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-billing/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-ai3/test/*.test.mjs
+      - name: SQLite in-memory isolation and CAS
+        run: |
+          python3 -m unittest discover -s modules/starry-id-v1/test -p 'test_*.py' -v
+          python3 -m unittest discover -s packages/rebuild-billing/test -p 'test_*.py' -v
+          python3 -m unittest discover -s packages/rebuild-ai3/test -p 'test_*.py' -v
