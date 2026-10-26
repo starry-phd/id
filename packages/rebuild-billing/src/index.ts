@@ -56,7 +56,7 @@ export interface StarryAuthPort {
 }
 export interface StorePort {
   /** In real integration verify Apple JWS / Apple API or Google API, NOT client markers. */
-  verifySandboxEvidence(opaqueEvidence: unknown, store: Store): AuthoritativeStoreSnapshot;
+  verifySandboxEvidence(opaqueEvidence: unknown, store: Store): AuthoritativeStoreSnapshot | Promise<AuthoritativeStoreSnapshot>;
 }
 export interface BillingPorts {
   readonly registry: ServerRegistry; readonly auth: StarryAuthPort;
@@ -169,7 +169,7 @@ export async function planSandboxPurchase(
   const actorRef=await ports.auth.opaqueActorRefFor(userId,ports.registry);
   ensure(identifier(accountBinding) && identifier(actorRef) && actorRef!==userId
     && actorRef!==accountBinding,'SERVER_BINDING_DENIED');
-  const s=ports.store.verifySandboxEvidence(request.evidence,ports.registry.store);
+  const s=await ports.store.verifySandboxEvidence(request.evidence,ports.registry.store);
   ensure(s.brandId==='starry' && s.appId===ports.registry.appId
     && s.store===ports.registry.store && s.storeEnvironment==='sandbox'
     && s.storeAppId===ports.registry.storeAppId,'PROVIDER_SCOPE_DENIED');

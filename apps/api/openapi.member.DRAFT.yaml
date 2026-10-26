@@ -1,0 +1,36 @@
+openapi: 3.1.0
+info:
+  title: Starry ID member transport candidate (NOT SERVED)
+  version: 0.3.0-draft
+  description: This isolated contract is not included in the deployed Worker's openapi.yaml.
+paths:
+  /v1/member/self:
+    get:
+      operationId: readStarrySelfDraft
+      summary: Candidate GET self only. Requires AI-1 verified session; production endpoint disabled.
+      security:
+        - signedSession: []
+      responses:
+        '200':
+          description: Own server-authorized minimum profile; privacy-minimal.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [s_user_id, display_name, directory_opt_in, display_name_public, profile_revision]
+                properties:
+                  s_user_id: {type: string}
+                  display_name: {type: [string, 'null']}
+                  directory_opt_in: {type: boolean}
+                  display_name_public: {type: boolean}
+                  profile_revision: {type: integer, minimum: 0}
+        '401': {description: Invalid or expired session}
+        '403': {description: Suspended, revoked, forbidden or current record changed}
+        '503': {description: Real server verifier not configured}
+components:
+  securitySchemes:
+    signedSession:
+      type: http
+      scheme: bearer
+      description: Server-cryptographically-verified session only. This is a draft; no public auth endpoint.
