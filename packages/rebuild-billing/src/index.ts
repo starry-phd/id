@@ -160,8 +160,9 @@ export async function planSandboxPurchase(
     && rawPrincipal.app_id===ports.registry.appId
     && rawPrincipal.environment===ports.registry.environment
     && rawPrincipal.expires_at>Math.floor(nowMs/1000)
-    && rawPrincipal.checked_at<=Math.floor(nowMs/1000)
-    && Math.floor(nowMs/1000)-rawPrincipal.checked_at<=60
+    // In addition to AI-1 WeakSet provenance, require a fresh per-request resolution.
+    // No reuse of a prior request's principal even within AI-1's maximum 60s window.
+    && rawPrincipal.checked_at===Math.floor(nowMs/1000)
     && identifier(rawPrincipal.s_user_id), 'AUTH_DENIED');
   const userId=rawPrincipal.s_user_id;
   const accountBinding=await ports.auth.accountBindingFor(userId,ports.registry);
