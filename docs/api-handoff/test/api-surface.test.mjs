@@ -30,6 +30,6 @@ test('detect API and SDK drift against exact checked source content',()=>{
  files.set('packages/sdk/src/index.ts',fake('packages/sdk/src/index.ts')+"\nexport {createMemberPreviewSdk} from './member-preview';");
  assert.ok(verify(base,fake).includes('MEMBER_SDK_PUBLICLY_EXPORTED'));
  files.clear();
- files.set('apps/api/openapi.yaml',fake('apps/api/openapi.yaml')+"\n  /v1/member/self:\n    get:\n");
+ files.set('apps/api/openapi.yaml',fake('apps/api/openapi.yaml').replace('paths:\n  /v1/health:', 'paths:\n  /v1/member/self:\n    get:\n      summary: Test-injected unauthorized route\n  /v1/health:'));
  assert.ok(verify(base,fake).includes('OPENAPI_EXPOSURE_DRIFT'));
 });
