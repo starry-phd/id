@@ -21,8 +21,13 @@ function fixture(overrides={}) {
   Object.assign(state,overrides);
   const ports={registry:{...registry},
     auth:{
-      resolveVerifiedPrincipal:()=>state.principal,
-      assertActiveSession:()=>{if(!state.active)throw Error('SESSION_REVOKED')},
+      resolveTrustedPrincipal:()=>state.principal,
+      billingIdentity:(p,c,nowSeconds)=>{
+        if(!state.active || p.expires_at<=nowSeconds)throw Error('SESSION_REVOKED');
+        if(p.brand_id!==c.brand_id || p.app_id!==c.app_id || p.environment!==c.environment)throw Error('SCOPE_DENIED');
+        return {brandId:'starry',appId:p.app_id,runtimeEnvironment:p.environment,storeEnvironment:'sandbox',
+          userId:p.s_user_id,sessionId:p.session_id,authVersion:p.auth_version};
+      },
       accountBindingFor:()=> 'binding-u1',
       resolveRefundPermission:()=>state.refundAuthorized?{
         appIds:['starry.demo'], scopes:state.grant?['billing:refund:review']:[],
