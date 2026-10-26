@@ -48,13 +48,6 @@ function json(value:string):RecordValue {
   check(value.length<=24576,'STORE_FORMAT_DENIED');
   try {return record(JSON.parse(value));}catch {return fail('STORE_FORMAT_DENIED');}
 }
-function content(s:string):string {return btoa(Array.from(new TextEncoder().encode(s),b=>String.fromCharCode(b)).join(''));}
-function digestBytes(v:Uint8Array):string {
-  return Array.from(v,b=>b.toString(16).padStart(2,'0')).join('');
-}
-async function sha256(value:string):Promise<string> {
-  return digestBytes(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))));
-}
 function sandbox(registry:ServerRegistry, store:'apple'|'google'):void {
   check(registry.brandId==='starry' && (registry.environment==='development'||registry.environment==='staging')
     && registry.storeEnvironment==='sandbox' && registry.store===store,'STORE_SANDBOX_ONLY');
@@ -78,9 +71,12 @@ async function checkedJws(
   const payload=json(utf8(parts[1]));
   const key=await trustedKey(header);basicKey(key,algorithm);
   const signature=base64url(parts[2]);
+  // WebCrypto BufferSource requires ArrayBuffer, not a potentially shared backing store.
+  const signatureBuffer=new ArrayBuffer(signature.byteLength);
+  new Uint8Array(signatureBuffer).set(signature);
   const verified=await crypto.subtle.verify(
     algorithm==='ES256'?{name:'ECDSA',hash:'SHA-256'}:{name:'RSASSA-PKCS1-v1_5'},
-    key,signature,new TextEncoder().encode(parts[0]+'.'+parts[1]),
+    key,signatureBuffer,new TextEncoder().encode(parts[0]+'.'+parts[1]),
   );
   check(verified,'JWS_SIGNATURE_DENIED');
   return payload;
