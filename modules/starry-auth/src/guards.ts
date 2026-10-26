@@ -4,7 +4,7 @@
  */
 export type Environment='development'|'staging'|'production';
 export type Action='read'|'write'|'approve'|'refund'|'deploy'|'export'|'restore';
-export type Resource='member'|'session'|'admin'|'billing'|'battery'|'system';
+export type Resource='member'|'session'|'admin'|'billing'|'battery'|'audit'|'system';
 export type Reason='AUTH_REQUIRED'|'SCOPE_DENIED'|'SESSION_REVOKED'|'MEMBER_INACTIVE'|'ADMIN_DENIED'|'STEP_UP_REQUIRED'|'PROFILE_PRIVATE';
 export type Decision={allowed:true}|{allowed:false,reason:Reason};
 export type TrustedScope={brand_id:'starry',app_id:string,environment:Environment};
