@@ -1,0 +1,51 @@
+name: AI-0 Rebuild Composition CI
+on:
+  pull_request:
+    paths:
+      - 'apps/**'
+      - 'modules/starry-id-v1/**'
+      - 'packages/rebuild-ai3/**'
+      - 'packages/rebuild-billing/**'
+      - 'packages/sdk/**'
+      - 'docs/requirements/**'
+      - '.github/workflows/ai0-rebuild-composition.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  all-teams-one-checkout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Locked workspace install
+        run: npm ci --no-audit --no-fund
+      - name: SSOT and foundation verification
+        run: |
+          npm run ssot:validate
+          npm run typecheck
+          npm run lint
+          npm test
+          npm run mobile:config
+          npm run api:check
+      - name: Domain TypeScript typechecks
+        run: |
+          ./node_modules/.bin/tsc --noEmit -p modules/starry-id-v1/tsconfig.json
+          ./node_modules/.bin/tsc --noEmit -p tsconfig.rebuild-billing.json
+          ./node_modules/.bin/tsc --noEmit -p packages/rebuild-ai3/tsconfig.json
+      - name: Domain policy and negative tests
+        run: |
+          node --experimental-strip-types --test modules/starry-id-v1/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-billing/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-ai3/test/*.test.mjs
+      - name: Domain SQLite in-memory tests
+        run: |
+          python3 -m unittest discover -s modules/starry-id-v1/test -p test_schema.py -v
+          python3 -m unittest discover -s packages/rebuild-billing/test -p test_schema.py -v
+          python3 -m unittest discover -s packages/rebuild-ai3/test -p 'test_*.py' -v

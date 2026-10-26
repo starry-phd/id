@@ -1,0 +1,28 @@
+name: REBUILD AI-3 Trust Phase 0
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/rebuild-ai3/**'
+      - '.github/workflows/rebuild-ai3.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit-draft:
+    name: AI-3 rebuild contract / security
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: TypeScript strict typecheck
+        run: npm exec --yes --package=typescript@5.8.3 -- tsc -p packages/rebuild-ai3/tsconfig.json --noEmit
+      - name: Run negative tests and safety contracts
+        run: node --experimental-strip-types --test packages/rebuild-ai3/test/*.test.mjs
+      - name: SQLite in-memory atomicity simulation
+        run: python3 -m unittest discover -s packages/rebuild-ai3/test -p 'test_*.py' -v

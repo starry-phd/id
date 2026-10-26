@@ -1,0 +1,74 @@
+openapi: 3.1.0
+info:
+  title: Starry ID Rebuild Identity & Profile - CANDIDATE ONLY
+  version: 1.0.0-draft
+  description: >
+    Candidate paths, no live routes. Apple/Google OIDC-JWKS-PKCE and session
+    verification must be implemented by a trusted Worker adapter first.
+servers: []
+paths:
+  /v1/starry-id/auth/exchange:
+    post:
+      summary: Candidate server-side Apple/Google authorization-code PKCE exchange
+      responses:
+        '501': {description: NOT IMPLEMENTED}
+  /v1/starry-id/session:
+    get:
+      summary: Candidate current Starry-only authenticated session
+      security: [{StarrySession: []}]
+      responses:
+        '501': {description: NOT IMPLEMENTED}
+    delete:
+      summary: Candidate revoke one authenticated Starry session
+      security: [{StarrySession: []}]
+      responses:
+        '501': {description: NOT IMPLEMENTED}
+  /v1/starry-id/members/me:
+    get:
+      summary: Candidate self-only minimal profile projection
+      security: [{StarrySession: []}]
+      responses:
+        '501': {description: NOT IMPLEMENTED}
+    patch:
+      summary: Candidate CAS self-edit display_name and explicit directory privacy flags
+      security: [{StarrySession: []}]
+      responses:
+        '501': {description: NOT IMPLEMENTED}
+  /v1/starry-id/members/me/delete-request:
+    post:
+      summary: Candidate out-of-band verified confirmation before irreversible deletion
+      security: [{StarrySession: []}]
+      responses:
+        '501': {description: NOT IMPLEMENTED}
+  /v1/starry-id/members/me/delete-confirmed:
+    post:
+      summary: Candidate confirmed deletion + full session revoke; NOT DEPLOYED
+      security: [{StarrySession: []}]
+      responses:
+        '501': {description: NOT IMPLEMENTED}
+  /v1/starry-id/directory:
+    get:
+      summary: Candidate searchable opt-in alias only, publication policy pending Gate
+      responses:
+        '501': {description: NOT IMPLEMENTED}
+components:
+  securitySchemes:
+    StarrySession:
+      type: http
+      scheme: bearer
+  schemas:
+    MinimalSelfProfile:
+      type: object
+      additionalProperties: false
+      required: [s_user_id, display_name, directory_opt_in, display_name_public, profile_revision]
+      properties:
+        s_user_id: {type: string, readOnly: true}
+        display_name: {type: [string, 'null'], maxLength: 80}
+        directory_opt_in: {type: boolean, default: false}
+        display_name_public: {type: boolean, default: false}
+        profile_revision: {type: integer, minimum: 1}
+    ServerPrincipal:
+      x-internal: true
+      type: object
+      readOnly: true
+      description: MUST NOT originate from client submitted JSON, cookies parsed without verification, or adminVerified flag.

@@ -1,0 +1,25 @@
+name: AI-1 Rebuild Starry ID v1
+on:
+  pull_request:
+    paths:
+      - 'modules/starry-id-v1/**'
+      - '.github/workflows/ai1-rebuild-id.yml'
+permissions:
+  contents: read
+jobs:
+  auth-rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Strict TypeScript
+        run: npm exec --yes --package=typescript@5.8.3 -- tsc -p modules/starry-id-v1/tsconfig.json --noEmit
+      - name: Node identity/profile security tests
+        run: node --experimental-strip-types --test modules/starry-id-v1/test/*.test.mjs
+      - name: SQLite in-memory auth/member schema CAS
+        run: python3 -m unittest discover -s modules/starry-id-v1/test -p test_schema.py -v
