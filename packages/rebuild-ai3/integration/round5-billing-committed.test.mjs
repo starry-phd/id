@@ -197,7 +197,7 @@ test('stale provider refund/notification candidate remains quarantined; no entit
 });
 test('audit D1 transaction failure requires retry; DLQ writes must persist before ACK',async()=>{
  const f=await fixture();await f.billing.writer.commit(f.plan,now);
- f.auditDb.failAt(2);
+ f.auditDb.failAt=2;
  const r=await f.consume(1);
  assert.equal(r.res,'retried');assert.equal(f.auditDb.audit.size,0);
  const noDlq=await f.consume(5,false);
@@ -209,7 +209,7 @@ test('audit D1 transaction failure requires retry; DLQ writes must persist befor
 });
 test('quarantine D1 outage cannot ACK even with authoritative committed Billing source',async()=>{
  const f=await fixture();await f.billing.writer.commit(f.plan,now);
- f.gate(false);f.auditDb.failAt(1);
+ f.gate(false);f.auditDb.failAt=1;
  assert.equal((await f.consume(1)).res,'retried');
  assert.equal(f.auditDb.quarantine.size,0);assert.equal(f.auditDb.audit.size,0);
 });
