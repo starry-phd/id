@@ -35,7 +35,9 @@ export function createOfflineStarryAdminAuthority(deps:Readonly<{
     if(!role||role.revoked_at!==null||role.version!==p.auth_version||
        !['supreme','delegated'].includes(role.role))return false;
     // Destructive privileges cannot be delegated implicitly.
-    if(role.role==='delegated'&&action!=='member:suspend'&&action!=='member:restore')return false;
+    // Delegated role alone is NOT an approved capability grant. Fail closed until
+    // AI-0 approves fine-grained capability bindings and least-privilege checks.
+    if(role.role==='delegated')return false;
     const session=await deps.readCurrentSession(p.session_id);
     if(!session||session.session_id!==p.session_id||session.s_user_id!==p.s_user_id||
      session.app_id!==scope.app_id||session.environment!==scope.environment||
