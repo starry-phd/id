@@ -76,7 +76,9 @@ test('wrong key, wrong JWT claims, mismatch subject, client verified flag and pr
  const foreign=await signServerSession(claims,scope,now,{kid:'test_kid1',key:other});
  assert.equal((await f.h(f.request(foreign))).status,401);
  assert.equal((await f.h(f.request(f.token+'invalid'))).status,401);
- for(const patch of [{brand_id:'hglobal'},{app_id:'other'},{environment:'production'}]){
+ await assert.rejects(signServerSession({...claims,brand_id:'hglobal'},
+  {...scope,brand_id:'hglobal'},now,{kid:'test_kid1',key:f.key}),/SESSION_SIGN_DENIED/);
+ for(const patch of [{app_id:'other'},{environment:'production'}]){
   const token=await signServerSession({...claims,...patch},{...scope,...patch},now,
    {kid:'test_kid1',key:f.key});
   assert.equal((await f.h(f.request(token))).status,401);
