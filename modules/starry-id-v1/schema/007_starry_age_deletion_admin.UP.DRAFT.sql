@@ -18,4 +18,9 @@ CREATE TABLE IF NOT EXISTS starry_admin_roles(
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_starry_single_supreme
  ON starry_admin_roles(environment) WHERE role='supreme' AND revoked_at IS NULL;
+-- Once a Starry member is deleted, status must never be reversed in-place.
+CREATE TRIGGER IF NOT EXISTS trg_starry_r7_no_deleted_revival
+ BEFORE UPDATE OF status ON starry_members
+ WHEN OLD.status='deleted' AND NEW.status<>'deleted'
+ BEGIN SELECT RAISE(ABORT,'DELETED_MEMBER_IMMUTABLE'); END;
 COMMIT;
