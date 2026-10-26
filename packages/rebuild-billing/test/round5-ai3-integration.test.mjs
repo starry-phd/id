@@ -88,9 +88,11 @@ test('AI-0 13-field canonical shape is test-compatible but not publishable',asyn
 test('same checkout REAL AI-2 committed reader/order drives REAL AI-3 consumer after D1 batch',async()=>{
  const x=await env();
  const before=await x.consumer.consume(x.p.idempotencyKey,1);
- assert.equal(before.outcome,'quarantine_recorded');
+ assert.equal(before.outcome,'retry');
+ assert.equal(before.ack_safe,false);
+ assert.equal(before.reason,'SOURCE_NOT_YET_COMMITTED');
  assert.equal(x.state.inbox.size,0);
- assert.equal(x.state.quarantine[0].reason,'UNVERIFIED_OR_UNCOMMITTED_SOURCE');
+ assert.equal(x.state.quarantine.length,0);
  await x.writer.commit(x.p,now);
  const first=await x.consumer.consume(x.p.idempotencyKey,1);
  assert.deepEqual([first.outcome,first.ack_safe],['ack',true]);
