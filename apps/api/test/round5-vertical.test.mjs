@@ -158,12 +158,12 @@ test('suspended user, revoked Session, forged signature and untrusted header nev
   /R5_BILLING_REQUEST_DENIED/);
  assert.equal(f.st.providerCalls,0);
 });
-test('uncommitted Billing cannot ACK imaginary entitlement; unsafe replay quarantines only after durable record',async()=>{
+test('missing Billing commit retries without ACK or premature quarantine, even when quarantine storage is down',async()=>{
  const f=await fixture();
  const failedKey='b_'+'a'.repeat(64);
- assert.equal(await f.system.dispatchOffline(f.queue(failedKey)),'acked');
- assert.equal(f.st.audit.size,0);assert.equal(f.st.quarantine.size,1);
- assert.deepEqual(f.st.queueActions,['ack']);
+ assert.equal(await f.system.dispatchOffline(f.queue(failedKey)),'retried');
+ assert.equal(f.st.audit.size,0);assert.equal(f.st.quarantine.size,0);
+ assert.equal(f.st.queueActions[0][0],'retry');
  const g=await fixture();g.st.quarantineAbort=true;
  assert.equal(await g.system.dispatchOffline(g.queue(failedKey)),'retried');
  assert.equal(g.st.audit.size,0);assert.equal(g.st.queueActions[0][0],'retry');
