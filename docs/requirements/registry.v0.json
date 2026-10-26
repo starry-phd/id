@@ -1,0 +1,313 @@
+{
+  "schema_version": "0.1.0",
+  "coverage": "seed_only",
+  "updated_date": "2026-10-26",
+  "sources": [
+    "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+    "https://drive.google.com/drive/folders/15EasmJ2bLd61Bmt_xQ3Ll7PVNzIlvemR"
+  ],
+  "notes": "此為重新開發的首輪架構級登記，並非 108/130 條已盤點完成。缺少的項目不是被刪除。",
+  "features": [
+    {
+      "id": "SYS-001",
+      "brand": "both",
+      "owner": "AI-0",
+      "status": "approved",
+      "implementation": "not_started",
+      "summary": "Starry 與 H-Global 兩個生態系分離正式會員身分、Cloudflare、D1、Secrets、金流與部署。",
+      "depends_on": [],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "SYS-002",
+      "brand": "starry",
+      "owner": "AI-4",
+      "status": "approved",
+      "implementation": "not_started",
+      "summary": "Starry 為獨立 React Native／Expo／Expo Router／TypeScript＋Cloudflare Workers 生態系，不與 H-Global 共用正式後端。",
+      "depends_on": [
+        "SYS-001"
+      ],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "SYS-003",
+      "brand": "both",
+      "owner": "AI-4",
+      "status": "approved",
+      "implementation": "not_started",
+      "summary": "雲端受控單一 Monorepo 開發和單一 Git 提交入口作未來方向；每品牌獨立 repo/環境，實際雲端平台待選。",
+      "depends_on": [
+        "SYS-001"
+      ],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "SYS-004",
+      "brand": "both",
+      "owner": "AI-0",
+      "status": "approved",
+      "implementation": "not_started",
+      "summary": "GitHub 版本化需求與 ADR 做唯一核准狀態來源，原 Google Docs 保留完整來源追溯。",
+      "depends_on": [],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "ID-S-001",
+      "brand": "starry",
+      "owner": "AI-1",
+      "status": "approved",
+      "implementation": "not_started",
+      "summary": "Starry 擁有完全獨立的 Starry ID 會員服務：會員主檔、不可變 starry user_id、Apple/Google 登入、Session、個人檔案及授權；同生態系各 App 共用 Starry ID。",
+      "depends_on": [
+        "SYS-001",
+        "SYS-002"
+      ],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "ID-S-002",
+      "brand": "starry",
+      "owner": "AI-1",
+      "status": "approved",
+      "implementation": "not_started",
+      "summary": "Starry ID 會員資料的存取、本人修改、刪帳、停權/授權撤銷須在後端執行安全驗證。",
+      "depends_on": [
+        "ID-S-001"
+      ],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "ID-H-001",
+      "brand": "hglobal",
+      "owner": "AI-1",
+      "status": "approved",
+      "implementation": "not_started",
+      "summary": "H-Global 另有獨立 H-Global ID 會員服務、Apple/Google 登入、會員資料、Session 與所屬 Apps 共用的會員主檔；不共享 Starry ID。",
+      "depends_on": [
+        "SYS-001"
+      ],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "ID-H-002",
+      "brand": "hglobal",
+      "owner": "AI-1",
+      "status": "candidate",
+      "implementation": "not_started",
+      "summary": "H-Global 教育中心/43 階獎銜/審核/電子名片詳細制度以最新逐項核准為準，目前不能從舊案自動實作。",
+      "depends_on": [
+        "ID-H-001"
+      ],
+      "decision_source": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit"
+    },
+    {
+      "id": "AUTH-001",
+      "brand": "starry",
+      "owner": "AI-1",
+      "status": "approved",
+      "implementation": "not_started",
+      "summary": "Starry OIDC/JWKS/PKCE 或受保護 Session 的可信後端驗證與管理員高風險 step-up。",
+      "depends_on": [
+        "ID-S-001"
+      ],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "API-001",
+      "brand": "starry",
+      "owner": "AI-4",
+      "status": "candidate",
+      "implementation": "not_started",
+      "summary": "Hono/Zod OpenAPI 及生成 TypeScript SDK 是候選實作，須 ADR 與相容性測試。",
+      "depends_on": [
+        "SYS-002"
+      ],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "DATA-001",
+      "brand": "starry",
+      "owner": "AI-0",
+      "status": "approved",
+      "implementation": "not_started",
+      "summary": "Auth/會員、Billing、Audit 等邏輯領域唯一寫入者；D1 實體數依安全、交易原子性及效能決定，不預設二庫或每域一庫。",
+      "depends_on": [
+        "ID-S-001"
+      ],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "BILL-001",
+      "brand": "starry",
+      "owner": "AI-2",
+      "status": "approved",
+      "implementation": "not_started",
+      "summary": "數位 Billing/IAP 使用官方商店政策和後端驗證、冪等、會員權益及 Sandbox 測試。",
+      "depends_on": [
+        "ID-S-001"
+      ],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "BILL-002",
+      "brand": "starry",
+      "owner": "AI-2",
+      "status": "candidate",
+      "implementation": "not_started",
+      "summary": "IAP 自建對託管訂閱方案及實際供應商需以 ADR/成本/資料控制決定。",
+      "depends_on": [
+        "BILL-001"
+      ],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "AUDIT-001",
+      "brand": "starry",
+      "owner": "AI-3",
+      "status": "approved",
+      "implementation": "not_started",
+      "summary": "可驗證稽核、隱私最小化、安全事件與重放/補償機制，禁止把單元測試視為正式 D1 端到端驗收。",
+      "depends_on": [
+        "ID-S-001"
+      ],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "BAT-001",
+      "brand": "starry",
+      "owner": "AI-3",
+      "status": "approved",
+      "implementation": "not_started",
+      "summary": "Starry Battery 永久免費且只提供給 Starry，不能以購買數位商品換取電池。",
+      "depends_on": [
+        "ID-S-001"
+      ],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "BAT-002",
+      "brand": "starry",
+      "owner": "AI-3",
+      "status": "candidate",
+      "implementation": "not_started",
+      "summary": "Battery 是否是週期免費配額或跨 App 錢包、3 分鐘預留、FEFO/兩年到期與透支機制尚待本人定案，不實作未核准功能。",
+      "depends_on": [
+        "BAT-001"
+      ],
+      "decision_source": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit"
+    },
+    {
+      "id": "OPS-001",
+      "brand": "starry",
+      "owner": "AI-1",
+      "status": "approved",
+      "implementation": "not_started",
+      "summary": "第一波要有最低必要安全管理操作及管理端驗權，完整第二波管理 UI 另階段執行。",
+      "depends_on": [
+        "AUTH-001"
+      ],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "OPS-002",
+      "brand": "starry",
+      "owner": "AI-0",
+      "status": "candidate",
+      "implementation": "not_started",
+      "summary": "最低管理操作 5～8 項具體清單及 CLI/runbook 實作方式尚待審閱。",
+      "depends_on": [
+        "OPS-001"
+      ],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "APP-001",
+      "brand": "starry",
+      "owner": "AI-4",
+      "status": "approved",
+      "implementation": "not_started",
+      "summary": "旗艦 App＋功能模組策略優先評估，避免大量相似 App 重複上架；設定驅動範本、SDK 統一與分批驗收。",
+      "depends_on": [
+        "SYS-002"
+      ],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "APP-002",
+      "brand": "starry",
+      "owner": "AI-0",
+      "status": "candidate",
+      "implementation": "not_started",
+      "summary": "Starry 旗艦 App 的確切數量、名稱和上架清單仍待產品決策。",
+      "depends_on": [
+        "APP-001"
+      ],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "SYNC-001",
+      "brand": "both",
+      "owner": "AI-1",
+      "status": "approved",
+      "implementation": "not_started",
+      "summary": "跨品牌會員基本資料同步預設停用，須兩端可信驗證、本人同意、欄位權威及撤銷/衝突規則核准。",
+      "depends_on": [
+        "ID-S-001",
+        "ID-H-001"
+      ],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "SYNC-002",
+      "brand": "both",
+      "owner": "AI-0",
+      "status": "candidate",
+      "implementation": "not_started",
+      "summary": "跨系初期允許哪些欄位（如姓名/頭像）尚未逐欄核准，不得自動啟用。",
+      "depends_on": [
+        "SYNC-001"
+      ],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "DO-001",
+      "brand": "both",
+      "owner": "AI-0",
+      "status": "approved",
+      "implementation": "not_started",
+      "summary": "必要高競爭票券/QR 狀態或核准 Battery 帳本先 ADR 比較 D1 條件寫入與 Durable Objects 一致性。",
+      "depends_on": [
+        "DATA-001"
+      ],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    },
+    {
+      "id": "TICKET-001",
+      "brand": "hglobal",
+      "owner": "AI-2",
+      "status": "candidate",
+      "implementation": "not_started",
+      "summary": "H-Global 實體票券 PAYUNi 專責需獨立 H-Global 專案、商品規格與授權；不在本 Starry repo 開發實體交易。",
+      "depends_on": [
+        "ID-H-001"
+      ],
+      "decision_source": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit"
+    },
+    {
+      "id": "MVP-001",
+      "brand": "starry",
+      "owner": "AI-0",
+      "status": "approved",
+      "implementation": "not_started",
+      "summary": "先完成 Starry ID 登入→會員資料→必要安全管理/刪帳→已核准核心功能→單一 Sandbox IAP/權益→事件稽核的端到端驗收。",
+      "depends_on": [
+        "ID-S-001",
+        "BILL-001",
+        "AUDIT-001",
+        "OPS-001"
+      ],
+      "decision_source": "業主 2026-10-26 全新架構正式開發授權"
+    }
+  ]
+}
