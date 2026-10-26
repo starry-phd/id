@@ -59,7 +59,7 @@ export type CommercePorts=Readonly<{
   serverNowSeconds:()=>number;
 }>;
 const ID=/^[A-Za-z][A-Za-z0-9._:-]{0,127}$/;
-const must=(v:unknown,reason:string):asserts v=>{if(!v)throw new Error(reason);};
+function must(v:unknown,reason:string):asserts v{if(!v)throw new Error(reason);}
 const validId=(v:unknown):v is string=>typeof v==='string'&&ID.test(v);
 const isStore=(v:unknown):v is CommerceStore=>v==='apple'||v==='google';
 const isKind=(v:unknown):v is CommerceKind=>v==='monthly'||v==='yearly'||v==='one_time';
