@@ -49,7 +49,11 @@ export function createVerifiedSignedSession(deps:Readonly<{
       if(!data||typeof data!=='object'||Array.isArray(data)||!validClaims(data,scope,now))return null;
       const key=await deps.getKey(data.key_id);
       if(!key||key.algorithm.name!=='HMAC'||!key.usages.includes('verify'))return null;
-      const ok=await crypto.subtle.verify('HMAC',key,decodeUrl(parts[2]),
+      // Use a real ArrayBuffer rather than an ArrayBufferLike-backed typed view.
+      const decodedSignature=decodeUrl(parts[2]);
+      const signatureBuffer=new ArrayBuffer(decodedSignature.byteLength);
+      new Uint8Array(signatureBuffer).set(decodedSignature);
+      const ok=await crypto.subtle.verify('HMAC',key,signatureBuffer,
         new TextEncoder().encode(parts[0]+'.'+parts[1]));
       if(!ok)return null;
       // Client payload is never a trusted principal! AI-1 resolver verifies
