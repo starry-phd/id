@@ -31,7 +31,7 @@ export function createTestHmacVerifier(key: CryptoKey) {
     const m=/^Bearer (v1\.[A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)$/.exec(header);
     if (!m) return null;
     try {
-      const ok=await crypto.subtle.verify('HMAC',key,decode(m[2]),new TextEncoder().encode(m[1]));
+      const ok=await crypto.subtle.verify('HMAC',key,new Uint8Array(decode(m[2])),new TextEncoder().encode(m[1]));
       if (!ok) return null;
       const parsed:unknown=JSON.parse(new TextDecoder().decode(decode(m[1].slice(3))));
       if (!parsed || typeof parsed!=='object'||Array.isArray(parsed)

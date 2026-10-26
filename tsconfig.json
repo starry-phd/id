@@ -12,7 +12,8 @@
     "resolveJsonModule": true,
     "types": [
       "node"
-    ]
+    ],
+    "allowImportingTsExtensions": true
   },
   "include": [
     "apps/api/src/**/*.ts",

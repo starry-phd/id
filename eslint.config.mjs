@@ -4,7 +4,7 @@ import plugin from '@typescript-eslint/eslint-plugin';
 export default [
   {ignores:['**/node_modules/**','**/.expo/**','**/dist/**']},
   js.configs.recommended,
-  {files:['apps/**/*.mjs'], languageOptions:{globals:{Request:'readonly'}}},
+  {files:['apps/**/*.mjs'], languageOptions:{globals:{Request:'readonly',Response:'readonly'}}},
   {files:['apps/**/*.{ts,tsx}','packages/sdk/src/**/*.ts','packages/sdk/test-support/**/*.ts','packages/integration/src/**/*.ts'],
    languageOptions:{parser,parserOptions:{ecmaVersion:'latest',sourceType:'module',ecmaFeatures:{jsx:true}}},
    plugins:{'@typescript-eslint':plugin},
