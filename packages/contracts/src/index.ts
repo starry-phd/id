@@ -40,11 +40,29 @@ function safeLabel(value: unknown): value is string {
 }
 function isRecord(value: unknown): value is Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
-  const proto: unknown = Object.getPrototypeOf(value);
-  return proto === Object.prototype || proto === null;
+  try {
+    const proto: unknown = Object.getPrototypeOf(value);
+    return proto === Object.prototype || proto === null;
+  } catch {
+    return false; // e.g. revoked proxy: malformed input must fail closed.
+  }
 }
+/**
+ * Check ALL own keys, including symbols and non-enumerable properties.
+ * Accessor properties are never trusted because evaluating them can produce
+ * side effects or inconsistent validation. No object field is read until
+ * descriptors have been confirmed to be plain data properties.
+ */
 function allowedOwnKeys(value: Record<string, unknown>, keys: ReadonlySet<string>): boolean {
-  return Object.keys(value).every(key => keys.has(key));
+  try {
+    return Reflect.ownKeys(value).every(key => {
+      if (typeof key !== 'string' || !keys.has(key)) return false;
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      return descriptor !== undefined && Object.hasOwn(descriptor, 'value');
+    });
+  } catch {
+    return false;
+  }
 }
 
 export function isStarryEnvironment(value: unknown): value is StarryEnvironment {
