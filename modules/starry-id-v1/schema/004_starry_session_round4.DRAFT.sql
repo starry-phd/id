@@ -1,0 +1,11 @@
+-- AI-1 Round4 AUTH/D1 security plan; does not change live database.
+-- Existing schema 001_starry_identity.DRAFT.sql already contains member,
+-- immutable provider-sub identity, session refresh_hash UNIQUE, auth_version.
+-- No migration executed, no new product feature enabled.
+-- Existing active subject: INSERT INTO ... SELECT ... JOIN identity checks status/version.
+-- Rotate refresh compare-and-swap with hash, scoped app, environment, expiration,
+-- revoke and active member/auth_version predicate in ONE statement.
+-- Different D1 physical databases cannot support one atomic cross-system transaction.
+-- Must verify actual Cloudflare D1 consistency, migrations, backups and restore before Gate.
+-- Highly sensitive: raw refresh tokens NEVER stored; only SHA-256 of >=256-bit
+-- uniformly random server-generated secrets. Never log raw credential or hash.

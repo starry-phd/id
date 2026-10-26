@@ -1,0 +1,22 @@
+name: AI-0 P05 Candidate Contract Gate
+on:
+  pull_request:
+    paths:
+      - 'packages/ai0-contracts/**'
+      - '.github/workflows/ai0-p05-candidate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  candidate-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: P05 offline scope and negative contract tests
+        run: node --experimental-strip-types --test packages/ai0-contracts/test/*.test.mjs
