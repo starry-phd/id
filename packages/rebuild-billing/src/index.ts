@@ -90,7 +90,8 @@ export type Plan =
   | {readonly disposition: 'new'; readonly idempotencyKey: string; readonly payloadDigest: string;
      readonly owner: PreviousPurchase; readonly snapshot: AuthoritativeStoreSnapshot;
      readonly entitlement: EntitlementProjection; readonly outbox: OutboxCandidate;
-     readonly p05: BillingP05Candidate; readonly entitlementChanged: boolean};
+     readonly p05: BillingP05Candidate; readonly entitlementChanged: boolean;
+     readonly previousEntitlement: EntitlementProjection | null};
 function ensure(condition:unknown, error:string):asserts condition { if(!condition)throw new Error(error); }
 function identifier(value:unknown):value is string {
   return typeof value==='string' && /^[A-Za-z0-9._:-]{1,180}$/.test(value);
@@ -228,6 +229,7 @@ export async function planSandboxPurchase(
     owner:Object.freeze({...owner}),snapshot:Object.freeze({...s}),
     entitlement:Object.freeze({...chosen.projection}),outbox:Object.freeze({...outbox}),
     p05:Object.freeze({...p05}),entitlementChanged:chosen.changed,
+    previousEntitlement:previous===null?null:Object.freeze({...previous}),
   });
   issuedBillingPlans.add(planned);
   return planned;
