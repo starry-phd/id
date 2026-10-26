@@ -1,0 +1,1297 @@
+{
+  "schema_version": "0.1.0",
+  "generated_at": "2026-10-26",
+  "inventory_type": "verbatim_source_heading_index_not_final_requirements",
+  "baseline": "2026-10-25 supplied first-wave handoff",
+  "coverage": "master_heading_index_complete_only",
+  "counts": {
+    "all": 128,
+    "legacy_function": 108,
+    "admin_prep": 10,
+    "new_architecture_rule": 10
+  },
+  "source": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+  "validation_note": "此處只登錄主文件明確編號及標題，尚未逐項比對 DEV-A~I 的全文、紅字及人工核准，不可視為 128 項正式核准或替代 registry.v0.json。",
+  "entries": [
+    {
+      "id": "P01",
+      "title": "App 統一識別與目錄",
+      "section": "admin_prep",
+      "review_state": "not_reconciled",
+      "source_heading": "P01｜App 統一識別與目錄",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "P02",
+      "title": "OpenAPI 3.x 與版本治理",
+      "section": "admin_prep",
+      "review_state": "not_reconciled",
+      "source_heading": "P02｜OpenAPI 3.x 與版本治理",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "P03",
+      "title": "受保護的管理專用 API",
+      "section": "admin_prep",
+      "review_state": "not_reconciled",
+      "source_heading": "P03｜受保護的管理專用 API",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "P04",
+      "title": "管理員權限與高風險核准",
+      "section": "admin_prep",
+      "review_state": "not_reconciled",
+      "source_heading": "P04｜管理員權限與高風險核准",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "P05",
+      "title": "統一事件格式與可追蹤工作流程",
+      "section": "admin_prep",
+      "review_state": "not_reconciled",
+      "source_heading": "P05｜統一事件格式與可追蹤工作流程",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "P06",
+      "title": "統一稽核資料",
+      "section": "admin_prep",
+      "review_state": "not_reconciled",
+      "source_heading": "P06｜統一稽核資料",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "P07",
+      "title": "健康監控與可靠性",
+      "section": "admin_prep",
+      "review_state": "not_reconciled",
+      "source_heading": "P07｜健康監控與可靠性",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "P08",
+      "title": "成本歸屬與可對帳使用量",
+      "section": "admin_prep",
+      "review_state": "not_reconciled",
+      "source_heading": "P08｜成本歸屬與可對帳使用量",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "P09",
+      "title": "GitHub、測試與部署證據",
+      "section": "admin_prep",
+      "review_state": "not_reconciled",
+      "source_heading": "P09｜GitHub、測試與部署證據",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "P10",
+      "title": "設定版本與功能開關",
+      "section": "admin_prep",
+      "review_state": "not_reconciled",
+      "source_heading": "P10｜設定版本與功能開關",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "01.01",
+      "title": "Google 登入",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "01.01｜Google 登入",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "01.02",
+      "title": "Apple 登入及帳號綁定",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "01.02｜Apple 登入及帳號綁定",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "01.03",
+      "title": "唯一會員識別碼",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "01.03｜唯一會員識別碼",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "01.04",
+      "title": "登入狀態及 Session",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "01.04｜登入狀態及 Session",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "01.05",
+      "title": "跨品牌登入與一般登出界線",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "01.05｜跨品牌登入與一般登出界線",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "01.06",
+      "title": "一鍵登出所有裝置",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "01.06｜一鍵登出所有裝置",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "01.07",
+      "title": "同裝置家庭成員切換",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "01.07｜同裝置家庭成員切換",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "01.08",
+      "title": "登入協助與帳號救援",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "01.08｜登入協助與帳號救援",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "01.09",
+      "title": "Starry 舊站相容與帳號認領",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "01.09｜Starry 舊站相容與帳號認領",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "02.01",
+      "title": "基本個人資料",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "02.01｜基本個人資料",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "02.02",
+      "title": "手機號碼管理",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "02.02｜手機號碼管理",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "02.03",
+      "title": "頭像裁切與壓縮",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "02.03｜頭像裁切與壓縮",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "02.04",
+      "title": "生日與衍生資訊",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "02.04｜生日與衍生資訊",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "02.05",
+      "title": "座右銘輸入與隨機提案",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "02.05｜座右銘輸入與隨機提案",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "02.06",
+      "title": "兩組安麗背景選項",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "02.06｜兩組安麗背景選項",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "02.07",
+      "title": "逐欄編輯與自動儲存",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "02.07｜逐欄編輯與自動儲存",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "02.08",
+      "title": "多人同時編輯衝突",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "02.08｜多人同時編輯衝突",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "02.09",
+      "title": "欄位公開與隱藏",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "02.09｜欄位公開與隱藏",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "02.10",
+      "title": "會員欄位最後更動資訊",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "02.10｜會員欄位最後更動資訊",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "03.01",
+      "title": "個人電子名片",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "03.01｜個人電子名片",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "03.02",
+      "title": "名片 QR Code 與 vCard",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "03.02｜名片 QR Code 與 vCard",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "03.03",
+      "title": "公開名片路由規則",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "03.03｜公開名片路由規則",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "03.04",
+      "title": "會員搜尋名錄",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "03.04｜會員搜尋名錄",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "03.05",
+      "title": "SEO 與公開隱私界線",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "03.05｜SEO 與公開隱私界線",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "03.06",
+      "title": "安麗 7 位編號",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "03.06｜安麗 7 位編號",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "03.07",
+      "title": "夫妻共用編號及關聯",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "03.07｜夫妻共用編號及關聯",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "03.08",
+      "title": "夫妻解除綁定與網址保留",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "03.08｜夫妻解除綁定與網址保留",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "03.09",
+      "title": "推薦人、上手白金與上手鑽石",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "03.09｜推薦人、上手白金與上手鑽石",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "04.01",
+      "title": "會員系統分類",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "04.01｜會員系統分類",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "04.02",
+      "title": "H-Global 會員資料編輯入口",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "04.02｜H-Global 會員資料編輯入口",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "04.03",
+      "title": "30 個寰宇教育中心",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "04.03｜30 個寰宇教育中心",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "04.04",
+      "title": "教育中心更新立即生效",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "04.04｜教育中心更新立即生效",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "04.05",
+      "title": "43 階獎銜清單",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "04.05｜43 階獎銜清單",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "04.06",
+      "title": "獎銜申報與待審案件",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "04.06｜獎銜申報與待審案件",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "04.07",
+      "title": "審核補件、駁回與紀錄",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "04.07｜審核補件、駁回與紀錄",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "04.08",
+      "title": "會員資格與職務分離",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "04.08｜會員資格與職務分離",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "05.01",
+      "title": "兩名最高管理者",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "05.01｜兩名最高管理者",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "05.02",
+      "title": "一般中心審核員",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "05.02｜一般中心審核員",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "05.03",
+      "title": "普通職務授權",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "05.03｜普通職務授權",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "05.04",
+      "title": "逐次後端授權與操作阻擋",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "05.04｜逐次後端授權與操作阻擋",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "05.05",
+      "title": "暫時停權",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "05.05｜暫時停權",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "05.06",
+      "title": "人工復權",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "05.06｜人工復權",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "05.07",
+      "title": "App 個別封鎖與恢復",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "05.07｜App 個別封鎖與恢復",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "05.08",
+      "title": "永久刪除會員帳號",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "05.08｜永久刪除會員帳號",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "05.09",
+      "title": "本人與管理端資料查閱",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "05.09｜本人與管理端資料查閱",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "06.01",
+      "title": "每款 App 獨立登記",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "06.01｜每款 App 獨立登記",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "06.02",
+      "title": "中央／身分 API",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "06.02｜中央／身分 API",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "06.03",
+      "title": "會員停權、Token 與 App 權限連動",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "06.03｜會員停權、Token 與 App 權限連動",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "06.04",
+      "title": "App 獨立停用與恢復",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "06.04｜App 獨立停用與恢復",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "06.05",
+      "title": "OpenAPI 正式規格與共用 SDK",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "06.05｜OpenAPI 正式規格與共用 SDK",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "06.06",
+      "title": "API 變更通知及相容版本",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "06.06｜API 變更通知及相容版本",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "06.07",
+      "title": "資料同步及編輯衝突保護",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "06.07｜資料同步及編輯衝突保護",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "06.08",
+      "title": "跨 App API 故障時行為",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "06.08｜跨 App API 故障時行為",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "06.09",
+      "title": "安全限流與故障隔離",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "06.09｜安全限流與故障隔離",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "07.01",
+      "title": "永久免費、不出售電池",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "07.01｜永久免費、不出售電池",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "07.02",
+      "title": "Starry 限定服務（舊「共用錢包」功能待你審核）",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "07.02｜Starry 限定服務（舊「共用錢包」功能待你審核）",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "07.03",
+      "title": "免費註冊及首次符合資格贈送",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "07.03｜免費註冊及首次符合資格贈送",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "07.04",
+      "title": "其他免費贈送與安全補發",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "07.04｜其他免費贈送與安全補發",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "07.05",
+      "title": "餘額與交易查詢",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "07.05｜餘額與交易查詢",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "07.06",
+      "title": "AI 任務先預留",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "07.06｜AI 任務先預留",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "07.07",
+      "title": "成功扣款、失敗全退",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "07.07｜成功扣款、失敗全退",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "07.08",
+      "title": "到期月份與 FEFO",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "07.08｜到期月份與 FEFO",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "07.09",
+      "title": "負數兩次／欠款優先清償",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "07.09｜負數兩次／欠款優先清償",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "07.10",
+      "title": "到期提醒與歷史封存",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "07.10｜到期提醒與歷史封存",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "07.11",
+      "title": "Battery 私有 Gateway/Engine",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "07.11｜Battery 私有 Gateway/Engine",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "08.01",
+      "title": "兩大生態系 Billing 實體分庫",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "08.01｜兩大生態系 Billing 實體分庫",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "08.02",
+      "title": "每款 App 自己的商品政策",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "08.02｜每款 App 自己的商品政策",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "08.03",
+      "title": "Apple App Store 內購",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "08.03｜Apple App Store 內購",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "08.04",
+      "title": "Google Play 內購",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "08.04｜Google Play 內購",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "08.05",
+      "title": "月繳訂閱",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "08.05｜月繳訂閱",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "08.06",
+      "title": "年繳訂閱",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "08.06｜年繳訂閱",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "08.07",
+      "title": "單次數位服務購買",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "08.07｜單次數位服務購買",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "08.08",
+      "title": "實體活動票券與 PAYUNi 統一金流",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "08.08｜實體活動票券與 PAYUNi 統一金流",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "08.09",
+      "title": "伺服器付款驗證與事件",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "08.09｜伺服器付款驗證與事件",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "08.10",
+      "title": "訂單、退款、對帳及爭議",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "08.10｜訂單、退款、對帳及爭議",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "08.11",
+      "title": "免費 Battery 與付費系統完全脫鉤",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "08.11｜免費 Battery 與付費系統完全脫鉤",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "09.01",
+      "title": "會員站內通知",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "09.01｜會員站內通知",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "09.02",
+      "title": "Email 及 OS 推播",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "09.02｜Email 及 OS 推播",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "09.03",
+      "title": "特殊事件通知例外",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "09.03｜特殊事件通知例外",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "09.04",
+      "title": "管理員修改資料通知",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "09.04｜管理員修改資料通知",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "09.05",
+      "title": "匿名申訴入口",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "09.05｜匿名申訴入口",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "09.06",
+      "title": "申訴案件號與查詢憑證",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "09.06｜申訴案件號與查詢憑證",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "09.07",
+      "title": "申訴補件與後台處理",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "09.07｜申訴補件與後台處理",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "09.08",
+      "title": "隱私同意與兒少資料保護",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "09.08｜隱私同意與兒少資料保護",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "09.09",
+      "title": "故障與恢復通知",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "09.09｜故障與恢復通知",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "10.01",
+      "title": "一般資料修改事件",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "10.01｜一般資料修改事件",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "10.02",
+      "title": "重要管理與授權稽核",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "10.02｜重要管理與授權稽核",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "10.03",
+      "title": "事件紀錄查詢權限",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "10.03｜事件紀錄查詢權限",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "10.04",
+      "title": "少量錯誤資料精準修復",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "10.04｜少量錯誤資料精準修復",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "10.05",
+      "title": "D1 原生 Time Travel 還原",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "10.05｜D1 原生 Time Travel 還原",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "10.06",
+      "title": "定期復原演練",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "10.06｜定期復原演練",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "10.07",
+      "title": "帳號安全與 API 防護",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "10.07｜帳號安全與 API 防護",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "11.01",
+      "title": "兩品牌 Apple／Google 開發者帳號",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "11.01｜兩品牌 Apple／Google 開發者帳號",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "11.02",
+      "title": "App 安全商店識別",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "11.02｜App 安全商店識別",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "11.03",
+      "title": "首批重點 App",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "11.03｜首批重點 App",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "11.04",
+      "title": "免費下載與廣告策略",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "11.04｜免費下載與廣告策略",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "11.05",
+      "title": "Cloudflare Workers 與 D1／R2",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "11.05｜Cloudflare Workers 與 D1／R2",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "11.06",
+      "title": "GitHub 程式管理與跨 Repo 分工",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "11.06｜GitHub 程式管理與跨 Repo 分工",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "11.07",
+      "title": "Branch／PR／CI 安全發布",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "11.07｜Branch／PR／CI 安全發布",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "11.08",
+      "title": "內部測試後正式上線",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "11.08｜內部測試後正式上線",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "11.09",
+      "title": "未來 H-Global 可搬遷",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "11.09｜未來 H-Global 可搬遷",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "11.10",
+      "title": "可觀測性與 20,000 人壓力驗收",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "11.10｜可觀測性與 20,000 人壓力驗收",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "12.01",
+      "title": "正式需求與工程狀態分開",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "12.01｜正式需求與工程狀態分開",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "12.02",
+      "title": "永久總索引與最新摘要",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "12.02｜永久總索引與最新摘要",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "12.03",
+      "title": "新 App AI 串接交接包",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "12.03｜新 App AI 串接交接包",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "12.04",
+      "title": "使用者可精簡需求的決策流程",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "12.04｜使用者可精簡需求的決策流程",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "12.05",
+      "title": "已採納：雙獨立 Auth、雙會員 ID",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "12.05｜已採納：雙獨立 Auth、雙會員 ID",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "12.06",
+      "title": "新案從零建立資料與資源（舊會員遷移不適用）",
+      "section": "legacy_function",
+      "review_state": "not_reconciled",
+      "source_heading": "12.06｜新案從零建立資料與資源（舊會員遷移不適用）",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "N01",
+      "title": "兩個 Cloudflare 帳號與資源完全隔離",
+      "section": "new_architecture_rule",
+      "review_state": "not_reconciled",
+      "source_heading": "N01｜兩個 Cloudflare 帳號與資源完全隔離",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "N02",
+      "title": "雙獨立 Auth 與各自會員 ID",
+      "section": "new_architecture_rule",
+      "review_state": "not_reconciled",
+      "source_heading": "N02｜雙獨立 Auth 與各自會員 ID",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "N03",
+      "title": "跨系帳號雙方驗證、同意綁定及解除",
+      "section": "new_architecture_rule",
+      "review_state": "not_reconciled",
+      "source_heading": "N03｜跨系帳號雙方驗證、同意綁定及解除",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "N04",
+      "title": "跨生態系指定欄位的受控同步",
+      "section": "new_architecture_rule",
+      "review_state": "not_reconciled",
+      "source_heading": "N04｜跨生態系指定欄位的受控同步",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "N05",
+      "title": "兩個 PAYUNi 統一金流商家帳號",
+      "section": "new_architecture_rule",
+      "review_state": "not_reconciled",
+      "source_heading": "N05｜兩個 PAYUNi 統一金流商家帳號",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "N06",
+      "title": "正式方案 A：React Native＋Expo 與可重用 App 套件",
+      "section": "new_architecture_rule",
+      "review_state": "not_reconciled",
+      "source_heading": "N06｜正式方案 A：React Native＋Expo 與可重用 App 套件",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "N07",
+      "title": "兩系獨立 API 管理後台與 AI 串接文件",
+      "section": "new_architecture_rule",
+      "review_state": "not_reconciled",
+      "source_heading": "N07｜兩系獨立 API 管理後台與 AI 串接文件",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "N08",
+      "title": "新案專屬交付、效能與商店驗收",
+      "section": "new_architecture_rule",
+      "review_state": "not_reconciled",
+      "source_heading": "N08｜新案專屬交付、效能與商店驗收",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "N09",
+      "title": "Starry Battery 業務細節待決",
+      "section": "new_architecture_rule",
+      "review_state": "not_reconciled",
+      "source_heading": "N09｜Starry Battery 業務細節待決",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    },
+    {
+      "id": "N10",
+      "title": "全新專案與其他專案完全隔離",
+      "section": "new_architecture_rule",
+      "review_state": "not_reconciled",
+      "source_heading": "N10｜全新專案與其他專案完全隔離",
+      "source_document": "第一波《開發清單交接包》",
+      "source_url": "https://docs.google.com/document/d/1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw/edit",
+      "note": "來源標題索引；不代表新版規格已核准或已刪除。"
+    }
+  ]
+}
