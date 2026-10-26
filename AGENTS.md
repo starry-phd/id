@@ -3,6 +3,13 @@
 > GitHub Owner: `starry-phd`; personal administrator: `yukidu`.
 > 狀態：全新開發；此檔是工程分工規則，不代表五個 AI 已自行啟動，也不是任何功能完成、CI 通過或 Production 上線的證明。
 
+## 2026-10-26 第一波正式開發啟動｜舊帳號 starryphp 棄用
+- **業主已授權正式開始 Starry 第一波開發**。GitHub 個人管理帳號為 `yukidu`，已核實組織 `starry-phd`、唯一 Repo `starry-phd/id`。口語的 `starry/id` 尚無有效 GitHub Repo（404），不能自行改成該 remote。
+- **舊 GitHub ID `starryphp` 已封鎖並由業主捨棄**，不得作為 Repo owner、Remote、Secrets、部署或工作交接來源；不可嘗試登入或恢復舊帳號。
+- **AI-0～AI-4 全部改由業主人工叫醒 ChatGPT 對話**，每次必須讀 GitHub Issue／PR／CI，將工作結果寫回 GitHub；其他四組不會因 Issue 更新而自動收到通知。
+- 先由 AI-4 #5 寫 Expo／Workers 真正基座，AI-1 #2、AI-2 #3、AI-3 #4 可同步起草接口契約；AI-0 #1 負責 Gate。完整啟動指令與依賴見 [正式開發啟動交接](docs/ai/OFFICIAL-DEVELOPMENT-KICKOFF-2026-10-26.md)。
+- 仍然 **H-Global 暫停、Codex/Copilot 不啟用、Production 未授權**；第一波 ADMIN-PREP #13 與第二波 V2.1 #15 不變。
+
 ## 2026-10-26 最新業主決議｜**維持五個 ChatGPT 對話人工啟動，撤回購買 Copilot Pro**
 > 本節優先於以下歷史的 Copilot 啟用建議。這是**正式工作模式決議**，不是已完成程式開發的證據。
 1. **不購買 GitHub Copilot Pro US$10**，不將 GitHub Copilot Cloud Agent、Automations 或任何另付費 Agent 作為 Starry 第一波開發的先決條件。不得替業主開通、購買、建立超額預算或聲稱它們在執行。
