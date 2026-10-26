@@ -9,7 +9,7 @@ import {createEphemeralTestKey,signTestSession,createTestHmacVerifier} from '../
 import {createTestMemberContractClient} from '../../../packages/sdk/test-support/member-contract-client.ts';
 import {handleRequest} from '../src/index.ts';
 
-const now=1780000000;
+const now=Math.floor(Date.parse('2026-10-26T09:00:00Z')/1000);
 const scope=Object.freeze({brand_id:'starry',app_id:'starry-id',environment:'staging'});
 const identity={...scope,provider:'google',provider_subject:'g-stable-1',
   s_user_id:'s_001',session_id:'s1',auth_version:3,expires_at:now+500};
@@ -128,7 +128,11 @@ test('canonical AI-2 sandbox planner consumes bridge identity, produces typed ou
   accountBinding:'server_binding_1',periodStartedAt:'2026-10-26T08:00:00Z',
   effectiveAt:'2026-10-26T08:00:00Z',expiresAt:'2026-11-26T08:00:00Z',state:'PAID'};
  const ledger={ownerForOriginalTransaction:()=>null,latestEntitlement:()=>null,existingEvent:()=>null};
- const ports={registry,auth:{verifyCurrentIdentity:()=>billingIdentity},
+ const ports={registry,auth:{
+  resolveTrustedPrincipal:async()=>minted,
+  accountBindingFor:async(sUserId,fromRegistry)=>sUserId===minted.s_user_id && fromRegistry.appId===scope.app_id ? f.state.binding : null,
+  opaqueActorRefFor:async(sUserId)=>sUserId===minted.s_user_id ? 'server_pseudonym_audit_1' : null,
+ },
   store:{verifySandboxEvidence:()=>verifiedSnapshot},ledger};
  const plan=await planSandboxPurchase({store:'apple',evidence:'test-only'},ports,'2026-10-26T09:00:00Z');
  assert.equal(plan.disposition,'new');
