@@ -107,8 +107,38 @@ export function createSandboxBillingD1Writer(deps:Readonly<{
   return Object.freeze({p05:Object.freeze({...p05}),payload_digest:row.payload_digest,
    committed:true as const,provider_verified:true as const});
  };
+ /** AI-3 reads authoritative temporal freshness ONLY after a committed Billing event. */
+ const afterCommitOrder=async(actualScope:unknown,ref:unknown):
+  Promise<'current'|'superseded'|'unknown'>=>{
+  if(actualScope===null||typeof actualScope!=='object'||Array.isArray(actualScope))
+   return 'unknown';
+  const s=actualScope as Record<string,unknown>;
+  if(Reflect.ownKeys(s).length!==3||s.brand_id!=='starry'
+    ||s.app_id!==scope.appId||s.environment!==scope.environment
+    ||typeof ref!=='string'||!KEY.test(ref))return 'unknown';
+  // Uses same committed receipts as readAfterCommit; no client/source flags.
+  const committed=await readAfterCommit(ref);
+  if(!committed)return 'unknown';
+  const row=await query<Row>([
+   'SELECT e.occurred_at AS source_time,t.last_effective_at AS latest_time,',
+   't.applied_event_key AS applied_key,t.status AS right_status',
+   'FROM billing_event e JOIN billing_owner o ON o.owner_key=e.owner_key',
+   'JOIN billing_atomic_receipt r ON r.idempotency_key=e.idempotency_key',
+   'LEFT JOIN billing_entitlement t ON t.owner_key=e.owner_key AND t.entitlement_key=e.sku',
+   'WHERE e.idempotency_key=? AND r.verified_provider=1 AND r.guard_applied=1',
+   'AND o.brand_id=? AND o.app_id=? AND o.environment=?',
+  ].join(' '),ref,'starry',scope.appId,scope.environment);
+  if(!row||typeof row.source_time!=='string'
+    ||typeof row.latest_time!=='string')return 'unknown';
+  const source=Date.parse(row.source_time),latest=Date.parse(row.latest_time);
+  if(!Number.isFinite(source)||!Number.isFinite(latest))return 'unknown';
+  if(row.applied_key===ref&&['active','inactive'].includes(String(row.right_status)))
+   return 'current';
+  if(latest>source)return 'superseded';
+  return 'unknown';
+ };
  return Object.freeze({
-  readAfterCommit,
+  readAfterCommit,afterCommitOrder,
   async commit(plan:unknown,now:string){
    enforce(isServerBillingPlan(plan),'BILLING_UNISSUED_PLAN');
    const {snapshot:s,entitlement:e,previousEntitlement:prior,owner,p05,outbox}=plan;
