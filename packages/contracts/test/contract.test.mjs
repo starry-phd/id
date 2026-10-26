@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   STARRY_BRAND_ID, CROSS_BRAND_MEMBER_SYNC_ENABLED,
   isStarryEventEnvelope, assertStarryResourceScope, isStarryEnvironment,
+  isRfc3339Timestamp, assertStarryEventForScope,
 } from '../src/index.ts';
 
 const valid = Object.freeze({
@@ -33,6 +34,59 @@ test('P05: rejects cross-brand, bad environment, extra fields and malformed even
   assert.equal(isStarryEventEnvelope(Object.create(valid)), false);
 });
 
+test('P05: RFC3339 rejects calendar rollover and invalid timezone', () => {
+  for (const value of [
+    '2026-02-29T00:00:00Z', '2026-04-31T00:00:00Z',
+    '2026-13-01T00:00:00Z', '2026-10-26T00:00:00+24:00',
+    '2026-10-26T00:00:00+08:60', '2026-10-26T24:00:00Z',
+    '2026-10-26T12:00:60Z', '2026-10-26T00:00:00',
+    '2026-10-26T00:00:00.1234567890Z', '0000-01-01T00:00:00Z',
+  ]) assert.equal(isRfc3339Timestamp(value), false, value);
+  for (const value of [
+    '2024-02-29T00:00:00Z', '2026-10-26T08:00:00+08:00',
+    '2026-10-25T20:30:00-04:30', '2026-10-26T00:00:00.123456789Z',
+  ]) assert.equal(isRfc3339Timestamp(value), true, value);
+});
+
+test('P05: rejects unsafe machine metadata and undefined idempotency keys', () => {
+  for (const field of [
+    'event_id', 'event_type', 'schema_version', 'app_id', 'correlation_id',
+    'resource_type', 'resource_id', 'result',
+  ]) {
+    assert.equal(isStarryEventEnvelope({...valid, [field]: 'bad\nlabel'}), false, field);
+    assert.equal(isStarryEventEnvelope({...valid, [field]: 'a'.repeat(129)}), false, field);
+    assert.equal(isStarryEventEnvelope({...valid, [field]: 'john@example.com'}), false, field);
+  }
+  assert.equal(isStarryEventEnvelope({...valid, idempotency_key: undefined}), false);
+  assert.equal(isStarryEventEnvelope({...valid, idempotency_key: 'retry:01-aaa'}), true);
+  assert.equal(isStarryEventEnvelope(new Date()), false);
+});
+
+test('P05: rejects hidden keys, Symbol secrets and getters without running accessors', () => {
+  const hidden = {...valid};
+  Object.defineProperty(hidden, 'access_token', {value: 'secret', enumerable: false});
+  assert.equal(isStarryEventEnvelope(hidden), false);
+  const symbol = {...valid, [Symbol('access_token')]: 'secret'};
+  assert.equal(isStarryEventEnvelope(symbol), false);
+
+  let getterCalls = 0;
+  const accessor = {...valid};
+  Object.defineProperty(accessor, 'event_id', {
+    enumerable: true, get() { getterCalls++; return 'evt-1'; },
+  });
+  assert.equal(isStarryEventEnvelope(accessor), false);
+  assert.equal(getterCalls, 0);
+
+  const scopeWithHiddenKey = {...trusted};
+  Object.defineProperty(scopeWithHiddenKey, 'session_token', {value: 'secret'});
+  assert.throws(() => assertStarryResourceScope(trusted, scopeWithHiddenKey), /SCOPE_DENIED/);
+
+  const revocable = Proxy.revocable({...valid}, {});
+  revocable.revoke();
+  assert.equal(isStarryEventEnvelope(revocable.proxy), false);
+  assert.equal(isStarryEventEnvelope({...valid, [Symbol('hidden')]: 'secret'}), false);
+});
+
 test('P01: environment values explicit', () => {
   assert.equal(isStarryEnvironment('staging'), true);
   assert.equal(isStarryEnvironment('production'), true);
@@ -44,7 +98,18 @@ test('P01: only exact trusted brand/app/environment matches', () => {
   assert.throws(() => assertStarryResourceScope(trusted, {...trusted, brand_id: 'hglobal'}), /SCOPE_DENIED/);
   assert.throws(() => assertStarryResourceScope(trusted, {...trusted, app_id: 'other-app'}), /SCOPE_DENIED/);
   assert.throws(() => assertStarryResourceScope(trusted, {...trusted, environment: 'production'}), /SCOPE_DENIED/);
+  assert.throws(() => assertStarryResourceScope(trusted, {...trusted, app_id: 'unsafe app'}), /SCOPE_DENIED/);
+  assert.throws(() => assertStarryResourceScope(trusted, {...trusted, access_token: 'secret'}), /SCOPE_DENIED/);
+  assert.throws(() => assertStarryResourceScope(trusted, Object.create(trusted)), /SCOPE_DENIED/);
   assert.throws(() => assertStarryResourceScope(trusted, undefined), /SCOPE_DENIED/);
+});
+
+test('P01/P05: event scope binds to trusted Starry app and environment', () => {
+  assert.doesNotThrow(() => assertStarryEventForScope(trusted, valid));
+  assert.throws(() => assertStarryEventForScope(trusted, {...valid, app_id: 'other-app'}), /SCOPE_DENIED/);
+  assert.throws(() => assertStarryEventForScope(trusted, {...valid, environment: 'production'}), /SCOPE_DENIED/);
+  assert.throws(() => assertStarryEventForScope(trusted, {...valid, brand_id: 'hglobal'}), /ENVELOPE_DENIED/);
+  assert.throws(() => assertStarryEventForScope(trusted, {...valid, access_token: 'secret'}), /ENVELOPE_DENIED/);
 });
 
 test('cross-brand member sync remains disabled', () => {
