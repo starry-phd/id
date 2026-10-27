@@ -1,0 +1,27 @@
+{
+  "schema_version": "starry.signed-task-proof.v1-draft",
+  "base_pr": 88,
+  "base_sha": "fa85b9ad9a2354ed4e9a19538c269cf232c803eb",
+  "purpose": "server-only cryptographic Task event validation prior to Battery/ACK",
+  "enabled": false,
+  "algorithm": "RSASSA-PKCS1-v1_5 / SHA-256",
+  "min_modulus_bits": 2048,
+  "key_import": "nonextractable pinned verification public key",
+  "source": "server-only signed committed task",
+  "anchor": "independent externally authenticated per-task latest head and signature_sha256",
+  "freshness_ms": 30000,
+  "fields": "same as R8 committed task evidence + signed environment/issued time/sequence/key id",
+  "client_input": "opaque task_ref only",
+  "public_routes": [],
+  "sdk_exports": [],
+  "must_not_claim": [
+    "real authorized Task signer",
+    "real independent nonrollback anchor",
+    "cross-D1 atomic transaction",
+    "current Session authentication",
+    "real Cloudflare Secrets/D1/Queue",
+    "production approval"
+  ],
+  "G00_G10": "11/11 BLOCKED",
+  "PUBLISHABLE": false
+}
