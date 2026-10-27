@@ -1,0 +1,352 @@
+{
+  "schema_version": "0.1-proposed",
+  "as_of": "2026-10-27",
+  "repository": "starry-phd/id",
+  "baseline": {
+    "ai0_pr": 106,
+    "commit_sha": "dbb565895489cbe2a3b78eab7006ef0cdc48f01a"
+  },
+  "type": "immutable_baseline_sql_draft_inventory_not_deployment_permission",
+  "scope": "starry_only_hglobal_paused",
+  "migration_approval": false,
+  "live_execution_authorized": false,
+  "staging_execution_authorized": false,
+  "production_rollback_verified": false,
+  "data_retention_and_legal_approval": false,
+  "cloudflare_d1_compatibility_verified": false,
+  "all_release_gates_blocked": true,
+  "known_scope_limits": [
+    "Paths represent SQL DRAFT files at the fixed R14 checkout, not migrations installed in Cloudflare D1.",
+    "Auth 005-012 UP/DOWN file pairs are present but destructive DOWN is not a production rollback approval.",
+    "Billing version numbers 0002 and 0003 do not appear in this scoped checkout; do not infer missing data or renumber automatically.",
+    "Battery/Audit SQL and Task outbox candidate lack discrete versioned DOWN peers in this inventory; no automatic down/rollback is claimed.",
+    "Physical Auth/Billing/Battery/Audit/Task DB boundaries and cross-D1 consistency require independent authorization.",
+    "Every newly added R15 SQL path requires deliberate update of this snapshot before same-checkout AI-0 integration can pass."
+  ],
+  "entries": [
+    {
+      "path": "apps/api/contracts/task-commit-outbox.v0.DRAFT.sql",
+      "domain": "task",
+      "kind": "standalone_draft",
+      "paired_source": null,
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/001_starry_identity.DRAFT.sql",
+      "domain": "auth",
+      "kind": "standalone_draft",
+      "paired_source": null,
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/002_starry_store_bindings.DRAFT.sql",
+      "domain": "auth",
+      "kind": "standalone_draft",
+      "paired_source": null,
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/003_starry_oauth_round3.DRAFT.sql",
+      "domain": "auth",
+      "kind": "standalone_draft",
+      "paired_source": null,
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/004_starry_session_round4.DRAFT.sql",
+      "domain": "auth",
+      "kind": "standalone_draft",
+      "paired_source": null,
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/005_starry_oidc_indexes.DOWN.DRAFT.sql",
+      "domain": "auth",
+      "kind": "versioned_down",
+      "paired_source": "modules/starry-id-v1/schema/005_starry_oidc_indexes.UP.DRAFT.sql",
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/005_starry_oidc_indexes.UP.DRAFT.sql",
+      "domain": "auth",
+      "kind": "versioned_up",
+      "paired_source": "modules/starry-id-v1/schema/005_starry_oidc_indexes.DOWN.DRAFT.sql",
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/006_starry_auth_guard.DOWN.DRAFT.sql",
+      "domain": "auth",
+      "kind": "versioned_down",
+      "paired_source": "modules/starry-id-v1/schema/006_starry_auth_guard.UP.DRAFT.sql",
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/006_starry_auth_guard.UP.DRAFT.sql",
+      "domain": "auth",
+      "kind": "versioned_up",
+      "paired_source": "modules/starry-id-v1/schema/006_starry_auth_guard.DOWN.DRAFT.sql",
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/007_starry_age_deletion_admin.DOWN.DRAFT.sql",
+      "domain": "auth",
+      "kind": "versioned_down",
+      "paired_source": "modules/starry-id-v1/schema/007_starry_age_deletion_admin.UP.DRAFT.sql",
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/007_starry_age_deletion_admin.UP.DRAFT.sql",
+      "domain": "auth",
+      "kind": "versioned_up",
+      "paired_source": "modules/starry-id-v1/schema/007_starry_age_deletion_admin.DOWN.DRAFT.sql",
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/008_starry_first_gift_privacy.DOWN.DRAFT.sql",
+      "domain": "auth",
+      "kind": "versioned_down",
+      "paired_source": "modules/starry-id-v1/schema/008_starry_first_gift_privacy.UP.DRAFT.sql",
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/008_starry_first_gift_privacy.UP.DRAFT.sql",
+      "domain": "auth",
+      "kind": "versioned_up",
+      "paired_source": "modules/starry-id-v1/schema/008_starry_first_gift_privacy.DOWN.DRAFT.sql",
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/009_starry_privacy_review_grants.DOWN.DRAFT.sql",
+      "domain": "auth",
+      "kind": "versioned_down",
+      "paired_source": "modules/starry-id-v1/schema/009_starry_privacy_review_grants.UP.DRAFT.sql",
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/009_starry_privacy_review_grants.UP.DRAFT.sql",
+      "domain": "auth",
+      "kind": "versioned_up",
+      "paired_source": "modules/starry-id-v1/schema/009_starry_privacy_review_grants.DOWN.DRAFT.sql",
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/010_starry_recovery_auth_fences.DOWN.DRAFT.sql",
+      "domain": "auth",
+      "kind": "versioned_down",
+      "paired_source": "modules/starry-id-v1/schema/010_starry_recovery_auth_fences.UP.DRAFT.sql",
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/010_starry_recovery_auth_fences.UP.DRAFT.sql",
+      "domain": "auth",
+      "kind": "versioned_up",
+      "paired_source": "modules/starry-id-v1/schema/010_starry_recovery_auth_fences.DOWN.DRAFT.sql",
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/011_starry_one_use_deletion.DOWN.DRAFT.sql",
+      "domain": "auth",
+      "kind": "versioned_down",
+      "paired_source": "modules/starry-id-v1/schema/011_starry_one_use_deletion.UP.DRAFT.sql",
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/011_starry_one_use_deletion.UP.DRAFT.sql",
+      "domain": "auth",
+      "kind": "versioned_up",
+      "paired_source": "modules/starry-id-v1/schema/011_starry_one_use_deletion.DOWN.DRAFT.sql",
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/012_starry_stepup_challenge_scope.DOWN.DRAFT.sql",
+      "domain": "auth",
+      "kind": "versioned_down",
+      "paired_source": "modules/starry-id-v1/schema/012_starry_stepup_challenge_scope.UP.DRAFT.sql",
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/012_starry_stepup_challenge_scope.UP.DRAFT.sql",
+      "domain": "auth",
+      "kind": "versioned_up",
+      "paired_source": "modules/starry-id-v1/schema/012_starry_stepup_challenge_scope.DOWN.DRAFT.sql",
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0001_audit_DRAFT.sql",
+      "domain": "battery_audit",
+      "kind": "standalone_draft",
+      "paired_source": null,
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0002_billing_audit_DRAFT.sql",
+      "domain": "battery_audit",
+      "kind": "standalone_draft",
+      "paired_source": null,
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0003_queue_atomic_DRAFT.sql",
+      "domain": "battery_audit",
+      "kind": "standalone_draft",
+      "paired_source": null,
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0004_d1_atomic_DRAFT.sql",
+      "domain": "battery_audit",
+      "kind": "standalone_draft",
+      "paired_source": null,
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0005_free_battery_DRAFT.sql",
+      "domain": "battery_audit",
+      "kind": "standalone_draft",
+      "paired_source": null,
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0006_anonymous_appeal_DRAFT.sql",
+      "domain": "battery_audit",
+      "kind": "standalone_draft",
+      "paired_source": null,
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0007_recovery_gate_DRAFT.sql",
+      "domain": "battery_audit",
+      "kind": "standalone_draft",
+      "paired_source": null,
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0008_battery_settlement_CAS_DRAFT.sql",
+      "domain": "battery_audit",
+      "kind": "standalone_draft",
+      "paired_source": null,
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0009_signed_audit_recovery_DRAFT.sql",
+      "domain": "battery_audit",
+      "kind": "standalone_draft",
+      "paired_source": null,
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0010_auth_delete_battery_inbox_DRAFT.sql",
+      "domain": "battery_audit",
+      "kind": "standalone_draft",
+      "paired_source": null,
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "packages/rebuild-billing/schema/0001_billing_rebuild.DRAFT.sql",
+      "domain": "billing",
+      "kind": "standalone_draft",
+      "paired_source": null,
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "packages/rebuild-billing/schema/0004_billing_atomic_DRAFT.sql",
+      "domain": "billing",
+      "kind": "standalone_draft",
+      "paired_source": null,
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "packages/rebuild-billing/schema/0005_reconciliation_lease_DRAFT.sql",
+      "domain": "billing",
+      "kind": "standalone_draft",
+      "paired_source": null,
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "packages/rebuild-billing/schema/0006_recovery_outbox_DRAFT.sql",
+      "domain": "billing",
+      "kind": "standalone_draft",
+      "paired_source": null,
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    },
+    {
+      "path": "packages/rebuild-billing/schema/0007_account_deletion_fence_DRAFT.sql",
+      "domain": "billing",
+      "kind": "standalone_draft",
+      "paired_source": null,
+      "execution_authorized": false,
+      "production_rollback_verified": false,
+      "scope": "draft_sql_offline_only"
+    }
+  ]
+}
