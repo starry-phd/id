@@ -14,7 +14,7 @@ const persisted={event_id:eventId,member_ref:'member_1',event_type:'account_dele
  wallet_version:3,journal_revision:3,kind:'revoke',delta:-3,balance_after:0,
  reason_code:'ACCOUNT_DELETED',pending_holds:0};
 function fixture(opts={}){
- const count={legal:0,origin:0,auth:0,receipts:0,writes:0};
+ const count={legal:0,policy:0,origin:0,auth:0,receipts:0,writes:0};
  let saved=opts.saved===undefined?null:structuredClone(opts.saved);
  const publisher={
   async readCommittedOriginal(ref,s){
@@ -87,8 +87,15 @@ function fixture(opts={}){
  const build=(override={})=>createOfflineBatteryPublisherReceiptSync({
   enabled:true,scope,publisher_id:R16_CANDIDATE_SINGLE_PUBLISHER,
   publisher,authDb,batteryReadDb,batteryWriteDb,
-  lawfulProcessingApprovedNow:async()=>{count.legal++;return opts.legal!==false;},
-  readApprovedBatteryPolicyVersion:async()=>1,
+  lawfulProcessingApprovedNow:async()=>{
+   count.legal++;
+   return typeof opts.legal==='function'?opts.legal(count.legal,count):opts.legal!==false;
+  },
+  readApprovedBatteryPolicyVersion:async()=>{
+   count.policy++;
+   return typeof opts.policyVersion==='function'?
+    opts.policyVersion(count.policy,count):opts.policyVersion===undefined?1:opts.policyVersion;
+  },
   ...override
  });
  return {build,count};
@@ -198,4 +205,43 @@ test('R16 getter, hidden fields and revoked Proxy fail closed',async()=>{
   const f=fixture({source:bad});
   assert.equal((await f.build().sync(eventId,110500)).status,'blocked');
  }
+});
+
+test('R17 invalid current policy blocks before protected Auth/Battery source read',async()=>{
+ for(const v of [null,0,-1,NaN,1.5]){
+  const f=fixture({policyVersion:v});
+  const result=await f.build().sync(eventId,110500);
+  assert.equal(result.reason,'BATTERY_POLICY_NOT_APPROVED');
+  assert.equal(f.count.origin,0);assert.equal(f.count.writes,0);
+ }
+});
+test('R17 existing durable receipt cannot confirm against a different policy version',async()=>{
+ const f=fixture({saved:{...persisted,policy_version:2},policyVersion:1});
+ const result=await f.build().sync(eventId,110500);
+ assert.equal(result.reason,'BATTERY_RECEIPT_POLICY_STALE');
+ assert.equal(result.may_ack_queue,false);assert.equal(f.count.writes,0);
+});
+test('R17 duplicate replay loses legal permission before confirmation; zero writes',async()=>{
+ const f=fixture({saved:persisted,legal:(n)=>n===1});
+ const result=await f.build().sync(eventId,110500);
+ assert.equal(result.reason,'LEGAL_OR_POLICY_CHANGED_BEFORE_CONFIRMATION');
+ assert.equal(f.count.writes,0);assert.equal(result.live,false);
+});
+test('R17 duplicate replay sees policy rotation before confirmation; zero writes',async()=>{
+ const f=fixture({saved:persisted,policyVersion:(n)=>n===1?1:2});
+ const result=await f.build().sync(eventId,110500);
+ assert.equal(result.reason,'LEGAL_OR_POLICY_CHANGED_BEFORE_CONFIRMATION');
+ assert.equal(f.count.writes,0);assert.equal(result.may_regrant,false);
+});
+test('R17 after Battery local commit legal withdrawal cannot confirm global delivery',async()=>{
+ const f=fixture({legal:(_n,c)=>c.writes===0});
+ const result=await f.build().sync(eventId,110500);
+ assert.equal(result.reason,'LEGAL_OR_POLICY_CHANGED_BEFORE_CONFIRMATION');
+ assert.equal(f.count.writes,1);assert.equal(result.may_ack_queue,false);
+});
+test('R17 after local commit policy version rotation blocks the positive receipt',async()=>{
+ const f=fixture({policyVersion:(_n,c)=>c.writes===0?1:2});
+ const result=await f.build().sync(eventId,110500);
+ assert.equal(result.reason,'LEGAL_OR_POLICY_CHANGED_BEFORE_CONFIRMATION');
+ assert.equal(f.count.writes,1);assert.equal(result.may_restore,false);
 });
