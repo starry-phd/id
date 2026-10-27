@@ -70,7 +70,7 @@ test('real RS256 signature + independent SHA-256 head and Auth D1 must agree, RE
 test('tampered signature, payload and wrong pinned key fail before Auth D1',async()=>{
  const f=await fixture();
  const signatures=[
-  {...f.orig.envelope,signature:'A'+f.orig.envelope.signature.slice(1)},
+  {...f.orig.envelope,signature:(f.orig.envelope.signature[0]==='A'?'B':'A')+f.orig.envelope.signature.slice(1)},
   {...f.orig.envelope,counters:{...counters,deleted_members:99}},
   {...f.orig.envelope,sequence:12},
   {...f.orig.envelope,environment:'production'},
