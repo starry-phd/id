@@ -36,8 +36,10 @@ export function createOfflineStarryAccountDeletion(deps:Readonly<{
       // instantly fail authoritative identity resolution, even if a token survives.
       deps.db.prepare("UPDATE starry_members SET status='deleted',auth_version=?,display_name=NULL,directory_opt_in=0,display_name_public=0,profile_revision=?,updated_at=? WHERE s_user_id=? AND status='active' AND auth_version=? AND profile_revision=?")
        .bind(next.auth_version,next.profile_revision,now,p.s_user_id,current.auth_version,current.profile_revision),
-      deps.db.prepare("UPDATE starry_sessions SET revoked_at=? WHERE s_user_id=? AND revoked_at IS NULL")
-       .bind(now,p.s_user_id),
+      deps.db.prepare("UPDATE starry_sessions SET revoked_at=? WHERE s_user_id=? AND revoked_at IS NULL "+
+       "AND EXISTS(SELECT 1 FROM starry_members WHERE s_user_id=? "+
+       "AND status='deleted' AND auth_version=? AND updated_at=?)")
+       .bind(now,p.s_user_id,p.s_user_id,next.auth_version,now),
       // Outbox is minimal Starry-only reference, no OAuth sub/email/raw tokens.
       deps.db.prepare("INSERT INTO starry_deletion_outbox(event_id,s_user_id,occurred_at,event_type) SELECT ?,s_user_id,?,'account_deleted' FROM starry_members WHERE s_user_id=? AND status='deleted' AND auth_version=? AND updated_at=? AND NOT EXISTS(SELECT 1 FROM starry_deletion_outbox WHERE s_user_id=?)")
        .bind(eventId,now,p.s_user_id,next.auth_version,now,p.s_user_id),
