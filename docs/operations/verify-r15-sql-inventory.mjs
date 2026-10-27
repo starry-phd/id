@@ -1,6 +1,7 @@
 import {readFileSync,readdirSync,existsSync} from 'node:fs';
 import {resolve,join,relative,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {createHash} from 'node:crypto';
 
 const repoRoot=fileURLToPath(new URL('../../',import.meta.url));
 const directories=Object.freeze({
@@ -53,7 +54,36 @@ export function inspectSqlDraftInventory(inventory,release,{listPaths}={}){
   if(e.execution_authorized!==false||e.production_rollback_verified!==false||
     e.scope!=='draft_sql_offline_only')reject('unapproved execution/rollback: '+e.path);
  }
- for(const p of actualSet)if(!known.has(p))reject('new SQL path not triaged in manifest: '+p);
+ // Keep R14's immutable 36 SQL snapshot; R15's 013 pair is reviewed separately.
+ // A Git blob hash pins exact owner-source bytes, so a renamed/altered SQL
+ // cannot be waved through by simply adding its filename to this addendum.
+ const reviewed=readJson('docs/operations/r15-sql-additions.v0.json');
+ const ext=reviewed?.entries;
+ if(reviewed?.classification!=='R15_AI1_reviewed_addendum_to_immutable_R14_36_sql_source_snapshot_not_approval'||
+    reviewed?.original_inventory!=='docs/operations/r15-sql-migration-inventory.v0.json'||
+    reviewed?.source_owner!=='AI-1'||reviewed?.source_pr!==110||
+    reviewed?.source_sha!=='357948d1fc1e3afc0f6bc515f742aabea971ff09'||
+    reviewed?.live_d1_migration_authorized!==false||reviewed?.production_rollback_approved!==false||
+    !Array.isArray(ext)||ext.length!==2)
+  reject('R15 SQL extension not reviewed or false live permission');
+ const expanded=new Set(known);
+ const extraPaths=new Set((Array.isArray(ext)?ext:[]).map(e=>e?.path));
+ for(const e of Array.isArray(ext)?ext:[]){
+  if(!e||typeof e.path!=='string'||!e.path.startsWith('modules/starry-id-v1/schema/013_starry_deletion_source_immutability.')||
+     !/\.(UP|DOWN)\.DRAFT\.sql$/.test(e.path)||e.git_blob_sha?.length!==40||
+     !/^[0-9a-f]{40}$/.test(e.git_blob_sha)||expanded.has(e.path)||
+     !e.peer||!extraPaths.has(e.peer)||!e.peer.startsWith('modules/starry-id-v1/schema/013_starry_deletion_source_immutability.')||
+     e.kind!==(e.path.endsWith('.UP.DRAFT.sql')?'versioned_up':'versioned_down'))
+   reject('unsafe/unpaired R15 SQL addendum entry: '+e?.path);
+  if(!actualSet.has(e.path)||!existsSync(join(repoRoot,e.path)))reject('R15 new source file missing: '+e.path);
+  else {
+   const bytes=readFileSync(join(repoRoot,e.path));
+   const sha=createHash('sha1').update('blob '+bytes.byteLength+'\0').update(bytes).digest('hex');
+   if(sha!==e.git_blob_sha)reject('R15 new SQL content differs from original owner Git Blob: '+e.path);
+  }
+  expanded.add(e.path);
+ }
+ for(const p of actualSet)if(!expanded.has(p))reject('new SQL path not triaged in manifest: '+p);
  for(const e of inventory.entries)if(e.paired_source&&!known.has(e.paired_source))
   reject('missing UP/DOWN peer: '+e.path);
  if(!release||!Array.isArray(release.gates)||release.gates.length!==11||

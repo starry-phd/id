@@ -1,0 +1,25 @@
+{
+  "schema_version": "0.1-proposed",
+  "classification": "R15_AI1_reviewed_addendum_to_immutable_R14_36_sql_source_snapshot_not_approval",
+  "original_inventory": "docs/operations/r15-sql-migration-inventory.v0.json",
+  "source_owner": "AI-1",
+  "source_pr": 110,
+  "source_sha": "357948d1fc1e3afc0f6bc515f742aabea971ff09",
+  "scope": "starry_only_offline",
+  "live_d1_migration_authorized": false,
+  "production_rollback_approved": false,
+  "entries": [
+    {
+      "path": "modules/starry-id-v1/schema/013_starry_deletion_source_immutability.UP.DRAFT.sql",
+      "git_blob_sha": "5a6a3b2826b9e22a7609c04dcadc93b999aaf783",
+      "peer": "modules/starry-id-v1/schema/013_starry_deletion_source_immutability.DOWN.DRAFT.sql",
+      "kind": "versioned_up"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/013_starry_deletion_source_immutability.DOWN.DRAFT.sql",
+      "git_blob_sha": "04749d6ef573e8bcc04e9c108527ffe1b2c75b9d",
+      "peer": "modules/starry-id-v1/schema/013_starry_deletion_source_immutability.UP.DRAFT.sql",
+      "kind": "versioned_down"
+    }
+  ]
+}
