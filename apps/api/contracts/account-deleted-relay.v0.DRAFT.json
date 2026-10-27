@@ -1,0 +1,41 @@
+{
+  "version": "starry.account-deleted-relay.v0-draft",
+  "live": false,
+  "source": "AI-1 committed starry_deletion_outbox ONLY",
+  "raw_source_columns": [
+    "event_id",
+    "s_user_id",
+    "occurred_at",
+    "event_type"
+  ],
+  "authoritative_extra_sources": [
+    "starry_deletion_challenges(event_id,s_user_id,consumed_at) JOIN bound starry_sessions(environment)",
+    "current starry_members(s_user_id,status,auth_version,updated_at)",
+    "zero unrevoked starry_sessions for same s_user_id",
+    "approved lawful privacy processing scope"
+  ],
+  "battery_candidate_columns": [
+    "event_id",
+    "member_ref",
+    "occurred_at_sec",
+    "event_type"
+  ],
+  "mapping": {
+    "member_ref": "s_user_id unchanged; only if AI-3 member uses same canonical ID",
+    "occurred_at_sec": "occurred_at seconds, only after challenge.consumed_at and member.updated_at exact equality"
+  },
+  "billing": "BLOCKED: no invented m_SHA256, r_SHA256, event_digest or current auth_version from raw four fields",
+  "task": "BLOCKED: no authoritative deletion fencing with Task commit and Wallet",
+  "ack_safe": false,
+  "may_regrant": false,
+  "danger": "Separate Auth and Battery SQLite connections demonstrate NONatomic delivery; fake ports are not genuine Cloudflare provenance",
+  "requirements": [
+    "External independent nonrollback deletion tombstone witness",
+    "AI-1 authoritative legal HMAC identity and signed Digest for AI-2",
+    "AI-0 canonical schema and durable Queue/DLQ replay policy",
+    "Q104/Q119 lawful retention and deletion",
+    "Explicit production D1/Queue/Secrets authorization"
+  ],
+  "G00_G10": "11/11 BLOCKED",
+  "PUBLISHABLE": false
+}
