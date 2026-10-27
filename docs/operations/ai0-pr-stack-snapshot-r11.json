@@ -1,0 +1,114 @@
+{
+  "schema_version": "1.0",
+  "description": "AI-0 R7 to R11 Draft PR chain observed from GitHub; historical point-in-time snapshot, not live branch status nor merge authorization",
+  "repository": "starry-phd/id",
+  "observed_date": "2026-10-27",
+  "first_audited_pr": 64,
+  "latest_verified_integration_pr": 88,
+  "latest_verified_integration_sha": "fa85b9ad9a2354ed4e9a19538c269cf232c803eb",
+  "scope": "snapshot_only_no_live_queries",
+  "not_release_permission": true,
+  "upstream_of_first_pr_not_checked": true,
+  "r12_owner_prs_excluded_as_in_progress": true,
+  "prs": [
+    {
+      "pr": 64,
+      "url": "https://github.com/starry-phd/id/pull/64",
+      "purpose": "R7 four owner",
+      "base_branch": "ai0/rebuild-round6-four-owner-gate-20261026",
+      "head_branch": "ai0/rebuild-round7-four-owner-integration-20261027",
+      "head_sha": "e7ccf86483f1ea5515ac31b227f710d292289b4d",
+      "state": "open",
+      "draft": true,
+      "merged": false
+    },
+    {
+      "pr": 65,
+      "url": "https://github.com/starry-phd/id/pull/65",
+      "purpose": "R8 source inventory",
+      "base_branch": "ai0/rebuild-round7-four-owner-integration-20261027",
+      "head_branch": "ai0/rebuild-r8-128-source-trace-20261027",
+      "head_sha": "2d089cf58bfcd8e0e6c785ee4dba773e3db09db0",
+      "state": "open",
+      "draft": true,
+      "merged": false
+    },
+    {
+      "pr": 70,
+      "url": "https://github.com/starry-phd/id/pull/70",
+      "purpose": "Optimized CI and SOP",
+      "base_branch": "ai0/rebuild-r8-128-source-trace-20261027",
+      "head_branch": "ai0/ci-consolidation-20261027",
+      "head_sha": "abba356ca71530dbc5d38bbd482fe065609c94d8",
+      "state": "open",
+      "draft": true,
+      "merged": false
+    },
+    {
+      "pr": 71,
+      "url": "https://github.com/starry-phd/id/pull/71",
+      "purpose": "R8 four owner",
+      "base_branch": "ai0/ci-consolidation-20261027",
+      "head_branch": "ai0/rebuild-round8-four-owner-optimized-20261027",
+      "head_sha": "e130bfde68ef0fa40c628a24ec0abade0611d68f",
+      "state": "open",
+      "draft": true,
+      "merged": false
+    },
+    {
+      "pr": 76,
+      "url": "https://github.com/starry-phd/id/pull/76",
+      "purpose": "R9 four owner",
+      "base_branch": "ai0/rebuild-round8-four-owner-optimized-20261027",
+      "head_branch": "ai0/rebuild-round9-four-owner-optimized-20261027",
+      "head_sha": "e5a3ba76695316b3eaeb218fb0edd901d8820931",
+      "state": "open",
+      "draft": true,
+      "merged": false
+    },
+    {
+      "pr": 80,
+      "url": "https://github.com/starry-phd/id/pull/80",
+      "purpose": "R10 non-owner plan",
+      "base_branch": "ai0/rebuild-round9-four-owner-optimized-20261027",
+      "head_branch": "ai0/r10-parallel-readiness-planning-20261027",
+      "head_sha": "cf82d519c29b169e546623bf9353702aa6dd62ef",
+      "state": "open",
+      "draft": true,
+      "merged": false
+    },
+    {
+      "pr": 82,
+      "url": "https://github.com/starry-phd/id/pull/82",
+      "purpose": "R10 four owner",
+      "base_branch": "ai0/r10-parallel-readiness-planning-20261027",
+      "head_branch": "ai0/rebuild-round10-four-owner-optimized-20261027",
+      "head_sha": "f1eb5f0655cfdf8c9648ff6d004deed980fbc5d7",
+      "state": "open",
+      "draft": true,
+      "merged": false
+    },
+    {
+      "pr": 87,
+      "url": "https://github.com/starry-phd/id/pull/87",
+      "purpose": "R11 architecture preparation",
+      "base_branch": "ai0/rebuild-round10-four-owner-optimized-20261027",
+      "head_branch": "ai0/r11-parallel-architecture-preflight-20261027",
+      "head_sha": "54bf14bdc9dfc5dd9b3806f3c88fd767585b9098",
+      "state": "open",
+      "draft": true,
+      "merged": false
+    },
+    {
+      "pr": 88,
+      "url": "https://github.com/starry-phd/id/pull/88",
+      "purpose": "R11 four owner",
+      "base_branch": "ai0/r11-parallel-architecture-preflight-20261027",
+      "head_branch": "ai0/rebuild-round11-four-owner-optimized-20261027",
+      "head_sha": "fa85b9ad9a2354ed4e9a19538c269cf232c803eb",
+      "state": "open",
+      "draft": true,
+      "merged": false
+    }
+  ]
+}
