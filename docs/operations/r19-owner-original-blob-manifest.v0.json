@@ -1,0 +1,131 @@
+{
+  "schema_version": "0.1.0",
+  "kind": "AI0_R19_FOUR_OWNER_EXACT_SOURCE_OFFLINE_INTEGRATION",
+  "scope": "starry_only_offline",
+  "baseline": {
+    "r18_integrated_pr": 131,
+    "r18_integrated_sha": "f006e90311b3fecedae0f7c75004c940adfacede",
+    "ai0_product_candidate_pr": 136,
+    "ai0_product_candidate_sha": "84a5b8c4995f24a5c693100a0987273905c07d1f",
+    "owner_r19_common_base_sha": "f006e90311b3fecedae0f7c75004c940adfacede"
+  },
+  "source_owners": [
+    {
+      "owner": "AI-1",
+      "pr": 132,
+      "head_sha": "de2d4201bf4cf76b0db424fecc73f6bbb15524a9",
+      "base_sha": "f006e90311b3fecedae0f7c75004c940adfacede",
+      "files": [
+        {
+          "path": "modules/starry-id-v1/ADR-ROUND19-AUTH-CROSS-DOMAIN-DTO.md",
+          "git_blob_sha": "978aa6d9c9ad2e3791b68036acc9e6cc2f0dfee6"
+        },
+        {
+          "path": "modules/starry-id-v1/src/round19-auth-cross-domain-dto.ts",
+          "git_blob_sha": "fb071042e24bea93a824247fc0d0f7e493501b43"
+        },
+        {
+          "path": "modules/starry-id-v1/test/round19-auth-cross-domain-dto.test.mjs",
+          "git_blob_sha": "68ee474f08713fde2405742ff9d2b0b4b9c04da8"
+        }
+      ]
+    },
+    {
+      "owner": "AI-2",
+      "pr": 135,
+      "head_sha": "df6f49a84a89d8f0c0dde57463bfad6cb091323d",
+      "base_sha": "f006e90311b3fecedae0f7c75004c940adfacede",
+      "files": [
+        {
+          "path": "packages/rebuild-billing/docs/ROUND19-SAGA-RECEIPT-READONLY-GATE.md",
+          "git_blob_sha": "c38390dd4aac0b330be5370d744dfaaa06ae4b97"
+        },
+        {
+          "path": "packages/rebuild-billing/src/r19-saga-receipt.ts",
+          "git_blob_sha": "ec596fdb7fb939569a801f78757d7b21f617b924"
+        },
+        {
+          "path": "packages/rebuild-billing/test/r19-saga-receipt.test.mjs",
+          "git_blob_sha": "4494dfbce9d1b1a8f0e208e6744befaccbbc7915"
+        }
+      ]
+    },
+    {
+      "owner": "AI-3",
+      "pr": 133,
+      "head_sha": "9ba8a24b670c202de30a72676b7579a402260bd7",
+      "base_sha": "f006e90311b3fecedae0f7c75004c940adfacede",
+      "files": [
+        {
+          "path": "packages/rebuild-ai3/docs/ROUND19-TASK-WALLET-CROSS-D1-RECEIPT-GATE.md",
+          "git_blob_sha": "4790fd58a719cb429bdc565cbea6afb294a2da74"
+        },
+        {
+          "path": "packages/rebuild-ai3/src/r19-task-wallet-receipt-gate.ts",
+          "git_blob_sha": "06e2e1b35de3542c91f992cc5a8c8b4a9b44ccd6"
+        },
+        {
+          "path": "packages/rebuild-ai3/test/r19-task-wallet-receipt-gate.test.mjs",
+          "git_blob_sha": "82b66283d44e0c10480c7803c80c2af158293f5c"
+        },
+        {
+          "path": "packages/rebuild-ai3/test/test_r19_three_db_task_wallet.py",
+          "git_blob_sha": "c4da4c2171c415d1b1b880931d8a7d9f7efe9cec"
+        }
+      ]
+    },
+    {
+      "owner": "AI-4",
+      "pr": 134,
+      "head_sha": "48f234ee252dc027c00ef0e692682649b32cfbd5",
+      "base_sha": "f006e90311b3fecedae0f7c75004c940adfacede",
+      "files": [
+        {
+          "path": "apps/api/src/round19-offline-four-domain-wiring.ts",
+          "git_blob_sha": "cda876d9c277095e379cafe66c96a3c3f06e87b8"
+        },
+        {
+          "path": "apps/api/test/round19-offline-four-domain-wiring.test.mjs",
+          "git_blob_sha": "9b1b8a4f408cdef3c9b8a543934d3965e469c0b6"
+        },
+        {
+          "path": "apps/api/test/round19-real-owner-adapters.test.mjs",
+          "git_blob_sha": "4d524a40791b50b875d82c5f57a2183964486f41"
+        },
+        {
+          "path": "docs/ai/AI4-ROUND19-FOUR-DOMAIN-WIRING.md",
+          "git_blob_sha": "1d4278131c0ab66e850aec83ef79a481d44e8502"
+        }
+      ]
+    }
+  ],
+  "expected_original_owner_files": 14,
+  "genuine_cross_d1_atomicity_proven": false,
+  "release_authorizations": {
+    "merge_main": false,
+    "production": false,
+    "preview": false,
+    "staging": false,
+    "live_d1": false,
+    "real_queue_ack": false,
+    "real_dlq": false,
+    "store": false,
+    "oidc": false,
+    "eas": false,
+    "paid_usage": false,
+    "free_battery_sales": false,
+    "canonical_p05": false,
+    "physical_a_or_b_chosen": false,
+    "lawful_retention_q104_q119": false,
+    "external_floor_or_kms": false,
+    "hglobal_work": false,
+    "publishable": false
+  },
+  "assessment": {
+    "four_individual_owner_head_ci_success": true,
+    "integrated_same_head_ci_success_not_yet_claimed": true,
+    "real_r19_owner_multidb_tests_runnable_by_full_gate": true,
+    "official_gates_must_all_remain_blocked": true,
+    "app_product_and_ux_are_candidate_only": true
+  }
+}
