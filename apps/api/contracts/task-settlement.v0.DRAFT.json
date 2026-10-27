@@ -1,0 +1,41 @@
+{
+  "schema_version": "starry.task-settlement.v0-draft",
+  "source": {
+    "integrated_pr": 71,
+    "fixed_parent_sha": "e130bfde68ef0fa40c628a24ec0abade0611d68f",
+    "tasks": "AI4 R8 #67",
+    "wallet": "AI3 R7 #63"
+  },
+  "released": false,
+  "live_enabled": false,
+  "transport": "INTERNAL_ONLY_NO_PUBLIC_WORKER_ROUTE",
+  "phase": "transaction-bound offline model",
+  "scope": "starry_only",
+  "allowed_result": "backend_committed_task_outcome",
+  "forbidden_result": "client_success_boolean_or_client_price",
+  "boundary": {
+    "read": "single_consistent_db_snapshot_required",
+    "write": "CAS_wallet_revision_and_task_revision_and_policy_version",
+    "denial": "rollback_on_any_mismatch_or_member_suspension_deletion",
+    "idempotency": "one_commit_per_completed_hold",
+    "expiry_ms": 180000,
+    "session": "AI1 trusted sealed principal and fresh auth_version required at real Gate"
+  },
+  "depends_on": [
+    "AI1 verified current Member Session and Q119 privacy",
+    "AI3 atomic Wallet/D1 commit with task and first task authority",
+    "Task engine official proof and licensed server credentials",
+    "AI0 X/Y and task rates / debt cap",
+    "Cloudflare real D1 transaction and concurrency, rollback, replay",
+    "AI0 Release G00-G10 11/11 BLOCKED"
+  ],
+  "must_not_enable": [
+    "Cloudflare Workers public Task route",
+    "real D1/Queue",
+    "Secrets",
+    "Store",
+    "EAS",
+    "cross-brand",
+    "paid Battery"
+  ]
+}
