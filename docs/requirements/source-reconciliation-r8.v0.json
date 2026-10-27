@@ -1,13 +1,13 @@
 {
   "schema_version": "r8.0-draft-heading-coverage",
   "created_on": "2026-10-27",
-  "document_type": "128_row_annotated_heading_index_NOT_full_semantic_review",
+  "document_type": "128_row_heading_and_master_clause_presence_analyzed__DEV_clauses_not_reconciled",
   "source": "docs/requirements/original-inventory.v0.json",
   "source_sha": "7a3131bc1a92d73145091a8bae51cb4aa135780c",
   "authority": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
   "r7_integration": "https://github.com/starry-phd/id/pull/64",
   "r7_fixed_sha": "e7ccf86483f1ea5515ac31b227f710d292289b4d",
-  "reconciliation_method": "Source heading matched to a decision/status category. Full source clause text/DEV-A–I conflict review and acceptance evidence still pending; no row can be marked Gate complete by this artifact.",
+  "reconciliation_method": "All 128 master document sections were read and presence of purpose, constraints, conflict markers and heading mismatches recorded; no private raw master text copied into the public GitHub repo. Per-clause semantic adjudication with DEV-A-I and acceptance evidence remains pending.",
   "release_gate": "BLOCKED",
   "source_clause_reconciled_count": 0,
   "entries": [
@@ -32,8 +32,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": false,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "P02",
@@ -56,8 +64,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": false,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "P03",
@@ -80,8 +96,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": false,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "P04",
@@ -107,8 +131,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": false,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "P05",
@@ -131,8 +163,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": false,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "P06",
@@ -155,8 +195,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": false,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "P07",
@@ -179,8 +227,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": false,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "P08",
@@ -203,8 +259,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": false,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "P09",
@@ -227,8 +291,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": false,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "P10",
@@ -251,8 +323,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "01.01",
@@ -277,8 +357,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "01.02",
@@ -303,8 +391,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "01.03",
@@ -328,8 +424,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "01.04",
@@ -354,8 +458,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "01.05",
@@ -379,8 +491,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "01.06",
@@ -402,8 +522,16 @@
         "https://github.com/starry-phd/id/pull/62"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "01.07",
@@ -423,8 +551,16 @@
       "reconciliation_note": "同裝置家庭切換沿用早期核准方向，需比對原規格的私密 Session/共用裝置安全條款。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "01.08",
@@ -444,8 +580,16 @@
       "reconciliation_note": "本人帳號救援方向已核准，實機及風險驗收未完成。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "01.09",
@@ -466,8 +610,16 @@
       "reconciliation_note": "全新專案從零開發，舊站帳號認領/遷移不是第一波必做，不可接老資料。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "02.01",
@@ -489,8 +641,16 @@
         "https://github.com/starry-phd/id/pull/62"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "02.02",
@@ -509,8 +669,16 @@
       "reconciliation_note": "電話號碼規則須另核對前期已確認的全域唯一、隱藏與驗證範圍；不推定可公開。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "02.03",
@@ -529,8 +697,16 @@
       "reconciliation_note": "頭像裁切／上傳需合法私有存取與端側安全。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "02.04",
@@ -553,8 +729,16 @@
         "https://github.com/starry-phd/id/pull/61"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "02.05",
@@ -571,8 +755,16 @@
       "reconciliation_note": "座右銘與隨機提案未見本次 Owner 正式明確核准；舊 heading 不等於首期 Scope。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "02.06",
@@ -592,8 +784,16 @@
       "reconciliation_note": "安麗背景選項屬 H-Global 舊欄位，不自動保存在 Starry 或啟用跨系 API。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "02.07",
@@ -612,8 +812,16 @@
       "reconciliation_note": "原『自動儲存』被 Q13=B 明確按儲存取代，不能從舊清單恢復 autosave。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "02.08",
@@ -632,8 +840,16 @@
       "reconciliation_note": "最後成功存檔者優先，但需防非本人／跨品牌覆蓋。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "02.09",
@@ -654,8 +870,16 @@
       "reconciliation_note": "Starry 已登入可見姓名頭像；OAuth Email 私有唯讀；細欄可見性不得從舊公開名片推定。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "02.10",
@@ -674,8 +898,16 @@
       "reconciliation_note": "顯示整體最後更新時間，非逐欄完整歷史。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "03.01",
@@ -696,8 +928,16 @@
       "reconciliation_note": "本階段不建立公開電子名片／QR vCard／公開個人路由；此題不是永遠刪除。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "03.02",
@@ -718,8 +958,16 @@
       "reconciliation_note": "本階段不建立公開電子名片／QR vCard／公開個人路由；此題不是永遠刪除。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "03.03",
@@ -740,8 +988,16 @@
       "reconciliation_note": "本階段不建立公開電子名片／QR vCard／公開個人路由；此題不是永遠刪除。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "03.04",
@@ -760,8 +1016,16 @@
       "reconciliation_note": "只讓已登入會員搜尋；需後端身份／最小搜尋欄位。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "03.05",
@@ -781,8 +1045,16 @@
       "reconciliation_note": "舊 SEO/公開名片可能暴露個資，Starry 目前不採公開搜尋名片或 Email。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "03.06",
@@ -805,8 +1077,16 @@
       "reconciliation_note": "安麗 7 碼/夫妻/推薦上下線歸 H-Global 權威；Starry 只能未來經核准 API 動態存取，現時停用。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "03.07",
@@ -829,8 +1109,16 @@
       "reconciliation_note": "安麗 7 碼/夫妻/推薦上下線歸 H-Global 權威；Starry 只能未來經核准 API 動態存取，現時停用。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "03.08",
@@ -853,8 +1141,16 @@
       "reconciliation_note": "安麗 7 碼/夫妻/推薦上下線歸 H-Global 權威；Starry 只能未來經核准 API 動態存取，現時停用。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "03.09",
@@ -877,8 +1173,16 @@
       "reconciliation_note": "安麗 7 碼/夫妻/推薦上下線歸 H-Global 權威；Starry 只能未來經核准 API 動態存取，現時停用。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "04.01",
@@ -900,8 +1204,16 @@
       "reconciliation_note": "H-Global 系統／教育中心／獎銜／審核／職務權威全部暫停開發；不可自動成為 Starry 需求。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "04.02",
@@ -923,8 +1235,16 @@
       "reconciliation_note": "H-Global 系統／教育中心／獎銜／審核／職務權威全部暫停開發；不可自動成為 Starry 需求。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "04.03",
@@ -946,8 +1266,16 @@
       "reconciliation_note": "H-Global 系統／教育中心／獎銜／審核／職務權威全部暫停開發；不可自動成為 Starry 需求。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "04.04",
@@ -969,8 +1297,16 @@
       "reconciliation_note": "H-Global 系統／教育中心／獎銜／審核／職務權威全部暫停開發；不可自動成為 Starry 需求。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "04.05",
@@ -992,8 +1328,16 @@
       "reconciliation_note": "H-Global 系統／教育中心／獎銜／審核／職務權威全部暫停開發；不可自動成為 Starry 需求。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "04.06",
@@ -1015,8 +1359,16 @@
       "reconciliation_note": "H-Global 系統／教育中心／獎銜／審核／職務權威全部暫停開發；不可自動成為 Starry 需求。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "04.07",
@@ -1038,8 +1390,16 @@
       "reconciliation_note": "H-Global 系統／教育中心／獎銜／審核／職務權威全部暫停開發；不可自動成為 Starry 需求。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "04.08",
@@ -1061,8 +1421,16 @@
       "reconciliation_note": "H-Global 系統／教育中心／獎銜／審核／職務權威全部暫停開發；不可自動成為 Starry 需求。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "05.01",
@@ -1084,8 +1452,16 @@
         "https://github.com/starry-phd/id/pull/62"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "05.02",
@@ -1106,8 +1482,16 @@
       "reconciliation_note": "H-Global 中心審核員／普通職務不得直接映射成 Starry 管理權限。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "05.03",
@@ -1128,8 +1512,16 @@
       "reconciliation_note": "H-Global 中心審核員／普通職務不得直接映射成 Starry 管理權限。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "05.04",
@@ -1153,8 +1545,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "05.05",
@@ -1177,8 +1577,16 @@
         "https://github.com/starry-phd/id/pull/62"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "05.06",
@@ -1201,8 +1609,16 @@
         "https://github.com/starry-phd/id/pull/62"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "05.07",
@@ -1222,8 +1638,16 @@
       "reconciliation_note": "每 App 普通封鎖／整個 ID 重大停權是 AI Gate 提案，非業主逐題選定。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "05.08",
@@ -1251,8 +1675,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "05.09",
@@ -1273,8 +1705,16 @@
       "reconciliation_note": "本人查詢與最小授權管理操作；管理查詢不可越過隱私遮罩。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "06.01",
@@ -1297,8 +1737,16 @@
         "https://github.com/starry-phd/id/pull/61"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "06.02",
@@ -1322,8 +1770,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "06.03",
@@ -1347,8 +1803,16 @@
         "https://github.com/starry-phd/id/pull/61"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "06.04",
@@ -1368,8 +1832,16 @@
       "reconciliation_note": "單款 App Kill Switch 與全系重大事故開關是 AI 建議，待正式 Gate；禁止舊系統直接啟用。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "06.05",
@@ -1393,8 +1865,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "06.06",
@@ -1418,8 +1898,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "06.07",
@@ -1441,8 +1929,16 @@
       "reconciliation_note": "H-Global 指定欄位的動態查詢／修改未啟動；Starry 不保存 H-Global 欄位值；資料同意需合法處理。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "06.08",
@@ -1465,8 +1961,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "06.09",
@@ -1486,8 +1990,16 @@
       "reconciliation_note": "Rate limit/Queue/故障隔離技術應由 AI-4/AI-3 以實際應用量測驗收。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "07.01",
@@ -1511,8 +2023,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "07.02",
@@ -1536,8 +2056,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "07.03",
@@ -1563,8 +2091,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "07.04",
@@ -1588,8 +2124,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "07.05",
@@ -1611,8 +2155,16 @@
         "https://github.com/starry-phd/id/pull/63"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "07.06",
@@ -1637,8 +2189,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "07.07",
@@ -1662,8 +2222,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "07.08",
@@ -1685,8 +2253,16 @@
         "https://github.com/starry-phd/id/pull/63"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "07.09",
@@ -1711,8 +2287,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "07.10",
@@ -1734,8 +2318,16 @@
       "reconciliation_note": "到期提醒被永不過期取代；歷史封存與稽核保留仍需合法 Gate（D1 一年/R2 為 AI 提案）。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "07.11",
@@ -1761,8 +2353,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "08.01",
@@ -1785,8 +2385,16 @@
         "https://github.com/starry-phd/id/pull/60"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "08.02",
@@ -1810,8 +2418,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "08.03",
@@ -1835,8 +2451,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "08.04",
@@ -1860,8 +2484,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "08.05",
@@ -1884,8 +2516,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "08.06",
@@ -1908,8 +2548,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "08.07",
@@ -1932,8 +2580,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "08.08",
@@ -1953,8 +2609,16 @@
       "reconciliation_note": "H-Global 實體票券 PAYUNi 暫停，不能與 Starry 數位 IAP 混用。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "08.09",
@@ -1977,8 +2641,16 @@
         "https://github.com/starry-phd/id/pull/60"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "08.10",
@@ -2002,8 +2674,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "08.11",
@@ -2028,8 +2708,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "09.01",
@@ -2049,8 +2737,16 @@
       "reconciliation_note": "同 Starry 生態系通知 inbox、Push 和 Email 頻率／可選通道；真推播/郵件尚未驗收。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "09.02",
@@ -2070,8 +2766,16 @@
       "reconciliation_note": "同 Starry 生態系通知 inbox、Push 和 Email 頻率／可選通道；真推播/郵件尚未驗收。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "09.03",
@@ -2090,8 +2794,16 @@
       "reconciliation_note": "特殊事件/管理員異動通知沿既有審核通知決議逐項核對，不從舊 H-Global 角色自動繼承。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "09.04",
@@ -2110,8 +2822,16 @@
       "reconciliation_note": "特殊事件/管理員異動通知沿既有審核通知決議逐項核對，不從舊 H-Global 角色自動繼承。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "09.05",
@@ -2130,8 +2850,16 @@
       "reconciliation_note": "第一階段匿名申訴、安全查詢憑證、補件與限流；附件掃描及申訴後台仍待實作。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "09.06",
@@ -2150,8 +2878,16 @@
       "reconciliation_note": "第一階段匿名申訴、安全查詢憑證、補件與限流；附件掃描及申訴後台仍待實作。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "09.07",
@@ -2170,8 +2906,16 @@
       "reconciliation_note": "第一階段匿名申訴、安全查詢憑證、補件與限流；附件掃描及申訴後台仍待實作。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "09.08",
@@ -2195,8 +2939,16 @@
         "https://github.com/starry-phd/id/pull/61"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "09.09",
@@ -2216,8 +2968,16 @@
       "reconciliation_note": "服務故障／恢復通知受既有通知偏好、安全例外與真的事件來源限制。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "10.01",
@@ -2240,8 +3000,16 @@
         "https://github.com/starry-phd/id/pull/63"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "10.02",
@@ -2264,8 +3032,16 @@
         "https://github.com/starry-phd/id/pull/63"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "10.03",
@@ -2288,8 +3064,16 @@
         "https://github.com/starry-phd/id/pull/63"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "10.04",
@@ -2309,8 +3093,16 @@
       "reconciliation_note": "D1 原生還原＋獨立備份＋隔離演練；精準修復優先為 AI Gate 提案，真 D1/復活防護待驗。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "10.05",
@@ -2330,8 +3122,16 @@
       "reconciliation_note": "D1 原生還原＋獨立備份＋隔離演練；精準修復優先為 AI Gate 提案，真 D1/復活防護待驗。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "10.06",
@@ -2351,8 +3151,16 @@
       "reconciliation_note": "D1 原生還原＋獨立備份＋隔離演練；精準修復優先為 AI Gate 提案，真 D1/復活防護待驗。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "10.07",
@@ -2375,8 +3183,16 @@
         "https://github.com/starry-phd/id/pull/61"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "11.01",
@@ -2397,8 +3213,16 @@
       "reconciliation_note": "兩品牌開發者帳號各自資源/商店歸屬須依最新帳號決議實地核驗；現暫停 H-Global。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "11.02",
@@ -2421,8 +3245,16 @@
         "https://github.com/starry-phd/id/pull/61"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "11.03",
@@ -2445,8 +3277,16 @@
         "https://github.com/starry-phd/id/pull/61"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "11.04",
@@ -2468,8 +3308,16 @@
         "https://github.com/starry-phd/id/pull/61"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "11.05",
@@ -2492,8 +3340,16 @@
         "https://github.com/starry-phd/id/pull/61"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "11.06",
@@ -2516,8 +3372,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "11.07",
@@ -2540,8 +3404,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "11.08",
@@ -2565,8 +3437,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "11.09",
@@ -2586,8 +3466,16 @@
       "reconciliation_note": "H-Global 未來獨立移交為架構方向，現不開發/移轉其正式資源。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "11.10",
@@ -2607,8 +3495,16 @@
       "reconciliation_note": "2 萬註冊會員不等於 2 萬同時在線；尖峰併發、p95、錯誤率/成本 Gate 需真數據。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "12.01",
@@ -2627,8 +3523,16 @@
       "reconciliation_note": "正式需求、候選方案、實作、CI、部署狀態分開保存，GitHub 作唯一工程追溯。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "12.02",
@@ -2647,8 +3551,16 @@
       "reconciliation_note": "正式需求、候選方案、實作、CI、部署狀態分開保存，GitHub 作唯一工程追溯。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "12.03",
@@ -2668,8 +3580,16 @@
       "reconciliation_note": "各 App/API 的 OpenAPI/版本/SDK/CI/owner 交接要真正可測，並非所有產品已上架。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "12.04",
@@ -2689,8 +3609,16 @@
       "reconciliation_note": "人工核對限重大未決；使用者可刪減需求；已改為三題精簡問答後以 Gate 驗收其餘技術細節。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "12.05",
@@ -2712,8 +3640,16 @@
         "https://github.com/starry-phd/id/pull/62"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": true
+      }
     },
     {
       "source_id": "12.06",
@@ -2732,8 +3668,16 @@
       "reconciliation_note": "全新專案不沿用或遷移舊資料，不以其他 Repo/舊環境當本案完成。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "N01",
@@ -2757,8 +3701,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": false,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "N02",
@@ -2782,8 +3734,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": false,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "N03",
@@ -2806,8 +3766,16 @@
       "reconciliation_note": "未來雙方驗證才可連結；業主不提供一般 UI 自助解綁的意向不排除法律權利；目前停用。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": false,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "N04",
@@ -2830,8 +3798,16 @@
       "reconciliation_note": "未來經 H-Global 授權可動態查/改欄位，Starry 不保存原欄位值；合法撤銷/稽核未定，現在禁用。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": false,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "N05",
@@ -2851,8 +3827,16 @@
       "reconciliation_note": "H-Global PAYUNi 實體商家功能暫停；不得由 Starry Repo 開發。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": false,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "N06",
@@ -2876,8 +3860,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": true,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": true
+      }
     },
     {
       "source_id": "N07",
@@ -2898,8 +3890,16 @@
       "reconciliation_note": "品牌獨立管理權限與 API 預留第一波，第二波正式管理中心 UI 尚未啟動。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": false,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": true
+      }
     },
     {
       "source_id": "N08",
@@ -2923,8 +3923,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": false,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "N09",
@@ -2955,8 +3963,16 @@
         "https://github.com/starry-phd/id/pull/64"
       ],
       "implementation_evidence_status": "offline_candidate_evidence_only",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": false,
+        "master_legacy_conflict_present": false,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     },
     {
       "source_id": "N10",
@@ -2976,8 +3992,65 @@
       "reconciliation_note": "本全新 Starry Repo 不移植老專案的 DB/PR/環境，不啟用 H-Global。",
       "evidence_prs": [],
       "implementation_evidence_status": "not_verified",
-      "source_clause_review": "heading_classified_full_clause_pending",
-      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+      "source_clause_review": "master_section_read_dev_A_to_I_crosscheck_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate",
+      "source_master_flags": {
+        "master_section_present": true,
+        "master_purpose_present": true,
+        "master_constraint_present": false,
+        "master_legacy_conflict_present": true,
+        "master_manual_checkbox_present": true,
+        "index_title_differs_from_master": false
+      }
     }
+  ],
+  "source_master_document_id": "1o9luZIfaeMVBVT5XWD4fSiFHtG3F-viqNbsjmtoq_Cw",
+  "source_master_section_presence_checked": 128,
+  "source_master_title_drift_ids": [
+    "12.05",
+    "N06",
+    "N07"
+  ],
+  "source_master_conflict_marker_ids": [
+    "P10",
+    "01.02",
+    "01.03",
+    "01.05",
+    "01.06",
+    "01.09",
+    "02.02",
+    "02.05",
+    "02.07",
+    "02.08",
+    "03.07",
+    "05.05",
+    "05.08",
+    "06.01",
+    "06.02",
+    "06.03",
+    "06.05",
+    "06.07",
+    "06.08",
+    "07.02",
+    "07.03",
+    "07.04",
+    "07.05",
+    "07.06",
+    "07.07",
+    "07.08",
+    "07.09",
+    "07.10",
+    "07.11",
+    "08.08",
+    "08.09",
+    "09.03",
+    "10.05",
+    "11.03",
+    "11.06",
+    "11.09",
+    "12.02",
+    "12.05",
+    "12.06",
+    "N10"
   ]
 }
