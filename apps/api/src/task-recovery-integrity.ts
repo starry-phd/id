@@ -5,7 +5,7 @@
  * unimplemented production Gates. Never authorizes physical restore.
  */
 import {assessIsolatedRestore} from '../../../packages/rebuild-ai3/src/recovery-guard.ts';
-import type {RecoveryBundle,TrustedRecoveryPorts} from '../../../packages/rebuild-ai3/src/recovery-guard.ts';
+import type {TrustedRecoveryPorts} from '../../../packages/rebuild-ai3/src/recovery-guard.ts';
 
 export const LIVE_TASK_RECOVERY_ENABLED=false as const;
 export const TASK_RECOVERY_SCHEMA='starry.task-recovery.v0-draft' as const;
