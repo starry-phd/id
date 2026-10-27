@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "繁星回聲 DEV",
+    "slug": "echo-starry-dev-prototype",
+    "scheme": "echo-starry-dev",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    }
+  }
+}
