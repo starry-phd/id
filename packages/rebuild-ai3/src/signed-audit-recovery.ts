@@ -153,7 +153,7 @@ export const AUDIT_RECOVERY_SQL=Object.freeze({
 });
 /** Signed monotone audit witness is NOT a substitute for the Q116 seven fences. */
 export function createOfflineSignedAuditRecovery(config:Readonly<{
- enabled?:boolean;scope:AuditScope;key_id:string;verifyKey:CryptoKey;
+ enabled?:boolean;scope:AuditScope;key_id:string;verifyKey:Parameters<typeof crypto.subtle.verify>[1];
  db:ReadOnlyAuditDB;ports:AuditPorts;
 }>){
  if(!scopeOk(config?.scope)||typeof config.key_id!=='string'||!REF.test(config.key_id)||
@@ -162,7 +162,7 @@ export function createOfflineSignedAuditRecovery(config:Readonly<{
    'recordDurableReview'] as const).some(k=>typeof config.ports[k]!=='function'))
   throw Error('AI3_AUDIT_CONFIG_DENIED');
  const key=config.verifyKey;
- const alg=key?.algorithm as RsaHashedKeyAlgorithm|undefined;
+ const alg=key?.algorithm as {name:string;modulusLength:number;hash:{name:string}}|undefined;
  if(!key||key.type!=='public'||key.extractable||alg?.name!=='RSASSA-PKCS1-v1_5'||
   alg.modulusLength<2048||alg.hash.name!=='SHA-256'||!key.usages.includes('verify'))
   throw Error('AI3_AUDIT_PINNED_KEY_DENIED');
