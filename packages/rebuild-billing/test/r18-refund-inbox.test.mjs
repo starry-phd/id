@@ -114,7 +114,7 @@ test('signed test-only refund: one Billing SQLite inbox, floor and revoked candi
 test('duplicate source event never writes a second refund and never ACKs',async t=>{
  const x=await fixture();t.after(x.close);
  await x.gate().accept(x.event,del,NOW);
- assert.equal((await x.gate().accept(x.event,del,NOW)).reason,'DUPLICATE_OR_OLDER_REFUND');
+ assert.equal((await x.gate().accept(x.event,del,NOW)).status,'blocked'); // BEFORE INSERT SQLite version trigger also rejects replay
  assert.equal(x.count('billing_r18_refund_inbox_DRAFT'),1);
 });
 test('same transaction source_version with DIFFERENT event_ref is rejected by unique',async t=>{
@@ -152,21 +152,23 @@ test('real partial cross-DB success: Auth deletion committed, Billing inbox miss
  assert.equal((await x.gate().accept(x.event,del,NOW)).reason,'DELETED_MEMBER_OR_PITR_FENCE_MISSING');
  assert.equal(x.count('billing_r18_refund_inbox_DRAFT'),0);
 });
-test('PITR Billing rollback removes inbox+tombstone: independent Auth/floor deny resurrection',async t=>{
+test('PITR real Billing snapshot regression re-enables candidates, independent source prevents refund',async t=>{
  const x=await fixture();t.after(x.close);
- await x.gate().accept(x.event,del,NOW);
- const replay=new DatabaseSync(':memory:');
- try{
-  replay.exec(billSchema);replay.exec(BILLING_R16_INBOX_MEMORY_DDL);replay.exec(BILLING_R18_MEMORY_DDL);
-  replay.prepare('INSERT INTO billing_entitlement_candidate_DRAFT(candidate_ref,environment,member_ref,offer_id,candidate_state) VALUES(?,?,?,?,?)')
-   .run('r_'+'7'.repeat(64),'staging',del.member_ref,'digital.monthly','candidate_active');
-  const adapted={prepare(sql){return {bind(...args){return {async first(){
-   const row=replay.prepare(sql).get(...args);return row??null;
-  }};}};}};
-  const x2=x.gate({db:adapted});
-  assert.equal((await x2.accept(x.event,del,NOW)).status,'blocked');
-  assert.equal(replay.prepare('SELECT COUNT(*) n FROM billing_r18_refund_inbox_DRAFT').get().n,0);
- }finally{replay.close();}
+ assert.equal((await x.gate().accept(x.event,del,NOW)).status,'recorded_offline');
+ // Rebuild the SAME Billing SQL connection to its older pre-delete state.
+ // Auth and independent floor remain at their newer committed deleted version.
+ x.bill.exec('DROP TABLE billing_r18_refund_inbox_DRAFT;');
+ x.bill.exec('DROP TABLE billing_r18_refund_floor_DRAFT;');
+ x.bill.exec('DROP TABLE billing_delete_inbox_R16_DRAFT;');
+ x.bill.exec('DELETE FROM billing_deletion_fence_DRAFT;');
+ x.bill.exec(BILLING_R16_INBOX_MEMORY_DDL);
+ x.bill.exec(BILLING_R18_MEMORY_DDL);
+ x.bill.prepare("UPDATE billing_entitlement_candidate_DRAFT SET candidate_state='candidate_active'").run();
+ assert.equal(x.bill.prepare("SELECT COUNT(*) n FROM billing_entitlement_candidate_DRAFT WHERE candidate_state='candidate_active'").get().n,1);
+ assert.equal(x.count('billing_delete_inbox_R16_DRAFT'),0);
+ assert.equal(x.count('billing_deletion_fence_DRAFT'),0);
+ assert.equal((await x.gate().accept(x.event,del,NOW)).reason,'DELETED_MEMBER_OR_PITR_FENCE_MISSING');
+ assert.equal(x.count('billing_r18_refund_inbox_DRAFT'),0);
 });
 test('independent floor missing or behind current deletion: no refund record',async t=>{
  const x=await fixture();t.after(x.close);
