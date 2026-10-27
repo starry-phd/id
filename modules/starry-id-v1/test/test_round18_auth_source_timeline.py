@@ -27,7 +27,10 @@ class R18CommittedSource(unittest.TestCase):
             self.db.execute("""INSERT INTO starry_sessions(session_id,s_user_id,app_id,environment,
                 auth_version,refresh_hash,expires_at,step_up_method,step_up_verified_at,step_up_expires_at)
                 VALUES(?,?,?,?,?,?,?,?,?,?)""",
-                (s,'u1',app,'staging',3,digest,TIME+180,None,None,None))
+                (s,'u1',app,'staging',3,digest,TIME+180,
+                 'passkey' if s=='s1' else None,
+                 TIME-5 if s=='s1' else None,
+                 TIME+90 if s=='s1' else None))
     def tearDown(self):
         self.db.close()
     def commit_deletion(self):
