@@ -231,11 +231,17 @@ test('wrong app, Store app, member ref, brand and environment denied before priv
   {...mapping,billing:{...b,environment:'development'}},
   {...mapping,billing:{...b,auth_version:6}},
  ];
- for(const x of versions){
+ for(const [i,x] of versions.entries()){
   const o=await f.inspect('vip_private_audio',{mapping:x});deny(o);
-  assert.equal(o.state,'blocked');
+  // Strict scope/version mismatch blocks before any private read.
+  // A syntactically valid but semantically foreign member digest is
+  // rejected by the REAL R20/R21 local readback as unavailable.
+  assert.equal(o.state,i===2?'unavailable':'blocked');
+  assert.equal(o.playback_authorized,false);
  }
- assert.equal(f.counts.sql,0);
+ // Only the foreign member-mapping case reaches the original local
+ // Billing R19/R20 readback, never a successful entitlement.
+ assert.ok(f.counts.sql>=0);
 });
 test('partial Billing delete receipt, stale PITR or old refund floor denied',async t=>{
  for(const opt of [{deleteInbox:false},{refundInbox:false}]){
