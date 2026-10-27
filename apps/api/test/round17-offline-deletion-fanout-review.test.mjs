@@ -148,6 +148,7 @@ test('R17 missing/hostile getter evidence and transient readback failure never A
 test('R17 repeated local review stays read-only, no second sender, no ACK authority',async()=>{
  const f=fixture();
  const first=await f.review().review(event,1700000060);
+ assert.equal(first.status,'candidate_consistent');
  f.ports.deliverLocal=async()=>Object.freeze({
   status:'duplicate_local',reason:'ALREADY_CONSUMED_IN_SINK',
   may_ack_queue:false,may_regrant:false,live:false,
