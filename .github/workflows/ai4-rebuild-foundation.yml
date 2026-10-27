@@ -1,15 +1,5 @@
 name: AI-4 Rebuild Phase0 Verification
 on:
-  pull_request:
-    paths:
-      - 'apps/**'
-      - 'packages/sdk/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'tsconfig.json'
-      - 'eslint.config.mjs'
-      - 'docs/adr/ADR-AI4-0002-*'
-      - '.github/workflows/ai4-rebuild-foundation.yml'
   workflow_dispatch:
 permissions:
   contents: read

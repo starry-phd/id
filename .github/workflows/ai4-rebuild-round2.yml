@@ -1,14 +1,5 @@
 name: AI-4 Rebuild Round2 Cross-Owner Contract CI
 on:
-  pull_request:
-    paths:
-      - 'apps/**'
-      - 'packages/integration/**'
-      - 'packages/sdk/**'
-      - 'package.json'
-      - 'tsconfig.json'
-      - 'eslint.config.mjs'
-      - '.github/workflows/ai4-rebuild-round2.yml'
   workflow_dispatch:
 permissions:
   contents: read

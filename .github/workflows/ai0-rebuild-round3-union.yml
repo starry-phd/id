@@ -1,13 +1,5 @@
 name: AI-0 Rebuild Round 3 Latest Union Gate
 on:
-  pull_request:
-    paths:
-      - 'apps/**'
-      - 'modules/starry-id-v1/**'
-      - 'packages/**'
-      - 'docs/requirements/**'
-      - 'docs/contracts/**'
-      - '.github/workflows/ai0-rebuild-round3-union.yml'
   workflow_dispatch:
 permissions:
   contents: read

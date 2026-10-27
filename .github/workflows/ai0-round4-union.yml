@@ -1,12 +1,5 @@
 name: AI-0 Round 4 All Owner Union
 on:
-  pull_request:
-    paths:
-      - 'apps/**'
-      - 'modules/starry-id-v1/**'
-      - 'packages/**'
-      - 'docs/requirements/**'
-      - '.github/workflows/ai0-round4-union.yml'
   workflow_dispatch:
 permissions:
   contents: read

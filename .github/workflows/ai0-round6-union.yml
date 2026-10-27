@@ -1,14 +1,5 @@
 name: AI-0 Round 6 Three-Owner Offline Union (release BLOCKED)
 on:
-  pull_request:
-    paths:
-      - 'apps/**'
-      - 'modules/**'
-      - 'packages/**'
-      - 'docs/ai/AI0-ROUND6-UNION-20261026.md'
-      - 'docs/api-handoff/**'
-      - 'docs/release-readiness/**'
-      - '.github/workflows/ai0-round6-union.yml'
   workflow_dispatch:
 permissions:
   contents: read

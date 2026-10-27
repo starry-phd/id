@@ -1,13 +1,5 @@
 name: AI-0 Round 6 Four-Owner Final Offline Gate (release BLOCKED)
 on:
-  pull_request:
-    paths:
-      - 'modules/starry-id-v1/**'
-      - 'packages/rebuild-billing/**'
-      - 'packages/rebuild-ai3/**'
-      - 'apps/**'
-      - 'docs/ai/AI0-ROUND6-FOUR-OWNER-GATE-20261026.md'
-      - '.github/workflows/ai0-round6-four-owner.yml'
   workflow_dispatch:
 permissions:
   contents: read

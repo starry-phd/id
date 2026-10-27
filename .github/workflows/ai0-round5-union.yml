@@ -1,12 +1,5 @@
 name: AI-0 Round 5 Five-Owner Union and Release Block Gate
 on:
-  pull_request:
-    paths:
-      - 'apps/**'
-      - 'modules/starry-id-v1/**'
-      - 'packages/**'
-      - 'docs/release-readiness/**'
-      - '.github/workflows/ai0-round5-union.yml'
   workflow_dispatch:
 permissions:
   contents: read

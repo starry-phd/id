@@ -1,14 +1,5 @@
 name: AI-0 Rebuild Composition CI
 on:
-  pull_request:
-    paths:
-      - 'apps/**'
-      - 'modules/starry-id-v1/**'
-      - 'packages/rebuild-ai3/**'
-      - 'packages/rebuild-billing/**'
-      - 'packages/sdk/**'
-      - 'docs/requirements/**'
-      - '.github/workflows/ai0-rebuild-composition.yml'
   workflow_dispatch:
 permissions:
   contents: read

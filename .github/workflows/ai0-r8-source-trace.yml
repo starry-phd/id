@@ -9,6 +9,10 @@ on:
       - '.github/workflows/ai0-r8-source-trace.yml'
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   check-128-source-rows:
     runs-on: ubuntu-latest

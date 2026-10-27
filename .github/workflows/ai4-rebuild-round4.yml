@@ -1,9 +1,5 @@
 name: AI-4 Round4 Offline Crypto D1 Queue + EAS Free Gate
 on:
-  pull_request:
-    paths:
-      - 'apps/**'
-      - '.github/workflows/ai4-rebuild-round4.yml'
   workflow_dispatch:
 permissions:
   contents: read
