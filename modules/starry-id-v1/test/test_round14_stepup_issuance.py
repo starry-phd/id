@@ -66,7 +66,12 @@ class IssuanceAndConsumption(unittest.TestCase):
   ]:
    with self.subTest(action=action):
     self.db.execute(action[0],action[1] if len(action)>1 else ())
-    with self.assertRaises(sqlite3.IntegrityError):self.issue()
+    # INSERT...SELECT is fail-closed: absent valid authority => zero rows.
+    self.assertEqual(self.issue(),0)
+    # A raw INSERT bypassing the SELECT is still rejected by the DB trigger.
+    with self.assertRaises(sqlite3.IntegrityError):
+     self.db.execute('INSERT INTO starry_deletion_challenges VALUES(?,?,?,?,?,?,?,NULL)',
+      ('a'*64,'u1','sid',3,'starry-delete-'+('1'*64),N,N+90))
     self.db.execute("UPDATE starry_sessions SET step_up_method='passkey',step_up_verified_at=?,step_up_expires_at=?,revoked_at=NULL WHERE session_id='sid'",(N-5,N+120))
  def test_new_stepup_invalidates_old_issued_proof(self):
   self.issue()
