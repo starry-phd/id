@@ -90,7 +90,7 @@ test('malformed/future/outage/invalid ID and hostile proof never authorize',asyn
  const evil={event_id:id,member_ref:user,occurred_at_sec:time,event_type:'account_deleted'};
  Object.defineProperty(evil,'member_ref',{enumerable:true,get(){throw Error('getter')}});
  assert.equal(await x.source.verifyCommittedDeletion(scope,evil),false);
- const revoked=Proxy.revocable({...evil},{});revoked.revoke();
+ const revoked=Proxy.revocable({event_id:id,member_ref:user,occurred_at_sec:time,event_type:'account_deleted'},{});revoked.revoke();
  assert.equal(await x.source.verifyCommittedDeletion(scope,revoked.proxy),false);
 });
 test('AI-3 contract parser accepts exact normalized DTO, not raw AI-1 outbox keys',async()=>{
