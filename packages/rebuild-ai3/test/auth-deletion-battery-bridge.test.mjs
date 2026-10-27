@@ -12,20 +12,36 @@ const receipt={applied:1,revoked:1,balance:0,version:3,journal_revision:3,
  kind:'revoke',delta:-3,balance_after:0,reason_code:'ACCOUNT_DELETED',pending_holds:0};
 function fixture(options={}){
  const calls={law:0,auth:0,batteryWrites:0,batteryReads:0,policies:0};
- const authDb={prepare(sql){
-  assert.equal(sql,VERIFIED_AUTH_OUTBOX_SQL);
-  return {bind(...params){return {async first(){
-   calls.auth++;
-   assert.deepEqual(params,[event.event_id,event.s_user_id,event.occurred_at,'staging']);
-   if(options.authException)throw Error('AUTH OFFLINE');
-   if(options.authRows)return options.authRows(calls.auth);
-   return options.authRow===undefined?structuredClone(verified):options.authRow;
-  }};}}};
- }};
- const batteryDb={prepare(sql){return {bind(){return {
-  async run(){calls.batteryWrites++;return {success:true,meta:{changes:1}};},
-  async first(){calls.batteryReads++;return options.receipt??structuredClone(receipt);}
- }};}}};
+ const authDb={
+  prepare(sql){
+   assert.equal(sql,VERIFIED_AUTH_OUTBOX_SQL);
+   return {
+    bind(...params){
+     return {
+      async first(){
+       calls.auth++;
+       assert.deepEqual(params,[event.event_id,event.s_user_id,event.occurred_at,'staging']);
+       if(options.authException)throw Error('AUTH OFFLINE');
+       if(options.authRows)return options.authRows(calls.auth);
+       return options.authRow===undefined?structuredClone(verified):options.authRow;
+      }
+     };
+    }
+   };
+  }
+ };
+ const batteryDb={
+  prepare(_sql){
+   return {
+    bind(){
+     return {
+      async run(){calls.batteryWrites++;return {success:true,meta:{changes:1}};},
+      async first(){calls.batteryReads++;return options.receipt??structuredClone(receipt);}
+     };
+    }
+   };
+  }
+ };
  const policy={
   async lawfulDeletionRetentionApproved(){calls.law++;return options.law??true;},
   async readApprovedBatteryPolicyVersion(){calls.policies++;return options.policy??1;}
