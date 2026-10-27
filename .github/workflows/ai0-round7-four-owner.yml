@@ -1,0 +1,65 @@
+name: AI-0 Round 7 Four-Owner Offline Integration (release BLOCKED)
+on:
+  pull_request:
+    branches: [ai0/rebuild-round6-four-owner-gate-20261026]
+    paths:
+      - 'modules/starry-id-v1/**'
+      - 'packages/rebuild-billing/**'
+      - 'packages/rebuild-ai3/**'
+      - 'packages/integration/**'
+      - 'apps/**'
+      - 'packages/sdk/**'
+      - 'docs/adr/0002-starry-iap-strategy.DRAFT.md'
+      - 'docs/ai/AI0-ROUND7-FOUR-OWNER-GATE-20261027.md'
+      - '.github/workflows/ai0-round7-four-owner.yml'
+permissions:
+  contents: read
+concurrency:
+  group: ai0-round7-four-owner-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  offline-same-checkout-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Read-only SSOT and 11 release gates must remain blocked
+        run: |
+          npm ci --no-audit --no-fund
+          npm run ssot:validate
+          node docs/requirements/verify-original-inventory.mjs
+          node docs/release-readiness/check-release-readiness.mjs --assert-blocked
+          node --test docs/release-readiness/test/*.test.mjs
+          node docs/api-handoff/verify-api-surface.mjs
+          node --test docs/api-handoff/test/*.test.mjs
+      - name: Root Expo SDK Workers check (dry-run only)
+        run: |
+          npm run typecheck
+          npm run lint
+          npm test
+          npm run mobile:config
+          npm run api:check
+      - name: All four owners and AI-0 same-checkout security Node tests
+        run: |
+          ./node_modules/.bin/tsc -p modules/starry-id-v1/tsconfig.json --noEmit
+          ./node_modules/.bin/tsc -p tsconfig.rebuild-billing.json --noEmit
+          ./node_modules/.bin/tsc -p packages/rebuild-ai3/tsconfig.json --noEmit
+          node --experimental-strip-types --test modules/starry-id-v1/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-billing/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-ai3/test/*.test.mjs
+          node --experimental-strip-types --test packages/ai0-contracts/test/*.test.mjs
+          node --experimental-strip-types --test packages/integration/test/*.test.mjs
+          node --experimental-strip-types --test packages/rebuild-ai3/integration/round5-billing-committed.test.mjs
+      - name: SQLite-memory migrations CAS and recovery; no real D1
+        run: |
+          python3 -m unittest discover -s modules/starry-id-v1/test -p 'test_*.py' -v
+          python3 -m unittest discover -s packages/rebuild-billing/test -p 'test_*.py' -v
+          python3 -m unittest discover -s packages/rebuild-ai3/test -p 'test_*.py' -v
+      # Deliberately no Cloudflare deploy/real D1/Queue, OAuth/Store,
+      # secrets, EAS Build/Update, payment, PR merge or production release.
