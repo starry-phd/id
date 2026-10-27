@@ -41,7 +41,7 @@ export function auditFutureAppPortfolio(plan,official){
   if(d?.[k]!==null)fail('invented real product/store identity: '+k);
  const candidates=plan.candidate_products;
  if(!Array.isArray(candidates)||candidates.length!==4||new Set(candidates.map(x=>x.id)).size!==4||
-    reqIds.some((id,i)=>candidates[i]?.id!==id))fail('wrong four product classifications');
+    requireIds.some((id,i)=>candidates[i]?.id!==id))fail('wrong four product classifications');
  for(const p of candidates??[]){
   if(p.store_publication_allowed!==false||p.has_user_consumer_value_proven!==false)
    fail('unapproved candidate claimed market fit or store publication: '+p.id);
