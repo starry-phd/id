@@ -1,0 +1,322 @@
+{
+  "schema_version": "0.1.0-draft",
+  "kind": "AI0_FUTURE_STARRY_APP_PORTFOLIO_NOT_PRODUCT_APPROVAL",
+  "status": "planning_only",
+  "scope": "starry_only_hglobal_paused",
+  "source": {
+    "repository": "starry-phd/id",
+    "verified_integration_pr": 123,
+    "verified_integration_sha": "f84eab58e20377b5bd1ce313b969befb531b4938",
+    "r18_ai0_preflight_pr": 124,
+    "r18_ai0_preflight_sha": "ca5fc5185eae5f864b806b55b0b1ef6daee1f420",
+    "tracking_issue": 125,
+    "official_release_file": "docs/release-readiness/release-readiness.v0.json"
+  },
+  "authoritative_decisions": {
+    "starry_id_is_shared_service_not_standalone_store_app": true,
+    "starry_id_dev_harness_only": true,
+    "first_consumer_app_selected": false,
+    "second_consumer_app_selected": false,
+    "first_consumer_official_bundle_identifier": null,
+    "first_consumer_official_android_package": null,
+    "first_consumer_official_store_listing": null,
+    "first_consumer_official_release_date": null,
+    "first_consumer_official_market": null,
+    "first_consumer_official_name": null,
+    "first_consumer_official_store_developer": null,
+    "free_battery_permanently_free": true,
+    "free_battery_purchase_or_conversion_permitted": false,
+    "battery_x_amount_approved": false,
+    "battery_y_amount_approved": false,
+    "battery_fee_and_debt_cap_approved": false,
+    "iap_sku_and_price_approved": false,
+    "cross_brand_auth_enabled": false,
+    "wave2_admin_ui_approved": false
+  },
+  "candidate_products": [
+    {
+      "id": "STARRY_ID_SHARED_SERVICE",
+      "role": "shared_service_only",
+      "status": "not_a_store_product",
+      "has_user_consumer_value_proven": false,
+      "store_publication_allowed": false
+    },
+    {
+      "id": "CONSUMER_A_AI_TASK_APP",
+      "role": "first_consumer_candidate",
+      "status": "research_candidate_only",
+      "has_user_consumer_value_proven": false,
+      "store_publication_allowed": false,
+      "research_priority": 1,
+      "product_name": null,
+      "proposed_value": "one clear and useful AI task; privacy-preserving Auth + free Battery settlement"
+    },
+    {
+      "id": "CONSUMER_B_SPECIALIZED_AI_TOOL",
+      "role": "future_specialized_candidate",
+      "status": "research_candidate_only",
+      "has_user_consumer_value_proven": false,
+      "store_publication_allowed": false,
+      "research_priority": 2,
+      "product_name": null,
+      "proposed_value": "one narrowly scoped AI workflow pending target user and evidence"
+    },
+    {
+      "id": "STARRY_ADMIN_WAVE2",
+      "role": "wave2_administration",
+      "status": "deferred_interface_reservation",
+      "has_user_consumer_value_proven": false,
+      "store_publication_allowed": false
+    }
+  ],
+  "optional_paid_features": {
+    "status": "deferred_not_approved",
+    "store_authority_required": true,
+    "paid_entitlement_billing_owned": true,
+    "may_exchange_free_battery": false,
+    "may_sell_free_battery": false,
+    "real_sku": null,
+    "price": null,
+    "currency": null
+  },
+  "journeys": [
+    {
+      "id": "J01_VALUE_ENTRY",
+      "gate_ids": [
+        "G00-SSOT",
+        "G08-WORKER-SDK"
+      ],
+      "stage": "candidate_user_experience",
+      "owner": "AI-0",
+      "needs_lawful_policy": false,
+      "requires_real_services": false
+    },
+    {
+      "id": "J02_STARRY_SIGN_IN_AND_REGISTER_X",
+      "gate_ids": [
+        "G02-OIDC",
+        "G03-SESSION-D1",
+        "G10-OPS"
+      ],
+      "stage": "offline_contract",
+      "owner": "AI-1",
+      "needs_lawful_policy": true,
+      "requires_real_services": false
+    },
+    {
+      "id": "J03_AI_TASK_RESERVE_SETTLE_RELEASE",
+      "gate_ids": [
+        "G03-SESSION-D1",
+        "G07-AUDIT-QUEUE",
+        "G08-WORKER-SDK"
+      ],
+      "stage": "offline_contract",
+      "owner": "AI-3",
+      "needs_lawful_policy": true,
+      "requires_real_services": false
+    },
+    {
+      "id": "J04_FIRST_TRUSTED_TASK_Y",
+      "gate_ids": [
+        "G00-SSOT",
+        "G07-AUDIT-QUEUE"
+      ],
+      "stage": "offline_contract",
+      "owner": "AI-3",
+      "needs_lawful_policy": true,
+      "requires_real_services": false
+    },
+    {
+      "id": "J05_RETRY_CANCEL_TIMEOUT",
+      "gate_ids": [
+        "G07-AUDIT-QUEUE",
+        "G08-WORKER-SDK"
+      ],
+      "stage": "offline_contract",
+      "owner": "AI-4",
+      "needs_lawful_policy": true,
+      "requires_real_services": false
+    },
+    {
+      "id": "J06_COMMON_ID_ACROSS_STARRY_APPS",
+      "gate_ids": [
+        "G01-ISOLATION",
+        "G03-SESSION-D1"
+      ],
+      "stage": "candidate_user_experience",
+      "owner": "AI-1",
+      "needs_lawful_policy": true,
+      "requires_real_services": false
+    },
+    {
+      "id": "J07_ACCOUNT_DELETION_AND_APPEALS",
+      "gate_ids": [
+        "G03-SESSION-D1",
+        "G07-AUDIT-QUEUE",
+        "G10-OPS"
+      ],
+      "stage": "offline_contract",
+      "owner": "AI-1",
+      "needs_lawful_policy": true,
+      "requires_real_services": false
+    },
+    {
+      "id": "J08_OPTIONAL_STORE_SUBSCRIPTION",
+      "gate_ids": [
+        "G04-STORE",
+        "G05-BILLING-D1"
+      ],
+      "stage": "deferred_contract",
+      "owner": "AI-2",
+      "needs_lawful_policy": true,
+      "requires_real_services": false
+    }
+  ],
+  "phases": [
+    {
+      "id": "F0",
+      "name": "value_discovery_and_product_decision",
+      "status": "planning_only",
+      "release_gate_ids": [
+        "G00-SSOT"
+      ],
+      "requires_explicit_owner_approval": true,
+      "live_activity": false
+    },
+    {
+      "id": "F1",
+      "name": "reliable_four_owner_offline_vertical_slice",
+      "status": "owner_r18_in_progress_unverified",
+      "release_gate_ids": [
+        "G03-SESSION-D1",
+        "G06-P05",
+        "G07-AUDIT-QUEUE"
+      ],
+      "requires_explicit_owner_approval": false,
+      "live_activity": false
+    },
+    {
+      "id": "F2",
+      "name": "first_consumer_app_candidate_contract_ux",
+      "status": "not_started_candidate",
+      "release_gate_ids": [
+        "G00-SSOT",
+        "G01-ISOLATION",
+        "G08-WORKER-SDK"
+      ],
+      "requires_explicit_owner_approval": true,
+      "live_activity": false
+    },
+    {
+      "id": "F3",
+      "name": "authorized_staging_store_sandbox_devices",
+      "status": "not_authorized",
+      "release_gate_ids": [
+        "G02-OIDC",
+        "G03-SESSION-D1",
+        "G04-STORE",
+        "G05-BILLING-D1",
+        "G07-AUDIT-QUEUE",
+        "G09-DEVICES"
+      ],
+      "requires_explicit_owner_approval": true,
+      "live_activity": false
+    },
+    {
+      "id": "F4",
+      "name": "independent_release_signoff_and_multi_app_expansion",
+      "status": "not_authorized",
+      "release_gate_ids": [
+        "G00-SSOT",
+        "G10-OPS"
+      ],
+      "requires_explicit_owner_approval": true,
+      "live_activity": false
+    }
+  ],
+  "decision_queue": [
+    {
+      "id": "APP-D01",
+      "topic": "first_app_problem_and_target_users",
+      "approval": "PENDING"
+    },
+    {
+      "id": "APP-D02",
+      "topic": "store_identity_market_and_developer_owner",
+      "approval": "PENDING"
+    },
+    {
+      "id": "APP-D03",
+      "topic": "iap_scope_sku_prices_subscription",
+      "approval": "PENDING"
+    },
+    {
+      "id": "APP-D04",
+      "topic": "free_battery_x_y_rates_debt_limit",
+      "approval": "PENDING"
+    },
+    {
+      "id": "APP-D05",
+      "topic": "privacy_q104_q119_lawful_retention",
+      "approval": "PENDING"
+    },
+    {
+      "id": "APP-D06",
+      "topic": "cross_d1_physical_architecture_and_proof",
+      "approval": "PENDING"
+    },
+    {
+      "id": "APP-D07",
+      "topic": "staging_store_eas_budget_and_permission",
+      "approval": "PENDING"
+    },
+    {
+      "id": "APP-D08",
+      "topic": "second_app_and_starrry_admin_wave2",
+      "approval": "PENDING"
+    }
+  ],
+  "store_readiness": {
+    "ios": {
+      "official_policy": "https://developer.apple.com/app-store/review/guidelines/",
+      "deletion_policy": "https://developer.apple.com/support/offering-account-deletion-in-your-app/",
+      "verified_on_real_app": false,
+      "product_metadata_approved": false,
+      "official_testflight_completed": false
+    },
+    "android": {
+      "official_policy": "https://support.google.com/googleplay/android-developer/answer/13327111?hl=en",
+      "requires_off_app_deletion_link": true,
+      "verified_on_real_app": false,
+      "play_internal_completed": false
+    },
+    "expo": {
+      "official_docs": "https://docs.expo.dev/build/introduction/",
+      "eas_build_authorized": false,
+      "eas_submit_authorized": false,
+      "eas_update_authorized": false,
+      "paid_usage_authorized": false
+    }
+  },
+  "authority": {
+    "first_store_app_selected": false,
+    "owner_mvp_approved": false,
+    "release_authorized": false,
+    "staging_authorized": false,
+    "publishable": false,
+    "cloudflare_live_authorized": false,
+    "store_live_authorized": false,
+    "eas_build_authorized": false,
+    "paid_usage_authorized": false,
+    "hglobal_development_authorized": false,
+    "admin_wave2_authorized": false
+  },
+  "claim_boundaries": {
+    "new_owner_r18_code_count": 0,
+    "app_deployed": false,
+    "store_approved": false,
+    "free_battery_purchasable": false,
+    "p05_publisher_live": false,
+    "physical_cross_d1_atomicity_proven": false
+  }
+}
