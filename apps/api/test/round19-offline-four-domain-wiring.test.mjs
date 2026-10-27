@@ -40,7 +40,7 @@ function fixture(){
   battery=new DatabaseSync(':memory:'),task=new DatabaseSync(':memory:'),
   coordinator=new DatabaseSync(':memory:');
  for(const db of [auth,billing,battery,task])db.exec(schema);
- for(const [db,sink] of [[auth,'auth'],[billing,'billing'],[battery,'battery'],[task,'task']]){
+ for(const db of [auth,billing,battery,task]){
   db.prepare('INSERT INTO owner_receipt VALUES (?,?,?,?,?,?,?,?,?,?)')
    .run(event,member,'staging',4,'law-v1',1,1,0,0,0);
  }
@@ -118,7 +118,7 @@ function fixture(){
   },
   taskChange:(col,value)=>task.prepare('UPDATE local_task SET '+col+'=?').run(value),
   billChange:(col,value)=>billing.prepare('UPDATE billing_local_deletion SET '+col+'=?').run(value),
-  remove:domain=>({auth,billing,battery,task}[domain].exec('DELETE FROM owner_receipt'),
+  remove:domain=>({auth,billing,battery,task}[domain].exec('DELETE FROM owner_receipt')),
   sagaRow:()=>coordinator.prepare('SELECT * FROM ai4_r18_offline_saga').get(),
   get ownerReads(){return ownerReads},get authReads(){return authReads},
   get sagaCalls(){return sagaCalls},
