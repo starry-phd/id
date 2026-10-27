@@ -70,7 +70,7 @@ function requestOk(v:unknown):v is AppealRequest{
   if(!shape(raw,['object_ref','sha256','bytes','media_type'])||
    typeof raw.object_ref!=='string'||!ID.test(raw.object_ref)||
    typeof raw.sha256!=='string'||!HEX64.test(raw.sha256)||
-   !Number.isSafeInteger(raw.bytes)||raw.bytes<=0||raw.bytes>10_000_000||
+   typeof raw.bytes!=='number'||!Number.isSafeInteger(raw.bytes)||raw.bytes<=0||raw.bytes>10_000_000||
    typeof raw.media_type!=='string'||!ALLOWED_TYPES.has(raw.media_type)||
    refs.has(raw.object_ref))return false;
   refs.add(raw.object_ref);
@@ -93,25 +93,27 @@ export function createAnonymousAppeals(scope:StarryScope,gate:SafetyGate,
  scopeOk(scope);
  return Object.freeze({
   async submit(input:unknown,now:number):Promise<SubmissionResult>{
-   if(!Number.isSafeInteger(now)||now<0||!requestOk(input))deny('MALFORMED');
+   if(!Number.isSafeInteger(now)||now<0)deny('MALFORMED');
+   if(!requestOk(input))deny('MALFORMED');
+   const req:AppealRequest=input;
    if(!gate||typeof gate.limit!=='function'||await gate.limit('submit')!==true)
     deny('RATE_OR_AUTHORITY_DENIED');
-   if(typeof gate.topicAllowed!=='function'||await gate.topicAllowed(input.topic_code)!==true)
+   if(typeof gate.topicAllowed!=='function'||await gate.topicAllowed(req.topic_code)!==true)
     deny('TOPIC_NOT_APPROVED');
-   if(typeof gate.scan!=='function'||await gate.scan(input.uploads)!==true)
+   if(typeof gate.scan!=='function'||await gate.scan(req.uploads)!==true)
     deny('ATTACHMENT_NOT_CLEARED');
    if(!store||typeof store.findKey!=='function'||typeof store.atomicCreate!=='function')
     deny('STORE_UNAVAILABLE');
-   if(await store.findKey(scope,input.client_key)===true)
+   if(await store.findKey(scope,req.client_key)===true)
     return Object.freeze({outcome:'duplicate_no_new_credential',case_ref:null,credential:null});
    if(!secrets||typeof secrets.issue!=='function')deny('PROOF_GATE_MISSING');
    const issued=await secrets.issue();
    if(!credentialOk(issued))deny('SERVER_ENTROPY_UNVERIFIED');
    const caseRecord:SafeAppeal=Object.freeze({
     case_ref:issued.case_ref,brand_id:'starry',app_id:scope.app_id,
-    environment:scope.environment,client_key:input.client_key,
-    topic_code:input.topic_code,credential_digest:issued.credential_digest,
-    uploaded_hashes:Object.freeze(input.uploads.map(x=>x.sha256)),
+    environment:scope.environment,client_key:req.client_key,
+    topic_code:req.topic_code,credential_digest:issued.credential_digest,
+    uploaded_hashes:Object.freeze(req.uploads.map(x=>x.sha256)),
     created_ms:now,status:'received',
    });
    const receipt=await store.atomicCreate(caseRecord);
