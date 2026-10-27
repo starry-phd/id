@@ -1,7 +1,7 @@
 # ADR-0002 (DRAFT)｜Starry 數位 IAP：自建 vs 代管訂閱
 
 - 日期：2026-10-26｜Owner：AI-2｜Issue #3｜依據：AI-0 [重啟 PR #25](https://github.com/starry-phd/id/pull/25)，`BILL-001=approved`、`BILL-002=candidate`、`DATA-001=approved`
-- **狀態：選型未定、待業主與 AI-0 Gate**。這是中立評估／Sandbox 隔離驗證，不是決定購買 RevenueCat，也不是已部署商店驗證器。
+- **狀態：Q94=C 已核准「自建商店驗證＋訂閱代管」混合架構方向；供應商／正式連線／商品價格仍待 Gate**。本 ADR 保留原自建與代管比較作為選供應商依據；沒有核准 RevenueCat 付款、開通或實際部署。
 - 範圍：僅 Starry 生態系數位 IAP；**Starry Battery 永久免費，不得隨數位購買發放電池、餘額、儲值**。H-Global PAYUNi／實體票券屬其他未啟動的獨立專案。
 
 ## 問題與選項
@@ -9,7 +9,7 @@
 | 決策面向 | A：自建 Workers + Store Server API + Starry Billing | B：代管訂閱（例：RevenueCat） |
 |---|---|---|
 | 持續費用 | 無額外 IAP 中介平台抽成；仍負擔 Workers/D1/Queues/API 整合、監控、工程維護、Apple/Google 商店費用 | 另有平台計價與費率變動風險，仍負擔自身 D1/Workers、App 商店費用及整合維運；請以訂約日官方報價為準 |
-| 已知官方報價參考 | 自建人力成本未估；不可假設零成本 | RevenueCat 官方價目頁 2026-10-26 核對：Pro 月度追蹤營收 MTR 不超過 US$2,500 時平台費 US$0；之後頁面標示按追蹤營收 1% 計費。需核對 MTR 定義、適用區域、條款與未來變動，**未開通／未購買** |
+| 已知官方報價參考 | 自建人力成本未估；不可假設零成本 | 過往草稿曾記載 RevenueCat MTR 門檻與百分比，但本次未核對最新官方報價；實際須於採購 Gate 重新查驗費率、MTR 定義、地區與合約，**未開通／未購買** |
 | 交易／隱私資料控制 | Starry 保有 provider transaction refs、會員綁定與最小化 ledger；需自行落實可見權限、保留政策 | 代管廠商處理訂閱事件／識別資訊，須審查 DPA/出口、個資目的與刪帳、事件保留與資料匯出能力 |
 | 官方事件 | 自行驗 Apple Server Notifications V2 signedPayload／內層 transaction JWS、Google Pub/Sub RTDN + authenticated requery Play Developer API | 代管者處理商店事件；Starry 仍須**驗證代管 webhook 真實性與 freshness**、reconcile 來源，不得直接信任客戶端 SDK success |
 | 退款／撤銷／chargeback | 自建解除權益、逆序重播、客服審核、失敗補償、寬限期政策 | 依服務商 normalized events 判斷，但應允許透過商店端查證、爭議對帳及回溯；代管事件不能取代 Starry 權益 owner |
@@ -31,9 +31,20 @@
 - Replay：相同可信 event scope + providerEventId/transaction + digest 為 no-op；相同 key 不同 digest 進 quarantine，**不能更新權益**。歷史退款不得撤銷較新已驗證期間，但同期間 refund/chargeback 不得靠舊「PAID」復活。
 - Provider outage：延遲/重試並記錄狀態，不允許 request 當成已付款；必要時權益讀取由保守伺服器現有狀態及已核准政策決定，驗證缺失絕不新增 grant。
 
+## 2026-10-27 最新正式業主選項（GitHub Issue #1 Q94～Q125）
+
+- **Q94=C**：正式選擇自建官方商店事件／交易驗證與可信訂閱代管的**混合架構**。官方 Apple／Google 為交易狀態最終權威，代管服務商、費率、合約與代管真實身份目前**尚未核准**。任何 SDK 或代管 webhook 自稱付費皆不得直接產生 entitlement。
+- **Q95=A**：架構必須支援月訂閱、年訂閱、單次數位購買，尚未授權正式商店 SKU、價格或開賣。
+- **Q96=C**：同一 App 的 iOS↔Android 權益共享須按特定 SKU、官方商店規則與後端驗證決定。
+- **Q125=B**：不同 Starry Apps 的權益**預設隔離**；只有逐 SKU 特別核准的授權目的 App 可共用，與 Q96 是**不同維度**。
+- **Q102=C／Q88=A／Q97=A**：永久刪除舊 Starry ID 即撤銷其全部應用權益；可建立新 Starry 帳號，但不得自動轉移舊權益、重用原 user_id。商品與商店政策決定官方重新驗證後自助或人工審查；不保證退款／續訂在 Apple／Google 側自動取消。
+- **Q113=C**：即時處理已驗證商店事件＋定期以官方權威對帳；退款、撤銷、亂序、重送、資料源尚未提交時須保守失效／重查或安全重試。對帳頻率與法定留存由後續 Gate 決定。
+- **本次實作**：`packages/rebuild-billing/src/commerce-policy.ts`／17 組 Node 負測，完成上述 SKU／跨平台／跨 App／刪帳恢復的**離線策略判斷**及有界商店狀態新鮮度檢查；只回傳 `policy_candidate_only` 或拒絕／重查／人工審查。**不是真實付款、商店對帳工作排程、正式權益發放或 SDK API**；`COMMERCE_PUBLISHABLE=false`。
+- **Q126=A 屬 AI_PROPOSED_PENDING_GATE**，不是業主正式批准的選項；請勿據此啟用正式中央 entitlement API。
+
 ## 待業主／AI-0 Gate 決策
-- A 或 B 或先 A mock、再 B 試驗；實際總成本（交易量、MTR、商店費率、工程維運）與資料/隱私條件。不得預設 RevenueCat 已取得授權。
-- 單一 Starry 旗艦 App 的 bundle/package、Sandbox SKU、月/年與非消耗型產品與價格；購買與恢復資格的 first-bind 來源；跨 Starry App entitlement 是否允許。
+- Q94 混合方案之代管供應商、合約與實際總成本（交易量、MTR、商店費率、工程維運）、驗證 webhook 真實性及資料/隱私條件；不得預設 RevenueCat 已取得授權。
+- 單一 Starry 旗艦 App 的 bundle/package、Sandbox SKU、月/年與非消耗型產品與價格；購買與恢復資格的 first-bind 來源；具體允許跨 App 的 SKU 與授權 App 清單（**預設不共用**）。
 - 退款回復、chargeback、grace/hold、欠款與期限、權益刪除/匿名化、稽核保留與輸出；正式 D1 配置和 concurrent Gate。
 - AI-4 需正式 Server API adapter/SDK/OpenAPI/CI/native EAS sandbox；AI-1 需真正 OIDC/JWKS/session/停權；AI-3 需 audited outbox consume/retry；AI-0 才能 Gate。
 
