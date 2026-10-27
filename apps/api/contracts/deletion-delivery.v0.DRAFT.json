@@ -1,0 +1,24 @@
+{
+  "version": "starry.deletion-delivery.v0-draft",
+  "sole_event_authority": "AI-1_AUTH_COMMITTED_OUTBOX",
+  "not_a_publisher": "AI-4 does NOT emit account_deleted nor create its own Auth Event; no publish method",
+  "source": "AI-1 createOfflineAuthDeletionEventSource readCommitted sealed proof + revalidation",
+  "delivery": "R16 coordinator disposable SQLite local lease by environment/event_id, unique environment/member_ref; after each recheck AI-3 revocation durable inbox/journal receipt",
+  "lease_seconds": 30,
+  "ack_safe": false,
+  "may_regrant": false,
+  "live": false,
+  "failure": "retry, no Queue ack, no assumption of exactly-once across databases",
+  "billing": "not transported; HMAC/legal/canonical source still gated",
+  "task": "no Task->Wallet authorization while deletion propagation uncertain",
+  "schema_inventory": "No additional DRAFT SQL file: SQL DDL embedded for disposable node:sqlite tests; R15 counted 38 historical DRAFT SQL remains unchanged",
+  "G00_G10": "11/11 BLOCKED",
+  "PUBLISHABLE": false,
+  "unresolved": [
+    "real Queue/DLQ ACK protocol",
+    "multi-D1 Saga or single source transactional architecture selection",
+    "official Auth publisher lease/signing/KMS/nonrollback legal retention",
+    "real Cloudflare D1 and privacy/Store/OAuth/EAS approval",
+    "verified backpressure, expiry and long-lived tombstone retention"
+  ]
+}
