@@ -1,4 +1,6 @@
 import test from 'node:test';
+import {webcrypto as crypto} from 'node:crypto';
+import {btoa} from 'node:buffer';
 import assert from 'node:assert/strict';
 import {createOfflineSignedTaskVerifier,canonicalTaskProofV1,
  SIGNED_TASK_PROOF_LIVE,SIGNED_TASK_VERSION} from '../src/round12-signed-task-proof.ts';
