@@ -21,7 +21,7 @@ function fixture(){
  const ports={
   readCommittedTask:async()=>{taskReads++;return source;},
   readCurrentMember:async()=>{memberReads++;return auth;},
-  settleBattery:async(t)=>{
+  settleBattery:async()=>{
    if(failStore)throw Error('D1 write unavailable');
    writeCount++;
    wallet=battery();
