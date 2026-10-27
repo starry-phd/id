@@ -1,0 +1,320 @@
+{
+  "schema_version": "0.1.0-draft",
+  "kind": "AI0_STARRY_CONSUMER_APP_F0_VALUE_VALIDATION_NO_MARKET_CLAIM",
+  "status": "research_plan_only",
+  "scope": "starry_only_hglobal_paused",
+  "provenance": {
+    "repo": "starry-phd/id",
+    "issue": 125,
+    "r19_verified_integrated_pr": 137,
+    "r19_verified_head": "b713cbbc44307a325fec71fff74c81defbd95c71",
+    "portfolio_file": "docs/operations/future-starry-app-portfolio.v0.json",
+    "ux_candidate_file": "docs/product/starry-consumer-a-candidate.v0.json",
+    "official_gate_file": "docs/release-readiness/release-readiness.v0.json"
+  },
+  "product_boundary": {
+    "starry_id_role": "shared_service_only",
+    "existing_expo_harness": "starry-id-dev",
+    "first_consumer_app_selected": false,
+    "consumer_a_proposed_only": true,
+    "consumer_b_proposed_only": true,
+    "official_name": null,
+    "specific_task": null,
+    "target_audience": null,
+    "planned_market": null,
+    "official_ios_bundle": null,
+    "official_android_package": null,
+    "production_feature_approved": false,
+    "free_battery_sale_allowed": false,
+    "battery_x_amount": null,
+    "battery_y_amount": null,
+    "published_battery_rate": null,
+    "ai_model_cost_verified": false,
+    "store_sku": null,
+    "pricing": null
+  },
+  "hypothesis_catalog": [
+    {
+      "id": "VAL-H01",
+      "candidate": "CONSUMER_A_AI_TASK_APP",
+      "job_hypothesis": "Turn a user-provided general text note into a short actionable summary",
+      "audience_hypothesis": "people organizing their own notes",
+      "hypothesis_only": true,
+      "status": "not_tested",
+      "selected": false,
+      "approved": false,
+      "privacy_flags": [
+        "user_content",
+        "sensitive_text_possible"
+      ],
+      "quality_checks": [
+        "grounded_to_input",
+        "no_invented_actions",
+        "review_before_use"
+      ]
+    },
+    {
+      "id": "VAL-H02",
+      "candidate": "CONSUMER_A_AI_TASK_APP",
+      "job_hypothesis": "Turn user-provided points into an editable draft",
+      "audience_hypothesis": "people composing routine messages or posts",
+      "hypothesis_only": true,
+      "status": "not_tested",
+      "selected": false,
+      "approved": false,
+      "privacy_flags": [
+        "user_content",
+        "public_sharing_requires_review"
+      ],
+      "quality_checks": [
+        "user_approval_before_publish",
+        "no_fabricated_facts",
+        "editable_result"
+      ]
+    },
+    {
+      "id": "VAL-H03",
+      "candidate": "CONSUMER_B_SPECIALIZED_AI_TOOL",
+      "job_hypothesis": "Turn non-sensitive study notes into a practice question set for review",
+      "audience_hypothesis": "independent adult learners",
+      "hypothesis_only": true,
+      "status": "not_tested",
+      "selected": false,
+      "approved": false,
+      "privacy_flags": [
+        "user_content",
+        "no_sensitive_learner_data"
+      ],
+      "quality_checks": [
+        "answers_trace_to_notes",
+        "explanation_visible",
+        "no_accuracy_claim_without_test"
+      ]
+    }
+  ],
+  "proposed_evaluation": {
+    "rubric_status": "ai0_proposal_only_not_approved_selection_criteria",
+    "rating_scale_min": 1,
+    "rating_scale_max": 5,
+    "axes": [
+      {
+        "id": "problem_frequency",
+        "weight": 25,
+        "requires": "documented observed repetition or compelling user account"
+      },
+      {
+        "id": "output_reliability",
+        "weight": 20,
+        "requires": "reproducible mock prototype errors and user review"
+      },
+      {
+        "id": "value_clarity",
+        "weight": 15,
+        "requires": "unaided participant articulation of the benefit"
+      },
+      {
+        "id": "privacy_compliance_fit",
+        "weight": 15,
+        "requires": "validated data flows and compliance review"
+      },
+      {
+        "id": "offline_build_feasibility",
+        "weight": 15,
+        "requires": "technical spike with no production or paid calls"
+      },
+      {
+        "id": "differentiation",
+        "weight": 10,
+        "requires": "comparative alternatives research with cited evidence"
+      }
+    ],
+    "scorecards": [
+      {
+        "hypothesis_id": "VAL-H01",
+        "scores": null,
+        "weighted_total": null,
+        "selected": false,
+        "needs_human_review": true
+      },
+      {
+        "hypothesis_id": "VAL-H02",
+        "scores": null,
+        "weighted_total": null,
+        "selected": false,
+        "needs_human_review": true
+      },
+      {
+        "hypothesis_id": "VAL-H03",
+        "scores": null,
+        "weighted_total": null,
+        "selected": false,
+        "needs_human_review": true
+      }
+    ],
+    "auto_select_allowed": false,
+    "numerical_threshold_can_approve_product": false,
+    "actual_market_evidence_count": 0,
+    "actual_interviews_completed": 0,
+    "actual_usability_sessions_completed": 0,
+    "actual_cost_benchmarks_completed": 0,
+    "evidences": []
+  },
+  "proposed_experiments": [
+    {
+      "id": "EXP-01",
+      "name": "User problem discovery",
+      "target_hypotheses": [
+        "VAL-H01",
+        "VAL-H02",
+        "VAL-H03"
+      ],
+      "proposal": "Short consent-first interviews focused on real past behavior rather than feature praise",
+      "suggested_sample_per_hypothesis": 5,
+      "status": "not_started",
+      "executed": false,
+      "evidence_ids": [],
+      "live_recruitment_authorized": false,
+      "actual_participants": 0,
+      "measured_outcome": null
+    },
+    {
+      "id": "EXP-02",
+      "name": "Fake-data paper prototype task comprehension",
+      "target_hypotheses": [
+        "VAL-H01",
+        "VAL-H02",
+        "VAL-H03"
+      ],
+      "proposal": "Check whether participants can explain the value and find a single task from neutral mock screens",
+      "suggested_sample_per_hypothesis": 5,
+      "status": "not_started",
+      "executed": false,
+      "evidence_ids": [],
+      "live_recruitment_authorized": false,
+      "actual_participants": 0,
+      "measured_outcome": null
+    },
+    {
+      "id": "EXP-03",
+      "name": "Offline deterministic outcome reliability",
+      "target_hypotheses": [
+        "VAL-H01",
+        "VAL-H02",
+        "VAL-H03"
+      ],
+      "proposal": "Use locally fabricated inputs, review output against a controlled reference; do not call paid/live AI providers",
+      "suggested_sample_per_hypothesis": null,
+      "status": "not_started",
+      "executed": false,
+      "evidence_ids": [],
+      "live_recruitment_authorized": false,
+      "actual_participants": 0,
+      "measured_outcome": null
+    },
+    {
+      "id": "EXP-04",
+      "name": "Architecture, privacy and marginal-cost feasibility",
+      "target_hypotheses": [
+        "VAL-H01",
+        "VAL-H02",
+        "VAL-H03"
+      ],
+      "proposal": "Desk review dependency map, data minimization and zero-cost mock; actual provider cost evidence requires separately approved budget",
+      "suggested_sample_per_hypothesis": null,
+      "status": "not_started",
+      "executed": false,
+      "evidence_ids": [],
+      "live_recruitment_authorized": false,
+      "actual_participants": 0,
+      "measured_outcome": null
+    }
+  ],
+  "research_interview_script": [
+    "Describe the last occasion when you needed to do this task. What triggered it?",
+    "What did you actually use last time, and what was the most frustrating part?",
+    "How often does this arise and what happens if it is not completed?",
+    "Show me a non-sensitive example or describe the steps without sharing private content.",
+    "What would make an AI-generated outcome unacceptable or unsafe?",
+    "Which current alternative would you use instead, and why?"
+  ],
+  "gates": [
+    {
+      "id": "DEC-01",
+      "name": "Identity of problem and first user group",
+      "requires": [
+        "APP-D01",
+        "verifiable_non_identifying_interview_evidence"
+      ],
+      "status": "blocked",
+      "can_auto_approve": false
+    },
+    {
+      "id": "DEC-02",
+      "name": "Specific task and trust outcome",
+      "requires": [
+        "chosen_use_case",
+        "human_reviewed_prototype_reliability"
+      ],
+      "status": "blocked",
+      "can_auto_approve": false
+    },
+    {
+      "id": "DEC-03",
+      "name": "Privacy, free Battery and costs",
+      "requires": [
+        "APP-D04",
+        "APP-D05",
+        "APP-D07",
+        "real_lawful_policy_review",
+        "approved_budget_if_real_ai_called"
+      ],
+      "status": "blocked",
+      "can_auto_approve": false
+    },
+    {
+      "id": "DEC-04",
+      "name": "MVP and store identity approval",
+      "requires": [
+        "APP-D02",
+        "G00-SSOT",
+        "explicit_owner_decision",
+        "11_official_release_gates_require_independent_proof"
+      ],
+      "status": "blocked",
+      "can_auto_approve": false
+    }
+  ],
+  "mvp_boundary": {
+    "allowed_now": [
+      "write_docs",
+      "design_fakedata_studies",
+      "analyze_openly_provided_nonsensitive_user_feedback",
+      "offline_local_mock_validation",
+      "draft_backlog_without_implementation"
+    ],
+    "later_only_after_explicit_owner_approval": [
+      "create_real_consumer_app_config",
+      "implement_consumer_app_routes",
+      "integrate_paid_or_real_ai_endpoint",
+      "operate_real_oauth_or_store",
+      "recruit_or_contact_real_participants",
+      "upload_participant_data",
+      "real_eas_build",
+      "official_app_publish"
+    ],
+    "integration_owner_work_separate": true,
+    "r20_owners_in_progress": true,
+    "product_decision_approved": false,
+    "ui_implemented": false,
+    "real_market_test_completed": false,
+    "real_cost_model_validated": false,
+    "release_authorized": false,
+    "live_db_authorized": false,
+    "queue_ack_authorized": false,
+    "paid_usage_authorized": false,
+    "hglobal_development_authorized": false,
+    "main_merge_authorized": false,
+    "cloudflare_deploy_authorized": false,
+    "publishable": false
+  }
+}
