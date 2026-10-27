@@ -78,7 +78,8 @@ export function createOfflineAuthDeletionEventSource(deps:Readonly<{
  readServerNow:()=>number;
 }>) {
  const s=exact(deps.scope,SCOPE);
- if(!s||s.brand_id!=='starry'||!['development','staging'].includes(s.environment))
+ if(!s||s.brand_id!=='starry'||typeof s.environment!=='string'||
+  !['development','staging'].includes(s.environment))
   throw Error('AUTH_DELETION_SOURCE_SCOPE_DENIED');
  if(typeof deps.db?.prepare!=='function'||
   typeof deps.legalDeletionProcessingApprovedNow!=='function'||
