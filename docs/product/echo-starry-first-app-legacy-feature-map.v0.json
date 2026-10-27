@@ -1,0 +1,820 @@
+{
+  "schema_version": "0.1.0-draft",
+  "kind": "AI0_ECHO_STARRY_LEGACY_REBUILD_FEATURE_MAP_NOT_MVP_APPROVAL",
+  "scope": "starry_echo_starry_first_app_planning_only",
+  "authoritative_selection": {
+    "first_starry_app_name": "繁星回聲",
+    "user_selected_first_app": true,
+    "legacy_repo": "yukidu/Echo-Starry",
+    "legacy_commit_sha": "82cbf4f112af57fcfed12ff2f6cf86010c03560e",
+    "native_architecture_proposal": "React Native + Expo Router + TypeScript, universal web with platform-specific adapters",
+    "official_mvp_scope_approved": false,
+    "official_store_ids_approved": false,
+    "app_built": false,
+    "existing_generic_consumer_a_is_the_echo_app": false
+  },
+  "source_snapshot": {
+    "legacy_repo": "yukidu/Echo-Starry",
+    "legacy_ref": "main",
+    "legacy_commit_sha": "82cbf4f112af57fcfed12ff2f6cf86010c03560e",
+    "path_inventory_method": "GitHub git tree and selected source inspection on pinned legacy HEAD",
+    "verification_claim": "remote_git_blob_shas_observed_by_github_api_not_rechecked_during_offline_ci",
+    "captured_legacy_file_blob_shas": {
+      "container/audio-segmenter/server.mjs": "203068f0af7089331d61a3f6f0d0f5400357c97d",
+      "package.json": "184c16a3521816ab2f5b8c96fc62464bba456913",
+      "public/manifest.webmanifest": "6d765e1e67a070200021a33075fad3ede109857b",
+      "public/sw.js": "2e907eeda1804071b0a2ae187d1b699302489c59",
+      "shared/learningProgress.ts": "ceb662787008a8316be4b7ab47cd5422b2755c1a",
+      "shared/qaAnswerRules.ts": "fc48836dcc0792e8caa6ba0f758b01f4d1b2d7ce",
+      "shared/speakers.ts": "87277cbe0e2cd1eb6ad93d499d83defe95fb7ad9",
+      "shared/stickers.ts": "ba2d4a93bcac2a5a0fcdffd3435fd93a192656d1",
+      "src/App.tsx": "f65f2b910ea8df2ac1e4265ea5a092496c05222a",
+      "src/components/AdminModal.tsx": "eca93e7df6df0483a1f02a671b10fd0245eeda98",
+      "src/components/AiQuestionSettingsAdmin.tsx": "a12c8a1eb0168b754bd220f437304c03b837d01f",
+      "src/components/AudioCard.tsx": "fff6a3dcad7e2d04e6120e9153e04224ca0e1064",
+      "src/components/AudioTrackList.tsx": "b4325f163a5931159148eab2506b669800512750",
+      "src/components/AudioWorkspacePage.tsx": "b5a161a3901728bc14c7f3600bf28174abad6f98",
+      "src/components/CommentsSection.tsx": "f60977ee8c5c7a53f57d99f7d3010f6aaf042ef7",
+      "src/components/DetailView.tsx": "66c4718dfcb43ce815518fbf7052539d96202dde",
+      "src/components/KeywordsTab.tsx": "4dfb6ccdc00c780190bd024904e8b08b2a362395",
+      "src/components/MiniPlayer.tsx": "785aa285d598b71451e21a5109dad800037415de",
+      "src/components/NotificationsView.tsx": "6d0668d35000f6ca909a852fc108e9f03ff108af",
+      "src/components/ProfileModal.tsx": "d46bc9ffa20b1441826893278e3f80f7b0acab3f",
+      "src/components/ShareModal.tsx": "96232033614cfb828cf1dd2d9ae516cf1ca3e771",
+      "src/components/SpeakerProfilePage.tsx": "a090ef321cbb2282c50dd009924f550930789406",
+      "src/components/StatisticsView.tsx": "08cdf44ee16273de982a447df3b33babdf99f706",
+      "src/components/StickersModal.tsx": "92f459e04e3ca3a64650116e39a521f8f6b90096",
+      "src/components/TranscriptQaAdmin.tsx": "e0c2dcd754ffcc01d2a74d72bc11c4155864ff99",
+      "src/components/UploadModal.tsx": "45c104d8b067fbdf797620be75f41dd73cf94be5",
+      "src/components/VipTracksTab.tsx": "eace9ce17647411afa31d94adfbca17fc6a5c8ce",
+      "src/ecosystemSsoClient.ts": "c25c80eddf551d7ceb653698266d316558d5ee3e",
+      "src/mediaSessionPolicy.ts": "ffcd51b0427f111b1ab379bc462c1a19499e7a07",
+      "src/utils/audio.ts": "ffc8749488d6cbc6eba6b1aa68e410b1f226180f",
+      "src/utils/keywords.ts": "52ac98e1b402d1a842cd12cf154ce1689005de5d",
+      "src/utils/offlineAudio.ts": "b1669a4445f2712ec140f40cb5a31c62e17f8ea8",
+      "src/utils/visitor.ts": "120e8f0accea3b8726a0ec3a3e5cff1a178219cc",
+      "tests/learningProgress.test.ts": "dc91fcfbaeb1bef42bca05df42f1a0cdce32f947",
+      "tests/mediaSessionPolicy.test.ts": "b47e02c66ffba9b43e3a61f9adb4d190c3614b22",
+      "tests/offlineAudioBehavior.test.ts": "3760e29803b3546b7db0d2f414151c1b936bbc8a",
+      "tests/shareLinks.test.ts": "cedc660ffe94602a2f81c6d08944003cc3284ef5",
+      "tests/stickerTransactions.test.ts": "afdd102e97e2d3be96ee011b55b9069268da2899",
+      "tests/transcriptV290Isolation.test.ts": "b7a81a3b754e6adf9f056933622938eadc22fce9",
+      "worker/aiSpeakerProfileRouter.ts": "72a415061b99b4af16f09f647cfb64e521b4121d",
+      "worker/aiSpeakerQaRouter.ts": "bebcf5f4d8bf9a7a2829d2079a209d062385f5cd",
+      "worker/audioSegmenterContainer.ts": "4d9a69980c8a4f18e1d10f44fd0fa02aa0701865",
+      "worker/authRouter.ts": "ecadf5ecef636ac017742d4c5062a64aad8faa14",
+      "worker/batteryRouter.ts": "f8a292126fdc9c7784edabd4076875160f1bd503",
+      "worker/community.ts": "f82bf917e74cc582d88290d590594b804aedeef6",
+      "worker/favoriteRouter.ts": "d08941e69bc003984995baa383775ed727019621",
+      "worker/organizationRouter.ts": "2fff3781f147b36fe28e914fc732f32bd114e31f",
+      "worker/playbackOwnerRouter.ts": "21ff49a099c643692b724a2657d1ff718e097429",
+      "worker/privacyCrawlerRouter.ts": "7d14cd96e428a589c4568716b4e5478a610c6c8a",
+      "worker/shareRouter.ts": "e96c6385379709aea7d0acd1f61c45f4c37820b5",
+      "worker/transcriptRouter.ts": "0ccb81865eefe2fcba681d24deaf63911e2e49b6",
+      "worker/transcriptWorkflowV282.ts": "b54757c74c120784455dee5f695781859f67860b",
+      "wrangler.toml": "57310e6adf086e075c001bce3ac5d1098d580727"
+    }
+  },
+  "new_architecture_source": {
+    "repo": "starry-phd/id",
+    "verified_r21_pr": 148,
+    "verified_r21_sha": "fbd5c03156da700b68c7b5bceb65269cb7c900ec",
+    "candidate_ux_only_pr": 136,
+    "f0_prior_research_only_pr": 140,
+    "official_release_file": "docs/release-readiness/release-readiness.v0.json",
+    "current_expo_harness_is_consumer_echo_app": false
+  },
+  "catalogue": {
+    "features": [
+      {
+        "id": "EH-01",
+        "name": "首頁音檔清單",
+        "category": "discover",
+        "phase": "P0",
+        "disposition": "rewrite_native_ui",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "src/App.tsx",
+          "src/components/AudioCard.tsx"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "以純假資料顯示音檔，載入/空結果/錯誤態明確；不讀真 D1",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-02",
+        "name": "關鍵字搜尋",
+        "category": "discover",
+        "phase": "P0",
+        "disposition": "extract_pure_ts_review",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "src/components/KeywordsTab.tsx",
+          "src/utils/keywords.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "模擬關鍵字查詢需去重，與分類/隱私條件獨立",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-03",
+        "name": "分類與音檔排序",
+        "category": "discover",
+        "phase": "P0",
+        "disposition": "rewrite_native_ui",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "src/components/AudioTrackList.tsx",
+          "worker/community.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "篩選切換不得洩漏隱藏/未授權音檔",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-04",
+        "name": "單集詳情",
+        "category": "library",
+        "phase": "P0",
+        "disposition": "rewrite_native_ui",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "src/components/DetailView.tsx"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "顯示來源、講者、播放資訊與權限未知狀態",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-05",
+        "name": "播放／暫停／快轉／倍速",
+        "category": "audio",
+        "phase": "P0",
+        "disposition": "rewrite_native_ui",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "src/components/MiniPlayer.tsx",
+          "src/utils/audio.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "假媒體播放器驗證播放/暫停、seek、切集狀態；非真裝置驗收",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-06",
+        "name": "背景播放／鎖屏控制",
+        "category": "audio",
+        "phase": "P0",
+        "disposition": "rewrite_native_ui",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "src/mediaSessionPolicy.ts",
+          "tests/mediaSessionPolicy.test.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "分 iOS/Android 驗收鎖屏/耳機中斷；需要授權真機後才能確認",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-07",
+        "name": "離線音檔與檔案回收",
+        "category": "audio",
+        "phase": "P0",
+        "disposition": "rewrite_native_ui",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "src/utils/offlineAudio.ts",
+          "tests/offlineAudioBehavior.test.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "禁止直接沿用 browser CacheStorage，另立原生檔案保存/清理規格",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-08",
+        "name": "播放進度續聽",
+        "category": "audio",
+        "phase": "P0",
+        "disposition": "extract_pure_ts_review",
+        "owner": "AI-3",
+        "legacy_paths": [
+          "src/utils/audio.ts",
+          "worker/playbackOwnerRouter.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "離線進度重播/跨裝置衝突不等於 Wallet 交易或任務結算",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-09",
+        "name": "訪客／登入入口",
+        "category": "identity",
+        "phase": "P0",
+        "disposition": "new_domain_contract",
+        "owner": "AI-1",
+        "legacy_paths": [
+          "src/utils/visitor.ts",
+          "src/ecosystemSsoClient.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "新 Starry ID 唯一來源；Web Cookie/舊 Token 不可直接接受",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-10",
+        "name": "付費內容與可見性",
+        "category": "access",
+        "phase": "P0",
+        "disposition": "new_domain_contract",
+        "owner": "AI-2",
+        "legacy_paths": [
+          "src/components/VipTracksTab.tsx",
+          "worker/community.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "權限未知時拒絕播放受限內容，不推定已買 Store 商品",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-11",
+        "name": "我的收藏",
+        "category": "community",
+        "phase": "P0",
+        "disposition": "rewrite_native_ui",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "src/components/AudioCard.tsx",
+          "worker/favoriteRouter.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "假資料收藏切換需處理重送/未登入/伺服器拒絕",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-12",
+        "name": "講者基本頁面",
+        "category": "discover",
+        "phase": "P0",
+        "disposition": "rewrite_native_ui",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "src/components/SpeakerProfilePage.tsx",
+          "worker/aiSpeakerProfileRouter.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "講者頁只公開已核准內容，無 PII 洩漏",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-13",
+        "name": "音檔 API 與資源隔離",
+        "category": "backend",
+        "phase": "P0",
+        "disposition": "new_domain_contract",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "worker/community.ts",
+          "wrangler.toml"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "Echo 專屬 API 授權契約，不複製 legacy 正式 Worker/DB 綁定",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-14",
+        "name": "媒體 R2 與授權下載",
+        "category": "backend",
+        "phase": "P0",
+        "disposition": "new_domain_contract",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "worker/community.ts",
+          "worker/transcriptRouter.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "僅設計授權串流及物件 ACL，不啟用真 R2",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-15",
+        "name": "公開分享／Deep Link",
+        "category": "share",
+        "phase": "P1",
+        "disposition": "rewrite_native_ui",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "src/components/ShareModal.tsx",
+          "worker/shareRouter.ts",
+          "tests/shareLinks.test.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "分享連結不含 Token，未授權內容不能透過連結繞過",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-16",
+        "name": "留言與回覆",
+        "category": "community",
+        "phase": "P1",
+        "disposition": "rewrite_native_ui",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "src/components/CommentsSection.tsx",
+          "worker/community.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "先定義內容審核/重試/申訴後再決定首期是否納入",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-17",
+        "name": "通知中心",
+        "category": "community",
+        "phase": "P1",
+        "disposition": "new_domain_contract",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "src/components/NotificationsView.tsx"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "必須明示來源/授權及未讀狀態，禁止使用舊會員私訊",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-18",
+        "name": "逐字稿閱讀",
+        "category": "transcript",
+        "phase": "P1",
+        "disposition": "rewrite_native_ui",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "src/components/TranscriptQaAdmin.tsx",
+          "worker/transcriptRouter.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "只讀、來源可追溯、無內容時顯示不可用；真生成另立費用",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-19",
+        "name": "逐字稿產生工作流",
+        "category": "transcript",
+        "phase": "P1",
+        "disposition": "new_domain_contract",
+        "owner": "AI-3",
+        "legacy_paths": [
+          "worker/transcriptWorkflowV282.ts",
+          "worker/transcriptRouter.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "排程/失敗/取消/冪等收據設計；未核准成本不得真跑 AI",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-20",
+        "name": "我的收聽歷史",
+        "category": "progress",
+        "phase": "P1",
+        "disposition": "extract_pure_ts_review",
+        "owner": "AI-3",
+        "legacy_paths": [
+          "shared/learningProgress.ts",
+          "tests/learningProgress.test.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "只評估純函式；跨裝置同步需新合法目的與資料權限",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-21",
+        "name": "會員檔案與設定",
+        "category": "identity",
+        "phase": "P1",
+        "disposition": "new_domain_contract",
+        "owner": "AI-1",
+        "legacy_paths": [
+          "src/components/ProfileModal.tsx",
+          "worker/authRouter.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "中央會員資料權威、資料可見欄位與刪帳體驗另驗證",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-22",
+        "name": "暗色／字級／輔助使用",
+        "category": "platform",
+        "phase": "P1",
+        "disposition": "rewrite_native_ui",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "src/App.tsx",
+          "src/components/DetailView.tsx"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "iOS/Android 動態字級、VoiceOver/TalkBack 另做真機測試",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-23",
+        "name": "分享圖卡與匯出",
+        "category": "share",
+        "phase": "P1",
+        "disposition": "rewrite_native_ui",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "src/components/ShareModal.tsx",
+          "src/components/DetailView.tsx"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "HTML Canvas 不直接移植；版權/圖片導出需驗證",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-24",
+        "name": "貼紙與互動獎勵",
+        "category": "economy",
+        "phase": "P2",
+        "disposition": "defer_until_policy",
+        "owner": "AI-2",
+        "legacy_paths": [
+          "src/components/StickersModal.tsx",
+          "shared/stickers.ts",
+          "tests/stickerTransactions.test.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "舊貼紙規則不可自動變成新版免費 Battery/付費經濟",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-25",
+        "name": "VIP 專屬音檔管理",
+        "category": "economy",
+        "phase": "P2",
+        "disposition": "defer_until_policy",
+        "owner": "AI-2",
+        "legacy_paths": [
+          "src/components/VipTracksTab.tsx",
+          "worker/batteryRouter.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "權益/會員等級與 App Store 資格先法定區分",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-26",
+        "name": "AI 針對講者問答",
+        "category": "ai",
+        "phase": "P2",
+        "disposition": "defer_until_policy",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "worker/aiSpeakerQaRouter.ts",
+          "shared/qaAnswerRules.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "供應商與模型/引用正確性/成本/隱私先審核，不能稱已可用",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-27",
+        "name": "AI 講者人物傳記",
+        "category": "ai",
+        "phase": "P2",
+        "disposition": "defer_until_policy",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "worker/aiSpeakerProfileRouter.ts",
+          "src/components/SpeakerProfilePage.tsx"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "來源授權及人物資訊真實性先審核",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-28",
+        "name": "音檔上傳／內容編輯",
+        "category": "admin",
+        "phase": "P2",
+        "disposition": "keep_separate_web_admin",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "src/components/UploadModal.tsx",
+          "src/components/AudioWorkspacePage.tsx"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "建議 Web 管理台獨立授權，不複製整套到手機",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-29",
+        "name": "逐字稿審核與修正",
+        "category": "admin",
+        "phase": "P2",
+        "disposition": "keep_separate_web_admin",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "src/components/TranscriptQaAdmin.tsx"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "後台審核角色與稽核，不能讓用戶端可任意改逐字稿",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-30",
+        "name": "AI 配額與設定後台",
+        "category": "admin",
+        "phase": "P2",
+        "disposition": "keep_separate_web_admin",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "src/components/AiQuestionSettingsAdmin.tsx"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "所有成本、模型配額限管理端/人工核准",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-31",
+        "name": "會員／審核管理",
+        "category": "admin",
+        "phase": "P2",
+        "disposition": "keep_separate_web_admin",
+        "owner": "AI-1",
+        "legacy_paths": [
+          "src/components/AdminModal.tsx",
+          "worker/organizationRouter.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "Echo 權限不可擅自成為全 Starry 管理權限",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-32",
+        "name": "管理統計",
+        "category": "admin",
+        "phase": "P2",
+        "disposition": "keep_separate_web_admin",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "src/components/StatisticsView.tsx"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "只讀彙整與真個資最小化，待後台授權",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-33",
+        "name": "長音檔分段轉錄 Container",
+        "category": "transcript",
+        "phase": "P2",
+        "disposition": "defer_until_policy",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "worker/audioSegmenterContainer.ts",
+          "container/audio-segmenter/server.mjs"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "雲端容器與長任務成本必須獨立取得許可",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-34",
+        "name": "Web PWA 安裝與 Service Worker",
+        "category": "web",
+        "phase": "P2",
+        "disposition": "keep_web_only",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "public/manifest.webmanifest",
+          "public/sw.js"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "瀏覽器 PWA 能力只保留 Web 版，不能當成原生手機能力",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-35",
+        "name": "既有共用 speaker parsing",
+        "category": "domain",
+        "phase": "P1",
+        "disposition": "extract_pure_ts_review",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "shared/speakers.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "檢查無 Web API、無 PII 副作用、授權相容才可移植",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-36",
+        "name": "共用 QA 回答安全規則",
+        "category": "domain",
+        "phase": "P2",
+        "disposition": "extract_pure_ts_review",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "shared/qaAnswerRules.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "純函式可研究，但不能繼承舊 API 模型與安全權限",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-37",
+        "name": "舊版登入權限防護",
+        "category": "security",
+        "phase": "P0",
+        "disposition": "new_domain_contract",
+        "owner": "AI-1",
+        "legacy_paths": [
+          "worker/authRouter.ts",
+          "worker/privacyCrawlerRouter.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "Guest/Member/Admin 權限需全新 Starry ID+Echo Scope Server 驗證",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-38",
+        "name": "音檔轉發與串流 API",
+        "category": "backend",
+        "phase": "P0",
+        "disposition": "new_domain_contract",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "worker/community.ts",
+          "worker/shareRouter.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "私有播放 URL 需要後端權限/到期/防重播，不能由前端自稱有權限",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-39",
+        "name": "舊 Web 整合測試作需求樣本",
+        "category": "testing",
+        "phase": "P0",
+        "disposition": "extract_pure_ts_review",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "tests/offlineAudioBehavior.test.ts",
+          "tests/mediaSessionPolicy.test.ts",
+          "tests/transcriptV290Isolation.test.ts"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "只能選擇性重寫行為驗收，舊綠燈不是原生 App 已可用",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      },
+      {
+        "id": "EH-40",
+        "name": "正式 Cloudflare 組態切割",
+        "category": "infrastructure",
+        "phase": "P0",
+        "disposition": "new_domain_contract",
+        "owner": "AI-4",
+        "legacy_paths": [
+          "wrangler.toml",
+          "package.json"
+        ],
+        "evidence_level": "legacy_paths_verified_at_pinned_sha",
+        "proposed_acceptance": "Echo 新 App 資源獨立且 future transferable，不觸碰舊 worker/ID 配置",
+        "selected_for_official_mvp": false,
+        "implementation_status": "not_started_or_not_verified",
+        "review_status": "proposal_only"
+      }
+    ],
+    "phase_definitions": {
+      "P0": "AI-0 suggested first listener flow and necessary safety contracts, NOT approved MVP",
+      "P1": "candidate follow-up depending on research, privacy, content rights and cost",
+      "P2": "defer, separate Web admin or outside proposed first delivery"
+    },
+    "acceptance_is_proposal_not_evidence": true,
+    "all_40_features_implemented": false,
+    "audited_file_count": 53,
+    "full_legacy_code_review_complete": false,
+    "selected_official_mvp_feature_count": 0
+  },
+  "implementation_design": {
+    "separation": {
+      "mobile": "independent future Echo Expo Router consumer application",
+      "web": "universal listener web with separate secure Web admin",
+      "identity": "shared new Starry ID Auth service via approved interface",
+      "api": "dedicated Echo Cloudflare Workers API, isolated data",
+      "media": "Echo-scoped R2/streaming with signed authorization policies",
+      "task_wallet": "new Starry Task/Battery read-only/approved-domain boundary, free Battery nonpurchasable"
+    },
+    "native_audio_source": "https://docs.expo.dev/versions/latest/sdk/audio/",
+    "native_file_source": "https://docs.expo.dev/versions/latest/sdk/filesystem/",
+    "router_source": "https://docs.expo.dev/router/introduction/",
+    "privacy_and_copyright_review_pending": true,
+    "ui_routes_created": false,
+    "external_cost_benchmark_done": false,
+    "android_ios_real_device_tested": false
+  },
+  "no_permission": {
+    "repo_or_file_migration_approved": false,
+    "legacy_prod_read_or_write": false,
+    "actual_user_data_transfer": false,
+    "cloudflare_deployment": false,
+    "real_d1_or_r2_write": false,
+    "queue_ack": false,
+    "real_store_or_iap": false,
+    "paid_ai_call": false,
+    "buy_or_convert_free_battery": false,
+    "release_gates_overridden": false,
+    "merge_main": false,
+    "expo_eas_build": false,
+    "hglobal_work": false,
+    "publishable": false
+  },
+  "decisions_pending": [
+    "ECHO-D01_which_P0_items_actual_mvp",
+    "ECHO-D02_public_vs_member_access_and_content_copyright",
+    "ECHO-D03_native_background_offline_storage_and_device_test_scope",
+    "ECHO-D04_new_repo_and_domains_bundle_ids_store_developer_account",
+    "ECHO-D05_legacy_data_zero_migration_or_separately_authorized_import",
+    "ECHO-D06_audio_r2_policies_and_cost_budget",
+    "ECHO-D07_vip_stickers_transcript_ai_qa_monetization_policy",
+    "ECHO-D08_auth_p05_legal_q104_q119_cross_d1_adr87_release_permissions"
+  ]
+}
