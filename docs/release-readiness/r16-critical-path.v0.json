@@ -1,0 +1,249 @@
+{
+  "schema_version": "0.1-proposed",
+  "kind": "AI0_PLANNING_PRIORITY_MAP_NOT_RELEASE_GATE_EVIDENCE",
+  "source": {
+    "repository": "starry-phd/id",
+    "verified_offline_baseline_pr": 112,
+    "verified_offline_baseline_sha": "e9b4a9e244342bfc2725b1daafca21dbb35ff8ad",
+    "authoritative_release_json": "docs/release-readiness/release-readiness.v0.json",
+    "decision_gap_source": "docs/release-readiness/AI0-R10-EVIDENCE-AND-DECISIONS-20261027.md"
+  },
+  "scope": "starry_only_hglobal_paused",
+  "status": "proposal_only",
+  "technical_dependency_proof": false,
+  "release_gate_status_authoritative_only_in_release_json": true,
+  "manual_owner_approval_obtained": false,
+  "real_staging_evidence_obtained": false,
+  "real_store_evidence_obtained": false,
+  "live_cloudflare_test_authorized": false,
+  "paid_resources_authorized": false,
+  "admin_wave2_authorized": false,
+  "auto_publish_authorized": false,
+  "notes": [
+    "這份依賴圖只代表候選驗收排序，不是禁止各 AI 平行進行離線開發的作業鎖。",
+    "Gate 狀態、真實證據與授權以原始 release-readiness.v0.json 為準，不因本文件自動變更。",
+    "截至固定 R15 base，所有正式 Gate 仍 blocked，且權威 JSON 沒有可核准的真實平台證據。",
+    "業主尚未正式選定第一款 App、X/Y、費率與 Store SKU；不可用此候選填造核准。"
+  ],
+  "gates": [
+    {
+      "id": "G00-SSOT",
+      "owner": "AI-0",
+      "signoff_dependencies": [],
+      "priority_lane": 0,
+      "evidence_class": "product_scope",
+      "offline_work_next": "正式核准首款 Starry App／用途、128 項需求的 MVP 結論",
+      "missing_live_evidence": "業主核准決策與逐項來源對照",
+      "planning_status": "candidate_not_approved",
+      "proof_url": null,
+      "approval_record_url": null
+    },
+    {
+      "id": "G01-ISOLATION",
+      "owner": "AI-0",
+      "signoff_dependencies": [],
+      "priority_lane": 0,
+      "evidence_class": "resource_boundary",
+      "offline_work_next": "只讀盤點 Starry 與 H-Global 未來各自的 Auth、雲端、Secret、金流邊界",
+      "missing_live_evidence": "真實資源映射、有效隔離與拒絕跨品牌的核准測試",
+      "planning_status": "candidate_not_approved",
+      "proof_url": null,
+      "approval_record_url": null
+    },
+    {
+      "id": "G02-OIDC",
+      "owner": "AI-1",
+      "signoff_dependencies": [
+        "G01-ISOLATION"
+      ],
+      "priority_lane": 2,
+      "evidence_class": "identity_provider",
+      "offline_work_next": "完成離線 PKCE/state/nonce、錯品牌拒絕及官方測試計畫",
+      "missing_live_evidence": "業主授權後的官方 Apple/Google 沙盒／回呼／JWKS 證據",
+      "planning_status": "candidate_not_approved",
+      "proof_url": null,
+      "approval_record_url": null
+    },
+    {
+      "id": "G03-SESSION-D1",
+      "owner": "AI-1",
+      "signoff_dependencies": [
+        "G01-ISOLATION"
+      ],
+      "priority_lane": 2,
+      "evidence_class": "live_d1",
+      "offline_work_next": "離線會員刪帳、撤權、CAS、正反測與 migration 風險",
+      "missing_live_evidence": "經授權真 Starry D1 的撤權、刪帳與 rollback 演練",
+      "planning_status": "candidate_not_approved",
+      "proof_url": null,
+      "approval_record_url": null
+    },
+    {
+      "id": "G04-STORE",
+      "owner": "AI-2",
+      "signoff_dependencies": [
+        "G00-SSOT",
+        "G01-ISOLATION"
+      ],
+      "priority_lane": 2,
+      "evidence_class": "official_store",
+      "offline_work_next": "先完成 SKU、退款、重播與身分所有權負測候選",
+      "missing_live_evidence": "業主核准產品後官方 Apple/Google sandbox 收據與退款權威",
+      "planning_status": "candidate_not_approved",
+      "proof_url": null,
+      "approval_record_url": null
+    },
+    {
+      "id": "G05-BILLING-D1",
+      "owner": "AI-2",
+      "signoff_dependencies": [
+        "G01-ISOLATION",
+        "G04-STORE"
+      ],
+      "priority_lane": 2,
+      "evidence_class": "live_billing",
+      "offline_work_next": "離線 Store outbox／權益 CAS、退款排序、不重發",
+      "missing_live_evidence": "真 Billing D1 並發交易、真 Store 收據到權益驗收",
+      "planning_status": "candidate_not_approved",
+      "proof_url": null,
+      "approval_record_url": null
+    },
+    {
+      "id": "G06-P05",
+      "owner": "AI-0",
+      "signoff_dependencies": [
+        "G03-SESSION-D1",
+        "G05-BILLING-D1"
+      ],
+      "priority_lane": 1,
+      "evidence_class": "canonical_contract",
+      "offline_work_next": "統一權威 publisher/translator/事件版本、Auth 刪帳／Billing／Battery 的共享負測規格",
+      "missing_live_evidence": "業主核准正式 P05、同意回復策略、可驗證 durable committed event",
+      "planning_status": "candidate_not_approved",
+      "proof_url": null,
+      "approval_record_url": null
+    },
+    {
+      "id": "G07-AUDIT-QUEUE",
+      "owner": "AI-3",
+      "signoff_dependencies": [
+        "G06-P05"
+      ],
+      "priority_lane": 2,
+      "evidence_class": "live_queue_recovery",
+      "offline_work_next": "本機 inbox／ACK-after-commit／DLQ 重送及隱私保留負測",
+      "missing_live_evidence": "經授權真 Cloudflare D1/Queue/DLQ、可恢復稽核及合法保留",
+      "planning_status": "candidate_not_approved",
+      "proof_url": null,
+      "approval_record_url": null
+    },
+    {
+      "id": "G08-WORKER-SDK",
+      "owner": "AI-4",
+      "signoff_dependencies": [
+        "G02-OIDC",
+        "G03-SESSION-D1",
+        "G06-P05",
+        "G07-AUDIT-QUEUE"
+      ],
+      "priority_lane": 2,
+      "evidence_class": "live_worker",
+      "offline_work_next": "現有 OpenAPI/SDK/路由授權與 Worker dry-run 先驗",
+      "missing_live_evidence": "經授權真 Worker Staging、Secrets、獨立權限與回滾測試",
+      "planning_status": "candidate_not_approved",
+      "proof_url": null,
+      "approval_record_url": null
+    },
+    {
+      "id": "G09-DEVICES",
+      "owner": "AI-4",
+      "signoff_dependencies": [
+        "G04-STORE",
+        "G08-WORKER-SDK"
+      ],
+      "priority_lane": 3,
+      "evidence_class": "device_store",
+      "offline_work_next": "完成 Expo 靜態設定與 EAS 配額/上架測試計畫",
+      "missing_live_evidence": "真 iOS TestFlight/Play Internal/Web E2E、實機和真 EAS 帳單",
+      "planning_status": "candidate_not_approved",
+      "proof_url": null,
+      "approval_record_url": null
+    },
+    {
+      "id": "G10-OPS",
+      "owner": "AI-0",
+      "signoff_dependencies": [
+        "G00-SSOT",
+        "G01-ISOLATION",
+        "G02-OIDC",
+        "G03-SESSION-D1",
+        "G04-STORE",
+        "G05-BILLING-D1",
+        "G06-P05",
+        "G07-AUDIT-QUEUE",
+        "G08-WORKER-SDK",
+        "G09-DEVICES"
+      ],
+      "priority_lane": 3,
+      "evidence_class": "operations_approval",
+      "offline_work_next": "無雲端費用的成本/隱私/備份/應變/回滾計畫整理",
+      "missing_live_evidence": "業主核准成本上限、法遵與真備份恢復、可追查事故演練",
+      "planning_status": "candidate_not_approved",
+      "proof_url": null,
+      "approval_record_url": null
+    }
+  ],
+  "parallel_preflight": [
+    {
+      "id": "P-SCOPE",
+      "owner": "AI-0",
+      "priority": 0,
+      "gate_refs": [
+        "G00-SSOT"
+      ],
+      "task": "準備第一個 Starry App 的可比較候選與 128 項需求界線，待業主正式決策",
+      "authorization": "not_yet_granted",
+      "real_environment_action": false
+    },
+    {
+      "id": "P-ISOLATION",
+      "owner": "AI-0",
+      "priority": 0,
+      "gate_refs": [
+        "G01-ISOLATION",
+        "G10-OPS"
+      ],
+      "task": "唯讀盤點品牌、實際成本欄位、環境和管理權限，無真憑證則記 UNKNOWN",
+      "authorization": "not_yet_granted",
+      "real_environment_action": false
+    },
+    {
+      "id": "P-EVENT",
+      "owner": "AI-0",
+      "priority": 1,
+      "gate_refs": [
+        "G06-P05",
+        "G07-AUDIT-QUEUE"
+      ],
+      "task": "在離線層制定且驗證候選事件 authority、版本和重試/刪帳防重發矩陣，勿冒稱 P05 已正式核准",
+      "authorization": "not_yet_granted",
+      "real_environment_action": false
+    },
+    {
+      "id": "P-PLATFORM",
+      "owner": "AI-0",
+      "priority": 1,
+      "gate_refs": [
+        "G02-OIDC",
+        "G03-SESSION-D1",
+        "G04-STORE",
+        "G05-BILLING-D1",
+        "G08-WORKER-SDK",
+        "G09-DEVICES"
+      ],
+      "task": "向專責 Owner 收集未來獲准 Staging 才需執行的真平台測試/成本/人員許可缺件",
+      "authorization": "not_yet_granted",
+      "real_environment_action": false
+    }
+  ]
+}
