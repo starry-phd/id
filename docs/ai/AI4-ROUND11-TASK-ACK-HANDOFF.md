@@ -1,0 +1,13 @@
+# AI-4 R11 | Task committed → AI-3 Battery post-commit ACK Safety Contract（OFFLINE）
+
+**Base:** AI-0 latest R10 same-checkout verified PR #82 at `f1eb5f0655cfdf8c9648ff6d004deed980fbc5d7`, including #70 SOP, #80 parallel Gate evidence. Source Issue #1 and AI-1/AI-3 Issue #2/#4 boundary handoffs. This round does not redo prior AI-4 R8 task authority, R9 transaction planning, R10 backup digest, nor AI-3 single-D1 wallet CAS.
+
+## Code delivered
+- `apps/api/src/task-commit-ack.ts`: bounded, **offline-only** Queue dispatch adapter. Queue input is **only** an opaque task reference. Reads committed server Task proof + current active AI-1 Member from independent trusted ports, then AI-3 previously durable journal or settlement port. Even if `settleBattery` returns success, it **does not ACK** until fresh authoritative read confirms the **same task proof/revision, unchanged member auth version, and durable AI-3 wallet journal** with exact price/policy/rate and success→commit or failure→release.
+- On any malformed/unknown/changed source, deleted/suspended member, stale proof, missing journal, D1 source outage, replay conflict: **explicit retry**, never allow Queue implicit ACK. At delivery 5+ a terminal ACK requires an **independently durable matching DLQ receipt**; otherwise retry again. No personally identifiable text, payment data or task result in DLQ. Tests cover 10 negative/positive flows, including source change between pre/post check, auth revocation between reads, failed task release, replay, DLQ failures and Queue retry-throws (must propagate).
+- `apps/api/contracts/task-delivery.v0.DRAFT.json`: internal versioned non-public contract. No new Worker route, SDK export, Queue binding, database migration or actual scheduled worker.
+
+## Unresolved release Gates
+This **does not solve cross-D1 atomicity**: Task D1, Auth D1, and Wallet D1 have independent commits; member status can change after the final auth read, and real Queue ACK can race with deletion or ledger rollback. Real production requires AI-0 architectural authorization for a common authority / fenced saga protocol with true durable outbox, AI-1 Member/Session revocation and Q119 lawfully minimal dedup, AI-3 WALLET CAS commit proof/outbox & retries, proper Task provider proof signing, physical Cloudflare D1/Queue/DLQ concurrency and failure injection. Even a mocked post-commit `durable:true` field is NOT a real attestation.
+
+**All Release G00–G10 BLOCKED; `TASK_COMMIT_ACK_LIVE=false`; P05 not publishable.** Cannot merge main, deploy preview/staging/prod, touch live D1/Queue/R2/Secrets, EAS, Store, payment, or spend. H-Global paused.
