@@ -161,9 +161,13 @@ test('failed stale tombstone trigger rolls back inbox insert and leaves existing
 test('SQLite DB failure on duplicate event_ref for distinct source rolls back new inbox',async t=>{
  const s=await fixture();t.after(s.close);
  await s.inbox().accept(s.envelope,NOW);
+ // The SECOND original Auth outbox row truly exists and passes proof.
+ // Only Billing's own cross-delivery UNIQUE event_ref must reject it.
+ s.auth.prepare('INSERT INTO starry_deletion_outbox VALUES (?,?,?,?)')
+  .run('AuthDeletionEvent-20261027-0002','opaque_auth_member',NOW-10,'account_deleted');
  const next=await s.sign({...s.payload,source_event_id:'AuthDeletionEvent-20261027-0002'});
  const res=await s.inbox().accept(next,NOW);
- assert.equal(res.status,'blocked');
+ assert.equal(res.reason,'OFFLINE_AUTHORITY_OR_DB_UNAVAILABLE');
  assert.equal(s.count('billing_delete_inbox_R16_DRAFT'),1);
 });
 test('SQLite outer transaction rollback reverts inbox, tombstone and candidate revocations',async t=>{
