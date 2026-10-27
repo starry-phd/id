@@ -1,10 +1,5 @@
 name: AI-4 Rebuild Round3 Worker SDK Expo Integration
 on:
-  pull_request:
-    paths:
-      - 'apps/**'
-      - 'packages/sdk/**'
-      - '.github/workflows/ai4-rebuild-round3.yml'
   workflow_dispatch:
 permissions:
   contents: read

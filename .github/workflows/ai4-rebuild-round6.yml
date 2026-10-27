@@ -1,11 +1,5 @@
 name: AI-4 Round6 Guard and Offline Integration
 on:
-  pull_request:
-    paths:
-      - 'apps/**'
-      - 'packages/sdk/**'
-      - 'docs/api-handoff/**'
-      - '.github/workflows/ai4-rebuild-round6.yml'
   workflow_dispatch:
 permissions:
   contents: read
