@@ -1,0 +1,126 @@
+{
+  "schema_version": "0.1.0",
+  "kind": "AI0_R21_FOUR_OWNER_EXACT_SOURCE_CANDIDATE_UI_INTEGRATION",
+  "scope": "starry_private_offline_only",
+  "baseline": {
+    "r20_integration_pr": 143,
+    "r20_integration_sha": "e54bee1d012a2a43d90ce9a24e4a5f59d29bacbb",
+    "r21_owner_base_sha": "e54bee1d012a2a43d90ce9a24e4a5f59d29bacbb",
+    "r21_contract": "candidate_only_not_real_app_ui"
+  },
+  "owner_inputs": [
+    {
+      "owner": "AI-1",
+      "pr": 144,
+      "head_sha": "0576cc57ac6bba0c384795fb72abb5092a7ac359",
+      "base_sha": "e54bee1d012a2a43d90ce9a24e4a5f59d29bacbb",
+      "files": [
+        {
+          "path": "modules/starry-id-v1/ADR-ROUND21-CANDIDATE-UI-AUTH-STATE.md",
+          "blob_sha": "29e1e0415161a3f363f569eff1dff65e99fb2110"
+        },
+        {
+          "path": "modules/starry-id-v1/src/round21-candidate-ui-auth-state.ts",
+          "blob_sha": "3bfbda4210accfb34a17218ff50b3c054986483d"
+        },
+        {
+          "path": "modules/starry-id-v1/test/round21-candidate-ui-auth-state.test.mjs",
+          "blob_sha": "2d75e685c9b45bd009ae45967cf670a43bbc130b"
+        }
+      ]
+    },
+    {
+      "owner": "AI-2",
+      "pr": 145,
+      "head_sha": "d7070efe70992db1363976c1fe4977731dee30dd",
+      "base_sha": "e54bee1d012a2a43d90ce9a24e4a5f59d29bacbb",
+      "files": [
+        {
+          "path": "packages/rebuild-billing/docs/ROUND21-CANDIDATE-BILLING-UI-STATE.md",
+          "blob_sha": "6e990a7aa7a5a2077c97f8148eebd58a56124638"
+        },
+        {
+          "path": "packages/rebuild-billing/src/r21-candidate-ui-billing-state.ts",
+          "blob_sha": "4701831083d3ed2d4db613879608635d3d3f01ce"
+        },
+        {
+          "path": "packages/rebuild-billing/test/r21-candidate-ui-billing-state.test.mjs",
+          "blob_sha": "f6ede51373bbca58c2e21f9f70d07d779f43694f"
+        }
+      ]
+    },
+    {
+      "owner": "AI-3",
+      "pr": 146,
+      "head_sha": "21da5c7a8b271e593746234eb785490d51ad14e4",
+      "base_sha": "e54bee1d012a2a43d90ce9a24e4a5f59d29bacbb",
+      "files": [
+        {
+          "path": "packages/rebuild-ai3/docs/ROUND21-CANDIDATE-UI-TASK-BATTERY-STATUS.md",
+          "blob_sha": "187ed01e68c316b11b98063a314138d2ffb1ff96"
+        },
+        {
+          "path": "packages/rebuild-ai3/src/r21-candidate-ui-task-battery-status.ts",
+          "blob_sha": "13b5069293032787f02dbcdb4326386c4a5a1a5a"
+        },
+        {
+          "path": "packages/rebuild-ai3/test/r21-candidate-ui-task-battery-status.test.mjs",
+          "blob_sha": "875662b1b3fd78644fd5a06e967108bc2d811a48"
+        },
+        {
+          "path": "packages/rebuild-ai3/test/test_r21_candidate_ui_sqlite.py",
+          "blob_sha": "bc586703fdd89317819008af85a00cb64a1b4faf"
+        }
+      ]
+    },
+    {
+      "owner": "AI-4",
+      "pr": 147,
+      "head_sha": "9d0888660d0a8a873b07d13832f5c3cda8645978",
+      "base_sha": "e54bee1d012a2a43d90ce9a24e4a5f59d29bacbb",
+      "files": [
+        {
+          "path": "apps/api/src/round21-candidate-consumer-ui-state-resolver.ts",
+          "blob_sha": "8758c34977955cd89cf41d3b4b04d82d23f1401e"
+        },
+        {
+          "path": "apps/api/test/round21-candidate-consumer-ui-state-resolver.test.mjs",
+          "blob_sha": "d61492bdca58640ddbb8e1bf9779e5b6e6704174"
+        },
+        {
+          "path": "docs/ai/AI4-ROUND21-CANDIDATE-UI-STATUS-CONTRACT.md",
+          "blob_sha": "63d3669a338c8cfeaaf01e935fa0a1943f32fa0f"
+        }
+      ]
+    }
+  ],
+  "total_owner_original_blobs": 13,
+  "claims": {
+    "individual_owner_ci_is_green": true,
+    "new_integrated_ci_not_proven_by_manifest": true,
+    "ui_state_only": true,
+    "unknown_states_fail_closed": true,
+    "starry_id_shared_not_store_product": true,
+    "first_app_named_echo_starry_from_owner_instruction": true
+  },
+  "denials": {
+    "r21_consumer_ui_implemented": false,
+    "r21_full_positive_owner_dto_wiring_verified": false,
+    "first_echo_native_routes_written": false,
+    "real_auth_session_verified": false,
+    "official_p05_signed": false,
+    "lawful_q104_q119_granted": false,
+    "independent_nonrollback_witness_verified": false,
+    "physical_cross_d1_verified": false,
+    "cloudflare_live_services_used": false,
+    "real_queue_ack": false,
+    "paid_battery": false,
+    "store_iap_approved": false,
+    "expo_eas_build_approved": false,
+    "production_release_granted": false,
+    "hglobal_work_authorized": false,
+    "merge_main_authorized": false,
+    "deploy_authorized": false,
+    "publishable": false
+  }
+}
