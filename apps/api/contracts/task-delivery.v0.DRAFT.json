@@ -1,0 +1,34 @@
+{
+  "version": "starry.task-delivery.v0-draft",
+  "live": false,
+  "brand": "starry",
+  "environments": [
+    "development",
+    "staging"
+  ],
+  "public_routes": [],
+  "public_sdk_exports": [],
+  "message_format": "task_ref_only",
+  "read_before": [
+    "committed_task_proof",
+    "current_active_member",
+    "already_persisted_battery_journal"
+  ],
+  "write": "AI3_wallet_CAS_via_server_only_port",
+  "read_after": [
+    "same_committed_task_proof_revision",
+    "same_current_member_auth_version",
+    "durable_Ai3_wallet_journal_matching_task_price_policy_revision"
+  ],
+  "ack": "ONLY_after_all_comparisons",
+  "retry": "all_unproven_states_explicit_retry",
+  "dead_letter": "ONLY_after_durable_matching_receipt",
+  "cannot_guarantee": [
+    "cross_D1_atomic_commit",
+    "absence_of_auth_revocation_after_last_check",
+    "cryptographic_task_proof_or_real_provider",
+    "wallet_transaction_reality",
+    "production_Queue_ack_behavior"
+  ],
+  "official_gates": "G00-G10 all BLOCKED"
+}
