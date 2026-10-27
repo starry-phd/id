@@ -1,0 +1,11 @@
+# AI-2 R16｜Q88 單一候選發布者／Billing 跨庫防重收件 Gate
+
+**Verified base:** AI-0 [R15 four-owner integrated Draft #112](https://github.com/starry-phd/id/pull/112) SHA `e9b4a9e244342bfc2725b1daafca21dbb35ff8ad`; [#70 SOP](https://github.com/starry-phd/id/pull/70). 只在 `packages/rebuild-billing/**` 新增原始碼／Node SQLite 負測／交接文件；原 AI-1 Auth 真 4 欄 outbox、R15 HMAC Candidate 映射及 R14 Billing tombstone **完全不重寫**。
+
+**新離線功能** `src/deletion-single-publisher-inbox.ts`：定義一個**尚未獲 AI-0 核准**的候選 Publisher ID `starry.auth.account_deleted.v1.offline_candidate`，拒絕第二個 Battery/Task/API 出站發布者，同時使用非可匯出 RSA-2048+ 公鑰實際驗 RS256 簽章（精確 canonical v1、源事件 ID、來源 commit ref、經受信服務映射的 HMAC member/event refs、事件摘要、AuthVersion、scope/時間／≤30秒）。簽章和合法 Q104/Q119 Gate 後，注入的受信 Auth Port 必須**兩次**核實已提交來源和當前 Member 確實 deleted／AuthVersion／source proof；然後用**一筆 Billing SQLite INSERT ... RETURNING** 登記 inbox，AFTER INSERT Trigger 在**同一 Billing SQLite statement** 同步寫 R14 tombstone、取消候選權益。UNIQUE `(brand,environment,source_event_id)` 與 event_ref 抵擋重送/不同 Queue delivery；失敗 rollback 保護兩張表，inbox 不可 update/delete。測試以**兩個獨立 SQLite :memory: DB** 檢查實際已提交/撤權、Crash/Rollback、舊版本、重放、簽章、來源中途變動、第二發布者及禁止新增已刪會員的 Store 候選。所有結果 **`may_ack_queue=false,may_grant=false,live=false`**，包括本地成功。
+
+**重大邊界／原始資料：** Auth 真 `starry_deletion_outbox` 只有 `event_id,s_user_id,occurred_at,event_type`，其他 Digest/AuthVersion/HMAC/PubKey 是**需要另外取得受信來源與合法鍵值政策的衍生證據**；`verifyCommittedOrigin` 與 `readCurrentDeletedAuth` 目前只有可注入的**離線測試 callback**，不存在真 Auth canonical issuer/PKI/KMS 或正式 Queue 消費者。AI-1/AI-3/AI-4 多個 publisher/mapper 候選**不可自動同時啟用**；正式唯一發布者由 AI-0/業主正式授權後另實作。
+
+**SQL Inventory 注意**：本輪刻意**沒有新 .sql 檔或真 migration**；可執行的 `BILLING_R16_INBOX_MEMORY_DDL` 限 Node22 `:memory:`。繼承 #109/#112 固定 38 個 SQL Draft 的來源清單與安全檢查，並沒有宣稱正式 D1 trigger 語義可移植或雲端可遷移。跨 Auth D1/ Billing D1 的 XA atomic 不存在；Auth 在 Billing commit 後遭刪或 PITR 重播仍需外部不可回退持久見證/補償 Saga、Queue/DLQ/ACK after durable commit、錯誤重試與機制，任何離線成功不代表可以 ACK。
+
+**阻塞條件**：Q104/Q119 合法保留/刪除、HMAC 鍵生命週期、可回退事件與獨立 KMS trust、正式 P05 版本/權限、真 Apple/Google Store、D1/Queues/R2/PITR、費率／首個 SKU／EAS／實機／成本/合法操作 Gate 都未通過。正式 G00–G10 11/11 BLOCKED；`LIVE_BILLING_DELETE_INBOX_ENABLED=false`，`BILLING_DELETE_INBOX_PUBLISHABLE=false`，`BILLING_DELETE_INBOX_ACK_ALLOWED=false`；Starry Battery 永久免費，H-Global 暫停。無 main merge、部署、真 DB/Secrets/Store/EAS 或付費。
