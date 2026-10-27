@@ -1,0 +1,231 @@
+{
+  "schema_version": "0.1-proposal",
+  "repository": "starry-phd/id",
+  "baseline": {
+    "pr": 100,
+    "sha": "dc798cacea55cc376ed993876c0971035353d688"
+  },
+  "source_contract": "docs/contracts/FUTURE-STARRY-ADMIN-API.md",
+  "source_issue": "https://github.com/starry-phd/id/issues/13",
+  "kind": "first_wave_admin_prep_evidence_candidates_not_completed",
+  "brand_id": "starry",
+  "hglobal_paused": true,
+  "wave1_all_p01_p10_accepted": false,
+  "wave2_ui_development_authorized": false,
+  "sixty_capabilities_approved": false,
+  "admin_domain_approved": false,
+  "production_deploy_authorized": false,
+  "all_release_gates_blocked": true,
+  "evidence_grade": "source_paths_only_not_actual_behavioral_verification",
+  "components": [
+    {
+      "id": "P01",
+      "capability": "Starry App / environment registry",
+      "owners": [
+        "AI-0",
+        "AI-4"
+      ],
+      "local_evidence": [
+        "apps/api/openapi.yaml",
+        "docs/api-handoff/api-surface.v0.json"
+      ],
+      "missing_real_evidence": [
+        "authoritative Starry app catalog uniqueness and brand/env isolation",
+        "verified owner-approved registry contract"
+      ],
+      "status": "candidate_unverified",
+      "wave1_accepted": false,
+      "actual_staging_evidence": null,
+      "owner_approval_url": null,
+      "notes": "Local source paths prove files exist at the R13 baseline; they do not certify functionality, completeness, staging or release."
+    },
+    {
+      "id": "P02",
+      "capability": "OpenAPI / SDK version compatibility",
+      "owners": [
+        "AI-1",
+        "AI-4"
+      ],
+      "local_evidence": [
+        "apps/api/openapi.yaml",
+        "packages/sdk/src/index.ts",
+        "docs/api-handoff/verify-api-surface.mjs"
+      ],
+      "missing_real_evidence": [
+        "approved API paths, SDK consumer acceptance and negative compatibility evidence"
+      ],
+      "status": "candidate_unverified",
+      "wave1_accepted": false,
+      "actual_staging_evidence": null,
+      "owner_approval_url": null,
+      "notes": "Local source paths prove files exist at the R13 baseline; they do not certify functionality, completeness, staging or release."
+    },
+    {
+      "id": "P03",
+      "capability": "domain-admin guarded actions",
+      "owners": [
+        "AI-1",
+        "AI-2",
+        "AI-3",
+        "AI-4"
+      ],
+      "local_evidence": [
+        "modules/starry-id-v1/src/round7-admin.ts",
+        "docs/contracts/FUTURE-STARRY-ADMIN-API.md"
+      ],
+      "missing_real_evidence": [
+        "real owner-scoped admin endpoints, per-action authorization and audit proof"
+      ],
+      "status": "candidate_unverified",
+      "wave1_accepted": false,
+      "actual_staging_evidence": null,
+      "owner_approval_url": null,
+      "notes": "Local source paths prove files exist at the R13 baseline; they do not certify functionality, completeness, staging or release."
+    },
+    {
+      "id": "P04",
+      "capability": "Starry admin identity / scope / step-up",
+      "owners": [
+        "AI-0",
+        "AI-1",
+        "AI-3"
+      ],
+      "local_evidence": [
+        "modules/starry-id-v1/src/round7-admin.ts",
+        "modules/starry-id-v1/test/round7-member-admin-deletion.test.mjs"
+      ],
+      "missing_real_evidence": [
+        "approved Starry admin roles, live session revocation, cross-brand denial, high-risk step-up"
+      ],
+      "status": "candidate_unverified",
+      "wave1_accepted": false,
+      "actual_staging_evidence": null,
+      "owner_approval_url": null,
+      "notes": "Local source paths prove files exist at the R13 baseline; they do not certify functionality, completeness, staging or release."
+    },
+    {
+      "id": "P05",
+      "capability": "versioned source-backed events",
+      "owners": [
+        "AI-0",
+        "AI-2",
+        "AI-3",
+        "AI-4"
+      ],
+      "local_evidence": [
+        "packages/ai0-contracts/src/p05-candidate.mjs",
+        "docs/contracts/AI4-REBUILD-P05-EVENT-CANDIDATE.md"
+      ],
+      "missing_real_evidence": [
+        "approved authoritative P05 schema; real transaction-committed outbox and Queue replay/DLQ evidence"
+      ],
+      "status": "candidate_unverified",
+      "wave1_accepted": false,
+      "actual_staging_evidence": null,
+      "owner_approval_url": null,
+      "notes": "Local source paths prove files exist at the R13 baseline; they do not certify functionality, completeness, staging or release."
+    },
+    {
+      "id": "P06",
+      "capability": "sensitive audit and access control",
+      "owners": [
+        "AI-1",
+        "AI-3"
+      ],
+      "local_evidence": [
+        "packages/rebuild-ai3/src/signed-audit-recovery.ts",
+        "packages/rebuild-ai3/src/signed-audit-head.ts"
+      ],
+      "missing_real_evidence": [
+        "approved legal retention and masking, actual nonrollbackable audit authority and read permissions"
+      ],
+      "status": "candidate_unverified",
+      "wave1_accepted": false,
+      "actual_staging_evidence": null,
+      "owner_approval_url": null,
+      "notes": "Local source paths prove files exist at the R13 baseline; they do not certify functionality, completeness, staging or release."
+    },
+    {
+      "id": "P07",
+      "capability": "health, latency, queues and incident alerts",
+      "owners": [
+        "AI-3",
+        "AI-4"
+      ],
+      "local_evidence": [
+        "packages/sdk/test/health.test.mjs",
+        "docs/contracts/FUTURE-STARRY-ADMIN-API.md"
+      ],
+      "missing_real_evidence": [
+        "authoritative monitoring sources, alert escalation, queue freshness and incident drill"
+      ],
+      "status": "candidate_unverified",
+      "wave1_accepted": false,
+      "actual_staging_evidence": null,
+      "owner_approval_url": null,
+      "notes": "Local source paths prove files exist at the R13 baseline; they do not certify functionality, completeness, staging or release."
+    },
+    {
+      "id": "P08",
+      "capability": "brand/app cost attribution and reconciliation",
+      "owners": [
+        "AI-0",
+        "AI-2",
+        "AI-4"
+      ],
+      "local_evidence": [
+        "apps/mobile/src/eas-cost-policy.ts",
+        "apps/mobile/test/eas-cost-policy.test.mjs"
+      ],
+      "missing_real_evidence": [
+        "approved billing source/actual usage units, spend cap and app attribution"
+      ],
+      "status": "candidate_unverified",
+      "wave1_accepted": false,
+      "actual_staging_evidence": null,
+      "owner_approval_url": null,
+      "notes": "Local source paths prove files exist at the R13 baseline; they do not certify functionality, completeness, staging or release."
+    },
+    {
+      "id": "P09",
+      "capability": "GitHub, Cloudflare, EAS, Store release provenance",
+      "owners": [
+        "AI-0",
+        "AI-4"
+      ],
+      "local_evidence": [
+        "docs/release-readiness/release-readiness.v0.json",
+        ".github/workflows/ai0-current-offline-gate.yml"
+      ],
+      "missing_real_evidence": [
+        "approved live Cloudflare/Store/EAS environment evidence and rollback drill"
+      ],
+      "status": "candidate_unverified",
+      "wave1_accepted": false,
+      "actual_staging_evidence": null,
+      "owner_approval_url": null,
+      "notes": "Local source paths prove files exist at the R13 baseline; they do not certify functionality, completeness, staging or release."
+    },
+    {
+      "id": "P10",
+      "capability": "versioned scoped configuration and flags",
+      "owners": [
+        "AI-1",
+        "AI-3",
+        "AI-4"
+      ],
+      "local_evidence": [
+        "apps/api/src/staged-policy.ts",
+        "apps/api/test/staged-policy.test.mjs"
+      ],
+      "missing_real_evidence": [
+        "owner-authorized real config versions, role-controlled changes and rollback audit"
+      ],
+      "status": "candidate_unverified",
+      "wave1_accepted": false,
+      "actual_staging_evidence": null,
+      "owner_approval_url": null,
+      "notes": "Local source paths prove files exist at the R13 baseline; they do not certify functionality, completeness, staging or release."
+    }
+  ]
+}
