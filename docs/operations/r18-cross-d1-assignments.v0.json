@@ -1,0 +1,277 @@
+{
+  "schema_version": "0.1.0-draft",
+  "kind": "AI0_R18_CROSS_D1_OFFLINE_PREFLIGHT_NOT_RELEASE_AUTHORITY",
+  "repository": "starry-phd/id",
+  "scope": "starry_only_hglobal_paused",
+  "source": {
+    "verified_integration_pr": 123,
+    "verified_integration_sha": "f84eab58e20377b5bd1ce313b969befb531b4938",
+    "adr_pr": 87,
+    "sop_pr": 70,
+    "release_gate_path": "docs/release-readiness/release-readiness.v0.json"
+  },
+  "status": "draft_not_approved",
+  "decision": {
+    "physical_consistency_architecture": "UNDECIDED",
+    "offline_research_preference": "B_DURABLE_OUTBOX_SAGA",
+    "options": [
+      {
+        "id": "A_SINGLE_STARRY_TRANSACTION_AUTHORITY",
+        "status": "unapproved_candidate"
+      },
+      {
+        "id": "B_DURABLE_OUTBOX_SAGA",
+        "status": "unapproved_candidate"
+      },
+      {
+        "id": "C_SNAPSHOT_READ_THEN_WRITE",
+        "status": "rejected_for_live"
+      }
+    ],
+    "logical_auth_source_candidate": "AI-1_AUTH_COMMITTED_OUTBOX",
+    "unique_live_publisher_approved": false,
+    "canonical_p05_approved": false,
+    "lawful_q104_q119_retention_kms_approved": false,
+    "owner_physical_db_mapping_approved": false,
+    "cross_d1_atomicity_proven": false,
+    "true_exactly_once_proven": false,
+    "rollback_resistant_witness_proven": false
+  },
+  "authorization": {
+    "owner_approval_obtained": false,
+    "live_cloudflare_authorized": false,
+    "store_authorized": false,
+    "eas_authorized": false,
+    "paid_usage_authorized": false,
+    "main_merge_authorized": false,
+    "deployment_authorized": false,
+    "queue_ack_authorized": false,
+    "publishable": false,
+    "hglobal_paused": true
+  },
+  "owners": [
+    {
+      "id": "AI-1",
+      "issue": 2,
+      "last_verified_owner_pr": 120,
+      "path_prefix": "modules/starry-id-v1/",
+      "domain": "auth_committed_source_session_deletion",
+      "r18_task": "離線 Auth committed outbox 身分/租約、刪帳後 Session 撤權、合法版本/假來源與過期租約拒絕；提出簽章政策缺件，不建立正式 Publisher",
+      "negative_cases": [
+        "forged_auth_claim",
+        "stale_auth_lease",
+        "reinstated_member",
+        "missing_lawful_retention"
+      ]
+    },
+    {
+      "id": "AI-2",
+      "issue": 3,
+      "last_verified_owner_pr": 119,
+      "path_prefix": "packages/rebuild-billing/",
+      "domain": "billing_inbox_tombstone_store_rights",
+      "r18_task": "離線 Billing local inbox/entitlement、跨庫部分成功、Store 退款事件逆序與 PITR 不復活；HMAC/key provenance 待決，絕不可自行 ACK 或 grant",
+      "negative_cases": [
+        "pitr_entitlement_resurrection",
+        "late_refund",
+        "foreign_event",
+        "billing_readback_missing"
+      ]
+    },
+    {
+      "id": "AI-3",
+      "issue": 4,
+      "last_verified_owner_pr": 118,
+      "path_prefix": "packages/rebuild-ai3/",
+      "domain": "battery_receipt_wallet_recovery",
+      "r18_task": "離線 Battery 訂正持久收據/法律及政策漂移、Task 先 commit 而 wallet 未更新、恢復缺獨立錨時拒絕；不得提供正式充電或跨域寫入",
+      "negative_cases": [
+        "policy_drift",
+        "receipt_truncated",
+        "pending_wallet_hold",
+        "missing_independent_floor"
+      ]
+    },
+    {
+      "id": "AI-4",
+      "issue": 5,
+      "last_verified_owner_pr": 121,
+      "path_prefix": "apps/api/",
+      "domain": "private_delivery_task_transport",
+      "r18_task": "僅離線模擬 sole-source Queue/DLQ 與部分 fanout、ACK-after-verified-commit 拒絕測試和 Task fence；禁止第二 Publisher、公開 Worker 路由或真 Queue",
+      "negative_cases": [
+        "lost_queue_ack",
+        "partial_sink_commit",
+        "lease_race",
+        "task_release_without_receipt"
+      ]
+    }
+  ],
+  "scenario_matrix": [
+    {
+      "id": "SOURCE_REPLAY",
+      "gate_ids": [
+        "G03-SESSION-D1",
+        "G06-P05"
+      ],
+      "owners": [
+        "AI-1",
+        "AI-4"
+      ],
+      "expected": "blocked",
+      "may_ack_queue": false,
+      "may_regrant": false,
+      "may_restore": false,
+      "live": false
+    },
+    {
+      "id": "SOURCE_LEASE_EXPIRED",
+      "gate_ids": [
+        "G03-SESSION-D1",
+        "G06-P05"
+      ],
+      "owners": [
+        "AI-1",
+        "AI-4"
+      ],
+      "expected": "blocked",
+      "may_ack_queue": false,
+      "may_regrant": false,
+      "may_restore": false,
+      "live": false
+    },
+    {
+      "id": "PARTIAL_SINK_COMMIT",
+      "gate_ids": [
+        "G05-BILLING-D1",
+        "G07-AUDIT-QUEUE"
+      ],
+      "owners": [
+        "AI-2",
+        "AI-3",
+        "AI-4"
+      ],
+      "expected": "retry_or_review_only",
+      "may_ack_queue": false,
+      "may_regrant": false,
+      "may_restore": false,
+      "live": false
+    },
+    {
+      "id": "ACK_LOST_AFTER_COMMIT",
+      "gate_ids": [
+        "G06-P05",
+        "G07-AUDIT-QUEUE"
+      ],
+      "owners": [
+        "AI-3",
+        "AI-4"
+      ],
+      "expected": "retry_or_review_only",
+      "may_ack_queue": false,
+      "may_regrant": false,
+      "may_restore": false,
+      "live": false
+    },
+    {
+      "id": "POLICY_DRIFT_POST_COMMIT",
+      "gate_ids": [
+        "G00-SSOT",
+        "G07-AUDIT-QUEUE"
+      ],
+      "owners": [
+        "AI-1",
+        "AI-3"
+      ],
+      "expected": "review_only",
+      "may_ack_queue": false,
+      "may_regrant": false,
+      "may_restore": false,
+      "live": false
+    },
+    {
+      "id": "PITR_TOMBSTONE_ROLLBACK",
+      "gate_ids": [
+        "G03-SESSION-D1",
+        "G05-BILLING-D1",
+        "G10-OPS"
+      ],
+      "owners": [
+        "AI-1",
+        "AI-2",
+        "AI-3"
+      ],
+      "expected": "review_only",
+      "may_ack_queue": false,
+      "may_regrant": false,
+      "may_restore": false,
+      "live": false
+    },
+    {
+      "id": "TASK_WALLET_RACE",
+      "gate_ids": [
+        "G07-AUDIT-QUEUE",
+        "G08-WORKER-SDK"
+      ],
+      "owners": [
+        "AI-3",
+        "AI-4"
+      ],
+      "expected": "blocked",
+      "may_ack_queue": false,
+      "may_regrant": false,
+      "may_restore": false,
+      "live": false
+    },
+    {
+      "id": "STORE_REFUND_OUT_OF_ORDER",
+      "gate_ids": [
+        "G04-STORE",
+        "G05-BILLING-D1"
+      ],
+      "owners": [
+        "AI-2"
+      ],
+      "expected": "blocked",
+      "may_ack_queue": false,
+      "may_regrant": false,
+      "may_restore": false,
+      "live": false
+    },
+    {
+      "id": "CROSS_BRAND_OR_ENV",
+      "gate_ids": [
+        "G01-ISOLATION",
+        "G06-P05"
+      ],
+      "owners": [
+        "AI-1",
+        "AI-2",
+        "AI-3",
+        "AI-4"
+      ],
+      "expected": "blocked",
+      "may_ack_queue": false,
+      "may_regrant": false,
+      "may_restore": false,
+      "live": false
+    },
+    {
+      "id": "MISSING_EXTERNAL_TRUST_ANCHOR",
+      "gate_ids": [
+        "G07-AUDIT-QUEUE",
+        "G10-OPS"
+      ],
+      "owners": [
+        "AI-1",
+        "AI-2",
+        "AI-3"
+      ],
+      "expected": "review_only",
+      "may_ack_queue": false,
+      "may_regrant": false,
+      "may_restore": false,
+      "live": false
+    }
+  ]
+}
