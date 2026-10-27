@@ -156,7 +156,7 @@ export function createOfflineDualSignedAuditReview(deps:Readonly<{
     if(!v||await crypto.subtle.verify('RSASSA-PKCS1-v1_5',key,v.signature,
       canonicalSignedAuditHeadV1(v.head))!==true)return null;
     const floor=validFloor(await p.head.readProtectedFloor(),s,now);
-    if(!floor||floor.sequence!==v.head.sequence||floor.epoch!==v.head.epoch||
+    if(!floor||floor.observed_ms<v.head.issued_ms||floor.sequence!==v.head.sequence||floor.epoch!==v.head.epoch||
      floor.witness_ref!==v.head.witness_ref||
      floor.head_signature_sha256!==await sha(v.signature))return null;
     return Object.freeze({
