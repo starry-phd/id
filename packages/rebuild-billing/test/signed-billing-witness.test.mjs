@@ -44,7 +44,7 @@ async function setup(x={}){
  };
  const make=(options={})=>createOfflineSignedBillingWitnessVerifier({
   enabled:true,scope,key_id:'billing-key-01',verifyKey:publicKey,backend,...options});
- return {make,publicKey,privateKey,w,envelope,protectedHead,counters,pair};
+ return {make,publicKey,privateKey:pair.privateKey,w,envelope,protectedHead,counters,pair};
 }
 test('valid real RSA2048 signature + two pinned external heads, no mutations',async()=>{
  const a=await setup();
