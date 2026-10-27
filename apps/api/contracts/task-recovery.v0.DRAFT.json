@@ -1,0 +1,52 @@
+{
+  "schema_version": "starry.task-recovery.v0-draft",
+  "source_pr": 76,
+  "source_sha": "e5a3ba76695316b3eaeb218fb0edd901d8820931",
+  "scope": "starry/isolated-test ONLY",
+  "task_recovery_live_enabled": false,
+  "may_restore": false,
+  "transport": "internal-offline-test-only",
+  "algorithm": "SHA-256 canonical length-prefixed per-task content, domain separated v0",
+  "task_fields": [
+    "task_ref",
+    "member_ref",
+    "app_id",
+    "task_type",
+    "policy_version",
+    "rate_version",
+    "price",
+    "proof_revision",
+    "completed_ms",
+    "outcome"
+  ],
+  "max_rows_per_review": 256,
+  "trusted_sources": [
+    "current committed task source",
+    "D1 PITR task source",
+    "independent protected backup task source",
+    "external protected anchor"
+  ],
+  "parallel_gate": "AI-3 Q116 seven high-watermarks plus two independent artifact verification ports, legal hold and operator step-up",
+  "warning": "SHA-256 digest equality is NOT a signature, authenticity, non-replay guarantee or real data recovery approval",
+  "release_gates": {
+    "G00": "BLOCKED",
+    "G01": "BLOCKED",
+    "G02": "BLOCKED",
+    "G03": "BLOCKED",
+    "G04": "BLOCKED",
+    "G05": "BLOCKED",
+    "G06": "BLOCKED",
+    "G07": "BLOCKED",
+    "G08": "BLOCKED",
+    "G09": "BLOCKED",
+    "G10": "BLOCKED"
+  },
+  "remaining": [
+    "real trusted task source and signed/protected anchor durability",
+    "paged atomic snapshot and streaming digest for tasks>256",
+    "legally minimized member_ref pseudonymous data during deletion",
+    "true D1/R2 PITR backup consistency and independent replay reconciliation",
+    "verification of AI-1 member deletion/Session and AI-3 first-gift fencing",
+    "AI-0 retention, cost, privacy, Restore Gate and isolated drill approval"
+  ]
+}
