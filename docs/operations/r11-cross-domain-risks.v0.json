@@ -1,0 +1,112 @@
+{
+  "schema_version": "0.1.0",
+  "kind": "proposal_only_r11_cross_domain_risk_register",
+  "source_pr": 82,
+  "source_sha": "f1eb5f0655cfdf8c9648ff6d004deed980fbc5d7",
+  "scope": "starry_only",
+  "hglobal_paused": true,
+  "release_authorized": false,
+  "staging_authorized": false,
+  "risk_items": [
+    {
+      "id": "R11-XDB-FIRST-GIFT",
+      "owners": [
+        "AI-0",
+        "AI-1",
+        "AI-3"
+      ],
+      "gate_ids": [
+        "G03-SESSION-D1",
+        "G10-OPS"
+      ],
+      "approval": "Q104/Q119 privacy and first gift uniqueness",
+      "missing": "durable claim and wallet receipt across authority boundary",
+      "status": "blocked",
+      "approved": false
+    },
+    {
+      "id": "R11-XDB-TASK",
+      "owners": [
+        "AI-1",
+        "AI-3",
+        "AI-4"
+      ],
+      "gate_ids": [
+        "G03-SESSION-D1",
+        "G08-WORKER-SDK"
+      ],
+      "approval": "true cross-db settlement architecture and battery parameters",
+      "missing": "committed task identity proof and Wallet cross-boundary recovery",
+      "status": "blocked",
+      "approved": false
+    },
+    {
+      "id": "R11-RECOVERY",
+      "owners": [
+        "AI-0",
+        "AI-1",
+        "AI-2",
+        "AI-3",
+        "AI-4"
+      ],
+      "gate_ids": [
+        "G07-AUDIT-QUEUE",
+        "G10-OPS"
+      ],
+      "approval": "legal recovery and protected independent backup",
+      "missing": "non-rollbackable authenticated witness and per-record restore checks",
+      "status": "blocked",
+      "approved": false
+    },
+    {
+      "id": "R11-BILLING-P05",
+      "owners": [
+        "AI-0",
+        "AI-2",
+        "AI-3"
+      ],
+      "gate_ids": [
+        "G04-STORE",
+        "G05-BILLING-D1",
+        "G06-P05"
+      ],
+      "approval": "official Store sandbox and approved P05 contract",
+      "missing": "real committed outbox and retry-safe queue acknowledgment",
+      "status": "blocked",
+      "approved": false
+    },
+    {
+      "id": "R11-PRIVACY",
+      "owners": [
+        "AI-0",
+        "AI-1",
+        "AI-3"
+      ],
+      "gate_ids": [
+        "G00-SSOT",
+        "G10-OPS"
+      ],
+      "approval": "Q104/Q119 lawful retention erasure and consent",
+      "missing": "approved privacy rights and pseudonymous claim policy",
+      "status": "blocked",
+      "approved": false
+    },
+    {
+      "id": "R11-ENV-PRODUCT",
+      "owners": [
+        "AI-0",
+        "AI-2",
+        "AI-4"
+      ],
+      "gate_ids": [
+        "G01-ISOLATION",
+        "G09-DEVICES",
+        "G10-OPS"
+      ],
+      "approval": "first consumer App, native IDs, cost and staging",
+      "missing": "approved environment inventory, device and billing proof",
+      "status": "blocked",
+      "approved": false
+    }
+  ]
+}
