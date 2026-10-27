@@ -99,6 +99,20 @@ class BatteryDeletion(unittest.TestCase):
   self.assertEqual(self.db.execute("SELECT name FROM sqlite_master WHERE name LIKE '%billing%' OR name LIKE '%hglobal%'").fetchall(),[])
   self.apply()
   self.assertEqual(self.wallet(),(0,1,3,0))
+ def test_deleted_member_journal_cannot_append_any_fake_grant(self):
+  self.apply()
+  with self.assertRaises(sqlite3.IntegrityError):
+   self.db.execute("INSERT INTO ai3_battery_journal VALUES"
+    "('starry','member_1',4,'forged_grant','first_task_grant',50,50,'FIRST_TASK_PAID',1,6000)")
+  self.assertEqual(self.journal_count(),3)
+ def test_deleted_member_cannot_create_or_restage_hold(self):
+  self.apply()
+  with self.assertRaises(sqlite3.IntegrityError):
+   self.db.execute("INSERT INTO ai3_battery_hold VALUES"
+    "('starry','member_1','task_2','starry-ai','chat',7,1,1,2000,182000,'held')")
+  with self.assertRaises(sqlite3.IntegrityError):
+   self.db.execute("UPDATE ai3_battery_hold SET status='held' WHERE task_ref='task_1'")
+  self.assertEqual(self.hold(),'revoked')
  def test_deleted_member_registry_survives_battery_revoke_with_no_regrant(self):
   self.apply()
   with self.assertRaises(sqlite3.IntegrityError):

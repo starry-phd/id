@@ -14,6 +14,28 @@ CREATE TABLE ai3_r14_deletion_inbox (
  applied INTEGER NOT NULL DEFAULT 0 CHECK(applied IN (0,1)),
  PRIMARY KEY(brand_id,environment,event_id)
 );
+-- Revoked Member must not receive new ledger entries / new holds or silently
+-- re-stage revoked holds. These prevent bypassing wallet UPDATE guards by
+-- writing directly to lower-level Battery tables.
+CREATE TRIGGER ai3_r14_journal_no_post_revoke BEFORE INSERT ON ai3_battery_journal
+ WHEN EXISTS(
+  SELECT 1 FROM ai3_battery_wallet
+   WHERE member_ref=NEW.member_ref AND brand_id='starry' AND revoked=1
+ )
+ BEGIN SELECT RAISE(ABORT,'BATTERY_POST_DELETE_JOURNAL_DENIED'); END;
+CREATE TRIGGER ai3_r14_hold_no_post_revoke_insert BEFORE INSERT ON ai3_battery_hold
+ WHEN EXISTS(
+  SELECT 1 FROM ai3_battery_wallet
+   WHERE member_ref=NEW.member_ref AND brand_id='starry' AND revoked=1
+ )
+ BEGIN SELECT RAISE(ABORT,'BATTERY_POST_DELETE_HOLD_DENIED'); END;
+CREATE TRIGGER ai3_r14_hold_no_post_revoke_update BEFORE UPDATE ON ai3_battery_hold
+ WHEN EXISTS(
+  SELECT 1 FROM ai3_battery_wallet
+   WHERE member_ref=OLD.member_ref AND brand_id='starry' AND revoked=1
+ )
+ BEGIN SELECT RAISE(ABORT,'BATTERY_REVOKED_HOLD_IMMUTABLE'); END;
+
 -- A spent Member tombstone is NOT revivable by any future wallet update.
 CREATE TRIGGER ai3_r14_wallet_no_unrevoke BEFORE UPDATE ON ai3_battery_wallet
  WHEN OLD.revoked=1
