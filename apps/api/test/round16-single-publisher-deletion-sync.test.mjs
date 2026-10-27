@@ -193,7 +193,7 @@ test('R16 event/member uniqueness forbids competing publisher for same deleted i
   assert.throws(()=>f.coordinator.prepare(`INSERT INTO ai4_r16_delivery_journal
     VALUES ('staging','delete_other_00000000000000000','m01',1700000040,2,'leased','abcdef',1700000060)`).run(),/UNIQUE/);
   assert.throws(()=>f.coordinator.exec('DELETE FROM ai4_r16_delivery_journal'),/RETENTION_GATE/);
-  assert.throws(()=>f.coordinator.exec("UPDATE ai4_r16_delivery_journal SET status='leased'"),/IMMUTABLE/);
+  assert.throws(()=>f.coordinator.exec("UPDATE ai4_r16_delivery_journal SET leased_until_sec=1"),/IMMUTABLE/);
  }finally{f.close()}
 });
 test('R16 Auth source changes between sink and post-commit check: no local completion or ACK',async()=>{
