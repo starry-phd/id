@@ -35,11 +35,22 @@ async function fixture(overrides={}){
  const {w,head}=await evidence();
  let readCounts=0,privacyCalls=0,dbCalls=0,signCalls=0;
  const source={events:[fresh(event)],count:1,head,w,...overrides};
- const db={prepare(sql){dbCalls++;return {bind(){return {
-  async first(){readCounts++;return {total:typeof source.count==='function'?
-   source.count(readCounts):source.count}},
-  async all(){return {results:source.events}},
-  }};}}};
+ const db={
+  prepare(_sql){
+   dbCalls++;
+   return {
+    bind(){
+     return {
+      async first(){
+       readCounts++;
+       return {total:typeof source.count==='function'?source.count(readCounts):source.count};
+      },
+      async all(){return {results:source.events};},
+     };
+    },
+   };
+  },
+ };
  const ports={
   async privacyApprovedNow(){privacyCalls++;return true},
   async legalHoldNow(){return 'clear'},
