@@ -64,8 +64,11 @@ function parsedEnvelope(v:unknown,scope:TrustedScope,w:IndependentAuthCheckpoint
  if(!a||!COUNT_FIELDS.every(k=>a[k]===w.counters[k]))return null;
  if(typeof p.signature!=='string'||!/^[A-Za-z0-9_-]{256,1024}$/.test(p.signature))return null;
  // A non-canonical base64url string must not identify the same signed bytes.
- const sig=Uint8Array.from(Buffer.from(p.signature,'base64url'));
- if(Buffer.from(sig).toString('base64url')!==p.signature)return null;
+ const normalizedBase64=p.signature.replace(/-/g,'+').replace(/_/g,'/');
+ const decoded=atob(normalizedBase64+'='.repeat((4-normalizedBase64.length%4)%4));
+ const sig=Uint8Array.from(decoded,c=>c.charCodeAt(0));
+ const canonical=btoa(decoded).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+ if(canonical!==p.signature)return null;
  const payload:Object=Object.freeze({
   version:1,brand_id:'starry',environment:scope.environment,
   source:'independent_append_only',witness_ref:w.witness_ref,
