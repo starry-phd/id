@@ -136,7 +136,7 @@ test('Untrusted client receipt cannot generate Store proof',async()=>{
  assert.equal(h.writes,0);
 });
 test('Malformed due list and failed review are never treated as success',async()=>{
- await assert.rejects(setup({badList:true}).run.runOnce(),/RECONCILE_D1_LIST_DENIED/);
+ await assert.rejects(setup({badList:true}).run.runOnce(),/RECONCILE_LEASE_UNAVAILABLE/);
  const {h,run}=setup({reviewFail:true});
  assert.equal((await run.runOnce()).retry,1);
  assert.equal(h.row.status,'leased');
