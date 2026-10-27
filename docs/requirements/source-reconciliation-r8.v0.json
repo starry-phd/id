@@ -1,0 +1,2983 @@
+{
+  "schema_version": "r8.0-draft-heading-coverage",
+  "created_on": "2026-10-27",
+  "document_type": "128_row_annotated_heading_index_NOT_full_semantic_review",
+  "source": "docs/requirements/original-inventory.v0.json",
+  "source_sha": "7a3131bc1a92d73145091a8bae51cb4aa135780c",
+  "authority": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+  "r7_integration": "https://github.com/starry-phd/id/pull/64",
+  "r7_fixed_sha": "e7ccf86483f1ea5515ac31b227f710d292289b4d",
+  "reconciliation_method": "Source heading matched to a decision/status category. Full source clause text/DEV-A–I conflict review and acceptance evidence still pending; no row can be marked Gate complete by this artifact.",
+  "release_gate": "BLOCKED",
+  "source_clause_reconciled_count": 0,
+  "entries": [
+    {
+      "source_id": "P01",
+      "source_title": "App 統一識別與目錄",
+      "section": "admin_prep",
+      "owner": "AI-0+AI-1/2/3/4",
+      "brand_scope": "starry_planning_with_brand_isolation",
+      "candidate_feature_ids": [
+        "OPS-001",
+        "AUDIT-001",
+        "API-001"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "ADMIN-PREP-13"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "第一波核准接入準備；真端點、版本、管理事件、監控成本、CI及發行證據仍需逐項驗收。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "P02",
+      "source_title": "OpenAPI 3.x 與版本治理",
+      "section": "admin_prep",
+      "owner": "AI-0+AI-1/2/3/4",
+      "brand_scope": "starry_planning_with_brand_isolation",
+      "candidate_feature_ids": [
+        "OPS-001",
+        "AUDIT-001",
+        "API-001"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "ADMIN-PREP-13"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "第一波核准接入準備；真端點、版本、管理事件、監控成本、CI及發行證據仍需逐項驗收。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "P03",
+      "source_title": "受保護的管理專用 API",
+      "section": "admin_prep",
+      "owner": "AI-0+AI-1/2/3/4",
+      "brand_scope": "starry_planning_with_brand_isolation",
+      "candidate_feature_ids": [
+        "OPS-001",
+        "AUDIT-001",
+        "API-001"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "ADMIN-PREP-13"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "第一波核准接入準備；真端點、版本、管理事件、監控成本、CI及發行證據仍需逐項驗收。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "P04",
+      "source_title": "管理員權限與高風險核准",
+      "section": "admin_prep",
+      "owner": "AI-0+AI-1/2/3/4",
+      "brand_scope": "starry_planning_with_brand_isolation",
+      "candidate_feature_ids": [
+        "OPS-001",
+        "AUDIT-001",
+        "API-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q98=B",
+        "Q122=B",
+        "ADMIN-PREP-13"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Starry 一位受保護最高管理員＋分級授權；強化驗證及稽核；H-Global 兩位最高管理者不適用 Starry。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "P05",
+      "source_title": "統一事件格式與可追蹤工作流程",
+      "section": "admin_prep",
+      "owner": "AI-0+AI-1/2/3/4",
+      "brand_scope": "starry_planning_with_brand_isolation",
+      "candidate_feature_ids": [
+        "OPS-001",
+        "AUDIT-001",
+        "API-001"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "ADMIN-PREP-13"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "第一波核准接入準備；真端點、版本、管理事件、監控成本、CI及發行證據仍需逐項驗收。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "P06",
+      "source_title": "統一稽核資料",
+      "section": "admin_prep",
+      "owner": "AI-0+AI-1/2/3/4",
+      "brand_scope": "starry_planning_with_brand_isolation",
+      "candidate_feature_ids": [
+        "OPS-001",
+        "AUDIT-001",
+        "API-001"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "ADMIN-PREP-13"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "第一波核准接入準備；真端點、版本、管理事件、監控成本、CI及發行證據仍需逐項驗收。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "P07",
+      "source_title": "健康監控與可靠性",
+      "section": "admin_prep",
+      "owner": "AI-0+AI-1/2/3/4",
+      "brand_scope": "starry_planning_with_brand_isolation",
+      "candidate_feature_ids": [
+        "OPS-001",
+        "AUDIT-001",
+        "API-001"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "ADMIN-PREP-13"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "第一波核准接入準備；真端點、版本、管理事件、監控成本、CI及發行證據仍需逐項驗收。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "P08",
+      "source_title": "成本歸屬與可對帳使用量",
+      "section": "admin_prep",
+      "owner": "AI-0+AI-1/2/3/4",
+      "brand_scope": "starry_planning_with_brand_isolation",
+      "candidate_feature_ids": [
+        "OPS-001",
+        "AUDIT-001",
+        "API-001"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "ADMIN-PREP-13"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "第一波核准接入準備；真端點、版本、管理事件、監控成本、CI及發行證據仍需逐項驗收。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "P09",
+      "source_title": "GitHub、測試與部署證據",
+      "section": "admin_prep",
+      "owner": "AI-0+AI-1/2/3/4",
+      "brand_scope": "starry_planning_with_brand_isolation",
+      "candidate_feature_ids": [
+        "OPS-001",
+        "AUDIT-001",
+        "API-001"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "ADMIN-PREP-13"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "第一波核准接入準備；真端點、版本、管理事件、監控成本、CI及發行證據仍需逐項驗收。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "P10",
+      "source_title": "設定版本與功能開關",
+      "section": "admin_prep",
+      "owner": "AI-0+AI-1/2/3/4",
+      "brand_scope": "starry_planning_with_brand_isolation",
+      "candidate_feature_ids": [
+        "OPS-001",
+        "AUDIT-001",
+        "API-001"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "ADMIN-PREP-13"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "第一波核准接入準備；真端點、版本、管理事件、監控成本、CI及發行證據仍需逐項驗收。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "01.01",
+      "source_title": "Google 登入",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-001",
+        "AUTH-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q18=A",
+        "Q19=A",
+        "Q1=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Starry 僅 Google/Apple；後端 OIDC/PKCE、官方來源及綁定安全，正式 provider 未驗收。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "01.02",
+      "source_title": "Apple 登入及帳號綁定",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-001",
+        "AUTH-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q18=A",
+        "Q19=A",
+        "Q1=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Starry 僅 Google/Apple；後端 OIDC/PKCE、官方來源及綁定安全，正式 provider 未驗收。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "01.03",
+      "source_title": "唯一會員識別碼",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-001",
+        "AUTH-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q23=A",
+        "N02"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Starry 自有不可變 user ID／公開 ST ID；與 H-Global 完全獨立。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "01.04",
+      "source_title": "登入狀態及 Session",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-001",
+        "AUTH-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q20=B",
+        "Q21=A",
+        "Q22=D"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "保留安全 Session、裝置登出及安全撤權；不採強制閒置登出。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "01.05",
+      "source_title": "跨品牌登入與一般登出界線",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-001",
+        "AUTH-001"
+      ],
+      "decision_class": "superseded_by_latest",
+      "decision_refs": [
+        "Q20=B",
+        "N02"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "跨品牌單一登入舊推定已被雙獨立 Auth 取代；Starry 登出限本生態系。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "01.06",
+      "source_title": "一鍵登出所有裝置",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-001",
+        "AUTH-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q3=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "本人可登出全部 Starry 裝置，需伺服器撤權驗收。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "01.07",
+      "source_title": "同裝置家庭成員切換",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-001",
+        "AUTH-001"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q2=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "同裝置家庭切換沿用早期核准方向，需比對原規格的私密 Session/共用裝置安全條款。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "01.08",
+      "source_title": "登入協助與帳號救援",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-001",
+        "AUTH-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q4=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "本人帳號救援方向已核准，實機及風險驗收未完成。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "01.09",
+      "source_title": "Starry 舊站相容與帳號認領",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-001",
+        "AUTH-001"
+      ],
+      "decision_class": "superseded_by_latest",
+      "decision_refs": [
+        "Q1=A",
+        "12.06"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "全新專案從零開發，舊站帳號認領/遷移不是第一波必做，不可接老資料。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "02.01",
+      "source_title": "基本個人資料",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q5=A",
+        "Q13=B"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Starry 本人會員基本資料與明確儲存；安全合法欄位逐一確認。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "02.02",
+      "source_title": "手機號碼管理",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-002"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q5=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "電話號碼規則須另核對前期已確認的全域唯一、隱藏與驗證範圍；不推定可公開。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "02.03",
+      "source_title": "頭像裁切與壓縮",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q14=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "頭像裁切／上傳需合法私有存取與端側安全。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "02.04",
+      "source_title": "生日與衍生資訊",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-002"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q93=A",
+        "Q106=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "18+ 自述風險驗證與會員生日公開屬不同用途；不得由年齡預檢推定生日個資公開。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62",
+        "https://github.com/starry-phd/id/pull/61"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "02.05",
+      "source_title": "座右銘輸入與隨機提案",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-002"
+      ],
+      "decision_class": "candidate_no_owner_approval",
+      "decision_refs": [],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "座右銘與隨機提案未見本次 Owner 正式明確核准；舊 heading 不等於首期 Scope。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "02.06",
+      "source_title": "兩組安麗背景選項",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "hglobal_paused",
+      "candidate_feature_ids": [
+        "ID-S-002"
+      ],
+      "decision_class": "hglobal_paused",
+      "decision_refs": [
+        "N03",
+        "Q87=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "安麗背景選項屬 H-Global 舊欄位，不自動保存在 Starry 或啟用跨系 API。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "02.07",
+      "source_title": "逐欄編輯與自動儲存",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-002"
+      ],
+      "decision_class": "superseded_by_latest",
+      "decision_refs": [
+        "Q13=B"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "原『自動儲存』被 Q13=B 明確按儲存取代，不能從舊清單恢復 autosave。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "02.08",
+      "source_title": "多人同時編輯衝突",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q15=B"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "最後成功存檔者優先，但需防非本人／跨品牌覆蓋。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "02.09",
+      "source_title": "欄位公開與隱藏",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q6=C",
+        "Q7=C",
+        "Q17=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Starry 已登入可見姓名頭像；OAuth Email 私有唯讀；細欄可見性不得從舊公開名片推定。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "02.10",
+      "source_title": "會員欄位最後更動資訊",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q16=B"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "顯示整體最後更新時間，非逐欄完整歷史。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "03.01",
+      "source_title": "個人電子名片",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-002"
+      ],
+      "decision_class": "deferred_from_first_release",
+      "decision_refs": [
+        "Q9=C",
+        "Q10=deferred",
+        "Q12=B"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "本階段不建立公開電子名片／QR vCard／公開個人路由；此題不是永遠刪除。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "03.02",
+      "source_title": "名片 QR Code 與 vCard",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-002"
+      ],
+      "decision_class": "deferred_from_first_release",
+      "decision_refs": [
+        "Q9=C",
+        "Q10=deferred",
+        "Q12=B"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "本階段不建立公開電子名片／QR vCard／公開個人路由；此題不是永遠刪除。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "03.03",
+      "source_title": "公開名片路由規則",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-002"
+      ],
+      "decision_class": "deferred_from_first_release",
+      "decision_refs": [
+        "Q9=C",
+        "Q10=deferred",
+        "Q12=B"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "本階段不建立公開電子名片／QR vCard／公開個人路由；此題不是永遠刪除。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "03.04",
+      "source_title": "會員搜尋名錄",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q8=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "只讓已登入會員搜尋；需後端身份／最小搜尋欄位。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "03.05",
+      "source_title": "SEO 與公開隱私界線",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "ID-S-002"
+      ],
+      "decision_class": "superseded_by_latest",
+      "decision_refs": [
+        "Q12=B",
+        "Q17=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "舊 SEO/公開名片可能暴露個資，Starry 目前不採公開搜尋名片或 Email。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "03.06",
+      "source_title": "安麗 7 位編號",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "hglobal_paused",
+      "candidate_feature_ids": [
+        "ID-S-002"
+      ],
+      "decision_class": "hglobal_paused",
+      "decision_refs": [
+        "Q24=A",
+        "Q29=A_MODIFIED",
+        "Q30=A",
+        "Q87=A",
+        "N03"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "安麗 7 碼/夫妻/推薦上下線歸 H-Global 權威；Starry 只能未來經核准 API 動態存取，現時停用。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "03.07",
+      "source_title": "夫妻共用編號及關聯",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "hglobal_paused",
+      "candidate_feature_ids": [
+        "ID-S-002"
+      ],
+      "decision_class": "hglobal_paused",
+      "decision_refs": [
+        "Q24=A",
+        "Q29=A_MODIFIED",
+        "Q30=A",
+        "Q87=A",
+        "N03"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "安麗 7 碼/夫妻/推薦上下線歸 H-Global 權威；Starry 只能未來經核准 API 動態存取，現時停用。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "03.08",
+      "source_title": "夫妻解除綁定與網址保留",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "hglobal_paused",
+      "candidate_feature_ids": [
+        "ID-S-002"
+      ],
+      "decision_class": "hglobal_paused",
+      "decision_refs": [
+        "Q24=A",
+        "Q29=A_MODIFIED",
+        "Q30=A",
+        "Q87=A",
+        "N03"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "安麗 7 碼/夫妻/推薦上下線歸 H-Global 權威；Starry 只能未來經核准 API 動態存取，現時停用。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "03.09",
+      "source_title": "推薦人、上手白金與上手鑽石",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "hglobal_paused",
+      "candidate_feature_ids": [
+        "ID-S-002"
+      ],
+      "decision_class": "hglobal_paused",
+      "decision_refs": [
+        "Q24=A",
+        "Q29=A_MODIFIED",
+        "Q30=A",
+        "Q87=A",
+        "N03"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "安麗 7 碼/夫妻/推薦上下線歸 H-Global 權威；Starry 只能未來經核准 API 動態存取，現時停用。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "04.01",
+      "source_title": "會員系統分類",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "hglobal_paused",
+      "candidate_feature_ids": [
+        "ID-H-002",
+        "SYNC-001"
+      ],
+      "decision_class": "hglobal_paused",
+      "decision_refs": [
+        "N01",
+        "N02",
+        "Q87=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "H-Global 系統／教育中心／獎銜／審核／職務權威全部暫停開發；不可自動成為 Starry 需求。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "04.02",
+      "source_title": "H-Global 會員資料編輯入口",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "hglobal_paused",
+      "candidate_feature_ids": [
+        "ID-H-002",
+        "SYNC-001"
+      ],
+      "decision_class": "hglobal_paused",
+      "decision_refs": [
+        "N01",
+        "N02",
+        "Q87=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "H-Global 系統／教育中心／獎銜／審核／職務權威全部暫停開發；不可自動成為 Starry 需求。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "04.03",
+      "source_title": "30 個寰宇教育中心",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "hglobal_paused",
+      "candidate_feature_ids": [
+        "ID-H-002",
+        "SYNC-001"
+      ],
+      "decision_class": "hglobal_paused",
+      "decision_refs": [
+        "N01",
+        "N02",
+        "Q87=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "H-Global 系統／教育中心／獎銜／審核／職務權威全部暫停開發；不可自動成為 Starry 需求。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "04.04",
+      "source_title": "教育中心更新立即生效",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "hglobal_paused",
+      "candidate_feature_ids": [
+        "ID-H-002",
+        "SYNC-001"
+      ],
+      "decision_class": "hglobal_paused",
+      "decision_refs": [
+        "N01",
+        "N02",
+        "Q87=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "H-Global 系統／教育中心／獎銜／審核／職務權威全部暫停開發；不可自動成為 Starry 需求。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "04.05",
+      "source_title": "43 階獎銜清單",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "hglobal_paused",
+      "candidate_feature_ids": [
+        "ID-H-002",
+        "SYNC-001"
+      ],
+      "decision_class": "hglobal_paused",
+      "decision_refs": [
+        "N01",
+        "N02",
+        "Q87=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "H-Global 系統／教育中心／獎銜／審核／職務權威全部暫停開發；不可自動成為 Starry 需求。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "04.06",
+      "source_title": "獎銜申報與待審案件",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "hglobal_paused",
+      "candidate_feature_ids": [
+        "ID-H-002",
+        "SYNC-001"
+      ],
+      "decision_class": "hglobal_paused",
+      "decision_refs": [
+        "N01",
+        "N02",
+        "Q87=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "H-Global 系統／教育中心／獎銜／審核／職務權威全部暫停開發；不可自動成為 Starry 需求。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "04.07",
+      "source_title": "審核補件、駁回與紀錄",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "hglobal_paused",
+      "candidate_feature_ids": [
+        "ID-H-002",
+        "SYNC-001"
+      ],
+      "decision_class": "hglobal_paused",
+      "decision_refs": [
+        "N01",
+        "N02",
+        "Q87=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "H-Global 系統／教育中心／獎銜／審核／職務權威全部暫停開發；不可自動成為 Starry 需求。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "04.08",
+      "source_title": "會員資格與職務分離",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "hglobal_paused",
+      "candidate_feature_ids": [
+        "ID-H-002",
+        "SYNC-001"
+      ],
+      "decision_class": "hglobal_paused",
+      "decision_refs": [
+        "N01",
+        "N02",
+        "Q87=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "H-Global 系統／教育中心／獎銜／審核／職務權威全部暫停開發；不可自動成為 Starry 需求。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "05.01",
+      "source_title": "兩名最高管理者",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "OPS-001",
+        "ID-S-002"
+      ],
+      "decision_class": "superseded_by_latest",
+      "decision_refs": [
+        "Q122=B"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "『兩名最高管理者』屬 H-Global；Starry 決議單名最高管理員＋分級管理。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "05.02",
+      "source_title": "一般中心審核員",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "hglobal_paused",
+      "candidate_feature_ids": [
+        "OPS-001",
+        "ID-S-002"
+      ],
+      "decision_class": "hglobal_paused",
+      "decision_refs": [
+        "Q122=B",
+        "N02"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "H-Global 中心審核員／普通職務不得直接映射成 Starry 管理權限。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "05.03",
+      "source_title": "普通職務授權",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "hglobal_paused",
+      "candidate_feature_ids": [
+        "OPS-001",
+        "ID-S-002"
+      ],
+      "decision_class": "hglobal_paused",
+      "decision_refs": [
+        "Q122=B",
+        "N02"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "H-Global 中心審核員／普通職務不得直接映射成 Starry 管理權限。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "05.04",
+      "source_title": "逐次後端授權與操作阻擋",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "OPS-001",
+        "ID-S-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q98=B",
+        "Q122=B"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Starry 管理操作由後端最小權限＋新鮮 step-up＋完整稽核；delegated 權限仍需細分。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "05.05",
+      "source_title": "暫時停權",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "OPS-001",
+        "ID-S-002"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q88=A",
+        "Q98=B"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Starry 會員停權/解除與登入 session/auth_version 需原子撤權；不得繼承 H-Global 恢復獎銜/職務規則。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "05.06",
+      "source_title": "人工復權",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "OPS-001",
+        "ID-S-002"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q88=A",
+        "Q98=B"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Starry 會員停權/解除與登入 session/auth_version 需原子撤權；不得繼承 H-Global 恢復獎銜/職務規則。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "05.07",
+      "source_title": "App 個別封鎖與恢復",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "OPS-001",
+        "ID-S-002"
+      ],
+      "decision_class": "ai_proposal_gate_pending",
+      "decision_refs": [
+        "Q123=AI_PROPOSAL"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "每 App 普通封鎖／整個 ID 重大停權是 AI Gate 提案，非業主逐題選定。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "05.08",
+      "source_title": "永久刪除會員帳號",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "OPS-001",
+        "ID-S-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q88=A",
+        "Q97=A",
+        "Q102=C",
+        "Q119=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Starry 刪帳即停用帳號/權益、可重新註冊新 ID、舊電池不回復；防重留存及 Store 恢復仍需 Privacy/Store Gate。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62",
+        "https://github.com/starry-phd/id/pull/60",
+        "https://github.com/starry-phd/id/pull/63",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "05.09",
+      "source_title": "本人與管理端資料查閱",
+      "section": "legacy_function",
+      "owner": "AI-1",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "OPS-001",
+        "ID-S-002"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q5=A",
+        "Q17=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "本人查詢與最小授權管理操作；管理查詢不可越過隱私遮罩。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "06.01",
+      "source_title": "每款 App 獨立登記",
+      "section": "legacy_function",
+      "owner": "AI-4",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "API-001",
+        "SYS-002"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "P01",
+        "Q105=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "各 App/環境/品牌註冊分離；Starry ID 是共用服務非獨立商店 App。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/61"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "06.02",
+      "source_title": "中央／身分 API",
+      "section": "legacy_function",
+      "owner": "AI-4",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "API-001",
+        "SYS-002"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "N02",
+        "Q103=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Starry 中央 Auth/API 自建；跨品牌身份 API 在 H-Global 暫停時完全禁用。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/61",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "06.03",
+      "source_title": "會員停權、Token 與 App 權限連動",
+      "section": "legacy_function",
+      "owner": "AI-4",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "API-001",
+        "SYS-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q88=A",
+        "Q117=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Session、App 權限、會員狀態須後端重新驗證／故障安全拒絕。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62",
+        "https://github.com/starry-phd/id/pull/61"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "06.04",
+      "source_title": "App 獨立停用與恢復",
+      "section": "legacy_function",
+      "owner": "AI-4",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "API-001",
+        "SYS-002"
+      ],
+      "decision_class": "ai_proposal_gate_pending",
+      "decision_refs": [
+        "Q124=AI_PROPOSAL"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "單款 App Kill Switch 與全系重大事故開關是 AI 建議，待正式 Gate；禁止舊系統直接啟用。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "06.05",
+      "source_title": "OpenAPI 正式規格與共用 SDK",
+      "section": "legacy_function",
+      "owner": "AI-4",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "API-001",
+        "SYS-002"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "P02",
+        "P09"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "OpenAPI/SDK/相容版本要有驗證與實作；當前公開 Worker 仍以健康端點為主。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/61",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "06.06",
+      "source_title": "API 變更通知及相容版本",
+      "section": "legacy_function",
+      "owner": "AI-4",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "API-001",
+        "SYS-002"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "P02",
+        "P09"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "OpenAPI/SDK/相容版本要有驗證與實作；當前公開 Worker 仍以健康端點為主。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/61",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "06.07",
+      "source_title": "資料同步及編輯衝突保護",
+      "section": "legacy_function",
+      "owner": "AI-4",
+      "brand_scope": "hglobal_paused",
+      "candidate_feature_ids": [
+        "API-001",
+        "SYS-002"
+      ],
+      "decision_class": "hglobal_paused",
+      "decision_refs": [
+        "Q87=A",
+        "N04",
+        "Q104=PENDING"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "H-Global 指定欄位的動態查詢／修改未啟動；Starry 不保存 H-Global 欄位值；資料同意需合法處理。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "06.08",
+      "source_title": "跨 App API 故障時行為",
+      "section": "legacy_function",
+      "owner": "AI-4",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "API-001",
+        "SYS-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q117=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Auth/API 不可用時敏感操作 fail-closed，無身份要求的健康/公開功能可保留。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/61",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "06.09",
+      "source_title": "安全限流與故障隔離",
+      "section": "legacy_function",
+      "owner": "AI-4",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "API-001",
+        "SYS-002"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q117=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Rate limit/Queue/故障隔離技術應由 AI-4/AI-3 以實際應用量測驗收。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "07.01",
+      "source_title": "永久免費、不出售電池",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BAT-001",
+        "BAT-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q86=B",
+        "Q89=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Starry 免費 Battery 跨 Starry Apps 共用、不得出售／付費兌換、不過期。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/63",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "07.02",
+      "source_title": "Starry 限定服務（舊「共用錢包」功能待你審核）",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BAT-001",
+        "BAT-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q86=B",
+        "Q89=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Starry 免費 Battery 跨 Starry Apps 共用、不得出售／付費兌換、不過期。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/63",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "07.03",
+      "source_title": "免費註冊及首次符合資格贈送",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BAT-001",
+        "BAT-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q90=A",
+        "Q109=A",
+        "Q110=A",
+        "Q119=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "註冊送 X＋首次完成合法 AI 任務送 Y， X/Y 由受權者版本化設定，刪帳重註不能重領首次贈送；尚缺合法去重證據/數額。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/63",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "07.04",
+      "source_title": "其他免費贈送與安全補發",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BAT-001",
+        "BAT-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q110=A",
+        "Q112=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "授權管理員受限免費補發／帳本更正，step-up、原因、不可改寫歷史。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/63",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "07.05",
+      "source_title": "餘額與交易查詢",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BAT-001",
+        "BAT-002"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q86=B"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "本人可查餘額與必要交易資料，不能查他人的錢包；正式 API/權限及保留期限待 Gate。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/63"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "07.06",
+      "source_title": "AI 任務先預留",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BAT-001",
+        "BAT-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q91=A",
+        "Q99=C",
+        "Q101=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "每 App/任務固定定價，原子預留，3 分鐘 TTL；真 task 驗證與 Cloudflare D1 CAS 待 Gate。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/63",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "07.07",
+      "source_title": "成功扣款、失敗全退",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BAT-001",
+        "BAT-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q91=A",
+        "Q101=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "成功扣抵/失敗全退、逾時釋放、遲到不重新扣；離線實作已驗，真分散故障待 Gate。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/63",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "07.08",
+      "source_title": "到期月份與 FEFO",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BAT-001",
+        "BAT-002"
+      ],
+      "decision_class": "superseded_by_latest",
+      "decision_refs": [
+        "Q89=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "舊兩年月底到期＋FEFO 被免費電池永不過期新決議明確取代；不得當需求。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/63"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "07.09",
+      "source_title": "負數兩次／欠款優先清償",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BAT-001",
+        "BAT-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q92=B",
+        "Q100=B",
+        "Q111=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "至多兩次受控透支，清償後恢復，單次以合法任務為限，欠額上限尚未核准。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/63",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "07.10",
+      "source_title": "到期提醒與歷史封存",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BAT-001",
+        "BAT-002"
+      ],
+      "decision_class": "superseded_by_latest",
+      "decision_refs": [
+        "Q89=A",
+        "Q115=A",
+        "Q121=AI_PROPOSAL"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "到期提醒被永不過期取代；歷史封存與稽核保留仍需合法 Gate（D1 一年/R2 為 AI 提案）。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "07.11",
+      "source_title": "Battery 私有 Gateway/Engine",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BAT-001",
+        "BAT-002"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q86=B",
+        "Q91=A",
+        "Q117=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "免費 Battery 由可信私有 Gateway/Engine 唯一寫入；offline domain code 非真 D1/Queue/Worker API。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/63",
+        "https://github.com/starry-phd/id/pull/61",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "08.01",
+      "source_title": "兩大生態系 Billing 實體分庫",
+      "section": "legacy_function",
+      "owner": "AI-2",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BILL-001",
+        "BILL-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "N01",
+        "SYS-001"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Starry/H-Global Billing 法律與資料隔離，H-Global 不在本 Repo 實作。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/60"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "08.02",
+      "source_title": "每款 App 自己的商品政策",
+      "section": "legacy_function",
+      "owner": "AI-2",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BILL-001",
+        "BILL-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q96=C",
+        "Q125=B"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "跨 App 權益預設獨立，明確 SKU 可共用；跨 iOS/Android 另依 SKU/商店政策。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/60",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "08.03",
+      "source_title": "Apple App Store 內購",
+      "section": "legacy_function",
+      "owner": "AI-2",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BILL-001",
+        "BILL-002"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q94=C",
+        "Q113=C"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Apple/Google 原廠驗證與混合代管方向核准，但真官方 OAuth/PKI/Store 未驗收。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/60",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "08.04",
+      "source_title": "Google Play 內購",
+      "section": "legacy_function",
+      "owner": "AI-2",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BILL-001",
+        "BILL-002"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q94=C",
+        "Q113=C"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Apple/Google 原廠驗證與混合代管方向核准，但真官方 OAuth/PKI/Store 未驗收。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/60",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "08.05",
+      "source_title": "月繳訂閱",
+      "section": "legacy_function",
+      "owner": "AI-2",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BILL-001",
+        "BILL-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q95=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "可支援月／年／單次數位商品，不等於現已上架或定價。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/60",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "08.06",
+      "source_title": "年繳訂閱",
+      "section": "legacy_function",
+      "owner": "AI-2",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BILL-001",
+        "BILL-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q95=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "可支援月／年／單次數位商品，不等於現已上架或定價。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/60",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "08.07",
+      "source_title": "單次數位服務購買",
+      "section": "legacy_function",
+      "owner": "AI-2",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BILL-001",
+        "BILL-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q95=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "可支援月／年／單次數位商品，不等於現已上架或定價。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/60",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "08.08",
+      "source_title": "實體活動票券與 PAYUNi 統一金流",
+      "section": "legacy_function",
+      "owner": "AI-2",
+      "brand_scope": "hglobal_paused",
+      "candidate_feature_ids": [
+        "BILL-001",
+        "BILL-002"
+      ],
+      "decision_class": "hglobal_paused",
+      "decision_refs": [
+        "N05"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "H-Global 實體票券 PAYUNi 暫停，不能與 Starry 數位 IAP 混用。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "08.09",
+      "source_title": "伺服器付款驗證與事件",
+      "section": "legacy_function",
+      "owner": "AI-2",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BILL-001",
+        "BILL-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q94=C",
+        "Q113=C"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "官方交易證據即時驗證＋定期對帳，訂閱代管不是權益自行核准；實際 Store 尚未驗收。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/60"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "08.10",
+      "source_title": "訂單、退款、對帳及爭議",
+      "section": "legacy_function",
+      "owner": "AI-2",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BILL-001",
+        "BILL-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q102=C",
+        "Q113=C"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "訂單、退款、chargeback、安全對帳及刪帳後舊商品恢復依 SKU/商店政策。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/60",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "08.11",
+      "source_title": "免費 Battery 與付費系統完全脫鉤",
+      "section": "legacy_function",
+      "owner": "AI-2",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "BILL-001",
+        "BILL-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q86=B",
+        "Q89=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "免費 Battery 不等於數位付費權益；禁止付費購買/兌換 Battery。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/63",
+        "https://github.com/starry-phd/id/pull/60",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "09.01",
+      "source_title": "會員站內通知",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "AUDIT-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q49=D",
+        "Q52=C"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "同 Starry 生態系通知 inbox、Push 和 Email 頻率／可選通道；真推播/郵件尚未驗收。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "09.02",
+      "source_title": "Email 及 OS 推播",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "AUDIT-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q49=D",
+        "Q52=C"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "同 Starry 生態系通知 inbox、Push 和 Email 頻率／可選通道；真推播/郵件尚未驗收。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "09.03",
+      "source_title": "特殊事件通知例外",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "AUDIT-001"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q33-Q84"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "特殊事件/管理員異動通知沿既有審核通知決議逐項核對，不從舊 H-Global 角色自動繼承。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "09.04",
+      "source_title": "管理員修改資料通知",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "AUDIT-001"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q33-Q84"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "特殊事件/管理員異動通知沿既有審核通知決議逐項核對，不從舊 H-Global 角色自動繼承。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "09.05",
+      "source_title": "匿名申訴入口",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "AUDIT-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q114=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "第一階段匿名申訴、安全查詢憑證、補件與限流；附件掃描及申訴後台仍待實作。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "09.06",
+      "source_title": "申訴案件號與查詢憑證",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "AUDIT-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q114=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "第一階段匿名申訴、安全查詢憑證、補件與限流；附件掃描及申訴後台仍待實作。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "09.07",
+      "source_title": "申訴補件與後台處理",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "AUDIT-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q114=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "第一階段匿名申訴、安全查詢憑證、補件與限流；附件掃描及申訴後台仍待實作。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "09.08",
+      "source_title": "隱私同意與兒少資料保護",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "AUDIT-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q93=A",
+        "Q104=PENDING",
+        "Q106=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Starry 註冊僅 18+ 並須風險再驗證；未來跨品牌合法同意撤回/個資法 Gate 未解。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62",
+        "https://github.com/starry-phd/id/pull/61"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "09.09",
+      "source_title": "故障與恢復通知",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "AUDIT-001"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q117=A",
+        "Q49=D"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "服務故障／恢復通知受既有通知偏好、安全例外與真的事件來源限制。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "10.01",
+      "source_title": "一般資料修改事件",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "AUDIT-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q115=A",
+        "P06"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "一般稽核原則90天、重要管理至少一年，法定更長/刪帳必要保存優先；查詢最小權限。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62",
+        "https://github.com/starry-phd/id/pull/63"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "10.02",
+      "source_title": "重要管理與授權稽核",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "AUDIT-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q115=A",
+        "P06"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "一般稽核原則90天、重要管理至少一年，法定更長/刪帳必要保存優先；查詢最小權限。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62",
+        "https://github.com/starry-phd/id/pull/63"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "10.03",
+      "source_title": "事件紀錄查詢權限",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "AUDIT-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q115=A",
+        "P06"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "一般稽核原則90天、重要管理至少一年，法定更長/刪帳必要保存優先；查詢最小權限。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62",
+        "https://github.com/starry-phd/id/pull/63"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "10.04",
+      "source_title": "少量錯誤資料精準修復",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "AUDIT-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q116=A",
+        "Q127=AI_PROPOSAL"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "D1 原生還原＋獨立備份＋隔離演練；精準修復優先為 AI Gate 提案，真 D1/復活防護待驗。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "10.05",
+      "source_title": "D1 原生 Time Travel 還原",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "AUDIT-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q116=A",
+        "Q127=AI_PROPOSAL"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "D1 原生還原＋獨立備份＋隔離演練；精準修復優先為 AI Gate 提案，真 D1/復活防護待驗。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "10.06",
+      "source_title": "定期復原演練",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "AUDIT-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q116=A",
+        "Q127=AI_PROPOSAL"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "D1 原生還原＋獨立備份＋隔離演練；精準修復優先為 AI Gate 提案，真 D1/復活防護待驗。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "10.07",
+      "source_title": "帳號安全與 API 防護",
+      "section": "legacy_function",
+      "owner": "AI-3",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "AUDIT-001"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q117=A",
+        "Q98=B"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Starry 身份 API、管理員 step-up、重放/CSRF/安全限流與故障隔離；真 provider/Worker 未驗。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62",
+        "https://github.com/starry-phd/id/pull/61"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "11.01",
+      "source_title": "兩品牌 Apple／Google 開發者帳號",
+      "section": "legacy_function",
+      "owner": "AI-4",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "APP-001",
+        "MVP-001"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "N01",
+        "N02"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "兩品牌開發者帳號各自資源/商店歸屬須依最新帳號決議實地核驗；現暫停 H-Global。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "11.02",
+      "source_title": "App 安全商店識別",
+      "section": "legacy_function",
+      "owner": "AI-4",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "APP-001",
+        "MVP-001"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q105=A",
+        "P01"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "App bundle/package/OAuth deep link/SKU 需每產品獨立；第一款 App 未選，不虛構商店識別。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/61"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "11.03",
+      "source_title": "首批重點 App",
+      "section": "legacy_function",
+      "owner": "AI-4",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "APP-001",
+        "MVP-001"
+      ],
+      "decision_class": "deferred_from_first_release",
+      "decision_refs": [
+        "Q105=A",
+        "APP-002"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "首款真正上架的 Starry 產品尚未由業主指定；Starry ID 僅共用服務非上架 App。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/61"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "11.04",
+      "source_title": "免費下載與廣告策略",
+      "section": "legacy_function",
+      "owner": "AI-4",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "APP-001",
+        "MVP-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q108=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "首期 Starry Apps 不放廣告；免費下載政策依商店審核。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/61"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "11.05",
+      "source_title": "Cloudflare Workers 與 D1／R2",
+      "section": "legacy_function",
+      "owner": "AI-4",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "APP-001",
+        "MVP-001"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "N01",
+        "N06"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Starry 自有 Workers/D1/R2 等隔離部署；目前只有離線 Worker mock/健康端點，正式資源未授權。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/61"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "11.06",
+      "source_title": "GitHub 程式管理與跨 Repo 分工",
+      "section": "legacy_function",
+      "owner": "AI-4",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "APP-001",
+        "MVP-001"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "AGENTS.md",
+        "HANDOFF-PROTOCOL"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "GitHub branch/Draft PR/CI 為交接證據，不能把 CI success 視為 merge/Production 成功。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "11.07",
+      "source_title": "Branch／PR／CI 安全發布",
+      "section": "legacy_function",
+      "owner": "AI-4",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "APP-001",
+        "MVP-001"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "AGENTS.md",
+        "HANDOFF-PROTOCOL"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "GitHub branch/Draft PR/CI 為交接證據，不能把 CI success 視為 merge/Production 成功。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "11.08",
+      "source_title": "內部測試後正式上線",
+      "section": "legacy_function",
+      "owner": "AI-4",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "APP-001",
+        "MVP-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q103=A",
+        "Q118=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "可在 H-Global 停用下分期 Starry ID→Battery→Billing 正式 Gate 驗收；實際上線尚未授權。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/61",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "11.09",
+      "source_title": "未來 H-Global 可搬遷",
+      "section": "legacy_function",
+      "owner": "AI-4",
+      "brand_scope": "hglobal_paused",
+      "candidate_feature_ids": [
+        "APP-001",
+        "MVP-001"
+      ],
+      "decision_class": "hglobal_paused",
+      "decision_refs": [
+        "N01"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "H-Global 未來獨立移交為架構方向，現不開發/移轉其正式資源。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "11.10",
+      "source_title": "可觀測性與 20,000 人壓力驗收",
+      "section": "legacy_function",
+      "owner": "AI-4",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "APP-001",
+        "MVP-001"
+      ],
+      "decision_class": "ai_proposal_gate_pending",
+      "decision_refs": [
+        "Q128=AI_PROPOSAL"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "2 萬註冊會員不等於 2 萬同時在線；尖峰併發、p95、錯誤率/成本 Gate 需真數據。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "12.01",
+      "source_title": "正式需求與工程狀態分開",
+      "section": "legacy_function",
+      "owner": "AI-0",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "SYS-004"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q85=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "正式需求、候選方案、實作、CI、部署狀態分開保存，GitHub 作唯一工程追溯。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "12.02",
+      "source_title": "永久總索引與最新摘要",
+      "section": "legacy_function",
+      "owner": "AI-0",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "SYS-004"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q85=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "正式需求、候選方案、實作、CI、部署狀態分開保存，GitHub 作唯一工程追溯。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "12.03",
+      "source_title": "新 App AI 串接交接包",
+      "section": "legacy_function",
+      "owner": "AI-0",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "SYS-004"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q85=A",
+        "HANDOFF-PROTOCOL"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "各 App/API 的 OpenAPI/版本/SDK/CI/owner 交接要真正可測，並非所有產品已上架。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "12.04",
+      "source_title": "使用者可精簡需求的決策流程",
+      "section": "legacy_function",
+      "owner": "AI-0",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "SYS-004"
+      ],
+      "decision_class": "superseded_by_latest",
+      "decision_refs": [
+        "Q85=A",
+        "Q119=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "人工核對限重大未決；使用者可刪減需求；已改為三題精簡問答後以 Gate 驗收其餘技術細節。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "12.05",
+      "source_title": "已採納：雙獨立 Auth、雙會員 ID",
+      "section": "legacy_function",
+      "owner": "AI-0",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "SYS-004"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "N02",
+        "SYS-001"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "Starry／H-Global 的 Auth、user ID 各自獨立。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "12.06",
+      "source_title": "新案從零建立資料與資源（舊會員遷移不適用）",
+      "section": "legacy_function",
+      "owner": "AI-0",
+      "brand_scope": "starry_only",
+      "candidate_feature_ids": [
+        "SYS-004"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q1=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "全新專案不沿用或遷移舊資料，不以其他 Repo/舊環境當本案完成。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "N01",
+      "source_title": "兩個 Cloudflare 帳號與資源完全隔離",
+      "section": "new_architecture_rule",
+      "owner": "AI-0",
+      "brand_scope": "starry_planning_with_brand_isolation",
+      "candidate_feature_ids": [
+        "SYS-001",
+        "SYS-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "SYS-001",
+        "Q103=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "兩品牌雲端/身份/Secrets/Billing 實體隔離，H-Global 暫停。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "N02",
+      "source_title": "雙獨立 Auth 與各自會員 ID",
+      "section": "new_architecture_rule",
+      "owner": "AI-0",
+      "brand_scope": "starry_planning_with_brand_isolation",
+      "candidate_feature_ids": [
+        "SYS-001",
+        "SYS-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "SYS-001",
+        "Q103=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "兩品牌雲端/身份/Secrets/Billing 實體隔離，H-Global 暫停。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/62",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "N03",
+      "source_title": "跨系帳號雙方驗證、同意綁定及解除",
+      "section": "new_architecture_rule",
+      "owner": "AI-0",
+      "brand_scope": "starry_planning_with_brand_isolation",
+      "candidate_feature_ids": [
+        "SYS-001",
+        "SYS-002"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q25=D",
+        "Q26=C",
+        "Q28=A",
+        "Q104=PENDING"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "未來雙方驗證才可連結；業主不提供一般 UI 自助解綁的意向不排除法律權利；目前停用。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "N04",
+      "source_title": "跨生態系指定欄位的受控同步",
+      "section": "new_architecture_rule",
+      "owner": "AI-0",
+      "brand_scope": "starry_planning_with_brand_isolation",
+      "candidate_feature_ids": [
+        "SYS-001",
+        "SYS-002"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q31=D",
+        "Q32=A",
+        "Q87=A",
+        "Q104=PENDING"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "未來經 H-Global 授權可動態查/改欄位，Starry 不保存原欄位值；合法撤銷/稽核未定，現在禁用。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "N05",
+      "source_title": "兩個 PAYUNi 統一金流商家帳號",
+      "section": "new_architecture_rule",
+      "owner": "AI-0",
+      "brand_scope": "hglobal_paused",
+      "candidate_feature_ids": [
+        "SYS-001",
+        "SYS-002"
+      ],
+      "decision_class": "hglobal_paused",
+      "decision_refs": [
+        "N01"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "H-Global PAYUNi 實體商家功能暫停；不得由 Starry Repo 開發。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "N06",
+      "source_title": "正式方案 A：React Native＋Expo 與可重用 App 套件",
+      "section": "new_architecture_rule",
+      "owner": "AI-0",
+      "brand_scope": "starry_planning_with_brand_isolation",
+      "candidate_feature_ids": [
+        "SYS-001",
+        "SYS-002"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q1=A",
+        "N06"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "React Native+Expo+Expo Router+TypeScript+React Native Web；R7 為開發/離線測試底座。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/61",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "N07",
+      "source_title": "兩系獨立 API 管理後台與 AI 串接文件",
+      "section": "new_architecture_rule",
+      "owner": "AI-0",
+      "brand_scope": "starry_planning_with_brand_isolation",
+      "candidate_feature_ids": [
+        "SYS-001",
+        "SYS-002"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "ADMIN-PREP-13",
+        "ISSUE-15"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "品牌獨立管理權限與 API 預留第一波，第二波正式管理中心 UI 尚未啟動。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "N08",
+      "source_title": "新案專屬交付、效能與商店驗收",
+      "section": "new_architecture_rule",
+      "owner": "AI-0",
+      "brand_scope": "starry_planning_with_brand_isolation",
+      "candidate_feature_ids": [
+        "SYS-001",
+        "SYS-002"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q107=B",
+        "Q118=A",
+        "Q128=AI_PROPOSAL"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "全球分階段地區+官方商店/真設備/高負載正式 Gate 待辦；不能由離線成功宣稱已上架。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "N09",
+      "source_title": "Starry Battery 業務細節待決",
+      "section": "new_architecture_rule",
+      "owner": "AI-0",
+      "brand_scope": "starry_planning_with_brand_isolation",
+      "candidate_feature_ids": [
+        "SYS-001",
+        "SYS-002"
+      ],
+      "decision_class": "partially_approved_details_pending",
+      "decision_refs": [
+        "Q86=B",
+        "Q89=A",
+        "Q90=A",
+        "Q91=A",
+        "Q92=B",
+        "Q99=C",
+        "Q101=A",
+        "Q109=A",
+        "Q111=A"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "舊待決 Battery 核心最新已選永久有效、雙贈送、固定任務費率/預留、受控透支；發放數字及真環境仍阻擋。",
+      "evidence_prs": [
+        "https://github.com/starry-phd/id/pull/63",
+        "https://github.com/starry-phd/id/pull/64"
+      ],
+      "implementation_evidence_status": "offline_candidate_evidence_only",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    },
+    {
+      "source_id": "N10",
+      "source_title": "全新專案與其他專案完全隔離",
+      "section": "new_architecture_rule",
+      "owner": "AI-0",
+      "brand_scope": "starry_planning_with_brand_isolation",
+      "candidate_feature_ids": [
+        "SYS-001"
+      ],
+      "decision_class": "owner_approved_release_blocked",
+      "decision_refs": [
+        "Q1=A",
+        "SYS-001"
+      ],
+      "decision_basis_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6425664451",
+      "reconciliation_note": "本全新 Starry Repo 不移植老專案的 DB/PR/環境，不啟用 H-Global。",
+      "evidence_prs": [],
+      "implementation_evidence_status": "not_verified",
+      "source_clause_review": "heading_classified_full_clause_pending",
+      "release_acceptance": "blocked_real_environment_or_requirements_gate"
+    }
+  ]
+}
