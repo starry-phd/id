@@ -1,6 +1,6 @@
 # AI-0｜原始 128 需求首輪分類與 Gate 0 追溯（2026-10-27）
 
-> **狀態：128/128 原始來源「標題」逐項建檔／批次決議分類完成；128 項正文條款級人工核對與功能真實驗收仍未完成。** 不能宣稱 128 項已批准、已開發、已發布，也不將舊紅字條款自動改為新版需求。
+> **狀態：128/128 原始來源標題建檔＋原始 Google 主文件 128 章用途／限制／舊衝突標記讀取完成；對 DEV-A～I 專責文件的逐條語義裁決、本人逐項確認與真實環境驗收仍未完成。** 不能宣稱 128 項已批准、已開發、已發布，也不將舊紅字條款自動改為新版需求。
 
 ## 一、來源
 
@@ -22,7 +22,15 @@
 | 未取得業主明確批准 | 1 | 原標題不是核准 |
 | **總計** | **128** | 來源索引完整；正式 G00 仍 BLOCKED |
 
-## 三、真正優先處理的差異
+## 三、Google 主文件 128 章原文核對標記（僅結構，不複製私人原文）
+
+- 直接讀取原始 Google Docs 全文，**128/128 章節能與 GitHub 128 個 source_id 精確同序對上**。
+- 128 章均找到用途描述；119 章有可辨識的獨立限制條款／同段限制敘述；**40 章含舊檔衝突／未核准推定標記**，不是自動批准。
+- **3 處標題差異**：`12.05`、`N06`、`N07`；標記待語義核對，沒有擅自覆寫原主文件標題。
+- 為避免在公開 GitHub 複製可能非公開的 Google Docs 正文，僅保存每章有無用途／限制／舊衝突及標題是否不同等欄位。
+- 完整 DEV-A～I 對照及每條業主最終核准界線**仍需實施**；`source_clause_reconciled_count=0` 明確防止工程誤認為正式 G00 全審完成。
+
+## 四、真正優先處理的差異
 
 1. **07.08 永久免費額度不過期：** Q89=A 覆蓋舊「兩年到期、FEFO、到期提醒」；這些不能進入新 Battery 引擎。07.10 歷史合法封存單獨 Gate。
 2. **07.03/07.06/07.07/07.09：** 已明確核准兩次贈送、可信固定任務費率、3 分鐘預留／結算、兩次受控透支；正式 X/Y、最高欠額、Server Task 成功權威、真 D1 CAS 還未 Gate。
@@ -35,16 +43,16 @@
 9. **Q120/121/123/124/126/127/128：** 由業主授權 AI 提方案並列 Gate 的七項，不等於業主選 A/B/C。
 10. **128 完整追溯：** 主文件 128 原始 heading 已在 `source-reconciliation-r8.v0.json` 與 candidate feature/owner/Q/PR/evidence/gate 一對一；**正文逐句條款、9 份 DEV A～I 的人工紅字衝突、真正商店及正式運行證據**仍待追加，不能自行將 `source_clause_review` 改為 done。
 
-## 四、可重現驗證
+## 五、可重現驗證
 
 `node docs/requirements/verify-source-reconciliation-r8.mjs`
 
 - 同源逐列一致、不漏不重，128 個 ID/標題／章節相同，狀態合法。
-- 所有列必須標示 `source_clause_review=heading_classified_full_clause_pending`，正式 `release_acceptance=blocked_real_environment_or_requirements_gate`。
+- 所有列必須標示 `source_clause_review=master_section_read_dev_A_to_I_crosscheck_pending`，正式 `release_acceptance=blocked_real_environment_or_requirements_gate`。
 - **嚴格防止**編輯器將此矩陣誤認 Gate 0 已解鎖。
 - CI 為只讀測試，無任何 GitHub main 合併或 Cloudflare / Store / EAS / 真 DB / 付費動作。
 
-## 五、下一步
+## 六、下一步
 
 - AI-0 自己進行正文層／DEV-A～I 條款級核對，核實例外、來源變更與覆蓋關係；每列帶正式「條款核對狀態」後才改 Gate 欄位。
 - AI-1～4 繼續由業主喚醒後在獨立 Draft 實作，以上一版 **R7 #64** 的真固定 HEAD 為共同基準；下一個程式碼階段只處理核准項目。
