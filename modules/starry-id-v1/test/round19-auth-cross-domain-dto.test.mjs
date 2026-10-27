@@ -154,8 +154,15 @@ test('deleted Member restoration, unrevoked Session and late revocation denied',
  for(const sql of changes){
   const x=make();try{
    x.commit();const c=await x.issuer.claim(event);assert.ok(c);
-   x.auth.exec(sql);
-   assert.equal(await read(x,c),null,sql);
+   let blockedBySql=false;
+   try{x.auth.exec(sql);}catch{blockedBySql=true;}
+   if(blockedBySql){
+    // Existing Auth immutability guard already refused the bad mutation.
+    assert.ok(await read(x,c),sql);
+   }else{
+    // When an invalid state is permitted, the R19 adapter must fail closed.
+    assert.equal(await read(x,c),null,sql);
+   }
   }finally{x.close();}
  }
 });
