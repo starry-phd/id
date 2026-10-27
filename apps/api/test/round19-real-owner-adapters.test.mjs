@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
+import {URL} from 'node:url';
 import {createOfflineCanonicalAuthDeletionPublisher} from
  '../../../modules/starry-id-v1/src/round16-canonical-deletion-publisher.ts';
 import {createOfflineAuthCommittedSagaPreflight} from
