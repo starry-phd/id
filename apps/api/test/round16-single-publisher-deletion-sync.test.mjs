@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
 import {URL,fileURLToPath} from 'node:url';
+import {setImmediate} from 'node:timers';
 import {createOfflineAuthDeletionEventSource} from '../../../modules/starry-id-v1/src/round15-deletion-source-contract.ts';
 import {createOfflineAuthDeletionBatteryConsumer} from '../../../packages/rebuild-ai3/src/auth-deletion-battery-consumer.ts';
 import {createOfflineSinglePublisherDeletionSync,DELIVERY_JOURNAL_DRAFT_SQL,
