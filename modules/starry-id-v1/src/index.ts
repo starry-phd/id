@@ -177,14 +177,15 @@ export function requireMemberAdmin(p: unknown, scope: TrustedScope, session: Ses
       || session.step_up_expires_at <= now)
     throw new Error('STEP_UP_REQUIRED');
 }
-export type DeletionChallenge = Readonly<{s_user_id: string; session_id: string; expires_at: number}>;
+export type DeletionChallenge = Readonly<{s_user_id: string; session_id: string; expires_at: number; challenge_ref?: string}>;
 const confirmedChallenges = new WeakSet<object>();
 /** Only trusted backend's second-factor challenge verifier may issue this. */
 export function createDeletionChallengeVerifier(verify: (proof: unknown) => Promise<DeletionChallenge | null>) {
   return async (proof: unknown): Promise<DeletionChallenge | null> => {
     const challenge = await verify(proof);
     if (!challenge || !validId(challenge.s_user_id) || !validId(challenge.session_id)
-        || !trustedNow(challenge.expires_at)) return null;
+        || !trustedNow(challenge.expires_at)
+        || (challenge.challenge_ref !== undefined && !/^[a-f0-9]{64}$/.test(challenge.challenge_ref))) return null;
     const issuedChallenge = Object.freeze({...challenge});
     confirmedChallenges.add(issuedChallenge);
     return issuedChallenge;
