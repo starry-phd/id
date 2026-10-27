@@ -1,0 +1,11 @@
+# AI-4 R15｜Auth 已提交刪帳 Outbox → AI-3 Battery 收件之可信候選橋接（OFFLINE）
+
+**SSOT 基準** [AI-0 #106](https://github.com/starry-phd/id/pull/106) 最終 `dbb565895489cbe2a3b78eab7006ef0cdc48f01a` 同版 3/3 GitHub Actions success，總管 Issue #1、AI-4 Issue #5、#102 P01–P10 ADMIN-PREP（全部 unverified）、#87 cross-D1 ADR、#70 Git Tree SOP。R14 已有 AI-1 Auth 刪帳原子觸發、AI-2 Billing tombstone、AI-3 Battery inbox、AI-4 Task outbox；本輪**不重做**。
+
+本輪解決 AI-4 **API/跨模組離線橋接責任**：`apps/api/src/round15-deletion-event-relay.ts` 從**server-only** injected authoritative AI-1 commit reader 取得真四欄 `starry_deletion_outbox(event_id,s_user_id,occurred_at,event_type)`，先檢查合法目的 Gate，再交叉查確實消耗的同一刪帳 Challenge/session scope，當前 Member 狀態已 deleted/auth_version 增加、Session 無尚有效未撤銷、同一刪帳時間戳吻合、原始 Outbox 前後讀取未改變；**只產出** AI-3 既有格式 `{event_id,member_ref:s_user_id,occurred_at_sec:occurred_at,event_type:'account_deleted'}` 作內部 offline candidate。**只用 Auth 時戳欄位原有秒單位**，拒絕毫秒錯混、跨環境／Event／User／來源受污染。嚴禁採 Queue/HTTP 的任意 Event 內容作權威。
+
+`apps/api/test/round15-deletion-event-relay.test.mjs` 使用 **真正 Node node:sqlite、兩個獨立 SQLite :memory: 連線**：載入原始 AI-1 001/007/011 SQL，以真正 Challenge 單 UPDATE trigger 使 Auth Members deleted/所有 Session revoked/已提交 Outbox；經 R15 Relay 轉換後，實際呼叫 **真正 AI-3 `createOfflineAuthDeletionBatteryConsumer`** 並運行原 AI-3 0005/0010 Trigger、Wallet revoke/held task revocation/append journal/唯一 Inbox。測試未刪帳、合法審閱不同意、不同環境/ID/版本、秒/毫秒、惡意 Getter/Proxy、來源 race、過時和重播事件與跨 DB 中斷，**只核准 Battery 本地收據，不允許 Queue ACK**。
+
+**關鍵未補、也不能憑空補的 AI-2 契約**：AI-2 需要 `member_ref=m_[64hex]`、`event_ref=r_[64hex]`、`event_digest`、`auth_version`、`brand/environment` 與受法律允許的 HMAC 來源、全新 Member 刪帳版本及真正簽章。AI-1 原始四欄沒有這些值；本橋**故意回傳 `billing_status:'blocked_missing_authoritative_hmac_digest_version'`**，不產出虛假合法 Billing DTO，也不發布 P05。現有 AI-3 事件的 `member_ref=s_user_id` 只能在 AI-0 核准確實共用 canonical member ref 時使用；測試憑當次同 ID 存在說明本地可行，不是正式跨系統映射已核准。
+
+**仍未解**：真正 Auth D1/Queue/DLQ/Worker 部署、受信不可回退刪帳 Witness、來源新舊時序與 Key rotation、跨 Auth/Battery/Task/Billing D1 同時點及 tombstone 事故恢復、AI-1 Q88/Q104/Q119 最小合法 HMAC 權威/保存、首次 X/免費 Y/費率/成本、真 Store/OAuth/EAS、Admin P01–P10 approval。R15 `LIVE_AUTH_DELETION_RELAY=false`，狀態永遠候選／Blocked，所有正式 **G00～G10 11/11 BLOCKED、P05 publishable=false**；無 main merge、無 Cloudflare Preview/Staging/Production，無真 D1/R2/Queue/Secrets/付費，H-Global 暫停。
