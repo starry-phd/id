@@ -127,7 +127,7 @@ test('R9 8 concurrent completion replays serialize: one candidate Wallet CAS, no
  assert.equal(f.wallet.first_task_granted,true);
  assert.equal(f.wallet.journal.filter(x=>x.kind==='first_task_grant').length,1);
 });
-test('R9 malicious scope/proxy/getters/injected result do not reach transaction',async()=>{
+test('R9 malicious scope/proxy/getters denied and foreign member fails in transaction',async()=>{
  const f=await make();
  for(const bad of [null,{},[],{...s,brand_id:'hglobal'},
   {...s,member_ref:'other'}, {...s,clientPaid:true}]){
@@ -138,7 +138,10 @@ test('R9 malicious scope/proxy/getters/injected result do not reach transaction'
  assert.equal((await f.settlement.settle(s,'task_one',NaN)).outcome,'blocked');
  assert.equal((await f.settlement.settle(s,'task_one','1000')).outcome,'blocked');
  assert.equal((await f.settlement.settle(s,'task_one','taskSucceeded')).outcome,'blocked');
- assert.equal(f.reads,0);
+ // A valid-looking foreign member_ref requires an authoritative DB lookup;
+ // it must still be denied without a write. All other malformed inputs fail before I/O.
+ assert.equal(f.reads,1);
+ assert.equal(f.commits,0);
  assert.throws(()=>createOfflineAtomicTaskSettlement({transact:async()=>{},admin:true}),
   /AI4_ATOMIC_PORT_REQUIRED/);
 });
