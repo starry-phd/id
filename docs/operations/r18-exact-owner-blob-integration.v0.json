@@ -1,0 +1,124 @@
+{
+  "schema_version": "0.1.0",
+  "kind": "AI0_R18_EXACT_ORIGINAL_OWNER_BLOB_INTEGRATION_OFFLINE_ONLY",
+  "repo": "starry-phd/id",
+  "parent_ai0_pr": 130,
+  "parent_ai0_sha": "b858da39c28541f1325606807b23ed5394b817d8",
+  "baseline_r17_pr": 123,
+  "baseline_r17_sha": "f84eab58e20377b5bd1ce313b969befb531b4938",
+  "owner_original_blob_files": 14,
+  "owner_provenance": [
+    {
+      "owner": "AI-1",
+      "pr": 127,
+      "head_sha": "251150155421b5c13702efe4c6ee4b0a4f30bcc8",
+      "base_r17_sha": "f84eab58e20377b5bd1ce313b969befb531b4938",
+      "files": [
+        {
+          "path": "modules/starry-id-v1/ADR-ROUND18-AUTH-COMMITTED-LEGAL-SAGA-GATE.md",
+          "git_blob_sha": "fb3f0039213634525cdc7939ac4c51ce0977a3b3"
+        },
+        {
+          "path": "modules/starry-id-v1/src/round18-auth-committed-saga-preflight.ts",
+          "git_blob_sha": "6dd182ff0c7061bca3eb86b7ee005408fbbab2d7"
+        },
+        {
+          "path": "modules/starry-id-v1/test/round18-auth-committed-saga-preflight.test.mjs",
+          "git_blob_sha": "506bf16b1babc2073682eca2cf65655faa752498"
+        },
+        {
+          "path": "modules/starry-id-v1/test/test_round18_auth_source_timeline.py",
+          "git_blob_sha": "5df49f491369d37424e814a077fff6397183c761"
+        }
+      ]
+    },
+    {
+      "owner": "AI-2",
+      "pr": 126,
+      "head_sha": "5ea5238154647a85e68141a133166c78aed054b9",
+      "base_r17_sha": "f84eab58e20377b5bd1ce313b969befb531b4938",
+      "files": [
+        {
+          "path": "packages/rebuild-billing/docs/ROUND18-BILLING-REFUND-PITR-GATE.md",
+          "git_blob_sha": "fe79828a70a81dc29460dee751fa3d79e3a432b6"
+        },
+        {
+          "path": "packages/rebuild-billing/src/r18-refund-inbox.ts",
+          "git_blob_sha": "9ea1ec310d7e80dfd98be5ffa9c30f3352849ce4"
+        },
+        {
+          "path": "packages/rebuild-billing/test/r18-refund-inbox.test.mjs",
+          "git_blob_sha": "a5cd69052aea01aa602106ad6f748d2a7781f54e"
+        }
+      ]
+    },
+    {
+      "owner": "AI-3",
+      "pr": 128,
+      "head_sha": "cbaf08c91725f987edb4d928b8910849182b0f97",
+      "base_r17_sha": "f84eab58e20377b5bd1ce313b969befb531b4938",
+      "files": [
+        {
+          "path": "packages/rebuild-ai3/docs/ROUND18-CROSS-D1-BATTERY-RECOVERY-GATE.md",
+          "git_blob_sha": "47c8155f5f78ec34c1924b42f7f523073d6c77c6"
+        },
+        {
+          "path": "packages/rebuild-ai3/src/r18-cross-d1-recovery-review.ts",
+          "git_blob_sha": "85add52d0c2581f7a992e6fea181682307251ab5"
+        },
+        {
+          "path": "packages/rebuild-ai3/test/r18-cross-d1-recovery-review.test.mjs",
+          "git_blob_sha": "803315cbd72b290c2a2a4430c1bb99bf8abf08c7"
+        },
+        {
+          "path": "packages/rebuild-ai3/test/test_r18_cross_d1_recovery.py",
+          "git_blob_sha": "6789fe19e0dc27f3bfb58cd42f3d0833d608538f"
+        }
+      ]
+    },
+    {
+      "owner": "AI-4",
+      "pr": 129,
+      "head_sha": "2a938031f179b0d390ca7d3eafa5362a87946510",
+      "base_r17_sha": "f84eab58e20377b5bd1ce313b969befb531b4938",
+      "files": [
+        {
+          "path": "apps/api/src/round18-offline-outbox-saga-transport.ts",
+          "git_blob_sha": "5a85a59fe8408f65fa4bc581d49392c5e5efce5e"
+        },
+        {
+          "path": "apps/api/test/round18-offline-outbox-saga-transport.test.mjs",
+          "git_blob_sha": "4dfaed024633b647e93afab2c4358a4688741247"
+        },
+        {
+          "path": "docs/ai/AI4-ROUND18-OUTBOX-SAGA-TRANSPORT.md",
+          "git_blob_sha": "1608a8fab3d357cbe40ba6cd181dac2994fa4b15"
+        }
+      ]
+    }
+  ],
+  "authorization": {
+    "architecture_a_or_b_approved": false,
+    "sole_live_publisher_approved": false,
+    "canonical_p05_approved": false,
+    "lawful_q104_q119_approved": false,
+    "independent_nonrollback_witness_proven": false,
+    "real_d1_queue_test_authorized": false,
+    "queue_ack_allowed": false,
+    "free_battery_purchasable": false,
+    "store_enabled": false,
+    "eas_build_authorized": false,
+    "paid_usage_authorized": false,
+    "hglobal_development_authorized": false,
+    "release_authorized": false,
+    "main_merge_authorized": false,
+    "deploy_authorized": false,
+    "publishable": false
+  },
+  "ci_claims": {
+    "owner_checks_only_not_sufficient": true,
+    "fresh_integrated_sha_required": true,
+    "g00_g10_all_blocked_required": true,
+    "exact_original_git_blob_sha_required": true
+  }
+}
