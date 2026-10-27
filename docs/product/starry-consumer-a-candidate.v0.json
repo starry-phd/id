@@ -1,0 +1,446 @@
+{
+  "schema_version": "0.1.0-candidate",
+  "kind": "STARry_CONSUMER_A_CONDITIONAL_UX_BLUEPRINT",
+  "status": "design_only_not_product_approval",
+  "scope": "starry_only",
+  "source": {
+    "repo": "starry-phd/id",
+    "tracking_issue": 125,
+    "baseline_ai0_integrated_pr": 131,
+    "baseline_ai0_integrated_sha": "f006e90311b3fecedae0f7c75004c940adfacede",
+    "source_portfolio": "docs/operations/future-starry-app-portfolio.v0.json",
+    "authoritative_release_file": "docs/release-readiness/release-readiness.v0.json"
+  },
+  "candidate": {
+    "id": "CONSUMER_A_AI_TASK_APP",
+    "display_name": null,
+    "description": "one explicitly chosen useful AI task with transparent permanently-free Battery status",
+    "user_segment": null,
+    "specific_task": null,
+    "brand": "starry",
+    "official_app_id": null,
+    "ios_bundle_id": null,
+    "android_package": null,
+    "store_region": null,
+    "store_listing": null,
+    "price": null,
+    "currency": null,
+    "paid_battery": false,
+    "approved": false,
+    "market_validated": false,
+    "ui_implemented": false
+  },
+  "screens": [
+    {
+      "id": "DISCOVER",
+      "title": "探索",
+      "access": "public_preview",
+      "priority": "P0",
+      "gate_ids": [
+        "G00-SSOT"
+      ],
+      "allowed_without_login": true,
+      "semantic": "Explain one candidate task value without fake official app or personal data"
+    },
+    {
+      "id": "SIGN_IN",
+      "title": "登入說明",
+      "access": "guest_only_placeholder",
+      "priority": "P0",
+      "gate_ids": [
+        "G02-OIDC",
+        "G03-SESSION-D1"
+      ],
+      "allowed_without_login": true,
+      "semantic": "Preview why identity may be required; never fake signed-in success"
+    },
+    {
+      "id": "HOME",
+      "title": "任務首頁",
+      "access": "member",
+      "priority": "P0",
+      "gate_ids": [
+        "G03-SESSION-D1"
+      ],
+      "allowed_without_login": false,
+      "semantic": "Clear single task entry and unconfirmed Battery display"
+    },
+    {
+      "id": "TASK_COMPOSE",
+      "title": "建立任務",
+      "access": "member",
+      "priority": "P0",
+      "gate_ids": [
+        "G08-WORKER-SDK"
+      ],
+      "allowed_without_login": false,
+      "semantic": "Explain input use and block sensitive upload unless approved"
+    },
+    {
+      "id": "TASK_REVIEW",
+      "title": "確認任務",
+      "access": "member",
+      "priority": "P0",
+      "gate_ids": [
+        "G07-AUDIT-QUEUE",
+        "G08-WORKER-SDK"
+      ],
+      "allowed_without_login": false,
+      "semantic": "Show verified policy/rate before any reservation, explicit confirm"
+    },
+    {
+      "id": "TASK_STATUS",
+      "title": "任務狀態",
+      "access": "member",
+      "priority": "P0",
+      "gate_ids": [
+        "G07-AUDIT-QUEUE"
+      ],
+      "allowed_without_login": false,
+      "semantic": "Display pending, unknown, retry, fail, no success before committed evidence"
+    },
+    {
+      "id": "TASK_RESULT",
+      "title": "任務結果",
+      "access": "member",
+      "priority": "P0",
+      "gate_ids": [
+        "G07-AUDIT-QUEUE",
+        "G08-WORKER-SDK"
+      ],
+      "allowed_without_login": false,
+      "semantic": "Only owner-verified completion may display result, never infer from timeout"
+    },
+    {
+      "id": "TASK_HISTORY",
+      "title": "任務紀錄",
+      "access": "member",
+      "priority": "P1",
+      "gate_ids": [
+        "G03-SESSION-D1",
+        "G08-WORKER-SDK"
+      ],
+      "allowed_without_login": false,
+      "semantic": "Privacy-minimized list with server-authenticated status"
+    },
+    {
+      "id": "BATTERY_LEDGER",
+      "title": "免費電池明細",
+      "access": "member",
+      "priority": "P0",
+      "gate_ids": [
+        "G07-AUDIT-QUEUE"
+      ],
+      "allowed_without_login": false,
+      "semantic": "Permanently free; verified balance, reserve, release and pending distinctly labelled"
+    },
+    {
+      "id": "ACCOUNT_SETTINGS",
+      "title": "帳號與隱私",
+      "access": "member",
+      "priority": "P0",
+      "gate_ids": [
+        "G03-SESSION-D1",
+        "G10-OPS"
+      ],
+      "allowed_without_login": false,
+      "semantic": "Data use, consent and delete/appeal channels without shared HGlobal identity"
+    },
+    {
+      "id": "DELETE_ACCOUNT",
+      "title": "刪除帳號",
+      "access": "member_stepup_required",
+      "priority": "P0",
+      "gate_ids": [
+        "G03-SESSION-D1",
+        "G07-AUDIT-QUEUE",
+        "G10-OPS"
+      ],
+      "allowed_without_login": false,
+      "semantic": "Explicit irreversible effects and confirm, never report deletion before authoritative commit"
+    },
+    {
+      "id": "HELP_APPEAL",
+      "title": "說明與申訴",
+      "access": "privacy_limited",
+      "priority": "P0",
+      "gate_ids": [
+        "G07-AUDIT-QUEUE",
+        "G10-OPS"
+      ],
+      "allowed_without_login": true,
+      "semantic": "Minimal evidence support for deletion, disputed receipts, post-deletion channels"
+    }
+  ],
+  "journeys": [
+    {
+      "id": "UX-01",
+      "title": "Explore a valuable single task",
+      "screens": [
+        "DISCOVER",
+        "SIGN_IN",
+        "HOME"
+      ],
+      "requires_product_approval": true,
+      "live_execution": false,
+      "guard": "show actual login only after verified service/OIDC approval"
+    },
+    {
+      "id": "UX-02",
+      "title": "Prepare an AI task with transparent Battery",
+      "screens": [
+        "HOME",
+        "TASK_COMPOSE",
+        "TASK_REVIEW",
+        "TASK_STATUS"
+      ],
+      "requires_product_approval": true,
+      "live_execution": false,
+      "guard": "no reserve until authenticated member, approved published rate and trusted task server"
+    },
+    {
+      "id": "UX-03",
+      "title": "Handle task outcome and recover unknown",
+      "screens": [
+        "TASK_STATUS",
+        "TASK_RESULT",
+        "TASK_HISTORY",
+        "HELP_APPEAL"
+      ],
+      "requires_product_approval": true,
+      "live_execution": false,
+      "guard": "only durable Task + Wallet receipt can show confirmed; unknown is not success"
+    },
+    {
+      "id": "UX-04",
+      "title": "Read permanently free Battery events",
+      "screens": [
+        "HOME",
+        "BATTERY_LEDGER",
+        "TASK_HISTORY"
+      ],
+      "requires_product_approval": true,
+      "live_execution": false,
+      "guard": "no balance inventing, no expiring, no payment button"
+    },
+    {
+      "id": "UX-05",
+      "title": "Revoke account without phantom completion",
+      "screens": [
+        "ACCOUNT_SETTINGS",
+        "DELETE_ACCOUNT",
+        "HELP_APPEAL"
+      ],
+      "requires_product_approval": true,
+      "live_execution": false,
+      "guard": "requires authoritative committed deletion/lease/fanout and lawful rights"
+    }
+  ],
+  "ux_failure_states": [
+    {
+      "id": "NOT_SIGNED_IN",
+      "severity": "neutral",
+      "ui_message": "此功能需要驗證會員身分，請先登入。",
+      "success_allowed": false,
+      "grant_allowed": false,
+      "queue_ack_allowed": false
+    },
+    {
+      "id": "AUTH_REVOKED",
+      "severity": "error",
+      "ui_message": "登入狀態已失效，請重新驗證。",
+      "success_allowed": false,
+      "grant_allowed": false,
+      "queue_ack_allowed": false
+    },
+    {
+      "id": "PRICE_UNAPPROVED",
+      "severity": "warning",
+      "ui_message": "本次任務所需的免費電池數量尚未確認，暫時無法開始。",
+      "success_allowed": false,
+      "grant_allowed": false,
+      "queue_ack_allowed": false
+    },
+    {
+      "id": "POLICY_UNKNOWN",
+      "severity": "warning",
+      "ui_message": "使用規則或資料權限尚未確認，請稍後再試。",
+      "success_allowed": false,
+      "grant_allowed": false,
+      "queue_ack_allowed": false
+    },
+    {
+      "id": "TASK_UNKNOWN",
+      "severity": "warning",
+      "ui_message": "目前無法確認任務是否完成，請查看紀錄，避免重複提交。",
+      "success_allowed": false,
+      "grant_allowed": false,
+      "queue_ack_allowed": false
+    },
+    {
+      "id": "TASK_FAILED",
+      "severity": "error",
+      "ui_message": "任務未完成，請查看紀錄確認免費電池處理狀態。",
+      "success_allowed": false,
+      "grant_allowed": false,
+      "queue_ack_allowed": false
+    },
+    {
+      "id": "RECEIPT_MISMATCH",
+      "severity": "error",
+      "ui_message": "任務與電池紀錄尚未一致，已暫停確認，請聯絡支援。",
+      "success_allowed": false,
+      "grant_allowed": false,
+      "queue_ack_allowed": false
+    },
+    {
+      "id": "DELETION_PENDING",
+      "severity": "warning",
+      "ui_message": "刪除要求尚在處理，完成狀態需以正式系統確認為準。",
+      "success_allowed": false,
+      "grant_allowed": false,
+      "queue_ack_allowed": false
+    },
+    {
+      "id": "ACCOUNT_DELETED",
+      "severity": "neutral",
+      "ui_message": "此帳號已無法使用。若有疑問，請透過申訴管道聯絡。",
+      "success_allowed": false,
+      "grant_allowed": false,
+      "queue_ack_allowed": false
+    }
+  ],
+  "acceptance_scenarios": [
+    {
+      "id": "ACC-01",
+      "title": "Guest discover does not fetch identity or wallet",
+      "expected": "pass_without_personal_data",
+      "owner": "AI-0",
+      "status": "spec_only"
+    },
+    {
+      "id": "ACC-02",
+      "title": "Guest cannot view authenticated task or ledger",
+      "expected": "deny",
+      "owner": "AI-1",
+      "status": "spec_only"
+    },
+    {
+      "id": "ACC-03",
+      "title": "Revoked session denies task and hides stale balance",
+      "expected": "deny",
+      "owner": "AI-1",
+      "status": "spec_only"
+    },
+    {
+      "id": "ACC-04",
+      "title": "No verified published Battery rate blocks task submission",
+      "expected": "deny",
+      "owner": "AI-3",
+      "status": "spec_only"
+    },
+    {
+      "id": "ACC-05",
+      "title": "Double tap with same idempotency ref cannot double charge",
+      "expected": "deny_duplicate",
+      "owner": "AI-3",
+      "status": "spec_only"
+    },
+    {
+      "id": "ACC-06",
+      "title": "Task timeout cannot be rendered as completed",
+      "expected": "pending_unknown",
+      "owner": "AI-4",
+      "status": "spec_only"
+    },
+    {
+      "id": "ACC-07",
+      "title": "Task committed but wallet receipt missing does not show success",
+      "expected": "deny",
+      "owner": "AI-3",
+      "status": "spec_only"
+    },
+    {
+      "id": "ACC-08",
+      "title": "Missing legal purpose blocks protected task/detail reads",
+      "expected": "deny",
+      "owner": "AI-1",
+      "status": "spec_only"
+    },
+    {
+      "id": "ACC-09",
+      "title": "PITR resurrected wallet cannot regrant Battery",
+      "expected": "deny",
+      "owner": "AI-3",
+      "status": "spec_only"
+    },
+    {
+      "id": "ACC-10",
+      "title": "Deletion confirmation cannot show complete prior Auth commit",
+      "expected": "pending_authoritative_commit",
+      "owner": "AI-1",
+      "status": "spec_only"
+    },
+    {
+      "id": "ACC-11",
+      "title": "Public appeal never reveals authenticated personal data",
+      "expected": "deny_private_exposure",
+      "owner": "AI-3",
+      "status": "spec_only"
+    },
+    {
+      "id": "ACC-12",
+      "title": "No purchase, paid Battery, cross-brand account or fake ID listing",
+      "expected": "absent",
+      "owner": "AI-0",
+      "status": "spec_only"
+    }
+  ],
+  "decisions_pending": [
+    "APP-D01",
+    "APP-D02",
+    "APP-D03",
+    "APP-D04",
+    "APP-D05",
+    "APP-D06",
+    "APP-D07",
+    "APP-D08"
+  ],
+  "future_mobile_owner": "AI-4",
+  "release": {
+    "candidate_only": true,
+    "live_ui_routes_authorized": false,
+    "backend_calls_authorized": false,
+    "production_app_selected": false,
+    "app_name_approved": false,
+    "app_store_id_approved": false,
+    "play_package_approved": false,
+    "task_catalog_approved": false,
+    "free_battery_amounts_approved": false,
+    "auth_live_authorized": false,
+    "p05_canonical_approved": false,
+    "cross_d1_physical_approved": false,
+    "legal_retention_approved": false,
+    "live_queue_ack_authorized": false,
+    "publishable": false,
+    "paid_features_authorized": false,
+    "free_battery_purchasable": false,
+    "store_listing_authorized": false,
+    "wave2_admin_approved": false,
+    "hglobal_development_authorized": false,
+    "merge_main_authorized": false,
+    "deploy_authorized": false,
+    "paid_usage_authorized": false
+  },
+  "accessibility_requirements": [
+    "Screen reader labels for status and actions",
+    "Pending and error expressed as text, never only color",
+    "Loading and retry do not trap keyboard or focus",
+    "Support Dynamic Type/larger text without truncating irreversible effects",
+    "Step-up and delete confirmations are clearly separated and keyboard accessible",
+    "No countdown implies task finality; server evidence is authoritative",
+    "No dark pattern forcing sign-in for public preview",
+    "No payment language for permanently free Battery"
+  ],
+  "evidence_level": "planning_only_not_a_real_device_store_or_backend_test"
+}
