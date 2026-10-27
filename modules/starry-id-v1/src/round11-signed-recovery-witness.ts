@@ -78,8 +78,8 @@ function parsedEnvelope(v:unknown,scope:TrustedScope,w:IndependentAuthCheckpoint
  return {payload:payload as SignedAuthWitness,signatureBytes:sig};
 }
 /** Stable, versioned canonical bytes; signer uses this EXACT field ordering. */
-export function canonicalAuthWitnessV1(w:SignedAuthWitness):Uint8Array {
- return new TextEncoder().encode(JSON.stringify({
+export function canonicalAuthWitnessV1(w:SignedAuthWitness):ArrayBuffer {
+ const bytes=new TextEncoder().encode(JSON.stringify({
   version:1,brand_id:w.brand_id,environment:w.environment,
   source:w.source,witness_ref:w.witness_ref,observed_at:w.observed_at,
   counters:{
@@ -89,6 +89,9 @@ export function canonicalAuthWitnessV1(w:SignedAuthWitness):Uint8Array {
   },
   sequence:w.sequence,key_id:w.key_id,
  }));
+ const buffer=new ArrayBuffer(bytes.byteLength);
+ new Uint8Array(buffer).set(bytes);
+ return buffer;
 }
 /**
  * Pass result as R10's verifyIndependentAttestation callback. R10 additionally
@@ -123,8 +126,10 @@ export function createOfflineSignedAuthWitnessVerifier(deps:Readonly<{
     const body=await deps.backend.readSignedEnvelope(witness.witness_ref);
     const signed=parsedEnvelope(body,scope,witness,deps.key_id);
     if(!signed)return false;
+    const signatureBuffer=new ArrayBuffer(signed.signatureBytes.byteLength);
+    new Uint8Array(signatureBuffer).set(signed.signatureBytes);
     const verified=await crypto.subtle.verify('RSASSA-PKCS1-v1_5',
-      key,signed.signatureBytes,canonicalAuthWitnessV1(signed.payload));
+      key,signatureBuffer,canonicalAuthWitnessV1(signed.payload));
     if(!verified)return false;
     // Verify against the latest externally authenticated monotonic head,
     // not a checkpoint supplied by client JSON or the restored D1 snapshot.
@@ -133,7 +138,7 @@ export function createOfflineSignedAuthWitnessVerifier(deps:Readonly<{
     if(!h||!safeInt(h.sequence)||h.sequence!==signed.payload.sequence||
       h.witness_ref!==signed.payload.witness_ref||typeof h.signature_sha256!=='string'||
       !/^[a-f0-9]{64}$/.test(h.signature_sha256))return false;
-    const digest=await crypto.subtle.digest('SHA-256',signed.signatureBytes);
+    const digest=await crypto.subtle.digest('SHA-256',signatureBuffer);
     const hex=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
     return hex===h.signature_sha256;
    }catch{return false;}
