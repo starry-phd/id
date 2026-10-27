@@ -18,3 +18,6 @@
 - 由新 Draft PR 當下 HEAD Actions 確認同 SHA SUCCESS；未完成前只能說 **CI OPTIMIZATION DRAFT**，不能聲稱已生效於 main。
 - 如需重開歷史 Workflow，可在經人工審核的獨立分支，還原本 PR 修改前的 YAML 內容；此處沒有刪除過往 CI 或 Action Log。
 - GitHub Actions 用量可望降低**重複觸發**，但不能承諾特定速度與費用，手機 ChatGPT UI 無更新不等於 GitHub CI 故障。
+
+## AI 開發作業 SOP
+- AI-0～AI-4 後續交接及整批開發，請以 [AI-DEVELOPMENT-SOP-20261027.md](./AI-DEVELOPMENT-SOP-20261027.md) 為正式作業指引。此文件與本 CI 精簡驗證紀錄同屬 Draft #70，尚未合併 main。
