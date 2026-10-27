@@ -116,13 +116,12 @@ export function createOfflineAtomicTaskSettlement(port:TaskAtomicTransactionPort
   async settle(scopeInput:unknown,ref:unknown,serverNow:unknown):Promise<SettlementDecision>{
    const scope=normalizedScope(scopeInput);
    if(!scope||!id(ref)||!integer(serverNow))return blocked();
-   let calls=0;
-   let actual:AtomicProposal|null=null;
+   const state:{calls:number;actual:AtomicProposal|null}={calls:0,actual:null};
    try{
     const receipt=await port.transact(scope,ref,serverNow,async raw=>{
      // A misbehaving port cannot ask the same evaluation to write twice.
-     calls++;
-     if(calls!==1)return deny();
+     state.calls++;
+     if(state.calls!==1)return deny();
      const snapshot=validate(raw,scope,ref);
      if(!snapshot)return deny();
      const {wallet,policy,task,first_successful_task_ref}=snapshot;
@@ -143,7 +142,7 @@ export function createOfflineAtomicTaskSettlement(port:TaskAtomicTransactionPort
       const r:AtomicProposal=Object.freeze({decision:'unchanged' as const,wallet:null,
        expected_wallet_revision:wallet.revision,expected_task_revision:null,
        expected_policy_version:policy.version});
-      actual=r;
+      state.actual=r;
       return r;
      }
      const a:TrustedAuthority={
@@ -166,10 +165,11 @@ export function createOfflineAtomicTaskSettlement(port:TaskAtomicTransactionPort
      }
      // A transaction MUST validate versions and CAS when applying this proposal.
      const q=proposal(next,snapshot);
-     actual=q;
+     state.actual=q;
      return q;
     });
-    if(calls!==1||actual===null)return blocked();
+    if(state.calls!==1||state.actual===null)return blocked();
+    const actual=state.actual;
     const x=own(receipt,['status','wallet_revision']);
     if(!x)return blocked();
     if(actual.decision==='apply'&&x.status==='committed'&&
