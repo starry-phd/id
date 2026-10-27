@@ -26,16 +26,21 @@ async function setup(principalSession=session){
 }
 function db(result={success:true,meta:{changes:1}},snapshot=member){
  const calls=[];
- return {calls,api:{prepare(sql){
-  const e={sql,args:[]};calls.push(e);
-  return {bind(...args){e.args=args;return {
-   first:async()=>sql.includes('FROM starry_members WHERE')?{
-    ...snapshot,directory_opt_in:0,display_name_public:0}:null,
-   run:async()=>result,
-  }};},
- };
- }}};
+ return {calls,api:{
+  prepare(sql){
+   const e={sql,args:[]};calls.push(e);
+   return {bind(...args){
+    e.args=args;
+    return {
+     first:async()=>sql.includes('FROM starry_members WHERE')?{
+      ...snapshot,directory_opt_in:0,display_name_public:0}:null,
+     run:async()=>result,
+    };
+   }};
+  },
+ }};
 }
+
 test('OFF by default, invalid brand/production or fabricated principal never write',async()=>{
  assert.equal(LIVE_ONE_USE_DELETION_ENABLED,false);
  const {p,proof}=await setup();const d=db();
