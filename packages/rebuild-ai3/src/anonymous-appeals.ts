@@ -95,7 +95,8 @@ export function createAnonymousAppeals(scope:StarryScope,gate:SafetyGate,
   async submit(input:unknown,now:number):Promise<SubmissionResult>{
    if(!Number.isSafeInteger(now)||now<0)deny('MALFORMED');
    if(!requestOk(input))deny('MALFORMED');
-   const req:AppealRequest=input;
+   // Runtime exact-shape validator above is the authority; TS control-flow is conservative.
+   const req=input as AppealRequest;
    if(!gate||typeof gate.limit!=='function'||await gate.limit('submit')!==true)
     deny('RATE_OR_AUTHORITY_DENIED');
    if(typeof gate.topicAllowed!=='function'||await gate.topicAllowed(req.topic_code)!==true)
