@@ -1,0 +1,4 @@
+# AI-2 R10 | D1-shaped Q113 reconciliation: real SQLite negative tests
+Source: AI-0 verified integration PR #76 SHA e5a3ba76695316b3eaeb218fb0edd901d8820931, CI/SOP PR #70.
+Added 10 Node22 node:sqlite tests executing the actual candidate SQL SELECT/UPDATE RETURNING/metadata CAS against SQLite :memory:, beyond R9 mocked prepared statements. Guard fix: validate all due-list rows BEFORE first claim; reject malformed REORDERED_OR_CONFLICT receipts without exact known state and 64-hex digest.
+This still is not Cloudflare D1, Apple/Google official Store authentication, Cron, remote data or an entitlement grant. Node sqlite null-prototype rows are copied to Cloudflare D1 JSON-like objects for this bounded test adapter. Other real Store/D1 concurrency, provider authorization, merchant and cost remain blocked. G00-G10 11/11 BLOCKED, Starry Battery free, H-Global paused, no merge/deploy/payments.
