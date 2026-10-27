@@ -82,27 +82,29 @@ export function createOfflineReconciliationD1Ports(opts:Readonly<{
     &&listing.results.length<=limit,'RECONCILE_D1_LIST_DENIED');
    // Validate EVERY candidate before issuing even the first D1 write.
    const seen=new Set<string>();
+   const validated:{jobRef:string;version:number}[]=[];
    for(const candidate of listing.results){
     check(plain(candidate)&&typeof candidate.job_ref==='string'
      &&REF.test(candidate.job_ref)&&integer(candidate.source_version)
      &&candidate.source_version>=1&&!seen.has(candidate.job_ref),
      'RECONCILE_D1_LIST_DENIED');
     seen.add(candidate.job_ref);
+    validated.push({jobRef:candidate.job_ref,version:candidate.source_version});
    }
    const out:ClaimedJob[]=[];
-   for(const candidate of listing.results){
+   for(const candidate of validated){
     const lease=leaseToken();
     const row=await one<Record<string,unknown>>(RECONCILIATION_SQL.claim,lease,t+seconds,
-     candidate.job_ref,s.appId,s.environment,s.store,s.storeAppId,
-     candidate.source_version,t,opts.maxAttempts,t);
+     candidate.jobRef,s.appId,s.environment,s.store,s.storeAppId,
+     candidate.version,t,opts.maxAttempts,t);
     if(row===null)continue; // race loser
-    check(plain(row)&&row.job_ref===candidate.job_ref&&row.lease_token===lease
+    check(plain(row)&&row.job_ref===candidate.jobRef&&row.lease_token===lease
      &&row.app_id===s.appId&&row.store===s.store&&row.store_app_id===s.storeAppId
      &&typeof row.offer_id==='string'&&ID.test(row.offer_id)
      &&!row.offer_id.toLowerCase().includes('battery')
      &&(row.kind==='monthly'||row.kind==='yearly'||row.kind==='one_time')
      &&integer(row.due_at_sec)&&row.due_at_sec<=t
-     &&row.lease_until_sec===t+seconds&&row.version===candidate.source_version
+     &&row.lease_until_sec===t+seconds&&row.version===candidate.version
      &&integer(row.attempts)&&row.attempts>=1&&row.attempts<=opts.maxAttempts,
      'RECONCILE_D1_CLAIM_DENIED');
     out.push(Object.freeze({jobRef:row.job_ref,leaseToken:lease,offerId:row.offer_id,
