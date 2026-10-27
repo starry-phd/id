@@ -25,11 +25,11 @@ function make(opts={}){
  readCurrentMember:async()=>opts.member??member,
  readCurrentSession:async()=>opts.session??session,
  abuseLimit:async()=>opts.rate??true,
- privacyCanReview:async()=>opts.privacy??true,
+ privacyCanReview:async()=>Object.hasOwn(opts,'privacy')?opts.privacy:true,
  readMinimalCase:async()=>{reads++;if(opts.throwRead)throw Error('store down');return opts.info??{
   case_ref:caseRef,status:'reviewing',updated_ms:now*1000-100};},
  appendAuditAccess:async e=>{auditCount++;auditEvents.push(e);if(opts.throwAudit)throw Error('audit down');
-  return opts.audit??{persisted:true,event_ref:'audit-r9-event-0000001'};},
+  return Object.hasOwn(opts,'audit')?opts.audit:{persisted:true,event_ref:'audit-r9-event-0000001'};},
  };
  return {backend,get auditCount(){return auditCount},get reads(){return reads},auditEvents,sql,
  gate:createOfflineReviewerAuthority({scope,backend,enabled:opts.enabled??true})};
