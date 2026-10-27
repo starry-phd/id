@@ -36,7 +36,6 @@ export const R21_FAILURE_COPY=Object.freeze({
 } as const);
 export type FailureCode=keyof typeof R21_FAILURE_COPY;
 type Scope=Readonly<{brand_id:'starry';environment:'development'|'staging'}>;
-type Law=Readonly<{revision:string;processing_approved:boolean;retention_approved:boolean}>;
 type Hint=Readonly<{kind:'none'|'timeout'|'duplicate'|'failed'|'pending'|'receipt_mismatch'|'pitr_rollback'}>;
 type SessionDenial=Readonly<{kind:'unknown'|'absent'|'revoked'}>;
 type Rate=Readonly<{kind:'unapproved'|'unknown'|'mock_published_only'}>;
