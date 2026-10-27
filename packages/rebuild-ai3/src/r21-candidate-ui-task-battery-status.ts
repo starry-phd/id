@@ -85,8 +85,13 @@ export function createOfflineR21CandidateTaskBatteryStatus(deps:Readonly<{
   throw Error('AI3_R21_READ_ONLY_SERVER_PORTS_REQUIRED');
  const scope:StarryDeletionScope=Object.freeze({brand_id:'starry',
   environment:s.environment as StarryDeletionScope['environment']});
- const read=async(db:R19ReadOnlySql,sql:string,cols:readonly string[],...params:string[])=>
-  normal(await db.prepare(sql).bind(...params).first<Record<string,unknown>>(),cols);
+ const read=async(db:R19ReadOnlySql,sql:string,cols:readonly string[],...params:string[])=>{
+  const row=await db.prepare(sql).bind(...params).first<Record<string,unknown>>();
+  if(row===null)return null; // Only a genuinely absent row is unknown.
+  const parsed=normal(row,cols);
+  if(!parsed)throw Error('AI3_R21_MALFORMED_PROJECTION_DENIED');
+  return parsed; // Forged columns/getters are blocked, never mislabelled missing.
+ };
  const gate=async()=>await deps.lawfulPurposeNow(scope)===true&&
   await deps.lawfulRetentionNow(scope)===true;
  return Object.freeze({

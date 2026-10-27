@@ -154,7 +154,7 @@ test('R21 malformed getter/method exception/missing mandatory adapters all fail 
  for(const o of [{wallet:evil},{map:()=>{throw Error('DB down')}},
   {task:{...taskRow,secret:'bad'}},{wallet:{...wallet,sku:'forbidden'}}]){
   const f=setup(o);protectedUi(await f.make().project(m,task,'TASK_STATUS',110500),
-   o.wallet?.sku||o.task?.secret?'receipt_mismatch':'blocked');
+   'blocked');
  }
  const f=setup();
  assert.throws(()=>f.make({mapping:null}),/PORTS/);
