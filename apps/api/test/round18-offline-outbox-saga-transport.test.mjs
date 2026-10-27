@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
+import {Buffer} from 'node:buffer';
 import {generateKeyPairSync,sign,verify} from 'node:crypto';
 import {setImmediate} from 'node:timers';
 import {createOfflineDeletionFanoutReview} from '../src/round17-offline-deletion-fanout-review.ts';
