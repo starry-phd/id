@@ -1,0 +1,57 @@
+{
+  "schema_version": "starry.task-proof.v0-draft",
+  "status": "OFFLINE_SERVER_ADAPTER_ONLY",
+  "source": "AI-0 R7 integrated Draft #64 / AI-3 Task TrustedAuthority ports",
+  "task_proof_live_enabled": false,
+  "public_worker_routes": [],
+  "public_sdk_exports": [],
+  "brand": "starry",
+  "hglobal_integration_enabled": false,
+  "billing_to_battery_exchange": false,
+  "task_input_authority": "server_task_store_committed_read_only",
+  "rate_input_authority": "server_policy_store_exact_revision",
+  "first_task_evidence": "server_first_successful_task_lookup",
+  "required_task_record_fields": [
+    "schema_version",
+    "brand_id",
+    "member_ref",
+    "task_ref",
+    "app_id",
+    "task_type",
+    "policy_version",
+    "rate_version",
+    "price",
+    "request_state",
+    "proof_state",
+    "proof_source",
+    "proof_revision",
+    "completed_at"
+  ],
+  "required_task_states": [
+    "accepted",
+    "succeeded",
+    "failed"
+  ],
+  "source_failures": "DENY_NO_GRANT_NO_COMMIT",
+  "release_gates": {
+    "G00": "BLOCKED",
+    "G01": "BLOCKED",
+    "G02": "BLOCKED",
+    "G03": "BLOCKED",
+    "G04": "BLOCKED",
+    "G05": "BLOCKED",
+    "G06": "BLOCKED",
+    "G07": "BLOCKED",
+    "G08": "BLOCKED",
+    "G09": "BLOCKED",
+    "G10": "BLOCKED"
+  },
+  "ai_0_gate_pending": [
+    "authoritative Task service design and identity integration",
+    "atomic D1 read and completion proof in same transaction",
+    "member deletion and first-task anti-regrant legal retention",
+    "official App/task price version registry and X/Y max debt",
+    "Cloudflare queue D1 real concurrency and replay",
+    "consumer SDK API and native staging authorization"
+  ]
+}
