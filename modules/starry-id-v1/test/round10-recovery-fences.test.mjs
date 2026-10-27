@@ -7,11 +7,10 @@ const now=1793000000,scope={brand_id:'starry',app_id:'starry-id',environment:'st
 const counts={deleted_members:5,revoked_sessions:12,claimed_registration_gifts:4};
 function make(cfg={}){
  const calls={privacy:0,witness:0,verify:0,db:0};
- const witness={
+ const witness=Object.defineProperties({
   brand_id:'starry',environment:'staging',source:'independent_append_only',
   witness_ref:'independent-hsm-001',observed_at:now,counters:{...counts},
-  ...cfg.witness,
- };
+ },Object.getOwnPropertyDescriptors(cfg.witness??{}));
  const db={prepare(sql){
   calls.db++;
   assert.match(sql,/FROM starry_auth_recovery_fence/);
