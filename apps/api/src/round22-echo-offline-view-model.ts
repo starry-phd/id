@@ -48,7 +48,7 @@ export const ECHO_R22_DRY_API_CONTRACT=Object.freeze({
  share:'share.observe -> untrusted preview only, NEVER authentication or permanent VIP unlock',
  admin:'admin.observe -> no admin authority; missing signed Starry session always blocked'
 } as const);
-const IDS=new Set(DEMO.map(x=>x.track_ref));
+const IDS:ReadonlySet<string>=new Set(DEMO.map(x=>x.track_ref));
 const MEDIA_FIELDS=['track_ref','kind','availability'] as const;
 const TRANS_FIELDS=['track_ref','kind','state'] as const;
 const AUTH_FIELDS=['schema_version','screen','state','reason_code','ui_only','candidate_only',
