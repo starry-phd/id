@@ -1,0 +1,114 @@
+{
+  "schema_version": "0.1.0",
+  "integration_id": "AI0_R22_ECHO_FIRST_APP_FOUR_OWNER_SAME_CHECKOUT_OFFLINE_ONLY",
+  "baseline": {
+    "verified_R21_PR": 148,
+    "sha": "fbd5c03156da700b68c7b5bceb65269cb7c900ec",
+    "echo_first_app_product_blueprint_PR": 153,
+    "sha_integration_parent": "80f642b2e5d8a364b409a77d13695b1381713670"
+  },
+  "first_app": "繁星回聲",
+  "sources": [
+    {
+      "owner": "AI-1",
+      "pr": 151,
+      "head_sha": "1acfb9106bb1299973aaa53cb4929bafda5ca8c3",
+      "base_sha": "fbd5c03156da700b68c7b5bceb65269cb7c900ec",
+      "original_git_blobs": [
+        {
+          "path": "modules/starry-id-v1/ADR-ROUND22-ECHO-CANDIDATE-SESSION.md",
+          "blob_sha": "a4e457f8bc2fdb2b1e95de4c752ba699396abada"
+        },
+        {
+          "path": "modules/starry-id-v1/src/round22-echo-candidate-session.ts",
+          "blob_sha": "a27f31bdf5de335f35b571521c2b4520db2f8a4b"
+        },
+        {
+          "path": "modules/starry-id-v1/test/round22-echo-candidate-session.test.mjs",
+          "blob_sha": "b19bc1531f2e3356fb34765169c4406242fe8b9f"
+        }
+      ]
+    },
+    {
+      "owner": "AI-2",
+      "pr": 150,
+      "head_sha": "9026d228aa5d96eebec07282cf47d4936471e501",
+      "base_sha": "fbd5c03156da700b68c7b5bceb65269cb7c900ec",
+      "original_git_blobs": [
+        {
+          "path": "packages/rebuild-billing/docs/ROUND22-ECHO-LEGACY-BILLING-ENTITLEMENT-GATE.md",
+          "blob_sha": "7e202c09f5208a4a528ce82fc894079326f3d7c2"
+        },
+        {
+          "path": "packages/rebuild-billing/src/r22-echo-entitlement-candidate.ts",
+          "blob_sha": "51efecd20db244aa4823250522251fae23718ec7"
+        },
+        {
+          "path": "packages/rebuild-billing/test/r22-echo-entitlement-candidate.test.mjs",
+          "blob_sha": "f3579a68ca776634f8a71db2f30b4172101d37d7"
+        }
+      ]
+    },
+    {
+      "owner": "AI-3",
+      "pr": 149,
+      "head_sha": "5ba5a9d2a8f34c42504b8e2108f68b6da5be90cf",
+      "base_sha": "fbd5c03156da700b68c7b5bceb65269cb7c900ec",
+      "original_git_blobs": [
+        {
+          "path": "packages/rebuild-ai3/docs/ROUND22-ECHO-PLAYBACK-TRANSCRIPT-TASK-BATTERY-GATE.md",
+          "blob_sha": "9b7db07720468911825c5a4d32bdf0e284e69547"
+        },
+        {
+          "path": "packages/rebuild-ai3/src/r22-echo-playback-transcript-boundary.ts",
+          "blob_sha": "98a7579b954d2dacfbc379a239cf26574c650b69"
+        },
+        {
+          "path": "packages/rebuild-ai3/test/r22-echo-playback-transcript-boundary.test.mjs",
+          "blob_sha": "ce89da2dc16985d9abe8a4ad1af3d51ffd3fa718"
+        },
+        {
+          "path": "packages/rebuild-ai3/test/test_r22_echo_three_db_boundary.py",
+          "blob_sha": "fb812850815ec6612eed2be9a7cb158964d359f8"
+        }
+      ]
+    },
+    {
+      "owner": "AI-4",
+      "pr": 152,
+      "head_sha": "d07bc4751d8fde3549325fc58bb86b7cbef8c5dc",
+      "base_sha": "fbd5c03156da700b68c7b5bceb65269cb7c900ec",
+      "original_git_blobs": [
+        {
+          "path": "apps/api/src/round22-echo-offline-view-model.ts",
+          "blob_sha": "4a0ab4cf3faf82948926a2b3572c44ba1afaa6ed"
+        },
+        {
+          "path": "apps/api/test/round22-echo-offline-view-model.test.mjs",
+          "blob_sha": "27a373b3ab624c57886ae61fceee32ba8118646f"
+        },
+        {
+          "path": "docs/ai/AI4-ROUND22-ECHO-NATIVE-OFFLINE-CONTRACT.md",
+          "blob_sha": "df51ccae70b2456161eacd3ad6ca0f8d9aa83288"
+        }
+      ]
+    }
+  ],
+  "original_blobs": 13,
+  "guardrails": {
+    "new_r22_code_actually_integrated": true,
+    "old_echo_repo_modified": false,
+    "echo_native_app_implemented": false,
+    "real_cross_d1_writes_approved": false,
+    "signed_P05_approved": false,
+    "legal_Q104_Q119_approved": false,
+    "real_Store_approved": false,
+    "real_cloudflare_D1_R2_queues_approved": false,
+    "real_Audio_API_ready": false,
+    "unapproved_cloudflare_deploy": false,
+    "unapproved_app_store_publish": false,
+    "free_battery_purchasable": false,
+    "hglobal_active": false,
+    "all_11_release_gates_blocked": true
+  }
+}
