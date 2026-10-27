@@ -73,7 +73,6 @@ export function createOfflineDeletionEventRelay(scope:RelayScope,ports:AuthPorts
  });
  return Object.freeze({
   async inspect(eventRef:unknown,serverNowSec:unknown):Promise<RelayResult>{
-   if(!LIVE_AUTH_DELETION_RELAY && !num(serverNowSec,1))return blocked('INVALID_SERVER_CLOCK');
    if(typeof eventRef!=='string'||!EVENT.test(eventRef))
     return blocked('INVALID_OPAQUE_EVENT_REF');
    if(!num(serverNowSec,1))return blocked('INVALID_SERVER_CLOCK');
@@ -108,6 +107,19 @@ export function createOfflineDeletionEventRelay(scope:RelayScope,ports:AuthPorts
     if(!rowAgain||['event_id','s_user_id','occurred_at','event_type']
      .some(k=>rowAgain[k]!==row[k]))
      return blocked('AUTH_OUTBOX_CHANGED_DURING_RELAY');
+    // Avoid relaying a previously valid Auth state if the trusted member,
+    // session revocation or challenge linkage changes during the handoff.
+    const contextAgain=exact(await ports.readDeletionContext(eventRef),
+     ['event_id','s_user_id','environment','consumed_at']);
+    const currentAgain=exact(await ports.readCurrentDeletedMember(row.s_user_id),
+     ['s_user_id','status','auth_version','updated_at']);
+    if(!contextAgain||!currentAgain||
+     ['event_id','s_user_id','environment','consumed_at']
+      .some(k=>contextAgain[k]!==ctx[k])||
+     ['s_user_id','status','auth_version','updated_at']
+      .some(k=>currentAgain[k]!==current[k])||
+     await ports.readUnrevokedSessions(row.s_user_id)!==0)
+     return blocked('AUTH_MEMBER_OR_SESSION_CHANGED_DURING_RELAY');
     const event:BatteryDeletionCandidate=Object.freeze({
      event_id:row.event_id as string,member_ref:row.s_user_id as string,
      occurred_at_sec:row.occurred_at as number,event_type:'account_deleted'
