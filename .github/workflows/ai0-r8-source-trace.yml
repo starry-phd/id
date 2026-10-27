@@ -1,0 +1,28 @@
+name: AI-0 R8 128-heading trace validation (Release BLOCKED)
+on:
+  pull_request:
+    branches: [ai0/rebuild-round7-four-owner-integration-20261027]
+    paths:
+      - 'docs/requirements/source-reconciliation-r8.v0.json'
+      - 'docs/requirements/verify-source-reconciliation-r8.mjs'
+      - 'docs/requirements/AI0-R8-128-TRACE-REVIEW-20261027.md'
+      - '.github/workflows/ai0-r8-source-trace.yml'
+permissions:
+  contents: read
+jobs:
+  check-128-source-rows:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exactly 128 source headings mapped once, all release Gates remain blocked
+        run: |
+          node docs/requirements/verify-original-inventory.mjs
+          node docs/requirements/verify-source-reconciliation-r8.mjs
+          node docs/release-readiness/check-release-readiness.mjs --assert-blocked
+      # No migrations, no cloud deploy, no merchant operations, no EAS or paid APIs.
