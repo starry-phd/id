@@ -118,7 +118,7 @@ test('R18 rejects floor mismatch, foreign brand, hidden fields, extra secrets',a
 });
 test('R18 a committed separate Task without Wallet settlement is blocked',async()=>{
  for(const status of ['held','revoked','released']){
-  const f=make({tasks:[{...tasks[0],status:'committed'}],holds:[{...holds[0],status}]});
+  const f=make({task:[{...tasks[0],status:'committed'}],holds:[{...holds[0],status}]});
   const r=await f.gate().assess(id,110500);
   assertNoAuthority(r);
   assert.equal(r.status,'blocked');
@@ -126,13 +126,13 @@ test('R18 a committed separate Task without Wallet settlement is blocked',async(
  }
 });
 test('R18 committed Task and committed Wallet still only permits offline review',async()=>{
- const f=make({tasks:[{...tasks[0],status:'committed'}],
+ const f=make({task:[{...tasks[0],status:'committed'}],
   holds:[{...holds[0],status:'committed'}]});
  const r=await f.gate().assess(id,110500);
  assert.equal(r.status,'review_only');assertNoAuthority(r);
 });
 test('R18 missing Task row, missing Wallet hold, pending Task fail closed',async()=>{
- for(const opts of [{tasks:[]},{holds:[]},{tasks:[{...tasks[0],status:'pending'}]}]){
+ for(const opts of [{task:[]},{holds:[]},{task:[{...tasks[0],status:'pending'}]}]){
   const f=make(opts),r=await f.gate().assess(id,110500);
   assert.equal(r.status,'blocked');assertNoAuthority(r);
  }

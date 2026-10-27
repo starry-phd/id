@@ -147,7 +147,12 @@ export function createOfflineR18BatteryRecoveryReview(deps:Readonly<{
     if(!validReceipt(receipt))
      return result('review_only','BATTERY_RECEIPT_MISSING_TRUNCATED_OR_STALE');
     const readFloor=async()=>{
-     return exact(await deps.independentFloor.read(scope,eventId),FLOOR);
+     const raw=await deps.independentFloor.read(scope,eventId);
+     if(raw===null)return null; // absent witness => manual review, NEVER ACK.
+     const parsed=exact(raw,FLOOR);
+     // A malformed / getter-bearing / wrong-schema witness is not "missing".
+     if(!parsed)throw Error('UNTRUSTED_INDEPENDENT_WITNESS');
+     return parsed;
     };
     const floor=await readFloor();
     if(!floor)return result('review_only','INDEPENDENT_NONROLLBACK_WITNESS_MISSING');
