@@ -139,7 +139,7 @@ test('snapshot changed during read cannot pass double count',async t=>{
 test('malicious event Proxy/accessor is rejected and never persisted',async t=>{
  const a=await setup({overrideRows:[new Proxy({},{
   getPrototypeOf(){throw Error('trap');}
- })]});t.after(a.close);
+ }),event(2,'REFUNDED')]});t.after(a.close);
  assert.equal((await a.make().review(NOW)).reason,'INVALID_OR_GAPPED_EVENT');
  assert.equal(a.called.audit,0);
 });
