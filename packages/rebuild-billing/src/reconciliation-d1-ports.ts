@@ -80,13 +80,17 @@ export function createOfflineReconciliationD1Ports(opts:Readonly<{
     .all<Record<string,unknown>>();
    check(plain(listing)&&Array.isArray(listing.results)
     &&listing.results.length<=limit,'RECONCILE_D1_LIST_DENIED');
-   const out:ClaimedJob[]=[],seen=new Set<string>();
+   // Validate EVERY candidate before issuing even the first D1 write.
+   const seen=new Set<string>();
    for(const candidate of listing.results){
     check(plain(candidate)&&typeof candidate.job_ref==='string'
      &&REF.test(candidate.job_ref)&&integer(candidate.source_version)
      &&candidate.source_version>=1&&!seen.has(candidate.job_ref),
      'RECONCILE_D1_LIST_DENIED');
     seen.add(candidate.job_ref);
+   }
+   const out:ClaimedJob[]=[];
+   for(const candidate of listing.results){
     const lease=leaseToken();
     const row=await one<Record<string,unknown>>(RECONCILIATION_SQL.claim,lease,t+seconds,
      candidate.job_ref,s.appId,s.environment,s.store,s.storeAppId,
@@ -122,9 +126,15 @@ export function createOfflineReconciliationD1Ports(opts:Readonly<{
       &&['PAID','RENEWED','REFUNDED','CHARGEBACK','EXPIRED','GRACE_PERIOD','ON_HOLD','REVOKED'].includes(receipt.newState)
       &&typeof receipt.eventDigest==='string'&&/^[0-9a-f]{64}$/.test(receipt.eventDigest)
      ||receipt.result==='review_required'
-      &&(receipt.reason==='REORDERED_OR_CONFLICT'||receipt.reason==='DELETED_OR_FOREIGN')
-      &&(receipt.reason!=='DELETED_OR_FOREIGN'
-       ||receipt.eventDigest===null&&receipt.newState===null)
+      &&(
+        receipt.reason==='REORDERED_OR_CONFLICT'
+         &&typeof receipt.newState==='string'
+         &&['PAID','RENEWED','REFUNDED','CHARGEBACK','EXPIRED','GRACE_PERIOD','ON_HOLD','REVOKED'].includes(receipt.newState)
+         &&typeof receipt.eventDigest==='string'
+         &&/^[0-9a-f]{64}$/.test(receipt.eventDigest)
+        ||receipt.reason==='DELETED_OR_FOREIGN'
+         &&receipt.eventDigest===null&&receipt.newState===null
+      )
     )&&t+opts.retryAfterSeconds<=Number.MAX_SAFE_INTEGER,
     'RECONCILE_D1_RECEIPT_DENIED');
    const row=await one<Record<string,unknown>>(RECONCILIATION_SQL.review,receipt.result,
