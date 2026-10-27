@@ -166,12 +166,19 @@ export function createOfflineBatteryPublisherReceiptSync(config:Readonly<{
    try{
     if(await config.lawfulProcessingApprovedNow(scope)!==true)
      return result('blocked','LAWFUL_PURPOSE_DENIED');
+    // Pin the approved policy before ANY protected Auth/Battery read.
+    // A replay receipt is not lawful merely because it was once persisted.
+    const policyAtStart=await config.readApprovedBatteryPolicyVersion(scope);
+    if(!int(policyAtStart)||policyAtStart<1)
+     return result('blocked','BATTERY_POLICY_NOT_APPROVED');
     const original=source(await config.publisher.readCommittedOriginal(eventId,scope),
       eventId,serverNowMs);
     if(!original)return result('blocked','ONLY_AUTH_OUTBOX_IS_SOURCE');
     if(await auth(original)!==true)return result('blocked','AUTH_COMMIT_NOT_CURRENT');
     const before=await receipt(original);
     if(before){
+     if(before.policy_version!==policyAtStart)
+      return result('blocked','BATTERY_RECEIPT_POLICY_STALE');
      // A duplicate is NOT a second mutation: prove same event, member, time
      // and locally persisted revoke, check Auth and same receipt AGAIN.
      const latestOriginal=source(
@@ -183,6 +190,10 @@ export function createOfflineBatteryPublisherReceiptSync(config:Readonly<{
      const after=await receipt(original);
      if(!after||JSON.stringify(before)!==JSON.stringify(after))
       return result('blocked','BATTERY_RECEIPT_RACED');
+     // The same policy must still be lawful and current at confirmation.
+     if(await config.lawfulProcessingApprovedNow(scope)!==true||
+      await config.readApprovedBatteryPolicyVersion(scope)!==policyAtStart)
+      return result('blocked','LEGAL_OR_POLICY_CHANGED_BEFORE_CONFIRMATION');
      return result('already_applied_offline','DURABLE_BATTERY_REPLAY_MATCHED');
     }
     // Only the already-tested R15 bridge can initiate the R14 local DELETE.
@@ -191,6 +202,8 @@ export function createOfflineBatteryPublisherReceiptSync(config:Readonly<{
     // actually succeeded: reconcile the same immutable inbox either way.
     const recovered=await receipt(original);
     if(!recovered)return result('blocked','BATTERY_RECEIPT_MISSING_OR_CONFLICT');
+    if(recovered.policy_version!==policyAtStart)
+     return result('blocked','BATTERY_RECEIPT_POLICY_STALE');
     if(await auth(original)!==true)return result('blocked','AUTH_CHANGED_AFTER_BATTERY_COMMIT');
     const publisherAgain=source(await config.publisher.readCommittedOriginal(eventId,scope),
      eventId,serverNowMs);
@@ -200,6 +213,9 @@ export function createOfflineBatteryPublisherReceiptSync(config:Readonly<{
     const confirmed=await receipt(original);
     if(!confirmed||JSON.stringify(recovered)!==JSON.stringify(confirmed))
      return result('blocked','BATTERY_RECEIPT_CHANGED');
+    if(await config.lawfulProcessingApprovedNow(scope)!==true||
+     await config.readApprovedBatteryPolicyVersion(scope)!==policyAtStart)
+     return result('blocked','LEGAL_OR_POLICY_CHANGED_BEFORE_CONFIRMATION');
     return consume.disposition==='receipt_only'?
      result('applied_offline','BATTERY_LOCAL_COMMIT_CONFIRMED'):
      result('already_applied_offline','CONCURRENT_OR_RETRIED_COMMIT_CONFIRMED');
