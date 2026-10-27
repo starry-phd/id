@@ -1,0 +1,38 @@
+{
+  "schema_version": "starry.task-dual-signed-head.v1-draft",
+  "fixed_base_pr": 94,
+  "fixed_base_sha": "4a11b387d32aba789c905e03291f3bc18ebd71d6",
+  "live": false,
+  "public_routes": [],
+  "sdk_exports": [],
+  "task_proof": "R12 RSA-2048+ RS256 committed Task signature with key_id task_signer",
+  "head_proof": "independent RSA-2048+ RS256 latest per-task head with distinct key_id head_signer",
+  "head_fields": [
+    "task_ref",
+    "member_ref",
+    "sequence",
+    "proof_revision",
+    "signature_sha256",
+    "issued_ms",
+    "expires_ms",
+    "brand_id",
+    "environment"
+  ],
+  "checks": [
+    "scope-bound canonical signature",
+    "distinct nonextractable RSA verification keys",
+    "expiry <= 30 seconds",
+    "head Task sequence/proof_revision/digest match",
+    "head read twice around verified Task proof",
+    "abort if head changed"
+  ],
+  "unresolved": [
+    "real independent nonrollback monotone head storage",
+    "official task issuer and private key custody",
+    "true independent signer authority",
+    "atomic cross-D1 Auth/Task/Battery commit",
+    "lawful Q119 gift/retention",
+    "real Queue and Worker authorization"
+  ],
+  "release": "G00-G10 all 11 BLOCKED"
+}
