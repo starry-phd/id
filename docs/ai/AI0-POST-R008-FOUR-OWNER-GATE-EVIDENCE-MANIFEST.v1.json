@@ -1,0 +1,226 @@
+{
+  "schema_version": "starry.ai0.post-r008-four-owner-gate-evidence-integration.v1",
+  "record_class": "GITHUB_ONLY_SOURCE_PRESERVED_PLANNING_NOT_LIVE_EVIDENCE_OR_OWNER_APPROVAL",
+  "created_date_taiwan": "2026-10-29",
+  "repository": "starry-phd/id",
+  "scope": "STARRY_CENTRAL_ID_ONLY; external consumer apps and H-Global out of scope",
+  "shared_parent": {
+    "pr": 237,
+    "sha": "ac99611e00c32c0f5945fb9989807b0dd2dda1a9"
+  },
+  "source_preserving_parent": {
+    "pr": 241,
+    "sha": "a3a1cd2227e15327c3949cafac4d57197a192c72"
+  },
+  "r008_four_owner_gate2": {
+    "pr": 234,
+    "sha": "e47c068449b3aca37ddbf5d6d7f4255c2391a7c9",
+    "offline_node_passed": 1776,
+    "offline_sqlite_memory_passed": 413,
+    "workflow_run": 40745802066,
+    "result": "OFFLINE_ONLY_PASS"
+  },
+  "owner_deliveries": [
+    {
+      "owner": "AI-1",
+      "pr": 239,
+      "head_sha": "7b543f6cc258733d6533c70cc3b6e141b1efe104",
+      "gates": [
+        "G02-OIDC",
+        "G03-SESSION-D1"
+      ],
+      "approved_requests": 0,
+      "pending_requests": 9,
+      "workflow_runs": [
+        40750466141,
+        40750466048
+      ],
+      "files": [
+        {
+          "path": "modules/starry-id-v1/AI1-POST-R008-G02-G03-REAL-EVIDENCE-APPROVAL.md",
+          "blob_sha": "e499cd2fac477046b3c3669a43e58dd8d6fbac4e"
+        },
+        {
+          "path": "modules/starry-id-v1/G02-G03-REAL-EVIDENCE-APPROVALS.v1.json",
+          "blob_sha": "6aedbf4fbca8c87681ea9bfadbccf5aee3fdaa59"
+        }
+      ]
+    },
+    {
+      "owner": "AI-2",
+      "pr": 240,
+      "head_sha": "6809172b4a29246d1c096ca5c371a16d5aab20c3",
+      "gates": [
+        "G04-STORE",
+        "G05-BILLING-D1"
+      ],
+      "approved_requests": 0,
+      "pending_requests": 13,
+      "workflow_runs": [
+        40750536060,
+        40750536441
+      ],
+      "files": [
+        {
+          "path": "packages/rebuild-billing/docs/POST-R008-G04-G05-AUTHORITY-APPROVAL-MATRIX.v1.json",
+          "blob_sha": "3a5d3be8cc7a0a9159d2cbd73f82ce3de374348b"
+        },
+        {
+          "path": "packages/rebuild-billing/docs/POST-R008-G04-G05-STORE-BILLING-REAL-EVIDENCE-REVIEW.md",
+          "blob_sha": "b5e447a1002bfb7febe9f3a3f458b046ae77ff2c"
+        }
+      ]
+    },
+    {
+      "owner": "AI-3",
+      "pr": 238,
+      "head_sha": "620acc82702076812dd832cb59de00502d6357a3",
+      "gates": [
+        "G07-AUDIT-QUEUE"
+      ],
+      "approved_requests": 0,
+      "pending_requests": 8,
+      "workflow_runs": [
+        40750371263
+      ],
+      "files": [
+        {
+          "path": "packages/rebuild-ai3/docs/G07-R008-REAL-EVIDENCE-APPROVAL-MATRIX.md",
+          "blob_sha": "f48b26be6c03f79206d36a28e79a7de07e194e00"
+        },
+        {
+          "path": "packages/rebuild-ai3/docs/G07-R008-REAL-EVIDENCE-APPROVAL-MATRIX.v1.json",
+          "blob_sha": "fe78363727a57fa7e3619bb2fcf86b66c4bac1b8"
+        }
+      ]
+    },
+    {
+      "owner": "AI-4",
+      "pr": 241,
+      "head_sha": "a3a1cd2227e15327c3949cafac4d57197a192c72",
+      "gates": [
+        "G08-WORKER-SDK",
+        "G09-DEVICES"
+      ],
+      "approved_requests": 0,
+      "pending_requests": null,
+      "workflow_runs": [
+        40750750164
+      ],
+      "files": [
+        {
+          "path": "apps/api/test/ai4-g08-g09-evidence-gap-integrity.test.mjs",
+          "blob_sha": "f6189d1420a45bb8528507376a1a0674843a4720"
+        },
+        {
+          "path": "docs/operations/AI4-POST-R008-G08-G09-SOURCE-LINKED-RELEASE-EVIDENCE.md",
+          "blob_sha": "fbfc49808f6d00e0b858fe0e07af79c1817e95ad"
+        },
+        {
+          "path": "docs/operations/ai4-post-r008-g08-g09-evidence-provenance.v1.json",
+          "blob_sha": "56bd49dc0dd9b4f8ef66bc4a55a0e072912c0aab"
+        }
+      ]
+    }
+  ],
+  "integrity": {
+    "owner_count": 4,
+    "immutable_owner_file_count": 9,
+    "owner_original_paths_modified": 0,
+    "ai1_explicit_pending_requests": 9,
+    "ai2_explicit_pending_requests": 13,
+    "ai3_explicit_pending_requests": 8,
+    "ai4_pending_gate_count": 2
+  },
+  "decision_queue": [
+    {
+      "id": "D00",
+      "owner": "product owner",
+      "topic": "G00 Starry centralized ID MVP and 128-heading SSOT, with newer central-only scope; no authorizing external Apps",
+      "status": "OWNER_DECISION_REQUIRED",
+      "prerequisites": []
+    },
+    {
+      "id": "D01",
+      "owner": "product owner/security",
+      "topic": "G01 Brand/account/resource separation and exact Starry ID app_id, env and cross-brand denial evidence",
+      "status": "OWNER_APPROVAL_REQUIRED",
+      "prerequisites": [
+        "D00"
+      ]
+    },
+    {
+      "id": "D06",
+      "owner": "product owner/AI-0 + all owners",
+      "topic": "G06 P05 authoritative version: 11 core + conditional idempotency key versus unenumerated 13-field release gate versus offline 17-field candidate",
+      "status": "OWNER_CONTRACT_DECISION_REQUIRED",
+      "prerequisites": [
+        "D00"
+      ]
+    },
+    {
+      "id": "D87",
+      "owner": "product owner/architecture",
+      "topic": "Issue #87 choose single Starry transaction authority (A) or durable outbox/saga (B) with actual failure semantics",
+      "status": "OWNER_ARCHITECTURE_DECISION_REQUIRED",
+      "prerequisites": [
+        "D00"
+      ]
+    },
+    {
+      "id": "D104119",
+      "owner": "product owner/legal/security",
+      "topic": "Q104/Q119 purpose, deletion, retention, legal hold, PITR non-resurrection",
+      "status": "LEGAL_REVIEW_REQUIRED",
+      "prerequisites": [
+        "D00"
+      ]
+    },
+    {
+      "id": "DTEST",
+      "owner": "product owner/security/operations",
+      "topic": "Separate exact per-resource Starry-only test-stage, OIDC/Store/EAS identities, Worker/Access/Keys/D1/Queue, cost cap and rollback/teardown approval",
+      "status": "NO_EXTERNAL_ACTION_AUTHORIZED",
+      "prerequisites": [
+        "D00",
+        "D01",
+        "D06",
+        "D87",
+        "D104119"
+      ]
+    },
+    {
+      "id": "D10",
+      "owner": "AI-0 + product owner",
+      "topic": "G10 operational on-call, budget, secret, monitoring, evidence redaction, restore and rollback evidence",
+      "status": "BLOCKED_PENDING_GATES",
+      "prerequisites": [
+        "DTEST"
+      ]
+    }
+  ],
+  "release_guard": {
+    "release_json_path": "docs/release-readiness/release-readiness.v0.json",
+    "expected_blob_sha": "0ea2e40692fb2e9f7e0c282ac1ece91ad2c740ba",
+    "location": "UNMERGED_BRANCH_NOT_VERIFIED_ON_MAIN",
+    "gates_total": 11,
+    "gates_blocked": 11,
+    "all_evidence_arrays_empty": true,
+    "release_authorization_granted": false,
+    "p05_publishable": false,
+    "main_merge_authorized": false,
+    "preview_reenable_authorized": false,
+    "staging_deploy_authorized": false,
+    "production_deploy_authorized": false,
+    "paid_resource_creation_authorized": false,
+    "real_oidc_or_store_test_authorized": false,
+    "real_d1_or_queue_test_authorized": false
+  },
+  "static_only_limits": [
+    "Each owner's successful offline workflow is for that owner's own SHA; the 4 results cannot be claimed as a combined-SHA pass.",
+    "This integrated SHA must run its own CI; do not pre-claim CI success.",
+    "Original R008 twelve-source preservation remains under upstream #234; no R008 reimplementation or live certification.",
+    "No field of this file constitutes approval or official release evidence.",
+    "Cloudflare observations in #235 are historical only."
+  ]
+}

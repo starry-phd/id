@@ -1,0 +1,197 @@
+{
+  "schema_version": "starry.ai3.g07.evidence-readiness.post-r008.v1-review-only",
+  "basis_commit": "ac99611e00c32c0f5945fb9989807b0dd2dda1a9",
+  "scope": "Starry ID central-only; AI-3 G07-AUDIT-QUEUE; non-activating historical review",
+  "collected_from": "GitHub repository source and AI-0 handoffs; no direct fresh Cloudflare query in this AI-3 action",
+  "sources": [
+    "https://github.com/starry-phd/id/issues/1#issuecomment-6477805792",
+    "https://github.com/starry-phd/id/issues/4#issuecomment-6477344569",
+    "https://github.com/starry-phd/id/issues/220",
+    "https://github.com/starry-phd/id/pull/234",
+    "https://github.com/starry-phd/id/pull/235",
+    "https://github.com/starry-phd/id/pull/236",
+    "https://github.com/starry-phd/id/pull/237",
+    "https://github.com/starry-phd/id/issues/87",
+    "https://github.com/starry-phd/id/blob/ai0/chat-handoff-r008-github-only-20261029/docs/release-readiness/release-readiness.v0.json",
+    "https://github.com/starry-phd/id/blob/ai0/chat-handoff-r008-github-only-20261029/docs/contracts/FUTURE-STARRY-ADMIN-API.md"
+  ],
+  "official_gate": {
+    "id": "G07-AUDIT-QUEUE",
+    "status": "blocked",
+    "required_evidence": [
+      "真 Cloudflare Queue/D1/DLQ retry、ACK-after-commit、持久隔離、災難恢復",
+      "多 Worker 原子性、失敗重送、私隱遮罩/保存/人工重播核准"
+    ],
+    "evidence": [],
+    "verified_by": null,
+    "approval_record_url": null
+  },
+  "other_gates_blocked": 11,
+  "p05_publishable": false,
+  "release_authorization_granted": false,
+  "cloudflare_build_flags_last_reported": {
+    "previews_enabled": false,
+    "auto_build_enabled": false,
+    "evidence_type": "AI0 historical API GET; not rechecked here"
+  },
+  "offline_baseline": {
+    "four_owner_pr": 234,
+    "sha": "e47c068449b3aca37ddbf5d6d7f4255c2391a7c9",
+    "node_tests_passed": 1776,
+    "sqlite_memory_tests_passed": 413,
+    "meaning": "offline only, not G07 real readiness"
+  },
+  "ai3_owner_r008": {
+    "pr": 232,
+    "sha": "46ea40cba9074c2d8bca76a0916428b974d643f5",
+    "new_tests": 34,
+    "meaning": "synthetic memory-only; not physical D1/Queue/PITR/legal evidence"
+  },
+  "decisions_unresolved": [
+    "#87 A_ONE_STARRY_AUTHORITY / B_DURABLE_OUTBOX_SAGA",
+    "Q104/Q119 legal retention/erasure/hold",
+    "G06 event source-of-authority: 11 core + conditional vs 13 unspecified vs 17 offline",
+    "Isolated staging/resource/approval and spending ceiling"
+  ],
+  "items": [
+    {
+      "id": "G07-01",
+      "topic": "Architecture and data ownership",
+      "owner": "AI-0 + AI-3",
+      "prereqs": [
+        "#87 A single Starry transactional authority vs B durable outbox/saga remains undecided",
+        "AI-0 G06 signed event authority not approved"
+      ],
+      "proof_needed": [
+        "Approved topology showing exactly one authoritative receipt/outbox owner per event",
+        "Versioned consistency and compensating-action semantics, including no cross-D1 atomicity assumption",
+        "Failure and replay ownership, rollback and escalation owner"
+      ],
+      "safe_now": "Document A/B consequences and acceptance criteria only",
+      "external_action": "None until #87 and G06 approved",
+      "gate": "blocked"
+    },
+    {
+      "id": "G07-02",
+      "topic": "Legal policy and P06 erasure",
+      "owner": "Owner/legal + AI-3",
+      "prereqs": [
+        "Q104/Q119 retention, erasure, consent, dispute hold and PITR non-resurrection undecided"
+      ],
+      "proof_needed": [
+        "Per-event lawful purpose, jurisdiction, minimum data fields, retention/disposition rules approved by legal",
+        "Approved erasure vs legal-hold state transition and data-resurrection prevention requirements",
+        "Evidence that masked audit trail and manual replay comply with approved policy"
+      ],
+      "safe_now": "Record unresolved decision questions without selecting retention period",
+      "external_action": "No real PII read/delete or retention config",
+      "gate": "blocked"
+    },
+    {
+      "id": "G07-03",
+      "topic": "Starry-only test resource & spending authorization",
+      "owner": "Owner + AI-0 + AI-4",
+      "prereqs": [
+        "AI-0 #235 Cloudflare historical read-only snapshot: Workers 6, D1 echo-starry 1, Queues 0",
+        "No G07 approved staging D1/Queue/DLQ, bindings, IAM, cost ceilings or allowed network exposure"
+      ],
+      "proof_needed": [
+        "Explicit Starry-only account, resource names, isolated Worker identity and test data classification",
+        "Separate authorized D1, Queue, DLQ, bounded retention, IAM and Access config",
+        "Budget cap, rate limit, spend alerts, expiration/cleanup plan and rollback owner"
+      ],
+      "safe_now": "Write resource request checklist and minimal evidence labels",
+      "external_action": "Creation, bind, Cloudflare Preview re-enable or deploy require separate approval",
+      "gate": "blocked"
+    },
+    {
+      "id": "G07-04",
+      "topic": "Commit-before-ACK / retry / DLQ",
+      "owner": "AI-3 + AI-4 + AI-0",
+      "prereqs": [
+        "Real D1 CAS/outbox, durable queue, protected Worker and independent auth unavailable"
+      ],
+      "proof_needed": [
+        "On a separately approved test-only stack, prove durable receipt+outbox commits precede ACK",
+        "Forced crash before commit, after commit before ACK, duplicate delivery, consumer restart and DLQ replay are idempotent",
+        "Stale Auth, P05 schema version disagreement, privacy-hold or erasure guarantee fail-closed with no send/grant"
+      ],
+      "safe_now": "Keep #232 deterministic memory fixture as NON-LIVE evidence, not Gate PASS",
+      "external_action": "No real Queue send/ACK, no replay of users' events",
+      "gate": "blocked"
+    },
+    {
+      "id": "G07-05",
+      "topic": "Independent anti-PITR and recovery",
+      "owner": "AI-0 + AI-3 + security reviewer",
+      "prereqs": [
+        "#232 simulated second sqlite3 :memory: witness is not physically independent and is not durable"
+      ],
+      "proof_needed": [
+        "Distinct failure domain and signed monotonic durable witness with independently reviewed key ownership",
+        "Adversarial restore demonstrating older primary snapshot cannot revive revoked or erased event",
+        "Restore/recovery runbook: witness outage, compromise, conflicting floors, partition, incident and evidence escalation"
+      ],
+      "safe_now": "Audit failure model and explicit reject conditions",
+      "external_action": "No real backup restore, PITR job or key/secret provision",
+      "gate": "blocked"
+    },
+    {
+      "id": "G07-06",
+      "topic": "P06 audit data minimization and privileged replay",
+      "owner": "AI-3 + AI-1 + owner/legal",
+      "prereqs": [
+        "P06 event fields and admin read/write/approve separation not proven with current Auth",
+        "Q104/Q119 lawful masking and retention unapproved"
+      ],
+      "proof_needed": [
+        "Versioned P06 actor/action/resource/result/permission/time/correlation_id and masking rules",
+        "Authorized read/export scopes, two-person/manual replay approval and immutable audit evidence",
+        "Access audit and request/resolution timeline without personal-data leakage"
+      ],
+      "safe_now": "Link P06 required contract; no operational account or privileged API exposed",
+      "external_action": "No real admin principal, user data, exports or replay",
+      "gate": "blocked"
+    },
+    {
+      "id": "G07-07",
+      "topic": "Monitoring, DLQ and operational ownership",
+      "owner": "AI-3 + AI-4 + AI-0",
+      "prereqs": [
+        "No approved Queue/DLQ telemetry stack, real alerts or incident duty roster"
+      ],
+      "proof_needed": [
+        "Durable dead-letter depth/age, retry rate, duplicate rejection and recovery RTO/RPO targets approved",
+        "Alert destinations/escalation contacts and safe manual replay criteria",
+        "Cost/usage bounds, alert simulation artifacts and rollback audit trails"
+      ],
+      "safe_now": "Prepare human-review checklist only; P07 monitoring interface is a separate ADMIN-PREP item",
+      "external_action": "No live telemetry or alerts",
+      "gate": "blocked"
+    },
+    {
+      "id": "G07-08",
+      "topic": "Formal Gate evidence and release authority",
+      "owner": "AI-0 Gate owner + owner approver",
+      "prereqs": [
+        "Official G07 status=blocked, evidence=[], verified_by=null and approval_record_url=null",
+        "G00-G10 all blocked; release authorization false",
+        "G06 11-core+conditional vs unspecified 13 vs offline 17 not resolved"
+      ],
+      "proof_needed": [
+        "Approved source-of-authority URLs, exact environment/commit/protocol version, independent witness and legal reviewer attestations",
+        "Real connected test results and explicit AI-0 review of G07 against G06/G03/G08/G10 dependencies",
+        "Separate owner approval for any release or paid resources; no implicit Gate transition"
+      ],
+      "safe_now": "Leave official Gate JSON entirely unchanged; this packet is NOT official evidence",
+      "external_action": "No Gate status mutation, main merge or deployment",
+      "gate": "blocked"
+    }
+  ],
+  "approved_resource_creation": false,
+  "approved_live_testing": false,
+  "approved_production": false,
+  "approved_fee": false,
+  "not_attestation": true,
+  "handoff_intent": "AI-0 may gather explicit decisions; do not update G07 release JSON or deploy from this document."
+}

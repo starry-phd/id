@@ -1,0 +1,194 @@
+{
+  "schema": "starry.ai2.post-r008.g04-g05.approval-evidence.v1-historical-planning",
+  "status": "PLANNED_NOT_AUTHORIZED_OR_VERIFIED",
+  "snapshot_date": "2026-10-29",
+  "repo": "starry-phd/id",
+  "scope": "STARRY_ID_CENTRAL_ONLY; no external app and no H-Global",
+  "inherited": {
+    "ai0_handoff_pr": 237,
+    "ai0_handoff_sha": "ac99611e00c32c0f5945fb9989807b0dd2dda1a9",
+    "four_owner_offline_pr": 234,
+    "four_owner_offline_sha": "e47c068449b3aca37ddbf5d6d7f4255c2391a7c9",
+    "ai2_r008_pr": 228,
+    "ai2_r008_final_sha": "70b12ae7722ca7f9f4b3e975a5e43416a3ea2c5b",
+    "ai0_readiness_audit_pr": 235,
+    "ai0_p05_crosswalk_pr": 236
+  },
+  "source_files": [
+    "docs/release-readiness/release-readiness.v0.json",
+    "docs/operations/AI0-R008-CLOUDFLARE-REAL-READINESS-G00-G10-AUDIT.md",
+    "docs/contracts/FUTURE-STARRY-ADMIN-API.md",
+    "packages/rebuild-billing/docs/WAVE1-R008-CROSS-PROVIDER-CONFLICT-DENY-MATRIX.md"
+  ],
+  "release_readiness_observed_at_base": {
+    "G04_STORE": "blocked",
+    "G05_BILLING_D1": "blocked",
+    "G04_evidence": [],
+    "G05_evidence": [],
+    "G04_verified_by": null,
+    "G05_verified_by": null,
+    "release_authorization_granted": false,
+    "gate2": "R008_FOUR_OWNER_OFFLINE_PASS_ONLY"
+  },
+  "authorization_policy": "All approval_required entries remain pending. These entries are requests, NOT authorizations. No links included here prove official execution.",
+  "budget_requested": false,
+  "credentials_requested_or_stored": false,
+  "customer_data_used": false,
+  "operative_flags": {
+    "real_store_enabled": false,
+    "real_revenuecat_enabled": false,
+    "real_billing_d1_enabled": false,
+    "real_queue_enabled": false,
+    "cloudflare_preview_enabled": false,
+    "production_auto_build_enabled": false,
+    "can_grant": false,
+    "can_charge": false,
+    "can_ack": false,
+    "can_publish": false,
+    "ads_enabled": false,
+    "battery_paid": false,
+    "main_merged": false,
+    "hglobal_or_echo_work": false
+  },
+  "gates": [
+    {
+      "id": "G04-STORE",
+      "owner": "AI-2",
+      "title": "Apple/Google 商店權威驗證",
+      "required_evidence": [
+        "Apple 官方 x5c PKI 信任鏈/核銷及 Google Play API/RTDN 驗簽/查詢",
+        "真實 sandbox 收據、退款、換綁、重播、原始交易所有權驗收"
+      ],
+      "requests": [
+        {
+          "id": "G04-A01",
+          "subject": "選定 Starry ID 中央會員可接入的首批數位商品與明確 App/brand/env 範圍",
+          "approver": "業主/AI-0",
+          "approval_required": true,
+          "authorization": "產品核准；不是授權發版或開啟支付",
+          "evidence_after_approval": "正式商品及權益矩陣：各平台 package/bundle、App、非消耗型/月/年期與授權邊界；需有核准記錄",
+          "blocker": "G00 中央會員範圍與商品尚未正式確定"
+        },
+        {
+          "id": "G04-A02",
+          "subject": "Apple 測試帳戶、Sandbox/StoreKit 測試方式、官方 JWS/x5c 驗證服務、issuer/key 方案",
+          "approver": "業主+安全/AI-0",
+          "approval_required": true,
+          "authorization": "隔離測試的官方 Apple 資源與 secret/成本明細逐項核准",
+          "evidence_after_approval": "官方交易簽章/x5c 根信任與 server-side 驗證、環境/Bundle/SKU/transaction lineage 檢查、失效與取消邊界；去識別化測試證據",
+          "blocker": "未有正式 Apple 服務、帳戶、Secret 授權"
+        },
+        {
+          "id": "G04-A03",
+          "subject": "Google Play Internal/Sandbox、Play Developer API 權限與 RTDN 事件處理",
+          "approver": "業主+安全/AI-0",
+          "approval_required": true,
+          "authorization": "Play 專用測試 App、最小 scope/API 配額/成本/憑證儲存核准",
+          "evidence_after_approval": "官方 purchase token server-side 查詢、package/product/account/expiry/refund 驗證及 RTDN-not-a-receipt 動態案例",
+          "blocker": "未有正式 Play package、服務帳號及驗證 API 授權"
+        },
+        {
+          "id": "G04-A04",
+          "subject": "RevenueCat 專案與 Starry App User ID 安全綁定、Webhook 真實認證",
+          "approver": "業主+AI-1+安全/AI-0",
+          "approval_required": true,
+          "authorization": "RC 獨立測試專案、金鑰與 App User ID 連結政策核准",
+          "evidence_after_approval": "官方 RC webhook authenticator/查詢、current Auth 綁定、跨會員換綁/撤銷/回補之拒絕證據",
+          "blocker": "R007/R008 只有 review_only unverified claims，沒有 RC 真實帳戶、Webhook"
+        },
+        {
+          "id": "G04-A05",
+          "subject": "同一商店/RC 證據的 replay、out-of-order、跨 OS、跨 App、退款與 account transfer",
+          "approver": "AI-0+AI-1+AI-2",
+          "approval_required": true,
+          "authorization": "只能在已批准 isolated Sandbox 設備和匿名測試帳戶執行",
+          "evidence_after_approval": "完整 transaction/version/refund chronology、negative outcomes、可重現的脫敏 trace、不可復活已撤銷 entitlement",
+          "blocker": "尚無經授權真實商店/RC 測試執行環境"
+        },
+        {
+          "id": "G04-A06",
+          "subject": "Privacy、保留/刪除政策、證據去識別化與稽核保存",
+          "approver": "業主/法遵+AI-3",
+          "approval_required": true,
+          "authorization": "Q104/Q119、法務保留與刪除政策另行核准",
+          "evidence_after_approval": "允許保留之欄位/期限、可刪除性與法務保全決議 URL、PII redaction/敏感資料存取測試",
+          "blocker": "Q104/Q119 未定；不得假設期限"
+        }
+      ]
+    },
+    {
+      "id": "G05-BILLING-D1",
+      "owner": "AI-2",
+      "title": "Billing D1 原子交易及權益",
+      "required_evidence": [
+        "真 D1 原子性、併發 first claim/entitlement CAS/outbox/read-after-commit",
+        "退款/延遲事件/重播安全與業主已核准商品/權益規則"
+      ],
+      "requests": [
+        {
+          "id": "G05-B01",
+          "subject": "#87 交易權威 A(單一 Starry transaction DB)／B(durable outbox/saga) 架構選擇",
+          "approver": "業主+AI-0+AI-1+AI-3",
+          "approval_required": true,
+          "authorization": "正式決議 transaction owner、DB 邊界、失敗補償與鎖/一致性策略",
+          "evidence_after_approval": "審閱並核准的決策記錄及跨 D1 不可原子寫入場景、失敗/回復測試清單",
+          "blocker": "#87 A/B 未決；SQLite :memory: 非真跨 D1 原子保證"
+        },
+        {
+          "id": "G05-B02",
+          "subject": "隔離 Starry-only test D1/Queue/DLQ/Worker bindings、Access、Rollback、成本上限",
+          "approver": "業主+AI-0+AI-4",
+          "approval_required": true,
+          "authorization": "逐資源名稱/類型/用途/權限/地域/用量與上限/停用方式核准，且不可重開現有 Preview",
+          "evidence_after_approval": "配置及來源可稽核的 test-only 資源/關聯/費用紀錄、無正式資料、回退/清理核對",
+          "blocker": "真 Billing D1/Queue 未獲授權；Cloudflare 既有 echo-starry D1 不得冒稱 Billing D1"
+        },
+        {
+          "id": "G05-B03",
+          "subject": "官方 Store 購買權威、商品/權益授予與撤銷規則",
+          "approver": "業主+AI-0+AI-1",
+          "approval_required": true,
+          "authorization": "逐 Starry App SKU 授權範圍、月/年/非消耗、退款/申訴/還原、去廣告政策核准",
+          "evidence_after_approval": "授權矩陣及 server-side entitlement CAS 可追蹤測試、零越權/跨會員發權",
+          "blocker": "G04 尚未真實驗證；不可從 offline review_only grant"
+        },
+        {
+          "id": "G05-B04",
+          "subject": "同 D1 transaction 的 first claim、唯一約束、版本 CAS、outbox append、after-commit read",
+          "approver": "AI-0+AI-2+AI-3",
+          "approval_required": true,
+          "authorization": "僅在批准 test-only D1 中執行可清理之故障注入和併發",
+          "evidence_after_approval": "成功/中途失敗之實體 D1 transaction atomicity、rollback、重播防重、提交後讀與持久稽核證據",
+          "blocker": "現有 28 Billing SQLite memory tests 只證明離線行為，不是 D1/真回復"
+        },
+        {
+          "id": "G05-B05",
+          "subject": "Refund/chargeback/late events、PITR、獨立 witness 與不可復活權益",
+          "approver": "業主+AI-3+安全",
+          "approval_required": true,
+          "authorization": "合法保存/刪除/隔離及可恢復性政策與安全實驗預算核准",
+          "evidence_after_approval": "退款/撤銷先後、恢復快照、外部不可回滾 witness、stale replay 仍拒絕的脫敏真實失敗注入紀錄",
+          "blocker": "Q104/Q119、獨立 anti-PITR、權限/保留政策未核准"
+        },
+        {
+          "id": "G05-B06",
+          "subject": "P05 committed outbox → AI-3 validator/inbox → commit-before-ACK 的正式版本",
+          "approver": "業主+AI-0+AI-3+AI-4",
+          "approval_required": true,
+          "authorization": "先定 G06 管理事件 11+conditional、未枚舉 13、候選 17 欄的版本/用途；再批准 Queue/DLQ",
+          "evidence_after_approval": "正式事件 schema/簽章及 Scope、durable commit/outbox/ACK 重試、跨服務故障演練和隔離 Rollback",
+          "blocker": "G06 P05 13 欄不明、#87 未定、真 Queue/DLQ 尚無可證明資源"
+        },
+        {
+          "id": "G05-B07",
+          "subject": "P03/P04/P06/P08 Billing 安全管理操作：refund、read、approval、audit、成本",
+          "approver": "業主+AI-0+AI-1+AI-3",
+          "approval_required": true,
+          "authorization": "先核准具體允許的管理動作/step-up/雙人核准數與費用計量方法，不建立未核准超級接口",
+          "evidence_after_approval": "role/action/scope, double-approval if adopted, idempotency and tamper-evident redacted audit, estimated/provider bill/actual payment 三者不混用",
+          "blocker": "高風險審批人數/角色與實際計費權威待決"
+        }
+      ]
+    }
+  ]
+}
