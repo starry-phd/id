@@ -167,11 +167,16 @@ test('another App, another Store app, wrong brand, platform or SKU rejects',asyn
   {...product,app_id:'starry.app_b'},
   {...product,store_app_ref:ref('8')},
   {...product,store_sku_ref:ref('9'),platform:'android'},
-  {...product,productKey:'premium.yearly',store_sku_ref:ref('b')},
  ];
  for(const candidate of wrong){
   assert.throws(()=>f.make({products:[candidate]}));
  }
+ // A DIFFERENT candidate product for the SAME App is allowed in a
+ // technical manifest, but absent official Store receipt it cannot grant.
+ const novel={...product,productKey:'premium.yearly',store_sku_ref:ref('9')};
+ const v=await f.make({products:[novel]}).getEntitlements('premium.yearly');
+ denies(v);assert.equal(v.state,'unverified');
+ assert.equal(v.ads_suppressed,false);
  assert.throws(()=>f.make({scope:{...scope,brand_id:'hglobal'}}));
  assert.throws(()=>f.make({scope:{...scope,environment:'production'}}));
  assert.deepEqual(f.counts,{policy:0,billing:0,floor:0});
