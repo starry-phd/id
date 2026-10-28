@@ -1,0 +1,281 @@
+{
+  "schema_version": "starry.app_p0_portfolio_governance.v0-candidate",
+  "date": "2026-10-28",
+  "purpose": "AI-0 supplemental executable-intake taxonomy; never a product approval or App Factory input for live writes",
+  "upstream": {
+    "repo": "starry-phd/id",
+    "parent_integrated_pr": 164,
+    "parent_integrated_sha": "11a0c9443ec34c60bcbcf77e1231e4b0f5381e04",
+    "portfolio_issue": 158,
+    "platform_issue": 156,
+    "previous_portfolio_pr": 163,
+    "d02_adr": "docs/operations/AI0-SBASE-D02-MULTI-APP-REPO-TOPOLOGY-ADR-20261028-DRAFT.md",
+    "p0_spec": "docs/portfolio/STARRY-P0-APP-TEST-COHORT-AND-PORTFOLIO-DECISIONS-20261028-DRAFT.md"
+  },
+  "decisions": {
+    "repo_option_selected": null,
+    "proposed_repo_option": "C_hybrid_private_platform_sdk_plus_private_app_family_or_standalone_repos",
+    "private_repo_creation_approved": false,
+    "app_factory_file_writes_approved": false,
+    "expo_native_upgrade_approved": false,
+    "ios_android_native_build_approved": false,
+    "store_sandbox_approved": false,
+    "admob_real_ads_approved": false,
+    "paid_provider_approved": false,
+    "production_deployment_approved": false,
+    "release_authorization": false,
+    "central_gates_blocked": 11
+  },
+  "scope": {
+    "starry_only": true,
+    "hglobal_work": false,
+    "external_named_app_implementation": false,
+    "approved_new_products": 0,
+    "ever_paid_battery": false,
+    "main_merge": false,
+    "direct_central_d1_write": false
+  },
+  "p0_tests": [
+    {
+      "id": "P0-A",
+      "archetype": "ARC07",
+      "role": "offline_reference_utility",
+      "design_status": "PROPOSED_ONLY",
+      "repo": null,
+      "bundle_id": null,
+      "android_application_id": null,
+      "store_sku": null,
+      "ad_unit": null,
+      "native_ios_build": null,
+      "native_android_build": null,
+      "commercial_product": false,
+      "product_approved": false,
+      "may_grant_paid_entitlement": false,
+      "may_serve_ads": false,
+      "may_deploy": false
+    },
+    {
+      "id": "P0-B",
+      "archetype": "ARC02",
+      "role": "microlearning_guest_session_and_subscription_lifecycle",
+      "design_status": "PROPOSED_ONLY",
+      "repo": null,
+      "bundle_id": null,
+      "android_application_id": null,
+      "store_sku": null,
+      "ad_unit": null,
+      "native_ios_build": null,
+      "native_android_build": null,
+      "commercial_product": false,
+      "product_approved": false,
+      "may_grant_paid_entitlement": false,
+      "may_serve_ads": false,
+      "may_deploy": false
+    },
+    {
+      "id": "P0-C",
+      "archetype": "ARC06",
+      "role": "local_creator_export_and_onetime_purchase_ads_conflict",
+      "design_status": "PROPOSED_ONLY",
+      "repo": null,
+      "bundle_id": null,
+      "android_application_id": null,
+      "store_sku": null,
+      "ad_unit": null,
+      "native_ios_build": null,
+      "native_android_build": null,
+      "commercial_product": false,
+      "product_approved": false,
+      "may_grant_paid_entitlement": false,
+      "may_serve_ads": false,
+      "may_deploy": false
+    }
+  ],
+  "portfolio_hypotheses": [
+    {
+      "id": "H01",
+      "archetype": "ARC07",
+      "topic": "離線專業術語查詢",
+      "approved": false,
+      "implemented": false,
+      "market_demand_verified": false,
+      "payment_willingness_verified": false,
+      "score": null,
+      "product_owner": null
+    },
+    {
+      "id": "H02",
+      "archetype": "ARC07",
+      "topic": "領域計算與單位記錄",
+      "approved": false,
+      "implemented": false,
+      "market_demand_verified": false,
+      "payment_willingness_verified": false,
+      "score": null,
+      "product_owner": null
+    },
+    {
+      "id": "H03",
+      "archetype": "ARC01",
+      "topic": "離線清單與週期回顧",
+      "approved": false,
+      "implemented": false,
+      "market_demand_verified": false,
+      "payment_willingness_verified": false,
+      "score": null,
+      "product_owner": null
+    },
+    {
+      "id": "H04",
+      "archetype": "ARC01",
+      "topic": "專案階段追蹤與保守同步",
+      "approved": false,
+      "implemented": false,
+      "market_demand_verified": false,
+      "payment_willingness_verified": false,
+      "score": null,
+      "product_owner": null
+    },
+    {
+      "id": "H05",
+      "archetype": "ARC02",
+      "topic": "單一技能微練習",
+      "approved": false,
+      "implemented": false,
+      "market_demand_verified": false,
+      "payment_willingness_verified": false,
+      "score": null,
+      "product_owner": null
+    },
+    {
+      "id": "H06",
+      "archetype": "ARC02",
+      "topic": "原創專業情境測驗",
+      "approved": false,
+      "implemented": false,
+      "market_demand_verified": false,
+      "payment_willingness_verified": false,
+      "score": null,
+      "product_owner": null
+    },
+    {
+      "id": "H07",
+      "archetype": "ARC03",
+      "topic": "合法原創媒體離線進度",
+      "approved": false,
+      "implemented": false,
+      "market_demand_verified": false,
+      "payment_willingness_verified": false,
+      "score": null,
+      "product_owner": null
+    },
+    {
+      "id": "H08",
+      "archetype": "ARC04",
+      "topic": "非醫療性習慣觀察",
+      "approved": false,
+      "implemented": false,
+      "market_demand_verified": false,
+      "payment_willingness_verified": false,
+      "score": null,
+      "product_owner": null
+    },
+    {
+      "id": "H09",
+      "archetype": "ARC05",
+      "topic": "離線現場檢查報告",
+      "approved": false,
+      "implemented": false,
+      "market_demand_verified": false,
+      "payment_willingness_verified": false,
+      "score": null,
+      "product_owner": null
+    },
+    {
+      "id": "H10",
+      "archetype": "ARC06",
+      "topic": "本機素材匯出工具",
+      "approved": false,
+      "implemented": false,
+      "market_demand_verified": false,
+      "payment_willingness_verified": false,
+      "score": null,
+      "product_owner": null
+    },
+    {
+      "id": "H11",
+      "archetype": "ARC08",
+      "topic": "小型活動與回饋",
+      "approved": false,
+      "implemented": false,
+      "market_demand_verified": false,
+      "payment_willingness_verified": false,
+      "score": null,
+      "product_owner": null
+    },
+    {
+      "id": "H12",
+      "archetype": "ARC05",
+      "topic": "專業工單佐證歷程",
+      "approved": false,
+      "implemented": false,
+      "market_demand_verified": false,
+      "payment_willingness_verified": false,
+      "score": null,
+      "product_owner": null
+    }
+  ],
+  "p0_stage_gates": [
+    {
+      "id": "D02_REPO_ACCESS",
+      "owner": "AI-0",
+      "status": "PENDING",
+      "required": "owner private repo permission, ACL and cost sign-off"
+    },
+    {
+      "id": "NATIVE_BOTH_PLATFORMS",
+      "owner": "AI-4",
+      "status": "NOT_STARTED",
+      "required": "iOS and Android real device development builds and plugin compatibility"
+    },
+    {
+      "id": "AUTH_AND_SESSION",
+      "owner": "AI-1",
+      "status": "BLOCKED",
+      "required": "approved issuer OIDC Session D1 and revocation with per-app isolation"
+    },
+    {
+      "id": "STORE_ENTITLEMENT",
+      "owner": "AI-2",
+      "status": "BLOCKED",
+      "required": "single official Store authority sandbox restore expiry refund chargeback"
+    },
+    {
+      "id": "FREE_BATTERY_AUDIT",
+      "owner": "AI-3",
+      "status": "BLOCKED",
+      "required": "no Battery SKU, source verified event and Queue ACK after commit"
+    },
+    {
+      "id": "ADS_PRIVACY_COST",
+      "owner": "AI-0+AI-2+AI-4",
+      "status": "PENDING",
+      "required": "per-app Ad unit, no-ads authority, privacy consent and verified budget"
+    },
+    {
+      "id": "RELEASE",
+      "owner": "AI-0",
+      "status": "BLOCKED",
+      "required": "individual per-app launch sign-off and all central gates"
+    }
+  ],
+  "future_release": {
+    "target_capacity": "30-50 apps only",
+    "approved_release_count": 0,
+    "p0_synthetic_test_apps": 3,
+    "proposed_p1_canary_count": "0-2 after evidence; default 0",
+    "approval_policy": "per_app_all_eight_gates_and_owner_signoff",
+    "template_only_republication_allowed": false
+  },
+  "state": "CANDIDATE_REVIEW_ONLY_NO_APP_GENERATION_NO_DEPLOYMENT"
+}
