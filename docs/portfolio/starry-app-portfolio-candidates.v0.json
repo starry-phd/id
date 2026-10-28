@@ -1,0 +1,242 @@
+{
+  "schema": "starry_ai0_future_app_portfolio_v0.1_candidate",
+  "source": "Starry生態系共用技術基座與AI開發前交接包｜v1.0 候選版｜2026-10-28",
+  "source_vs_inference": "Three test apps with at least two differentiated product types, per-App monetization and store/identity/launch gate from document; archetypes and scorecard weights are AI-0 proposals only.",
+  "master_issue": 156,
+  "portfolio_issue": 158,
+  "upstream_adr_pr": 157,
+  "approval_state": "PROPOSAL_ONLY",
+  "scope": {
+    "target_30_to_50": "capacity only",
+    "approved_new_product_count": 0,
+    "named_app_development": false,
+    "external_app_implementation": false,
+    "hglobal_development": false,
+    "main_merge": false,
+    "production_deploy": false,
+    "store_submission": false,
+    "provider_payment": false
+  },
+  "owners": {
+    "AI0": "Portfolio and product gate",
+    "AI1": "AuthClient",
+    "AI2": "BillingClient",
+    "AI3": "BatteryClient permanently free/audit",
+    "AI4": "Expo/AppFactory/Ads/OpenAPI"
+  },
+  "categories": [
+    {
+      "id": "ARC01",
+      "category": "個人生產力",
+      "distinctive_flow": "離線記錄、目標與週期回顧",
+      "monetization_candidates": "買斷、月／年訂閱",
+      "ad_suitability": "低",
+      "risk": "資料匯出／離線正確性",
+      "product_approved": false,
+      "implemented": false
+    },
+    {
+      "id": "ARC02",
+      "category": "短課程與學習工具",
+      "distinctive_flow": "課程、練習、學習進度",
+      "monetization_candidates": "買斷、月／年訂閱、選配廣告",
+      "ad_suitability": "中",
+      "risk": "授權內容／原創教學",
+      "product_approved": false,
+      "implemented": false
+    },
+    {
+      "id": "ARC03",
+      "category": "特定領域內容媒體",
+      "distinctive_flow": "內容檢索、進度、合法觀看／收聽",
+      "monetization_candidates": "訂閱、買斷、選配廣告",
+      "ad_suitability": "中",
+      "risk": "影音著作權及媒體成本",
+      "product_approved": false,
+      "implemented": false
+    },
+    {
+      "id": "ARC04",
+      "category": "生活習慣工具",
+      "distinctive_flow": "可控資料記錄與非醫療性趨勢",
+      "monetization_candidates": "買斷、月／年訂閱",
+      "ad_suitability": "低",
+      "risk": "健康聲稱與敏感資料",
+      "product_approved": false,
+      "implemented": false
+    },
+    {
+      "id": "ARC05",
+      "category": "現場專業作業",
+      "distinctive_flow": "離線工作、佐證與同步",
+      "monetization_candidates": "買斷、月／年訂閱",
+      "ad_suitability": "極低",
+      "risk": "商用資料與位置／照片授權",
+      "product_approved": false,
+      "implemented": false
+    },
+    {
+      "id": "ARC06",
+      "category": "創作者工具",
+      "distinctive_flow": "授權素材編輯及匯出",
+      "monetization_candidates": "買斷、月／年訂閱",
+      "ad_suitability": "低",
+      "risk": "版權與 AI 使用成本",
+      "product_approved": false,
+      "implemented": false
+    },
+    {
+      "id": "ARC07",
+      "category": "實用參考工具",
+      "distinctive_flow": "可信查詢／計算及離線參考",
+      "monetization_candidates": "買斷、選配廣告、去廣告",
+      "ad_suitability": "中",
+      "risk": "內容正確性及更新",
+      "product_approved": false,
+      "implemented": false
+    },
+    {
+      "id": "ARC08",
+      "category": "社群活動工具",
+      "distinctive_flow": "發現、參與、審核與回饋",
+      "monetization_candidates": "訂閱、選配廣告",
+      "ad_suitability": "視隱私而定",
+      "risk": "UGC 審核／申訴／兒少安全",
+      "product_approved": false,
+      "implemented": false
+    }
+  ],
+  "scorecard": {
+    "formula": "sum(score_0_to_5 * weight / 5) only after real evidence",
+    "weights": [
+      {
+        "key": "problem_evidence",
+        "weight": 20,
+        "evidence": "真實訪談／用戶問題與重複需求",
+        "score_0_to_5": null
+      },
+      {
+        "key": "substantive_differentiation",
+        "weight": 20,
+        "evidence": "對既有 Starry App 的實質差異；避免換皮",
+        "score_0_to_5": null
+      },
+      {
+        "key": "monetization_fit",
+        "weight": 15,
+        "evidence": "買斷／訂閱／廣告與可信付費驗證",
+        "score_0_to_5": null
+      },
+      {
+        "key": "feasibility",
+        "weight": 15,
+        "evidence": "雙端原生 PoC、內容及 SDK 能力",
+        "score_0_to_5": null
+      },
+      {
+        "key": "compliance_and_privacy",
+        "weight": 15,
+        "evidence": "內容權利、隱私、兒少／適用政策",
+        "score_0_to_5": null
+      },
+      {
+        "key": "unit_economics",
+        "weight": 10,
+        "evidence": "維護、Cloudflare/EAS/Store/SDK／內容費用",
+        "score_0_to_5": null
+      },
+      {
+        "key": "shared_sdk_reuse",
+        "weight": 5,
+        "evidence": "利用共用技術但不共享別的 App 業務邏輯",
+        "score_0_to_5": null
+      }
+    ],
+    "default_rank": null
+  },
+  "stages": [
+    {
+      "id": "P0",
+      "name": "3 款技術 PoC",
+      "quantity": "exactly_three_test_apps_at_least_two_distinct_categories",
+      "approval": "none",
+      "done": false,
+      "exit_evidence": "Expo/RN原生iOS+Android development build、RevenueCat/AdMob/Sentry插件、Hono-OpenAPI-SDK、pnpm/Turbo/Factory、商品跨App隔離；真測試未做均PENDING"
+    },
+    {
+      "id": "P1",
+      "name": "小量 Canary",
+      "quantity": "AI0 proposal 1_to_2 unique product pilots, not a commitment",
+      "approval": "requires_product_and_release_approval",
+      "done": false,
+      "exit_evidence": "需求與差異化、雙端沙盒/退款/去廣告、成本、Store政策、合法內容、實際回退"
+    },
+    {
+      "id": "P2",
+      "name": "分批擴充",
+      "quantity": "based_on_evidence_not_fixed",
+      "approval": "per_app_review",
+      "done": false,
+      "exit_evidence": "每款App唯一身份、版本合規、可回復、實際可持續收益／維護成本"
+    },
+    {
+      "id": "P3",
+      "name": "30–50 容量治理",
+      "quantity": "long_term_capacity_not_50_approved_products",
+      "approval": "per_app_review",
+      "done": false,
+      "exit_evidence": "CI p95/App數/原生依賴/Repo ACL 指標驅動分群，不為數量上架模板App"
+    }
+  ],
+  "gates": [
+    {
+      "code": "PRODUCT",
+      "status": "PENDING",
+      "required_evidence": "目標群體／核心流程差異／Apple 4.3 模板風險"
+    },
+    {
+      "code": "INTAKE",
+      "status": "PENDING",
+      "required_evidence": "App ID、平台／Bundle Package、Repo、商店帳號、責任人"
+    },
+    {
+      "code": "CONTRACT",
+      "status": "PENDING",
+      "required_evidence": "Auth/Battery/Billing Client版本、brand/app/env唯一權威"
+    },
+    {
+      "code": "NATIVE",
+      "status": "PENDING",
+      "required_evidence": "iOS/Android真Development Build與插件相容證據"
+    },
+    {
+      "code": "MONETIZATION",
+      "status": "PENDING",
+      "required_evidence": "正式商品／Ad ID、sandbox退款/恢復/去廣告、UMP/ATT適用性"
+    },
+    {
+      "code": "PRIVACY",
+      "status": "PENDING",
+      "required_evidence": "版權/資料用途保留刪除/商店隱私聲明/兒少風險"
+    },
+    {
+      "code": "BUDGET",
+      "status": "PENDING",
+      "required_evidence": "SDK、EAS、Workers/D1/R2/Queues成本上限及當次授權"
+    },
+    {
+      "code": "RELEASE",
+      "status": "PENDING",
+      "required_evidence": "真Commit、CI、Build/OS、審核、回退、當次發布批准"
+    }
+  ],
+  "release_invariants": {
+    "no_fake_Store_SKUs": true,
+    "unique_per_app_identity": true,
+    "no_cross_app_purchase_grant": true,
+    "no_direct_central_D1": true,
+    "no_unapproved_paid_Battery": true,
+    "no_automatic_50_app_release": true,
+    "per_app_release_approval": true
+  }
+}

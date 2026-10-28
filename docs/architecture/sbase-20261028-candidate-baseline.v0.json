@@ -1,0 +1,213 @@
+{
+  "schema_version": "0.1.0-draft",
+  "programme": "SBASE-20261028",
+  "source": "Starry生態系共用技術基座與AI開發前交接包｜v1.0 候選版｜2026-10-28",
+  "authority": "advisory_until_owner_approval_and_poc",
+  "issue": "https://github.com/starry-phd/id/issues/156",
+  "current": {
+    "repo": "starry-phd/id",
+    "public": true,
+    "main_sha": "8be31efb3dfba66755f297b315593e33cdacfe39",
+    "offline_reference_pr": 148,
+    "expo": "~54.0.20",
+    "react_native": "0.81.5",
+    "package_manager": "npm workspaces",
+    "openapi": "3.1 DRAFT",
+    "real_api": "/v1/health only",
+    "release_gates": "11/11 BLOCKED"
+  },
+  "scope": {
+    "starry_only": true,
+    "hglobal_code_allowed": false,
+    "external_named_app_development_allowed": false,
+    "github_handoff_only": true,
+    "issue_comment_wakes_chatgpt_agents": false
+  },
+  "owners": {
+    "AI_0": "Architecture/ADR/Gates",
+    "AI_1": "AuthClient and member scopes",
+    "AI_2": "BillingClient and Store authority",
+    "AI_3": "BatteryClient/audit/recovery",
+    "AI_4": "Expo/API/OpenAPI/AppFactory/Ads/DevOps"
+  },
+  "changes": [
+    {
+      "key": "SDK58_RN088",
+      "owner": "AI-4",
+      "status": "candidate_poc",
+      "approved": false,
+      "implemented_and_verified": false
+    },
+    {
+      "key": "ExpoRouter_TSStrict",
+      "owner": "AI-4",
+      "status": "partially_present",
+      "approved": false,
+      "implemented_and_verified": false
+    },
+    {
+      "key": "NativeNewArchitecture_plugins",
+      "owner": "AI-4",
+      "status": "candidate_poc",
+      "approved": false,
+      "implemented_and_verified": false
+    },
+    {
+      "key": "Hono_Zod_OpenAPI31_codegen",
+      "owner": "AI-4",
+      "status": "candidate_poc",
+      "approved": false,
+      "implemented_and_verified": false
+    },
+    {
+      "key": "pnpm_Turborepo_private_monorepo",
+      "owner": "AI-0",
+      "status": "candidate_adr",
+      "approved": false,
+      "implemented_and_verified": false
+    },
+    {
+      "key": "SDKcore_plus_independent_repos",
+      "owner": "AI-0",
+      "status": "candidate_adr",
+      "approved": false,
+      "implemented_and_verified": false
+    },
+    {
+      "key": "AuthClient_contract",
+      "owner": "AI-1",
+      "status": "needs_integration",
+      "approved": false,
+      "implemented_and_verified": false
+    },
+    {
+      "key": "BillingClient_RevenueCat_vs_native",
+      "owner": "AI-2",
+      "status": "candidate_adr",
+      "approved": false,
+      "implemented_and_verified": false
+    },
+    {
+      "key": "BatteryClient_contract_free_only",
+      "owner": "AI-3",
+      "status": "needs_integration",
+      "approved": false,
+      "implemented_and_verified": false
+    },
+    {
+      "key": "AppManifest_Factory",
+      "owner": "AI-4",
+      "status": "candidate_poc",
+      "approved": false,
+      "implemented_and_verified": false
+    },
+    {
+      "key": "AdMob_UMP_ATT_noAds",
+      "owner": "AI-4",
+      "status": "candidate_poc",
+      "approved": false,
+      "implemented_and_verified": false
+    },
+    {
+      "key": "Sentry_observability",
+      "owner": "AI-4",
+      "status": "candidate_poc",
+      "approved": false,
+      "implemented_and_verified": false
+    },
+    {
+      "key": "TanStackQuery_Zustand",
+      "owner": "AI-4",
+      "status": "candidate_poc",
+      "approved": false,
+      "implemented_and_verified": false
+    },
+    {
+      "key": "StyleSheet_Tokens",
+      "owner": "AI-4",
+      "status": "candidate_poc",
+      "approved": false,
+      "implemented_and_verified": false
+    },
+    {
+      "key": "RNWeb_optional_AdminWeb_separate",
+      "owner": "AI-4",
+      "status": "candidate_adr",
+      "approved": false,
+      "implemented_and_verified": false
+    },
+    {
+      "key": "AffectedCI_Canary_OTA",
+      "owner": "AI-4",
+      "status": "candidate_poc",
+      "approved": false,
+      "implemented_and_verified": false
+    },
+    {
+      "key": "PerApp_SKU_ID_Ads_separation",
+      "owner": "AI-2",
+      "status": "required_contract",
+      "approved": false,
+      "implemented_and_verified": false
+    },
+    {
+      "key": "CentralID_release_Gates",
+      "owner": "AI-0",
+      "status": "blocked",
+      "approved": false,
+      "implemented_and_verified": false
+    }
+  ],
+  "decisions": [
+    {
+      "key": "D-01",
+      "name": "SDK58 native plugin PoC",
+      "approved": false
+    },
+    {
+      "key": "D-02",
+      "name": "monorepo vs SDK+independent repos",
+      "approved": false
+    },
+    {
+      "key": "D-03",
+      "name": "RevenueCat vs own Store validator",
+      "approved": false
+    },
+    {
+      "key": "D-04",
+      "name": "AdMob UMP/ATT/no-ads",
+      "approved": false
+    },
+    {
+      "key": "D-05",
+      "name": "optional RN Web conflicts with old DEV-I T03",
+      "approved": false
+    },
+    {
+      "key": "D-06",
+      "name": "EAS/GitHub/RevenueCat/Cloudflare costs",
+      "approved": false
+    },
+    {
+      "key": "D-07",
+      "name": "cross-app subscriptions",
+      "approved": false
+    },
+    {
+      "key": "D-08",
+      "name": "StyleSheet tokens vs UI frameworks",
+      "approved": false
+    }
+  ],
+  "prohibitions": {
+    "no_prod_deploy": true,
+    "no_real_data_write": true,
+    "no_paid_activation": true,
+    "no_store_submission": true,
+    "no_main_merge": true,
+    "no_silent_package_or_expo_upgrade": true,
+    "no_revenuecat_authority_switch": true,
+    "free_battery_never_sold": true
+  }
+}
