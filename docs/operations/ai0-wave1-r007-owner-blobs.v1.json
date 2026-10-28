@@ -1,0 +1,143 @@
+{
+  "schema": "ai0.r007.four-owner-source-preservation.v1",
+  "integration_parent": {
+    "r006_head_sha": "5be61848f745cc17de449d773147b8a6a5b5b742",
+    "ai0_r007_head_sha": "896a816a6c4276654eb5d48f99679ab12c717afa",
+    "ai0_offline_replay_hardening_ci": "NOT_RUN_ON_AI0_ONLY_COMMIT"
+  },
+  "owners": [
+    {
+      "owner": "AI-1",
+      "draft_pr": "https://github.com/starry-phd/id/pull/222",
+      "final_head_sha": "a42b5a0fdf235c269755c114c0ce165a2401717e",
+      "owner_workflow_runs": [
+        "https://github.com/starry-phd/id/actions/runs/40735868238",
+        "https://github.com/starry-phd/id/actions/runs/40735868106"
+      ],
+      "files": [
+        {
+          "path": "modules/starry-id-v1/ADR-WAVE1-ROUND007-P05-AUTH-MONOTONIC-OFFLINE.md",
+          "blob_sha": "8d8e2c5c1fb8cfb9751d72988df67987f4c9c5d2"
+        },
+        {
+          "path": "modules/starry-id-v1/src/wave1-round007-p05-current-auth-monotonic-review.ts",
+          "blob_sha": "3ec35a3a6959502eb24efc70e8593d3cdf212936"
+        },
+        {
+          "path": "modules/starry-id-v1/test/wave1-round007-p05-current-auth-monotonic-review.test.mjs",
+          "blob_sha": "553718ee5ed8fe389cdd9e3d6e9aa5ffdc29590c"
+        }
+      ]
+    },
+    {
+      "owner": "AI-2",
+      "draft_pr": "https://github.com/starry-phd/id/pull/223",
+      "final_head_sha": "a9c822ae06177e61918afa9e9422b1bed7dfeb50",
+      "owner_workflow_runs": [
+        "https://github.com/starry-phd/id/actions/runs/40735661919",
+        "https://github.com/starry-phd/id/actions/runs/40735662091"
+      ],
+      "files": [
+        {
+          "path": "packages/rebuild-billing/docs/WAVE1-R007-OFFICIAL-STORE-ADAPTER-DENY-MATRIX.md",
+          "blob_sha": "b719fa337925ca87a207142a49880915ac32bbf0"
+        },
+        {
+          "path": "packages/rebuild-billing/src/wave1-r007-official-provider-adapter-deny.ts",
+          "blob_sha": "522da05c8fa34e4f8f3f786d683974db9e984087"
+        },
+        {
+          "path": "packages/rebuild-billing/test/wave1-r007-official-provider-adapter-deny.test.mjs",
+          "blob_sha": "0d3391d3c5c17d78904bdfff06f387ab3fd8a8de"
+        }
+      ]
+    },
+    {
+      "owner": "AI-3",
+      "draft_pr": "https://github.com/starry-phd/id/pull/225",
+      "final_head_sha": "d10ea6943e113842559a43db1978ad497b8a3135",
+      "owner_workflow_runs": [
+        "https://github.com/starry-phd/id/actions/runs/40735775379"
+      ],
+      "files": [
+        {
+          "path": "packages/rebuild-ai3/docs/WAVE1-ROUND007-CROSS-D1-LEGAL-RECOVERY-MATRIX.md",
+          "blob_sha": "60c6fb57e62545819bc52134670d2dacbe3566f9"
+        },
+        {
+          "path": "packages/rebuild-ai3/src/wave1_r007_p05_recovery_matrix.py",
+          "blob_sha": "105431d41ac0542630b3113104c18d6aa1955e79"
+        },
+        {
+          "path": "packages/rebuild-ai3/test/test_round007_p05_recovery_matrix.py",
+          "blob_sha": "90ea43a62271eaa4deb247e8ca8b158b9de72464"
+        }
+      ]
+    },
+    {
+      "owner": "AI-4",
+      "draft_pr": "https://github.com/starry-phd/id/pull/224",
+      "final_head_sha": "74351c2e04513b4c7b9791b25f5f7a34a0df56e7",
+      "owner_workflow_runs": [
+        "https://github.com/starry-phd/id/actions/runs/40735879845"
+      ],
+      "files": [
+        {
+          "path": "apps/api/src/wave1-r007-worker-protected-denial.ts",
+          "blob_sha": "94ff3e1cc6aedc58aaf40f4924cd26e53ab0d98a"
+        },
+        {
+          "path": "apps/api/test/wave1-r007-worker-protected-denial.test.mjs",
+          "blob_sha": "6ef18c6f1dca742dea7d0aca9ed42c384d6f7c5a"
+        },
+        {
+          "path": "docs/operations/AI4-WAVE1-R007-CLOUDFLARE-ABC-WORKER-DENIAL-HANDOFF.md",
+          "blob_sha": "99f97ae459d2fae816b5b8bb772d2d1a12357397"
+        }
+      ]
+    }
+  ],
+  "gate1": {
+    "status": "PARTIAL_BLOCKED",
+    "missing": [
+      "trusted_issuer_and_kms",
+      "real_current_auth_session_monotonic_d1",
+      "Q104_Q119_legal_retention_erasure_approval",
+      "#87_cross_d1_A_or_B_decision",
+      "durable_d1_outbox_and_independent_anti_pitr_witness",
+      "real_queue_commit_before_ack",
+      "official_store_revenuecat_provenance",
+      "protected_worker_external_cloudflare_approval"
+    ]
+  },
+  "gate2": {
+    "r006_exact_sha_offline": "PASS",
+    "r007_integrated_exact_sha_offline": "PENDING_NEW_CI"
+  },
+  "gate3": {
+    "status": "BLOCKED",
+    "g00_g10_blocked": 11,
+    "p05_publishable": false,
+    "release_authorization_granted": false
+  },
+  "cloudflare_external": {
+    "status": "UNRESOLVED_EXTERNAL_FAILURE",
+    "last_verified_r006_check": "https://github.com/starry-phd/id/runs/122978226227",
+    "r007_new_sha_external_check": "NOT_RUN_OR_UNVERIFIED",
+    "no_automatic_build_claim": true
+  },
+  "restrictions": {
+    "main_merge": false,
+    "preview_deploy": false,
+    "staging_deploy": false,
+    "production_deploy": false,
+    "real_d1": false,
+    "real_queue": false,
+    "real_store": false,
+    "ads_on": false,
+    "admob_sdk": false,
+    "battery_paid": false,
+    "paid_resources": false,
+    "hglobal_development": false
+  }
+}
