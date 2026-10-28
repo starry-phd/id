@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
 import {createHash} from 'node:crypto';
+import {URL} from 'node:url';
 import {handleRequest} from '../src/index.ts';
 
 const root=new URL('../../../',import.meta.url);
