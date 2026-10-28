@@ -44,3 +44,11 @@
 - **D87：方案 A 單一交易權威方向**。見 [Issue #1 #6478861308](https://github.com/starry-phd/id/issues/1#issuecomment-6478861308) 與 [決議 ADR](../adr/AI0-D87-STARRY-SINGLE-TRANSACTION-AUTHORITY-OWNER-DECISION-20261029.md)。決定跨模組**交易設計方向**；尚未核准實體 D1 數量、Schema、權限、真資源／費用、測試／部署。
 - **D06：方案 A 共用業務事件核心＋獨立安全簽章／投遞封套分層方向**。見 [Issue #1 #6478960617](https://github.com/starry-phd/id/issues/1#issuecomment-6478960617) 與 [決議 ADR](../adr/AI0-D06-P05-LAYERED-EVENT-SECURITY-OWNER-DECISION-20261029.md)。原 ADMIN-PREP **11 核心＋條件性 `idempotency_key`** 是現有參考基線；release G06 提到但未列舉的「13 欄」權威仍未釐清；R006 **17-field 僅離線候選**，沒有因選 A 就定為正式第二層 Schema。正式版本、簽章/投遞/相容、域權威和個資法遵仍需獨立審查。
 - **官方 Release 狀態完全不變**：G00–G10 **11/11 BLOCKED**、`evidence=[]`、`P05/PUBLISHABLE=false`、`release_authorization.granted=false`。AI-0／AI-1～4 不可自行啟動新工作或真實外部資源；main merge、Preview/Staging/Production、Secrets/D1/Queue/Store/EAS、付費均未獲核准。
+
+## F. D00／G00 2026-10-29 驗收方法新決議：**A 分階段驗收**
+
+業主新核准：[Issue #1 #6479057455](https://github.com/starry-phd/id/issues/1#issuecomment-6479057455)，對 A「先會員、登入、Session、權限，再依序 Billing、免費 Battery、通知及其他模組，保留所有原定功能」／B「全部中央功能一次整體驗收」選擇 **A**。
+
+**Versioned ADR**：[D00 分階段驗收策略](../adr/AI0-D00-STARRY-PHASED-ACCEPTANCE-OWNER-DECISION-20261029.md)。本文件 C 欄 D00 的原始「策略待決」部分已由業主解決，**但正式 Starry 第一波 MVP 逐個 Source ID 的規格、例外條款、128 heading 衝突、真實平台證據仍未解決**。原已核准且符合最新 Starry 中央系統範圍的功能不得刪除，H-Global/第二波 UI/繁星回聲不得被分期策略偷渡。
+
+每個階段只進行內部模組及相依安全 Gate 的驗收，**不是同意獨立分期部署／正式接收會員／發布**；G00～G10 依然 **11/11 BLOCKED**、`evidence=[]`、發布授權仍否、P05 不可發布。D87、D06 的架構方向 A 及其尚未核准的實作細節均維持前述 E 段。
