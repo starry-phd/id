@@ -1,0 +1,30 @@
+# AI-4 R005 | AdMob native consent & cross-owner protected SDK proposal
+
+**DRAFT / NEVER LIVE.** AI-0 R005 dispatch Issue #1 #6474457727 and AI-4 #5 #6474452164.
+
+## Provenance / exact ownership
+- START from AI-0 FOUR-owner R004 integrated Draft #208 HEAD 88b53f63e909798803d51b6f62cf2461e24ab690 (same-SHA 3/3 GitHub Actions offline PASS). Never branch from individual sibling #205; R004 owner code is already imported unmodified.
+- This R005 introduces new AI-4-only source, tests and this document. No changes to existing Worker/index.ts, OpenAPI YAML, Wrangler, Expo54, node/lockfiles, Cloudflare, CI, Auth/Billing/Battery writers or main.
+- AI-1 R004 event SessionFence starry.auth.event-session-fence.r004.v1-candidate, AI-2 R004 Billing starry.billing.r004.entitlement-continuity.v1-candidate, AI-3 R004 P05 starry.ai3.p05.canonical-claim-handshake.r004.v1-candidate and AI-4 R003+R004 future routes/Ads types are genuinely imported in the same checkout for version pin and deny-only checks; **no trusted provider or live connection**.
+
+## Current vendor and future Expo native integration (RESEARCH ONLY)
+- Owner-approved Q4=A Google AdMob Mediation, not an approval to display ads. R004 and R005 force Ads OFF / SDK not initialized / no ad requests / no AppIDs or Ad Units. No SDK/config-plugin dependency or any native build created.
+- Expo official stable SDK **58** was released **2026-10-15**, targets React Native **0.88** (https://expo.dev/changelog/sdk-58); central existing **Expo54 must NOT be upgraded**. Future NEW consumer App selection and package matrix require fresh verification at actual kickoff (Q5=B Monorepo still deferred).
+- Candidate react-native-google-mobile-ads integration supports an Expo config plugin and requires native development builds rather than Expo Go. Its current documentation reports React Native >=0.86 and New Architecture requirements (https://github.com/invertase/react-native-google-mobile-ads/blob/main/docs/index.mdx). This is **source-documentation compatibility only, not proven SDK58+plugin integration**. Do not run installation, Expo prebuild or EAS here.
+- Future UMP requirement: use an actual trusted, current consent info update and canRequestAds check; an incoming JSON status=granted is NOT proof. Reference https://developers.google.com/admob/android/privacy ; confirm iOS equivalents and Apple ATT / privacy manifest, Google Play Data Safety, age/families and EU/UK privacy policy when starting native verification. Avoid duplicate requests after consent changes.
+- Future owner controls general/sensitive categories in official AdMob Blocking Controls (https://support.google.com/admob/answer/3150174 and https://support.google.com/admob/answer/3150176). Google calls this **best-effort**, not a guaranteed ban for health-food/water-filter or any other category; per-App blocking propagation to third-party bidder/mediation requires review. No custom sync backend or ad exclusion list now.
+- Future app plan: independently managed iOS/Android AdMob App IDs, ad units, ads-off switch, per-App Billing verified remove-ads, no cross-App entitlement, consent and ATT, test IDs, rollback. All native validation/billing/IDs/real requests need explicit owner, legal, budget and Store approval.
+
+## New code: R005 deny-only diagnostic, not an SDK or HTTP implementation
+- apps/api/src/wave1-r005-admob-native-consent-gate.ts exports starry.ai4.r005.admob-native-consent-protected.v1-offline and type-only future AI-4/AI-2/AI-0 native-consent/Store/activation ports. Rejects any ads enablement/init/request, app/unit IDs, invalid/missing UMP+ATT, child/unknown policy, cross-App rights, untrusted remove-ads and foreign scopes; even apparently complete consent returns OWNER_GATE_REQUIRED.
+- Public SDK protected error proposal wraps R003 status-only error-only DTO; only 400/401/403/404/405/409/503 and generic message, no token, member, Session, event/actor refs, KID, P05, store receipt or body echoes.
+- Tests import real R004 source versions from the integrated #208 HEAD; verify 3 proposal POSTs are absent from public OpenAPI, actual Worker continues GET /v1/health and POST is 405, P05 Queue ACK false. No 2xx protected handler.
+
+## Cloudflare preview failure | ONLY ISOLATED FIX PROPOSAL
+**Evidence separation:** historical external Workers Builds `id-starry` on another SHA failed while executing `npx wrangler preview` because `previews` block was missing. AI-0 R004 #208 exact SHA external Cloudflare status was UNVERIFIED; never call it current-SHA success/failure. AI-0 selected option A: keep monitored trigger as-is, no changing wrangler, trigger or secrets here.
+Only if later approved: (1) select an isolated branch and dedicated nonproduction Worker/account or otherwise separated deployment identity; (2) list explicit Access policy/owner permission, allowed environment, D1/R2/Queue binding prohibition or isolated disposable test bindings, command/version/preview config diff; (3) get separate cost cap/approval and kill switch; (4) use approved synthetic traffic and compare external GitHub check to same exact deployment SHA; (5) remove isolated Worker, revoke temp access/creds, restore binding and trigger settings using documented rollback. No plan execution until authorized.
+
+## Gate and rollback
+Gate1 PARTIAL/BLOCKED: AI-0 canonical signed P05 issuer/key custody, AI-1 current actor Session with monotonic version, legal Q104/Q119, #87 D1 A/B, AI-3 durable CAS + independent anti-PITR + commit-before-ACK, AI-2 real signed Store/RevenueCat durable entitlement, AI-4 future protected routes unregistered. Cloudflare nonproduction/ads/store authorization separate.
+Gate2 only after exact R005 final head Actions; owner CI success is NOT a new AI-0 R005 four-owner integrated Gate. Gate3 G00-G10 **11/11 BLOCKED**, P05/PUBLISHABLE=false, release_authorization.granted=false; Ads OFF, Battery free, H-Global excluded, no main merge/deploy/fees.
+Rollback: close new R005 Draft and drop the three new AI-4 paths; R004 integrated #208 and underlying existing owners unchanged.
