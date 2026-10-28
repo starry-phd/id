@@ -162,9 +162,21 @@
       "id": "D87",
       "owner": "product owner/architecture",
       "topic": "Issue #87 choose single Starry transaction authority (A) or durable outbox/saga (B) with actual failure semantics",
-      "status": "OWNER_ARCHITECTURE_DECISION_REQUIRED",
+      "status": "OWNER_DIRECTION_A_APPROVED",
       "prerequisites": [
         "D00"
+      ],
+      "approved_direction": "A_SINGLE_TRANSACTION_AUTHORITY",
+      "owner_decision_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6478861308",
+      "owner_decision_document": "docs/adr/AI0-D87-STARRY-SINGLE-TRANSACTION-AUTHORITY-OWNER-DECISION-20261029.md",
+      "execution_and_resource_approval": false,
+      "gate_status": "BLOCKED",
+      "remaining_design_review": [
+        "Authoritative transaction scope and only writer per domain",
+        "D1 physical layout and concrete migrations",
+        "Legal retention, erasure, anti-PITR witness",
+        "P05 schemas, outbox/inbox durability, failure recovery",
+        "Explicit isolated live resource, cost and deployment authorization"
       ]
     },
     {
@@ -222,5 +234,21 @@
     "Original R008 twelve-source preservation remains under upstream #234; no R008 reimplementation or live certification.",
     "No field of this file constitutes approval or official release evidence.",
     "Cloudflare observations in #235 are historical only."
-  ]
+  ],
+  "owner_decisions": {
+    "D87": {
+      "date_taiwan": "2026-10-29",
+      "scope": "Starry centralized membership only",
+      "selected_direction": "A_SINGLE_TRANSACTION_AUTHORITY",
+      "approved_direction": true,
+      "physical_database_topology_approved": false,
+      "live_testing_approved": false,
+      "resource_creation_approved": false,
+      "paid_usage_approved": false,
+      "main_merge_approved": false,
+      "deploy_approved": false,
+      "issue_comment_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6478861308",
+      "decision_adr_path": "docs/adr/AI0-D87-STARRY-SINGLE-TRANSACTION-AUTHORITY-OWNER-DECISION-20261029.md"
+    }
+  }
 }
