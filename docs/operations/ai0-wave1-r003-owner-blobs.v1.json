@@ -1,0 +1,135 @@
+{
+  "schema_version": "starry.ai0.wave1.r003.owner-source-preserving-five-signal-integration.v1",
+  "created_at_date": "2026-10-28",
+  "repository": "starry-phd/id",
+  "ai0_base": {
+    "pr": 202,
+    "head_sha": "eee3de052f9fc9fb9bc5337fb14e15230687c10b",
+    "includes_prior_ai0_r002_pr": 197,
+    "q4": "A",
+    "ads_vendor": "Google AdMob Mediation",
+    "ads_enabled": false
+  },
+  "source_verification": "Original 12 owner 100644 Git blobs copied without bytes changing; #202 Q4/A decision is inherited unchanged from the AI-0 base commit.",
+  "owners": [
+    {
+      "owner": "AI-1",
+      "pr": 198,
+      "head": "e81788d2e0f2a08eb0bf1d6f9beccbe3dfb1a367",
+      "files": [
+        {
+          "path": "modules/starry-id-v1/ADR-WAVE1-ROUND003-IDENTITY-AUTHORITY-PORT.md",
+          "blob_sha": "3678b491658532ae54a631da4b76f648a774bf4a"
+        },
+        {
+          "path": "modules/starry-id-v1/src/wave1-round003-identity-authority-port.ts",
+          "blob_sha": "b1186182ee883edac566b5b02167abb1f96280c2"
+        },
+        {
+          "path": "modules/starry-id-v1/test/wave1-round003-identity-authority-port.test.mjs",
+          "blob_sha": "915b98bb9d69e62201dfb3f055aa363a72f386f3"
+        }
+      ]
+    },
+    {
+      "owner": "AI-2",
+      "pr": 200,
+      "head": "051852a411b138ba45212c5a019484eb2c9dde81",
+      "files": [
+        {
+          "path": "packages/rebuild-billing/docs/WAVE1-ROUND003-AUTH-STORE-REVIEW-AND-SANDBOX-MATRIX.md",
+          "blob_sha": "51e1b4d1740b4dae01f86e4da2e9ab4d0727d8d2"
+        },
+        {
+          "path": "packages/rebuild-billing/src/wave1-r003-canonical-identity-store-review.ts",
+          "blob_sha": "bafd7848605077b18e924aa23dfa16496cff9228"
+        },
+        {
+          "path": "packages/rebuild-billing/test/wave1-r003-canonical-identity-store-review.test.mjs",
+          "blob_sha": "4c4103ec48721a4ba297923e5783e5f8a80b8dab"
+        }
+      ]
+    },
+    {
+      "owner": "AI-3",
+      "pr": 199,
+      "head": "6b0de28786067e686db6854efa0840d2c120a47d",
+      "files": [
+        {
+          "path": "packages/rebuild-ai3/docs/WAVE1-ROUND003-P05-COMMIT-BEFORE-ACK-CONTRACT.md",
+          "blob_sha": "70bab9914a80b67604779ba4deebdf029636c6c5"
+        },
+        {
+          "path": "packages/rebuild-ai3/src/wave1-r003-p05-ack-interop.ts",
+          "blob_sha": "78d48d08d33da7508735b3d32113ae46d22bf8bf"
+        },
+        {
+          "path": "packages/rebuild-ai3/test/wave1-r003-p05-ack-interop.test.mjs",
+          "blob_sha": "349102d29f8d5f193b7e24d93849598297dc6b5a"
+        }
+      ]
+    },
+    {
+      "owner": "AI-4",
+      "pr": 201,
+      "head": "6f23c9ff80639aa51ddb8e4f33039340cec32084",
+      "files": [
+        {
+          "path": "apps/api/src/wave1-r003-protected-interop.ts",
+          "blob_sha": "b37d80b815ce0fb7174b4d48662e0bd5306b31be"
+        },
+        {
+          "path": "apps/api/test/wave1-r003-protected-interop.test.mjs",
+          "blob_sha": "77e5c5c27e6acb8e35929d6db9eec728c8f5b870"
+        },
+        {
+          "path": "docs/ai/AI4-WAVE1-ROUND003-PROTECTED-INTEROP-P05-QUEUE-HANDOFF.md",
+          "blob_sha": "081bfc115be66065da73b71e424846b102087035"
+        }
+      ]
+    }
+  ],
+  "contracts": {
+    "AI1": "starry.auth.identity-authority.r003.v1-candidate",
+    "AI2": "starry.billing.r003.auth-store-fence.v1-candidate",
+    "AI3": "starry.ai3.p05.commit-before-ack.r003.v1-candidate",
+    "AI4": "starry.ai4.wave1.r003.protected-interop.v1-offline-candidate"
+  },
+  "gate1": {
+    "status": "PARTIAL_BLOCKED",
+    "direct_ai1_ai2_source_import_and_deny_only_test_proposed": true,
+    "live_trust_adapter_approved": false,
+    "unresolved": [
+      "AI1_CANONICAL_JSON_HMAC_KID_ROTATION_SERVER_KEYRING_AND_LAWFUL_Q104_Q119_APPROVAL_PENDING",
+      "AI2_OFFICIAL_STORE_REVENUECAT_SIGNED_RECEIPTS_AND_DURABLE_ENTITLEMENT_ISSUER_UNVERIFIED",
+      "AI3_P05_CANONICAL_KMS_SIGNER_EVENT_ACTOR_SESSION_FENCE_UNBOUND",
+      "AI3_TRUE_D1_DURABLE_IDEMPOTENT_RECEIPT_INDEPENDENT_ANTI_PITR_AND_QUEUE_ACK_UNVERIFIED",
+      "AI4_PROTECTED_OPENAPI_ROUTES_NOT_REGISTERED_REAL_WORKER_ONLY_HEALTH"
+    ]
+  },
+  "gate2": {
+    "status": "PENDING_NEW_AI0_INTEGRATION_SHA_CI_AT_MANIFEST_CREATION",
+    "combined_sha_verified": false,
+    "owner_branch_sha_ci_success": true
+  },
+  "gate3": {
+    "status": "BLOCKED",
+    "release_gates_blocked": 11,
+    "p05_publishable": false,
+    "official_store_sandbox_verified": false,
+    "cloudflare_external_build_historically_failed": true,
+    "live_deploy_authorized": false,
+    "main_merge_authorized": false,
+    "new_paid_resource_authorized": false
+  },
+  "security": {
+    "battery_permanently_free": true,
+    "ads_vendor_approved": "google-admob-mediation",
+    "ads_enabled": false,
+    "ads_sdk_install_authorized": false,
+    "ad_requests_authorized": false,
+    "consumer_private_monorepo_created": false,
+    "central_expo54_unchanged": true
+  },
+  "next": "AI-0 must query live GitHub Actions and independent external Cloudflare check at this new exact SHA; no assumption that owner green means integrated or production green."
+}
