@@ -52,10 +52,10 @@ function inspectSpec(raw:string,issues:Finding[]):void{
  const p=raw.indexOf('\npaths:\n'),c=raw.indexOf('\ncomponents:\n');
  if(p<0||c<=p){issues.push('EXTRA_OR_MISSING_PUBLIC_ROUTE');return;}
  const section=raw.slice(p+7,c);
- const routes=[...section.matchAll(/^  (\/[^:\n]+):\s*$/gm)].map(x=>x[1]);
+ const routes=[...section.matchAll(/^ {2}(\/[^:\n]+):\s*$/gm)].map(x=>x[1]);
  if(routes.length!==1||routes[0]!=='/v1/health')
   issues.push('EXTRA_OR_MISSING_PUBLIC_ROUTE');
- const methods=[...section.matchAll(/^    ([a-z]+):\s*$/gm)].map(x=>x[1]);
+ const methods=[...section.matchAll(/^ {4}([a-z]+):\s*$/gm)].map(x=>x[1]);
  if(methods.length!==1||methods[0]!=='get'||!section.includes('operationId: getLiveness'))
   issues.push('HEALTH_OPERATION_MISMATCH');
  if(!section.includes("required: [status, brand_id, app_id, environment, service, kind]")||
