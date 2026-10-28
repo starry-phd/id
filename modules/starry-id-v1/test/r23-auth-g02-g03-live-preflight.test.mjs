@@ -82,10 +82,12 @@ test('commented or non-staging D1 binding cannot be mistaken for authorized stag
 });
 test('even forged staging Auth D1 and synthetic route declarations NEVER prove actual live D1/issuer',()=>{
  const x=fresh();
- x.workerToml+='\\n[env.staging]\\n[[env.staging.d1_databases]]\\nbinding = "AUTH_DB"\\ndatabase_name = "synthetic-isolated-db"\\n';
+ x.workerToml+='\n[env.staging]\n[[env.staging.d1_databases]]\nbinding = "AUTH_DB"\ndatabase_name = "synthetic-isolated-db"\n';
  x.apiSource+='\nexport function handleRequest(){};createOfflineStarryRequestAuthBoundary;authenticate(request,now);';
  const r=scan(x);safelyBlocked(r);
  // A source claim can at most be marked declared; physical evidence remains absent.
+ assert.equal(r.staging_auth_d1_declared,true);
+ assert.equal(r.protected_auth_route_declared,true);
  assert.equal(r.verified_live,false);
  assert.equal(r.can_deploy,false);
  assert.equal(r.code_exists,true);
