@@ -61,7 +61,7 @@ async function setup(){
    flags.reads++;
    if(flags.out)throw Error('d1 outage');
    return db.prepare(sql).get(...args)??null;
-  }}};
+  }}}};
  }};
  const key=await crypto.subtle.generateKey(
   {name:'HMAC',hash:'SHA-256',length:256},false,['sign','verify']);
@@ -154,7 +154,7 @@ test('revocation DURING Billing event read is detected by final signed SQL',asyn
    authDb:{prepare(sql){return {bind(...a){return {first:async()=>{
     x.flags.reads++;
     return x.db.prepare(sql).get(...a)??null;
-   }}}}},
+   }}}}}},
    getVerificationKey:async()=>x.key,offlineDigestKey:x.digestKey,
    readCandidateEvents:async()=>{
     x.flags.events++;
@@ -170,7 +170,7 @@ test('revocation DURING Billing event read is detected by final signed SQL',asyn
 test('account switched after initial read cannot authorize current review',async()=>{
  const x=await setup();try{
   const a=await x.digest('u1');
-  x.state.events=[ev(a,{...{}})];
+  x.state.events=[ev(a)];
   const out=await x.make().inspect(x.request('u2'),intent(),'premium.monthly',NOW);
   denied(out);assert.equal(out.state,'blocked');
  }finally{x.close();}
