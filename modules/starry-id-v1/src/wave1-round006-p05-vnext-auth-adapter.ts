@@ -59,9 +59,9 @@ export type R006PublicReview=Readonly<{
  may_grant:false;may_purchase:false;may_charge:false;may_publish:false;
 }>;
 const id=(x:unknown):x is string=>typeof x==='string'&&
- /^[A-Za-z0-9._:-]{8,120}$/.test(x);
+ /^[A-Za-z0-9._:-]{8,128}$/.test(x);
 const app=(x:unknown):x is string=>typeof x==='string'&&
- /^[A-Za-z0-9._:-]{3,120}$/.test(x);
+ /^[A-Za-z0-9._:-]{3,100}$/.test(x);
 const kid=(x:unknown):x is string=>typeof x==='string'&&
  /^[a-z0-9][a-z0-9._-]{2,63}$/.test(x);
 const nonce=(x:unknown):x is string=>typeof x==='string'&&
@@ -103,7 +103,7 @@ function parseWire(raw:unknown,scope:Scope,now:number):
   typeof e.event_type!=='string'||!eventTypes.has(e.event_type)||
   !version(e.auth_version)||!time(e.session_version)||
   !kid(e.issuer_kid)||!version(e.issuer_epoch)||
-  !time(e.issued_at)||!time(e.expires_at)||
+  !version(e.issued_at)||!time(e.expires_at)||
   !nonce(e.nonce)||!hex(e.payload_sha256)||
   e.expires_at<=e.issued_at||e.expires_at-e.issued_at>120||
   e.expires_at<=now||e.issued_at>now+5||

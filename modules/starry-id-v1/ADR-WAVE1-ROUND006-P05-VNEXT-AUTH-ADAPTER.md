@@ -11,3 +11,22 @@
 - AI-0 must ratify exact real canonical signer, KMS and issuer/key rotation, legal Q104/Q119 retention, #87 D1 A/B, monotonic SessionEpoch physical storage/CAS, AI-3 durable receipt/independent anti-PITR witness and confirmed commit-before-Queue ACK, AI-4 protected route error mapping; real official Store/RevenueCat/EAS also separate.
 
 **Release:** Gate1 PARTIAL/BLOCKED, Gate2 R005 offline only on #214, Gate3 G00–G10 11/11 BLOCKED/P05 false. External Cloudflare build for #214 was separately \`completed/failure\` with cause not confirmed, not remediated by this branch. Q4=A Google AdMob selected but Ads OFF; Battery forever free. No main merge, Cloudflare, real DB/Queue/Store/EAS/AdMob, paid resources, H-Global, consumer Monorepo or central Expo54 upgrade. **Rollback:** close R006 Draft; discard only three new AI-1 paths, preserve #214 and all owner R005 original blobs.
+
+## R006 late source-conformance review after AI-0 independent Draft #219
+
+Cross-checked the **actual** AI-0 immutable canonical implementation
+\`packages/integration/src/ai0-r006-p05-canonical-proposal.ts\` at
+[AI-0 Draft #219](https://github.com/starry-phd/id/pull/219),
+source Git Blob \`faa1389b5ef4cb850b13669c1ef3f55044ac3e1e\`,
+HEAD \`64f949e4d40277d964f9d4a8c4d33cc442df2c32\`.
+The original AI-1 R006 adapter already matches all 17 ordered fields, wrapper, literal HMAC domain, signing bytes, KID/epoch, TTL and default OFF; it intentionally remains separate from the issuer and from AI-3 receipt CAS.
+Only **AI-1-owned parser boundary corrections** were necessary: event/actor/idempotency IDs now accept AI-0's exact 8–128 character limit (instead of 8–120); trusted App scope is limited to AI-0's 3–100 characters (instead of 3–120), and issued_at must be positive (not zero). Two new real signed Auth/SQLite and negative tests protect these bounds. The R004 current Auth fence still conservatively blocks future-issued (up to +5s) candidates and the extra privacy-erasure event, even when AI-0's crypto syntax verifier accepts them. This is an explicitly **safe narrower Auth policy**, not an incompatible HMAC/wire dialect or an implicit privacy/legal decision.
+
+[AI-0 RCA on Draft #219](https://github.com/starry-phd/id/blob/64f949e4d40277d964f9d4a8c4d33cc442df2c32/docs/operations/AI0-R006-CLOUDFLARE-EXTERNAL-BUILD-RCA-20261028.md)
+confirms R005 #214 AND independent AI-0 R006 #219 external Cloudflare Workers Builds
+failed because a root-invoked \`npx wrangler preview\` does not have a
+\`previews\` configuration block; the actual root vs \`apps/api/wrangler.toml\`
+path and isolated preview bindings need Owner approval. Neither this AI-1
+contract alignment nor its successful offline CI authorizes Cloudflare
+configuration/trigger changes, preview, deployment, secrets, costs, or live
+P05/Queue.

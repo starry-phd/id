@@ -296,3 +296,29 @@ test('short future skew is accepted at vNext wire but conservatively rejected at
   safe(await f.port().reviewFresh(s,await f.request(),NOW),'blocked');
  }finally{f.close();}
 });
+
+test('R006 field length limits agree with actual AI-0 #219 source: IDs up to 128 and App at most 100',async()=>{
+ const f=await fixture();try{
+  const max128='A'.repeat(128);
+  const e=f.envelope({event_id:max128,actor_ref:'B'.repeat(128),
+   idempotency_key:'C'.repeat(128)});
+  const v=await f.port().reviewFresh(await f.signed(e),await f.request(),NOW);
+  safe(v,'review_only','REVIEW_ONLY_NOT_AUTHORIZED');
+  assert.ok(f.state.dbReads>0);
+  assert.throws(()=>f.port({serverScope:scope('a'.repeat(101))}),
+   /R006_TRUSTED_PORTS_REQUIRED/);
+ }finally{f.close();}
+});
+test('R006 rejects ID length 129 and zero issued_at before any trusted issuer or Auth SQL read',async()=>{
+ for(const invalid of [{event_id:'x'.repeat(129)},
+  {actor_ref:'y'.repeat(129)},{idempotency_key:'z'.repeat(129)},
+  {issued_at:0,expires_at:100}]){
+  const f=await fixture();try{
+   const v=await f.port().reviewFresh(
+    await f.signed(f.envelope(invalid)),await f.request(),NOW);
+   safe(v,'blocked','INVALID_VNEXT');
+   assert.equal(f.state.keyReads,0);
+   assert.equal(f.state.dbReads,0);
+  }finally{f.close();}
+ }
+});
