@@ -1,0 +1,109 @@
+{
+  "schema_version": "starry.ai0.d07-owner-decision.v1",
+  "decision_id": "D-07",
+  "decision_date": "2026-10-28",
+  "owner_exact_choice": "D-07 我正式選擇方案 A（各 App 付費權益獨立）。請記錄到 GitHub，明確說明跨 App 與跨平台權益的授權及實施範圍，接著繼續 D-08 下一題。",
+  "selected_option": "A",
+  "decision_status": "OWNER_APPROVED_PER_APP_PAID_ENTITLEMENTS_NOT_IMPLEMENTED",
+  "cross_app": {
+    "policy": "DENY_PAID_ENTITLEMENT_PORTABILITY_ACROSS_DIFFERENT_APPS",
+    "cross_app_subscription_approved": false,
+    "global_vip_approved": false,
+    "cross_app_nonconsumable_approved": false,
+    "cross_app_remove_ads_approved": false,
+    "same_central_user_id_does_not_grant_cross_app_entitlement": true,
+    "app_scope_required_for_every_grant_revoke_restore": true
+  },
+  "same_app_cross_platform": {
+    "policy": "UNDECIDED_PENDING_STORE_POLICY_AND_NATIVE_SANDBOX",
+    "same_app_ios_android_entitlement_access_approved": false,
+    "same_app_web_entitlement_access_approved": false,
+    "same_app_cross_platform_access_possible_if_future_reviewed": true,
+    "actual_ios_android_web_store_compatibility_verified": false,
+    "cross_store_receipt_must_not_be_pretended_native_to_other_store": true,
+    "same_app_billing_backend_may_project_verified_access_if_future_authorized": true,
+    "native_store_restore_and_same_app_cross_platform_access_are_distinct": true,
+    "android_cannot_directly_restore_apple_app_store_transaction_as_google_play_transaction": true,
+    "ios_cannot_directly_restore_google_play_transaction_as_app_store_transaction": true
+  },
+  "product_scope_fields": [
+    "brand_id",
+    "app_id",
+    "ios_bundle_id",
+    "android_application_id",
+    "store_account",
+    "platform",
+    "product_id",
+    "entitlement_key",
+    "environment",
+    "user_id",
+    "trusted_store_transaction_id"
+  ],
+  "product_types": [
+    "app_scoped_one_time_nonconsumable",
+    "app_scoped_monthly_subscription",
+    "app_scoped_annual_subscription",
+    "app_scoped_remove_ads"
+  ],
+  "trusted_owner": {
+    "billing_entitlement_writer": "AI-2/DEV-B only, central service separate",
+    "central_member_auth": "AI-1; shared central Starry user_id",
+    "permanently_free_battery": "AI-3; never purchased and shared across apps by original service rules",
+    "app_sdk_and_platform_manifest": "AI-4; consumer billing client / RevenueCat app-scoped mapping"
+  },
+  "safety_invariants": [
+    "no_paid_entitlement_from_App_A_grants_App_B",
+    "no_global_or_bundle_VIP_enabled",
+    "no_cross_app_no_ads_on_shared_member_login",
+    "no_client_purchased_or_unverified_RevenueCat_webhook_grant",
+    "no_cross_environment_sandbox_to_production_entitlement",
+    "no_cross_brand_HGlobal_scope",
+    "no_cross_identity_purchase_claim",
+    "no_unverified_ios_android_store_receipt_porting",
+    "no_duplicate_Billing_Auth_Battery_writers",
+    "permanently_free_Starry_Battery_not_for_sale",
+    "refund_revocation_expiration_require_authoritative_backend",
+    "same_App_native_restore_requires_trusted_store_verification"
+  ],
+  "prior_decisions": {
+    "D02": "A_PRIVATE_MONOREPO_ARCHITECTURE_NOT_CREATED",
+    "D03": "A_REVENUECAT_PLUS_THIN_BILLINGCLIENT_NOT_LIVE",
+    "D04": "C_ADS_PROVIDER_NOT_CHOSEN_AND_DEFAULT_OFF",
+    "D05": "A_PER_APP_WEB_OPTIONAL_ADMIN_V21_SEPARATE",
+    "D06": "A_FREE_FIRST_ALL_NEW_SPEND_INDIVIDUAL_OWNER_APPROVAL",
+    "D08": "PENDING"
+  },
+  "operation_authorization": {
+    "cross_app_isolation_policy_selection": true,
+    "owner_approved_per_app_business_rules_planning": true,
+    "offline_github_source_only_documentation_and_tests": true,
+    "same_app_cross_platform_entitlement_enablement": false,
+    "combined_cross_app_vip_sale": false,
+    "cross_app_remove_ads_enablement": false,
+    "store_product_creation": false,
+    "store_account_provider_connection": false,
+    "real_purchase_or_store_sandbox": false,
+    "RevenueCat_sdk_installation": false,
+    "new_private_monorepo_creation": false,
+    "cloudflare_staging_or_production_write": false,
+    "EAS_native_build": false,
+    "web_payment_integration": false,
+    "paid_services_or_upgrades": false,
+    "github_main_merge": false,
+    "production_app_release": false,
+    "HGlobal_work": false
+  },
+  "same_app_cross_platform_validation_required": [
+    "D01_ios_android_native_poc",
+    "real_StoreKit_GooglePlay_sandbox_purchase_and_restore",
+    "RevenueCat_verified_app_user_identity",
+    "AI2_product_app_id_store_mapping",
+    "refund_revocation_expiration_idempotency_and_P05",
+    "Apple_Google_store_and_local_policy_review",
+    "per_App_explicit_signoff_and_costs"
+  ],
+  "release_authorization_granted": false,
+  "official_central_release_gates_blocked": 11,
+  "p05_publishable": false,
+  "notes": "No blanket right to cross platform access is granted by D07 A; it is a separate future validation. All apps use same central member and permanently free Battery but paid App rights remain App-scoped."
+}
