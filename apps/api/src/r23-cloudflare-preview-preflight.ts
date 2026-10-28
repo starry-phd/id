@@ -37,7 +37,7 @@ export type R23PreviewPreflight=Readonly<{
  may_deploy_production:false;may_bind_real_d1:false;may_use_paid_services:false;
  rollback:'NO_LIVE_CHANGE_CLOSE_DRAFT_ONLY';
 }>;
-const ALLOWED_KEYS=['root_directory','preview_command','branch_includes','target_branch',
+const ALLOWED_KEYS:readonly string[]=['root_directory','preview_command','branch_includes','target_branch',
  'worker_name','config_path','wrangler_version','config_text'] as const;
 const BLOCKED_BINDINGS=/^\s*(?:\[\[?(?:d1_databases|r2_buckets|kv_namespaces|queues|services|durable_objects|workflows|unsafe|triggers|routes|observability|containers|ai|vectorize|hyperdrive)(?:[.\]\s]|$)|(?:account_id|zone_id|route|workers_dev|send_email|assets|secrets|token|api_key)\s*=)/im;
 const NAME=/^starry-id-api-preview-[a-z0-9-]{3,40}$/;
