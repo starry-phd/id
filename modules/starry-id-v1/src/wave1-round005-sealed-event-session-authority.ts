@@ -113,13 +113,18 @@ function readInput(raw:unknown,s:Scope,now:number):
  return {envelope:Object.freeze(p) as R005CandidateEnvelope,mac:outer.mac};
 }
 /** Domain-separated deterministic bytes; does NOT sign, verify, or grant. */
-export function r005EnvelopeSigningBytes(raw:unknown):Uint8Array|null{
+export function r005EnvelopeSigningBytes(raw:unknown):Uint8Array<ArrayBuffer>|null{
  const p=exactRecord(raw,fields);
  if(!p||p.version!==R005_ENVELOPE_AUTH_VERSION)return null;
  if(fields.some(k=>!['string','number'].includes(typeof p[k])))return null;
- return new TextEncoder().encode(JSON.stringify([
+ const encoded=new TextEncoder().encode(JSON.stringify([
   'starry.auth.r005.p05:synthetic-envelope:v1',...fields.map(k=>p[k])
  ]));
+ // Root TS DOM WebCrypto requires an ArrayBuffer-backed BufferSource,
+ // not a potentially SharedArrayBuffer-backed Uint8Array<ArrayBufferLike>.
+ const out=new Uint8Array(new ArrayBuffer(encoded.byteLength));
+ out.set(encoded);
+ return out;
 }
 function hexBytes(s:string):Uint8Array<ArrayBuffer>{
  const a=new Uint8Array(new ArrayBuffer(32));
