@@ -32,7 +32,8 @@ const required=[
  'packages/integration/test/ai0-wave1-r004-cross-owner-gate.test.mjs',
  'packages/integration/test/ai0-q4-admob-selection-ads-off.test.mjs',
  'packages/integration/test/ai0-r005-p05-canonical-offline-verifier.test.mjs',
- 'packages/integration/test/ai0-r006-p05-canonical-proposal.test.mjs'
+ 'packages/integration/test/ai0-r006-p05-canonical-proposal.test.mjs',
+ 'packages/integration/test/ai0-wave1-r006-four-owner-cross-checkout-gate.test.mjs'
 ];
 for(const p of required){
  const path=join(root,p);
