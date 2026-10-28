@@ -1,0 +1,137 @@
+{
+  "schema_version": "starry.ai0.wave1.four_owner_source_preserving_integration.v1",
+  "created_at_date": "2026-10-28",
+  "central_repo": "starry-phd/id",
+  "origin_ai0_base_commit": "506e33d68a2b2a069b5a356c0bf4192df7db7463",
+  "all_owner_files_merged_into_new_integrated_draft": true,
+  "source_preservation": "all 12 owner paths imported byte-identical by immutable Git blob SHA; not PR merged to main",
+  "owners": [
+    {
+      "ai": "AI-1",
+      "pr": 189,
+      "owner_head_sha": "bb4e98e4132900ecdc32f61037d2cb9bad8e8723",
+      "files": [
+        {
+          "path": "modules/starry-id-v1/ADR-WAVE1-ROUND001-Q2-PRE-PURCHASE-AUTH.md",
+          "blob_sha": "c0799ac3f10cd807977b1b63c19ae61a4e700993"
+        },
+        {
+          "path": "modules/starry-id-v1/src/wave1-purchase-entry-auth-gate.ts",
+          "blob_sha": "66fb428d98fea6486a7c1304d90fd1c3fe273b15"
+        },
+        {
+          "path": "modules/starry-id-v1/test/wave1-purchase-entry-auth-gate.test.mjs",
+          "blob_sha": "82c177cbf8b7b49e07d55f98a1080ee152d3ebcf"
+        }
+      ]
+    },
+    {
+      "ai": "AI-2",
+      "pr": 188,
+      "owner_head_sha": "65ccc6aba2679eb26e34bb15bb86606c9562fb17",
+      "files": [
+        {
+          "path": "packages/rebuild-billing/docs/WAVE1-ROUND001-REVENUECAT-BILLING-REVIEW.md",
+          "blob_sha": "7fb0d2599c6e19584229121cfb14e47fa4bdf1ac"
+        },
+        {
+          "path": "packages/rebuild-billing/src/wave1-billing-revenuecat-review.ts",
+          "blob_sha": "7a145e558f7a5ac004b2b87689b2696cc964ef45"
+        },
+        {
+          "path": "packages/rebuild-billing/test/wave1-billing-revenuecat-review.test.mjs",
+          "blob_sha": "8fb5aabdfbd907cc98d97a38a7b5c31e906f1874"
+        }
+      ]
+    },
+    {
+      "ai": "AI-3",
+      "pr": 187,
+      "owner_head_sha": "d1fdb81cddc36e0e890cd990e15fdeb67d428b8f",
+      "files": [
+        {
+          "path": "packages/rebuild-ai3/docs/WAVE1-ROUND001-SECURITY-NOTIFICATION-FENCE.md",
+          "blob_sha": "e607b8c627f8cebe3748cb4a0e872596945057ca"
+        },
+        {
+          "path": "packages/rebuild-ai3/src/wave1-security-notification-fence.ts",
+          "blob_sha": "d2d1f88c0cc1dd2ba3fcff379b7ec7c89e87f850"
+        },
+        {
+          "path": "packages/rebuild-ai3/test/wave1-security-notification-fence.test.mjs",
+          "blob_sha": "ab7afe5ec84097069bf354cca80d108794a0d66c"
+        }
+      ]
+    },
+    {
+      "ai": "AI-4",
+      "pr": 190,
+      "owner_head_sha": "2ab25229f2b9d3a31fb9c0ef0f6a60697f475208",
+      "files": [
+        {
+          "path": "apps/api/src/wave1-worker-openapi-parity.ts",
+          "blob_sha": "640dcc829fe8d0c12c023b4397725f246f09e955"
+        },
+        {
+          "path": "apps/api/test/wave1-worker-openapi-parity.test.mjs",
+          "blob_sha": "fbecbc8835f6f0f6adb57d3ae176247d9b435498"
+        },
+        {
+          "path": "docs/ai/AI4-WAVE1-ROUND001-OPENAPI-CLOUDFLARE-ADS-READONLY-HANDOFF.md",
+          "blob_sha": "d4b2c6bf592a19976e420139dfacffa6229609f7"
+        }
+      ]
+    }
+  ],
+  "contracts": {
+    "AI1": "starry.auth.purchase-entry.w1.v1-offline",
+    "AI2": "starry.billing.wave1.review.v1-offline",
+    "AI3": "starry.ai3.wave1.security-fence.v1-candidate",
+    "AI4": "starry.id.wave1.openapi-liveness.v1"
+  },
+  "gate1": {
+    "status": "PARTIAL_BLOCKED",
+    "positive": [
+      "FOUR_OWNER_SOURCE_DIFFS_ADDED_ONLY",
+      "NO_OWNER_WRITER_OVERWRITE",
+      "ALL_MODULES_FAIL_CLOSED_BY_DESIGN"
+    ],
+    "blockers": [
+      "AI1_SIGNED_STAR_IDENTITY_TO_AI2_BILLING_TRUST_ADAPTER_NOT_APPROVED_OR_IMPLEMENTED",
+      "AI3_SIGNED_SOURCE_AND_AI1_SESSION_FENCE_AND_DURABLE_DEDUPE_NOT_BOUND",
+      "AI4_OPENAPI_ONLY_LIVENESS_NO_PROTECTED_BILLING_AUTH_BATTERY_ROUTES"
+    ]
+  },
+  "gate2": {
+    "status": "PENDING_COMBINED_SHA_CI",
+    "owner_branch_ci_complete_success": true,
+    "combined_sha_ci_complete_success": false
+  },
+  "gate3": {
+    "status": "BLOCKED",
+    "cloudflare_preview_external_fail": true,
+    "store_sandbox_verified": false,
+    "native_platform_build_verified": false,
+    "real_cloudflare_or_d1_validated": false
+  },
+  "security": {
+    "same_app_rights_cross_ios_android_policy_sandbox_pending": true,
+    "login_required_before_iap": true,
+    "allowed_iap": [
+      "NON_CONSUMABLE",
+      "AUTO_RENEWABLE_SUBSCRIPTION"
+    ],
+    "allowed_auto_renewal": [
+      "MONTH",
+      "YEAR"
+    ],
+    "ads_off": true,
+    "battery_free": true,
+    "new_consumer_monorepo_not_created": true,
+    "release_gates_blocked": 11,
+    "main_merge_authorized": false,
+    "production_authorized": false,
+    "paid_resources_authorized": false
+  },
+  "notes": "AI-0 read-only integration review; no Worker / Store / Auth D1 / Cloudflare / GitHub main mutation."
+}
