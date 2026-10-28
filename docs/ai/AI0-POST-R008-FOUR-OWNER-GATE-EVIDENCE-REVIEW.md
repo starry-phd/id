@@ -36,3 +36,11 @@
 4. **另需上線明確授權**：才可合併 main、啟用 Preview、部署、修改正式 Gate、開啟 Ads 或金流。Ads 保持 OFF、Starry Battery 永久 FREE、Expo SDK54 不變。
 
 **Rollback：**只關閉本 AI-0 Draft 並丟棄新整合分支；四位原 Draft PR #238～#241、R008 #234、交接 #237、main 與正式環境不受影響。
+
+## E. 2026-10-29 業主已正式核准的架構方向（**補充本文件 C 欄歷史待決狀態**）
+
+本文件前述 D06、D87 的「待決」為 POST-R008 整合時的歷史狀態；**以下為其後實際業主正式決議，優先於前述待決標記**，但均不構成 Live Gate PASS：
+
+- **D87：方案 A 單一交易權威方向**。見 [Issue #1 #6478861308](https://github.com/starry-phd/id/issues/1#issuecomment-6478861308) 與 [決議 ADR](../adr/AI0-D87-STARRY-SINGLE-TRANSACTION-AUTHORITY-OWNER-DECISION-20261029.md)。決定跨模組**交易設計方向**；尚未核准實體 D1 數量、Schema、權限、真資源／費用、測試／部署。
+- **D06：方案 A 共用業務事件核心＋獨立安全簽章／投遞封套分層方向**。見 [Issue #1 #6478960617](https://github.com/starry-phd/id/issues/1#issuecomment-6478960617) 與 [決議 ADR](../adr/AI0-D06-P05-LAYERED-EVENT-SECURITY-OWNER-DECISION-20261029.md)。原 ADMIN-PREP **11 核心＋條件性 `idempotency_key`** 是現有參考基線；release G06 提到但未列舉的「13 欄」權威仍未釐清；R006 **17-field 僅離線候選**，沒有因選 A 就定為正式第二層 Schema。正式版本、簽章/投遞/相容、域權威和個資法遵仍需獨立審查。
+- **官方 Release 狀態完全不變**：G00–G10 **11/11 BLOCKED**、`evidence=[]`、`P05/PUBLISHABLE=false`、`release_authorization.granted=false`。AI-0／AI-1～4 不可自行啟動新工作或真實外部資源；main merge、Preview/Staging/Production、Secrets/D1/Queue/Store/EAS、付費均未獲核准。
