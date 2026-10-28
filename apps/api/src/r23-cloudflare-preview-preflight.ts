@@ -74,7 +74,7 @@ function atLeastPreviewVersion(raw:unknown):boolean{
  */
 function configEligible(raw:unknown,workerName:string):boolean{
  if(typeof raw!=='string'||raw.length>12000||raw.length<50||
-  /[\u0000-\u0008\u000B-\u001F]/.test(raw))return false;
+  Array.from(raw).some(ch=>{const code=ch.charCodeAt(0);return code<32&&code!==9&&code!==10&&code!==13;}))return false;
  const text=raw.split(/\r?\n/).map(line=>line.replace(/\s+#.*$/,'')).join('\n');
  if(BLOCKED_BINDINGS.test(text)||/(?:production|id-starry|hglobal|secret|password|bearer)/i.test(text))return false;
  const lines=text.split('\n').map(line=>line.trim()).filter(line=>line&&!line.startsWith('#'));
