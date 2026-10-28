@@ -121,8 +121,8 @@ export function r005EnvelopeSigningBytes(raw:unknown):Uint8Array|null{
   'starry.auth.r005.p05:synthetic-envelope:v1',...fields.map(k=>p[k])
  ]));
 }
-function hexBytes(s:string):Uint8Array{
- const a=new Uint8Array(32);
+function hexBytes(s:string):Uint8Array<ArrayBuffer>{
+ const a=new Uint8Array(new ArrayBuffer(32));
  for(let i=0;i<32;i++)a[i]=Number.parseInt(s.slice(i*2,i*2+2),16);
  return a;
 }
