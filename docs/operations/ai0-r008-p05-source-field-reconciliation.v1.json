@@ -1,0 +1,113 @@
+{
+  "schema_version": "starry.ai0.p05-cross-source-reconciliation.r008.v1",
+  "read_only": true,
+  "status": "DECISION_REQUIRED_NOT_APPROVED",
+  "source": {
+    "admin_contract": "docs/contracts/FUTURE-STARRY-ADMIN-API.md section 2.3",
+    "admin_prep_issue": "https://github.com/starry-phd/id/issues/13",
+    "release_gate": "docs/release-readiness/release-readiness.v0.json gates[G06-P05]",
+    "candidate_source": "packages/integration/src/ai0-r006-p05-canonical-proposal.ts"
+  },
+  "admin_event_contract": {
+    "mandatory_fields": [
+      "event_id",
+      "event_type",
+      "schema_version",
+      "brand_id",
+      "app_id",
+      "environment",
+      "occurred_at",
+      "correlation_id",
+      "resource_type",
+      "resource_id",
+      "result"
+    ],
+    "conditional_fields": [
+      "idempotency_key"
+    ],
+    "mandatory_count": 11,
+    "max_if_conditional": 12
+  },
+  "release_g06": {
+    "required_evidence_uses_count": 13,
+    "enumerated_13_field_list_available_in_this_source": false,
+    "status": "blocked",
+    "approval_record_url": null
+  },
+  "r006_candidate": {
+    "fields": [
+      "version",
+      "purpose",
+      "brand_id",
+      "app_id",
+      "environment",
+      "event_id",
+      "event_type",
+      "actor_ref",
+      "auth_version",
+      "session_version",
+      "idempotency_key",
+      "issuer_kid",
+      "issuer_epoch",
+      "issued_at",
+      "expires_at",
+      "nonce",
+      "payload_sha256"
+    ],
+    "count": 17,
+    "version": "starry.p05.canonical.vnext.offline-candidate",
+    "live": false
+  },
+  "exact_name_comparison": {
+    "shared": [
+      "brand_id",
+      "app_id",
+      "environment",
+      "event_id",
+      "event_type",
+      "idempotency_key"
+    ],
+    "shared_count": 6,
+    "admin_only": [
+      "schema_version",
+      "occurred_at",
+      "correlation_id",
+      "resource_type",
+      "resource_id",
+      "result"
+    ],
+    "admin_only_count": 6,
+    "candidate_only": [
+      "version",
+      "purpose",
+      "actor_ref",
+      "auth_version",
+      "session_version",
+      "issuer_kid",
+      "issuer_epoch",
+      "issued_at",
+      "expires_at",
+      "nonce",
+      "payload_sha256"
+    ],
+    "candidate_only_count": 11
+  },
+  "interpretation_constraints": [
+    "Do not infer which unspecified field would be the 13th",
+    "Do not equate version to schema_version or issued_at to occurred_at",
+    "Do not silently replace resource_type/resource_id/result/correlation_id by actor or HMAC fields",
+    "Admin contract states idempotency_key is conditional on retry/payment, unlike R006 candidate mandatory",
+    "These are contracts for potentially distinct layers; whether P05 admin event and R006 signed delivery envelope are same contract is undecided",
+    "Do not upgrade AI0_R006_LIVE or any Gate by documentation"
+  ],
+  "options_for_owner_review": [
+    "Confirm common audit/event P05 schema separately from signed delivery envelope, with explicit versioned mapping",
+    "Approve one unified versioned schema only after owner/security/domain review and migration analysis",
+    "Keep distinct contracts disabled and defer decision; no live P05"
+  ],
+  "gate1": "PARTIAL_BLOCKED",
+  "gate2": "R008_FOUR_OWNER_EXACT_SHA_OFFLINE_PASS_INHERITED",
+  "gate3": "BLOCKED_11_OF_11",
+  "p05_publishable": false,
+  "release_authorization_granted": false
+}
