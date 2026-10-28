@@ -1,0 +1,179 @@
+{
+  "schema_version": "starry.auth.g02-g03.release-evidence-request.v1",
+  "status": "BLOCKED_AWAITING_OWNER_DECISIONS_AND_LIVE_EVIDENCE",
+  "snapshot_type": "REPOSITORY_SNAPSHOT_NOT_EXTERNAL_ATTESTATION",
+  "snapshot_source": {
+    "repository": "starry-phd/id",
+    "branch_parent": "ac99611e00c32c0f5945fb9989807b0dd2dda1a9",
+    "full_r008_integrated_sha": "e47c068449b3aca37ddbf5d6d7f4255c2391a7c9",
+    "full_r008_offline_action": "https://github.com/starry-phd/id/actions/runs/40745802066",
+    "release_manifest_blob": "0ea2e40692fb2e9f7e0c282ac1ece91ad2c740ba"
+  },
+  "authorized_scope": "AI-1 Starry central Auth only; read-only evidence/acceptance planning",
+  "owner_authored_approval": false,
+  "actions_performed": {
+    "read_repo": true,
+    "write_external": false,
+    "deploy": false,
+    "create_resources": false,
+    "use_secrets": false,
+    "run_live_oidc": false,
+    "run_live_d1": false
+  },
+  "gates": [
+    {
+      "id": "G02-OIDC",
+      "owner": "AI-1",
+      "release_status": "blocked",
+      "evidence_urls": [],
+      "verification_result": "NOT_RUN_EXTERNAL",
+      "required_proofs": [
+        "Authorized official Apple and Google issuer/audience/JWKS trust with current kid, rotation, unknown kid and pinned allowed algorithms",
+        "Authorized test-only official OIDC callback with strict redirect allowlist, S256 PKCE, state, nonce and single-use code consumption",
+        "Negative controls: swapped issuer/audience, invalid nonce/PKCE, state replay, client-controlled provider/redirect, token or callback substitution",
+        "Independent sanitized provider and staging test reports signed/reviewed by designated approver"
+      ],
+      "code_present_not_live": [
+        "modules/starry-id-v1/src/oidc-crypto.ts",
+        "modules/starry-id-v1/src/round6-provider-authority.ts",
+        "modules/starry-id-v1/src/r23-auth-g02-g03-live-preflight.ts"
+      ],
+      "blocked_by": [
+        "AUTH-G02-01",
+        "AUTH-G02-02",
+        "AUTH-G02-03",
+        "COMMON-01",
+        "COMMON-02"
+      ]
+    },
+    {
+      "id": "G03-SESSION-D1",
+      "owner": "AI-1",
+      "release_status": "blocked",
+      "evidence_urls": [],
+      "verification_result": "NOT_RUN_EXTERNAL",
+      "required_proofs": [
+        "Authorized isolated test-only Starry Auth D1 and protected Worker route with versioned schema UP/DOWN migrations and observed rollback",
+        "Actual read-after-commit and multi-request/member+provider session CAS, refresh one-time rotation, concurrent revoke, delete and stale auth_version denial",
+        "Negative controls: wrong brand/app/environment, suspended/deleted identities, retired KID/session and malicious client version assertions",
+        "Independently durable anti-PITR restore and privileged action fences in the architecture chosen by owner; never substitute local memory proof",
+        "Sanitized independent operator records of migration, concurrency, recovery, authorization and resource teardown"
+      ],
+      "code_present_not_live": [
+        "modules/starry-id-v1/src/session-persistence.ts",
+        "modules/starry-id-v1/src/r23-signed-session-d1-request-boundary.ts",
+        "modules/starry-id-v1/src/wave1-round008-auth-session-monotonic-cas.ts"
+      ],
+      "blocked_by": [
+        "AUTH-G03-01",
+        "AUTH-G03-02",
+        "AUTH-G03-03",
+        "COMMON-01",
+        "COMMON-02",
+        "COMMON-03"
+      ]
+    }
+  ],
+  "approval_dependencies": [
+    {
+      "id": "COMMON-01",
+      "owner": "AI-0+owner",
+      "decision": "Approve Starry-central test-only scope, app_id, environment, exact resources, owner, operator, redirect allowlist; reject external consumer App/H-Global scopes",
+      "approved": false,
+      "approval_record_url": null
+    },
+    {
+      "id": "COMMON-02",
+      "owner": "AI-0+owner",
+      "decision": "Approve cost ceiling, Cloudflare/API access, official test accounts/credentials custody, timebox, teardown/rollback, logging/PII minimization; no automatic Preview reactivation",
+      "approved": false,
+      "approval_record_url": null
+    },
+    {
+      "id": "COMMON-03",
+      "owner": "AI-0+owner/legal",
+      "decision": "Resolve #87 physical D1 consistency/rollback witness and Q104/Q119 lawful purpose, erasure/retention before any real personal records",
+      "approved": false,
+      "approval_record_url": null
+    },
+    {
+      "id": "AUTH-G02-01",
+      "owner": "AI-0+AI-1+owner",
+      "decision": "Approve Apple/Google official client registration and test identities/PKCE flows, scopes, callback/redirect URLs",
+      "approved": false,
+      "approval_record_url": null
+    },
+    {
+      "id": "AUTH-G02-02",
+      "owner": "AI-0+AI-4+owner",
+      "decision": "Approve isolated external Worker/HTTPS/JWKS access, official origin/TLS and network verification policy without real main deployment",
+      "approved": false,
+      "approval_record_url": null
+    },
+    {
+      "id": "AUTH-G02-03",
+      "owner": "AI-0+AI-1",
+      "decision": "Approve verifier key custody/rotation and redacted audit evidence format, with separate reviewer",
+      "approved": false,
+      "approval_record_url": null
+    },
+    {
+      "id": "AUTH-G03-01",
+      "owner": "AI-0+AI-4+owner",
+      "decision": "Approve disposable isolated Auth D1/Worker binding, migrations/backups, Access scopes, rollback and budget",
+      "approved": false,
+      "approval_record_url": null
+    },
+    {
+      "id": "AUTH-G03-02",
+      "owner": "AI-0+AI-1",
+      "decision": "Approve Auth Member/Session/Provider version writer and verified trust path, session issuer/KMS and adversarial CAS acceptance procedure",
+      "approved": false,
+      "approval_record_url": null
+    },
+    {
+      "id": "AUTH-G03-03",
+      "owner": "AI-0+owner",
+      "decision": "Approve physical recovery/PITR nonrollback witness and lawful session deletion provenance, independent of same D1 rollback domain",
+      "approved": false,
+      "approval_record_url": null
+    }
+  ],
+  "gate_release": {
+    "may_mark_g02_passed": false,
+    "may_mark_g03_passed": false,
+    "may_mark_g00_g10_passed": false,
+    "release_authorization_granted": false,
+    "may_deploy": false,
+    "may_enable_preview": false,
+    "may_write_live_d1": false,
+    "may_authorize_p05": false
+  },
+  "safe_evidence_format": {
+    "metadata_only": [
+      "gate_id",
+      "approval_record_url_after_real_approval",
+      "authorized_starry_test_resource_alias",
+      "provider_name",
+      "test_run_id",
+      "test_time_utc",
+      "code_commit_sha",
+      "independent_reviewer",
+      "result",
+      "sanitized_evidence_url"
+    ],
+    "never_store": [
+      "user name",
+      "email",
+      "OIDC authorization code",
+      "access/id/refresh token",
+      "raw session identifiers",
+      "passwords",
+      "private keys",
+      "client secret",
+      "unmasked personal data",
+      "production database dump"
+    ]
+  },
+  "next_action": "AI-0/owner to separately approve specific preconditions; AI-1 may then conduct only the bounded real checks separately approved. Until then G02/G03 remain BLOCKED."
+}
