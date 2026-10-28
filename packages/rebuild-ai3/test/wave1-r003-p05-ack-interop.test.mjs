@@ -110,7 +110,8 @@ test('scope cross-brand, production and malformed accessors fail closed',()=>{
   const r=review(snapshot(),snapshot(),event,s);assert.equal(r.status,'blocked');inert(r);
  }
  const evil=snapshot();Object.defineProperty(evil,'source',{enumerable:true,get(){throw Error('read')}});
- const r=review(evil);assert.equal(r.status,'blocked');inert(r);
+ const r=reviewR003CommitBeforeAck({scope,event,before:evil,after:snapshot()});
+ assert.equal(r.status,'blocked');inert(r);
 });
 test('no transport or payment action exists',()=>{
  assert.equal(typeof reviewR003CommitBeforeAck,'function');
