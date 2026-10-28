@@ -177,11 +177,12 @@ export function reviewR003QueueSequence(raw: unknown): R003Review {
       !(R003_P05_ORDER as readonly string[]).includes(s)))
     return denial('INVALID_TRACE');
   if (new Set(stages).size !== stages.length ||
-    stages.some((stage, i) => stage !== R003_P05_ORDER[i]))
+    stages.some((stage, i) => stage !== R003_P05_ORDER[i])) {
     const ack = stages.indexOf('queue-ack');
     const commit = stages.indexOf('commit-confirmed');
     return denial(ack >= 0 && (commit < 0 || commit > ack)
       ? 'PREMATURE_QUEUE_ACK' : 'DUPLICATE_OR_REORDERED_STAGE', stages.length);
+  }
   if (stages.length < R003_P05_ORDER.length)
     return denial('UNVERIFIED_CANONICAL_AUTHORITY', stages.length);
   // This string array is supplied by an untrusted caller, not by cryptographic
