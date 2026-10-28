@@ -1,0 +1,93 @@
+{
+  "schema_version": "starry.ai0.new-chat-handoff.r008.v1",
+  "snapshot_taiwan_date": "2026-10-29",
+  "is_realtime_monitor": false,
+  "repo": "starry-phd/id",
+  "canonical_issue": 1,
+  "chat_handoff_issue": 220,
+  "engineering_handoff_path": "docs/ai/AI0-NEW-CHAT-HANDOFF-2026-10-29-R008.md",
+  "lineage": {
+    "r008_four_owner_integration": {
+      "pr": 234,
+      "sha": "e47c068449b3aca37ddbf5d6d7f4255c2391a7c9",
+      "offline_ci": "https://github.com/starry-phd/id/actions/runs/40745802066",
+      "auth_ci": "https://github.com/starry-phd/id/actions/runs/40745803356",
+      "original_owner_blobs_verified": 12,
+      "node_pass": 1776,
+      "sqlite_memory_pass": 413
+    },
+    "cloudflare_read_only_gap_audit": {
+      "pr": 235,
+      "sha": "f12ffd8d7b7590d64724213b3d891b8275110c63",
+      "offline_ci": "https://github.com/starry-phd/id/actions/runs/40746819887"
+    },
+    "p05_field_source_comparison": {
+      "pr": 236,
+      "sha": "7b409fb788ebdbca1d9569beae7ec04822063710",
+      "offline_ci": "https://github.com/starry-phd/id/actions/runs/40747590465"
+    }
+  },
+  "owners": [
+    {
+      "id": "AI-1",
+      "issue": 2,
+      "pr": 231,
+      "sha": "d668add2153bae35ec89c55786d368718bdf61f6"
+    },
+    {
+      "id": "AI-2",
+      "issue": 3,
+      "pr": 228,
+      "sha": "70b12ae7722ca7f9f4b3e975a5e43416a3ea2c5b"
+    },
+    {
+      "id": "AI-3",
+      "issue": 4,
+      "pr": 232,
+      "sha": "46ea40cba9074c2d8bca76a0916428b974d643f5"
+    },
+    {
+      "id": "AI-4",
+      "issue": 5,
+      "pr": 229,
+      "sha": "faa29e2efb179f413a167933b22b92cbe0df9334"
+    }
+  ],
+  "gates": {
+    "gate1": "PARTIAL_BLOCKED",
+    "gate2": "R008_EXACT_SHA_OFFLINE_PASS_ONLY",
+    "gate3": "G00_TO_G10_BLOCKED_11_OF_11",
+    "p05_publishable": false,
+    "release_authorization_granted": false,
+    "auto_deploy": false,
+    "ads_enabled": false,
+    "battery_paid": false
+  },
+  "cloudflare_snapshot": {
+    "scope": "STAR​RY_ONLY_HISTORICAL_READ_ONLY",
+    "id_starry_previews_enabled": false,
+    "id_starry_auto_build_enabled": false,
+    "workers_list_response_count": 6,
+    "d1_list_response_count": 1,
+    "d1_name": "echo-starry",
+    "queue_list_response_count": 0,
+    "auth_or_billing_d1_verified": false
+  },
+  "pending_decisions": [
+    "G00 first Starry app MVP and 128 item SSOT",
+    "G06 P05 11 core+1 conditional vs unspecified 13 vs 17 offline fields",
+    "cross-D1 #87 A or B",
+    "privacy Q104/Q119 legal decision",
+    "separate approval for scoped test environment and budget"
+  ],
+  "prohibited_without_new_owner_approval": [
+    "merge main",
+    "Cloudflare Preview/Production builds or deploy",
+    "real D1, Queue, Secrets or Store",
+    "EAS native release",
+    "turn on Ads",
+    "H-Global code or resources",
+    "new paid resources"
+  ],
+  "note": "Requery latest GitHub issues, pull requests, SHA and CI before acting; public repo must not store secrets or real PII."
+}
