@@ -102,7 +102,8 @@ function readInput(raw:unknown,s:Scope,now:number):
  if(!p||p.version!==R005_ENVELOPE_AUTH_VERSION||
   p.purpose!=='p05_auth_review_only'||p.brand_id!=='starry'||
   p.app_id!==s.app_id||p.environment!==s.environment||
-  !eventRef(p.event_id)||!eventRef(p.actor_ref)||!events.has(String(p.event_type))||
+  !eventRef(p.event_id)||!eventRef(p.actor_ref)||
+  typeof p.event_type!=='string'||!events.has(p.event_type)||
   !pos(p.auth_version)||!epoch(p.session_version)||
   !keyId(p.issuer_kid)||!pos(p.issuer_epoch)||
   !epoch(p.issued_at)||!epoch(p.expires_at)||
@@ -189,6 +190,12 @@ export function createOfflineR005SealedEventSessionAuthority(deps:Readonly<{
      (pinned!==null&&!leaseEqual(pinned,k1))){
      rotated=true;return null;
     }
+    // Claim replay ID only AFTER genuine MAC verification and stable key lease.
+    // A forged/invalid MAC cannot consume another event's identifier.
+    if(verifiedCount===0){
+     if(used.has(e.event_id)||used.size>=256)return null;
+     used.add(e.event_id);
+    }
     pinned=k2;
     verifiedCount++;
     return Object.freeze({
@@ -199,10 +206,8 @@ export function createOfflineR005SealedEventSessionAuthority(deps:Readonly<{
     });
    };
    try{
-    // Conservative local claim BEFORE any async Auth/SQLite operation.
-    // Unsuccessful attempts also remain consumed; this is not a durable ledger.
-    if(used.has(e.event_id))return denied('REPLAY_BLOCKED');
-    used.add(e.event_id);
+    // The verifier claims only a cryptographically verified event before
+    // opening current Auth D1 reads; invalid MAC attempts do not poison replay.
     const r004=createOfflineR004EventBoundSessionFence({
      enabled:true,serverScope:scope,expectedOrigin:deps.expectedOrigin,
      authDb:deps.authDb,getVerificationKey:deps.getVerificationKey,

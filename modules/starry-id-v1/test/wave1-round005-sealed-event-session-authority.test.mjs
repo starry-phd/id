@@ -276,3 +276,26 @@ test('synthetic signed deletion audit is only candidate review; never ACK',async
   safe(v,'blocked'); // current version drift requires separate legal Gate.
  }finally{f.close();}
 });
+
+test('unauthenticated forged MAC cannot consume legitimate event replay identifier',async()=>{
+ const f=await fixture();try{
+  const p=f.port(),signed=await f.sign();
+  safe(await p.reviewFresh({...signed,mac:'0'.repeat(64)},
+   await f.request(),NOW),'blocked');
+  assert.equal(f.state.dbReads,0);
+  safe(await p.reviewFresh(signed,await f.request(),NOW),
+   'review_only','AUTH_REVIEW_ONLY');
+  safe(await p.reviewFresh(signed,await f.request(),NOW),
+   'blocked','REPLAY_BLOCKED');
+ }finally{f.close();}
+});
+test('hostile event type object cannot execute coercive toString before signature validation',async()=>{
+ const f=await fixture();try{
+  const signed=await f.sign();
+  const hostile={toString(){throw Error('event-type side-effect');}};
+  safe(await f.port().reviewFresh({...signed,
+   envelope:{...signed.envelope,event_type:hostile}},
+   await f.request(),NOW),'blocked','INVALID_ENVELOPE');
+  assert.equal(f.state.dbReads,0);
+ }finally{f.close();}
+});
