@@ -94,8 +94,8 @@ function ownData(raw:unknown,keys:readonly string[],
   return result;
  }catch{return null;}
 }
-const ID=/^[A-Za-z0-9._:-]{8,120}$/;
-const APP=/^[A-Za-z0-9._:-]{3,120}$/;
+const ID=/^[A-Za-z0-9._:-]{8,128}$/;
+const APP=/^[A-Za-z0-9._:-]{3,100}$/;
 const KID=/^[a-z0-9][a-z0-9._-]{2,63}$/;
 const NONCE=/^[A-Za-z0-9_-]{16,64}$/;
 const HEX=/^[0-9a-f]{64}$/;
@@ -116,7 +116,8 @@ export function reviewR006P05VNextSchema(raw:unknown,nowSeconds:unknown):R006Rev
     ownData(raw,['envelope','mac']);
   return blocked(old?'LEGACY_DIALECT_REJECTED':'INVALID_WRAPPER');
  }
- const e=ownData(w.envelope,R006_FIELDS,true);
+ // AI-0 #219 canonical byte order is fixed by R006_FIELDS, not object insertion.
+ const e=ownData(w.envelope,R006_FIELDS);
  if(!e)return blocked('INVALID_ENVELOPE');
  if(e.version!==R006_CANONICAL_VERSION||
    e.purpose!==R006_CANONICAL_PURPOSE||
@@ -129,7 +130,7 @@ export function reviewR006P05VNextSchema(raw:unknown,nowSeconds:unknown):R006Rev
    typeof e.nonce!=='string'||!NONCE.test(e.nonce)||
    typeof e.payload_sha256!=='string'||!HEX.test(e.payload_sha256)||
    !safeNonnegative(e.auth_version)||e.auth_version===0||
-   !safeNonnegative(e.session_version)||e.session_version===0||
+   !safeNonnegative(e.session_version)||
    !safeNonnegative(e.issuer_epoch)||e.issuer_epoch===0)
   return blocked('INVALID_ENVELOPE');
  if(e.environment==='production')return blocked('PRODUCTION_BLOCKED');
@@ -138,10 +139,11 @@ export function reviewR006P05VNextSchema(raw:unknown,nowSeconds:unknown):R006Rev
   return blocked('SCOPE_DENIED');
  if(typeof e.event_type!=='string'||!EVENTS.has(e.event_type))
   return blocked('EVENT_TYPE_DENIED');
- if(!safeNonnegative(e.issued_at)||!safeNonnegative(e.expires_at)||
+ if(!safeNonnegative(e.issued_at)||e.issued_at===0||
+   !safeNonnegative(e.expires_at)||
    !safeNonnegative(nowSeconds)||e.expires_at<=e.issued_at||
    e.expires_at-e.issued_at>120||
-   e.issued_at>nowSeconds+5||e.expires_at<nowSeconds)
+   e.issued_at>nowSeconds+5||e.expires_at<=nowSeconds)
   return blocked('BAD_TIME_OR_TTL');
  // Lowercase 64-hex matching a shape is not a verified MAC.
  return blocked('OWNER_GATE_REQUIRED',true);

@@ -78,13 +78,15 @@ test('wrapper extra signature proof flags, key lease and unexpected keys rejecte
    {server_asserted:true},{key:'secrets'}])
   denied(reviewR006P05VNextSchema({...wrap(),...p},NOW),'INVALID_WRAPPER');
 });
-test('17 keys exact insertion order, missing/extras and accessors fail closed',()=>{
+test('17 exact own data keys, missing/extras and accessors fail closed',()=>{
  const e=canonical();
  const out={...e};delete out.payload_sha256;
  denied(reviewR006P05VNextSchema(wrap(out),NOW),'INVALID_ENVELOPE');
  denied(reviewR006P05VNextSchema(wrap({...e,foo:'ok'}),NOW),'INVALID_ENVELOPE');
+ // The AI-0 #219 source canonicalizes signed bytes using its fixed fields
+ // regardless of input object insertion order; public review remains denied.
  denied(reviewR006P05VNextSchema(wrap(Object.fromEntries(
-  [...Object.entries(e)].reverse())),NOW),'INVALID_ENVELOPE');
+  [...Object.entries(e)].reverse())),NOW),'OWNER_GATE_REQUIRED',true);
  let reads=0;
  const g=canonical();
  Object.defineProperty(g,'actor_ref',{enumerable:true,get(){reads++;throw Error('evil');}});
@@ -185,4 +187,37 @@ test('review code is no P05 HMAC signer, no live SDK, Queue or Cloudflare mutati
  assert.doesNotMatch(s,/\bfetch\s*\(/);
  assert.doesNotMatch(s,/from\s+['"]react-native-google-mobile-ads/);
  assert.doesNotMatch(s,/\bwrangler\s+deploy\b/);
+});
+
+test('AI-0 #219 signed fields are ordered by canonical tuple, not JSON insertion',()=>{
+ const e=canonical();
+ const unordered=Object.fromEntries([...Object.entries(e)].reverse());
+ assert.notDeepEqual(Object.keys(unordered),[...R006_FIELDS]);
+ const preimageA=JSON.stringify([R006_HMAC_DOMAIN,...R006_FIELDS.map(k=>e[k])]);
+ const preimageB=JSON.stringify([R006_HMAC_DOMAIN,...R006_FIELDS.map(k=>unordered[k])]);
+ assert.equal(preimageA,preimageB);
+ denied(reviewR006P05VNextSchema(wrap(unordered),NOW),
+  'OWNER_GATE_REQUIRED',true);
+});
+test('AI-0 #219 permits monotonic session_version zero as a candidate only',()=>{
+ denied(reviewR006P05VNextSchema(wrap(canonical({session_version:0})),NOW),
+  'OWNER_GATE_REQUIRED',true);
+ denied(reviewR006P05VNextSchema(wrap(canonical({session_version:-1})),NOW),
+  'INVALID_ENVELOPE');
+});
+test('AI-0 #219 expiry equals now is already expired, never reviewable',()=>{
+ denied(reviewR006P05VNextSchema(wrap(canonical({
+  issued_at:NOW-60,expires_at:NOW
+ })),NOW),'BAD_TIME_OR_TTL');
+});
+test('AI-0 #219 identifier length ranges and positive issued_at are mirrored',()=>{
+ denied(reviewR006P05VNextSchema(wrap(canonical({
+  event_id:'e'.repeat(128),actor_ref:'a'.repeat(128),
+  idempotency_key:'i'.repeat(128),app_id:'s'.repeat(100)
+ })),NOW),'OWNER_GATE_REQUIRED',true);
+ for(const changes of [{event_id:'e'.repeat(129)},
+   {actor_ref:'a'.repeat(129)}, {idempotency_key:'i'.repeat(129)},
+   {app_id:'s'.repeat(101)}, {issued_at:0,expires_at:120}])
+  denied(reviewR006P05VNextSchema(wrap(canonical(changes)),NOW),
+   'INVALID_ENVELOPE');
 });
