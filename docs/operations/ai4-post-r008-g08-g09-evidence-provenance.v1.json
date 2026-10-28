@@ -1,0 +1,147 @@
+{
+  "schema_version": "starry.ai4.post-r008.g08-g09.evidence-provenance.v1",
+  "record_class": "SOURCE_LINKED_STATIC_AUDIT_NOT_A_LIVE_GATE_NOT_AN_APPROVAL",
+  "observed_taiwan_date": "2026-10-29",
+  "repository": "starry-phd/id",
+  "upstream": {
+    "pr": 237,
+    "sha": "ac99611e00c32c0f5945fb9989807b0dd2dda1a9",
+    "all_owner_r008_pr": 234,
+    "all_owner_r008_sha": "e47c068449b3aca37ddbf5d6d7f4255c2391a7c9",
+    "all_owner_r008_offline_ci": "https://github.com/starry-phd/id/actions/runs/40745802066",
+    "original_ai4_r008_pr": 229,
+    "original_ai4_r008_sha": "faa29e2efb179f413a167933b22b92cbe0df9334",
+    "ai0_cloudflare_audit_pr": 235,
+    "ai0_p05_decision_gap_pr": 236
+  },
+  "source_inventory": [
+    {
+      "path": "apps/api/src/index.ts",
+      "git_blob_sha": "a9addff8a16c351ee8cbf3900c8aee52e7fb012b",
+      "observation": "Only GET /v1/health liveness in development/staging; all non-GET 405; preview/production environment 503"
+    },
+    {
+      "path": "apps/api/openapi.yaml",
+      "git_blob_sha": "2d7d42d8ed9529db5b4e92f895bd83a71702da77",
+      "observation": "Only GET /v1/health OpenAPI operation; no real protected API success"
+    },
+    {
+      "path": "packages/sdk/src/index.ts",
+      "git_blob_sha": "b73c40bb72c7c2605e9caf77df4ffe6f0d71eee9",
+      "observation": "Public liveness SDK; no authorized member/admin/Store/Push SDK"
+    },
+    {
+      "path": "apps/api/wrangler.toml",
+      "git_blob_sha": "55f53e1e63349b2ab275d92479d10258af47b6b4",
+      "observation": "Development + staging local configuration only, workers_dev=false, no real bindings or production/Preview"
+    },
+    {
+      "path": "apps/mobile/package.json",
+      "git_blob_sha": "64f0f38f215dc68b9d49ce520a38bc552764f5a2",
+      "observation": "Expo ~54.0.20, Expo Router 6.0.13, no EAS build tooling or Apple/Google Store SDK in this package"
+    },
+    {
+      "path": "apps/mobile/app.json",
+      "git_blob_sha": "4bf6d502a95038d088f1d2e11f6d050397a1ed41",
+      "observation": "Dev-only app identity, bundleIdentifier and android.package phd.starry.id.dev"
+    },
+    {
+      "path": "package.json",
+      "git_blob_sha": "423a539dfb6cac56c6290bf27bf3d6688d40c11a",
+      "observation": "CI CLI uses wrangler --dry-run, not Preview, production or EAS build"
+    },
+    {
+      "path": ".github/workflows/ai0-current-offline-gate.yml",
+      "git_blob_sha": "ba43a9b1424e621b74d0d7a05e555d61d3be1802",
+      "observation": "Offline lint/TS/Expo config/Worker dry-run/Node/SQLite memory tests, no live EAS or deploy"
+    }
+  ],
+  "gates": [
+    {
+      "id": "G08-WORKER-SDK",
+      "owner": "AI-4",
+      "status": "blocked",
+      "release_evidence_count": 0,
+      "required_evidence": [
+        "安全 API／Client SDK 的完整授權與真實 staging 回呼測試",
+        "保護路由只有完成全部前置 Gate 才啟用、部署回滾可驗證"
+      ],
+      "proven_offline_only": [
+        "R008 four-owner Node/SQLite offline same-SHA CI completed/success, not live route certification",
+        "Worker GET /v1/health liveness only and public SDK liveness only",
+        "AI-4 R008 Preview proposal static rejection tests, not Cloudflare Preview success"
+      ],
+      "not_proven": [
+        "Owner-approved isolated staging test identity, URL, Access, bindings, secrets and cost ceiling",
+        "Real protected Worker/Auth + SDK integrated callbacks with scope, deny and revoke behavior",
+        "Actual deployment/rollback witness, monitoring and externally accessible exposure controls"
+      ],
+      "blocked_by": [
+        "AI-0 G01/G06 authority/brand & P05",
+        "AI-1 current Auth",
+        "AI-3 durable Queue/PITR policy",
+        "Owner consent to isolate/test/charge"
+      ]
+    },
+    {
+      "id": "G09-DEVICES",
+      "owner": "AI-4",
+      "status": "blocked",
+      "release_evidence_count": 0,
+      "required_evidence": [
+        "iOS TestFlight、Android Play Internal、Web E2E 與真實登入/內購/推播驗證",
+        "Expo/EAS Build、Update、Workflows 額度、版本/runtime、實際費用追溯"
+      ],
+      "proven_offline_only": [
+        "Expo SDK 54 dev config verified in existing offline CI",
+        "apps/mobile/app.json contains only dev identity phd.starry.id.dev",
+        "Local Expo/TypeScript test does not represent iOS/Android device or Store evidence"
+      ],
+      "not_proven": [
+        "Owner-approved Apple & Google account mapping, app identity, signing and test distribution",
+        "TestFlight and Play Internal build/install/in-app login/IAP/Push receipts; Web E2E external test",
+        "Approved EAS project, build/update/workflows quotas, runtime compatibility, usage and actual costs",
+        "Install/rollback provenance, device test logs and App review state"
+      ],
+      "blocked_by": [
+        "AI-0 G00 Starry ID central-only MVP and G01 mapping",
+        "AI-1 Auth and AI-2 Store approval",
+        "Owner test account/signing/quota/cost approvals"
+      ]
+    }
+  ],
+  "release": {
+    "gate1": "PARTIAL_BLOCKED",
+    "gate2": "R008_SAME_SHA_OFFLINE_PASS_ONLY",
+    "gate3": "G00_G10_11_OF_11_BLOCKED",
+    "p05_publishable": false,
+    "release_authorization_granted": false,
+    "release_gate_ssot_modified": false,
+    "main_merge_authorized": false,
+    "cloudflare_preview_reenable_authorized": false,
+    "staging_deploy_authorized": false,
+    "production_deploy_authorized": false,
+    "new_paid_resources_authorized": false,
+    "ads_enabled": false,
+    "hglobal_scope_authorized": false,
+    "starry_battery_charged": false
+  },
+  "local_configuration_inventory": {
+    "root_eas_json_found": false,
+    "mobile_eas_json_found": false,
+    "dev_ios_bundle_identifier": "phd.starry.id.dev",
+    "dev_android_package": "phd.starry.id.dev",
+    "production_app_id_approved": false,
+    "official_store_test_account_mapping_verified": false,
+    "cloudflare_live_read_reperformed_in_this_audit": false,
+    "cloudflare_status_source": "AI-0 #235 historical authenticated Starry Cloudflare audit: id-starry auto/previews OFF at observation time, not continuously guaranteed"
+  },
+  "decisions_pending": [
+    "Owner approves central ID app identity/release SKU and G00/G01 scope; no external consumer App",
+    "Owner separately approves isolated staging/Access bindings and exact Cloudflare Preview setting, if needed",
+    "Owner separately approves account, access, EAS/Apple/Google TestFlight/Play Internal testing and spending limits",
+    "AI-0 releases official P05 and security prerequisites; Q104/Q119/#87 not assumed",
+    "AI-0 validates provider evidence and rollback separately before changing Gate"
+  ],
+  "important": "Static linked GitHub sources can show absence/presence in this checkout only. They do not prove the state of external accounts or deployment. Never populate official release Gate evidence using this manifest."
+}
