@@ -1,0 +1,69 @@
+{
+  "schema_version": "starry.ai0.app-intake-review.v1",
+  "brand_id": "starry",
+  "stage": "PROPOSAL_ONLY",
+  "hypothesis_id": "H01",
+  "archetype_id": "ARC07",
+  "proposed_app_id": null,
+  "unique_product_flow_key": null,
+  "target_audience": null,
+  "user_problem": null,
+  "core_user_flow": null,
+  "distinctive_advantage": null,
+  "project_owner": null,
+  "data_retention_plan": null,
+  "maintenance_plan": null,
+  "monetization_candidate": null,
+  "creates_account": null,
+  "policy_evidence_urls": {
+    "apple_distinctiveness": null,
+    "google_repetitive_content": null,
+    "content_rights": null,
+    "privacy_retention_deletion": null,
+    "store_identity_plan": null,
+    "cost_budget": null,
+    "ongoing_support": null,
+    "account_deletion_path": null
+  },
+  "score_evidence": {
+    "problem_evidence": {
+      "score_0_to_5": null,
+      "evidence_urls": []
+    },
+    "substantive_differentiation": {
+      "score_0_to_5": null,
+      "evidence_urls": []
+    },
+    "monetization_fit": {
+      "score_0_to_5": null,
+      "evidence_urls": []
+    },
+    "feasibility": {
+      "score_0_to_5": null,
+      "evidence_urls": []
+    },
+    "compliance_and_privacy": {
+      "score_0_to_5": null,
+      "evidence_urls": []
+    },
+    "unit_economics": {
+      "score_0_to_5": null,
+      "evidence_urls": []
+    },
+    "shared_sdk_reuse": {
+      "score_0_to_5": null,
+      "evidence_urls": []
+    }
+  },
+  "product_approved": false,
+  "release_approved": false,
+  "production_enabled": false,
+  "deploy_enabled": false,
+  "payment_enabled": false,
+  "ads_enabled": false,
+  "battery_purchasable": false,
+  "store_submission_enabled": false,
+  "allow_cross_app_entitlement": false,
+  "direct_central_d1_write": false,
+  "note": "PUBLIC SYNTHETIC TEMPLATE ONLY; not a real app, no market evidence; zero permission."
+}
