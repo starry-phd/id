@@ -171,6 +171,7 @@ test('another App, another Store app, wrong brand, platform or SKU rejects',asyn
  for(const candidate of wrong){
   assert.throws(()=>f.make({products:[candidate]}));
  }
+ assert.deepEqual(f.counts,{policy:0,billing:0,floor:0});
  // A DIFFERENT candidate product for the SAME App is allowed in a
  // technical manifest, but absent official Store receipt it cannot grant.
  const novel={...product,productKey:'premium.yearly',store_sku_ref:ref('9')};
@@ -179,7 +180,9 @@ test('another App, another Store app, wrong brand, platform or SKU rejects',asyn
  assert.equal(v.ads_suppressed,false);
  assert.throws(()=>f.make({scope:{...scope,brand_id:'hglobal'}}));
  assert.throws(()=>f.make({scope:{...scope,environment:'production'}}));
- assert.deepEqual(f.counts,{policy:0,billing:0,floor:0});
+ // Only the deliberate same-App novel candidate may invoke protected
+ // local Billing read, but it still has no verified entitlement or ads-off.
+ assert.equal(f.counts.billing,1);assert.equal(f.counts.floor,0);
 });
 test('same app cannot register duplicate productKey or Store SKU token',async t=>{
  const f=setup();t.after(()=>f.close());
