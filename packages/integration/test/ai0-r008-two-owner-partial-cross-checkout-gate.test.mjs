@@ -69,7 +69,11 @@ test('R008 REAL two-owner checkout: two untrusted Store/RC claims never grant or
  const r007=createOfflineR007OfficialProviderAdapterGate({
   enabled:true,scope,skuCatalog:catalog,nowSeconds:()=>now});
  const s=r007.inspect(claim('apple'));
- const rc=r007.inspect(claim('revenuecat'));
+ // R007 local replay/version state is provider-session scoped; independent
+ // providers must be reviewed by independent synthetic R007 adapters.
+ const rc=createOfflineR007OfficialProviderAdapterGate({
+  enabled:true,scope,skuCatalog:catalog,nowSeconds:()=>now
+ }).inspect(claim('revenuecat'));
  assert.equal(s.status,'review_only');
  assert.equal(rc.status,'review_only');
  const correlation={brand_id:'starry',app_id:scope.app_id,environment:'staging',
