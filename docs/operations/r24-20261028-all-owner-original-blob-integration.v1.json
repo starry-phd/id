@@ -1,0 +1,161 @@
+{
+  "schema_version": "starry.ai0.r24.same-checkout-exact-owner-source.v1",
+  "date": "2026-10-28",
+  "state": "REVIEW_CANDIDATE_OFFLINE_ONLY",
+  "base": {
+    "pr": 171,
+    "commit_sha": "2841011b9a32680d889c53062b659b15b1ac63e9",
+    "expected_inherited_r23_new": 16,
+    "expected_inherited_sbase": 18
+  },
+  "sources": [
+    {
+      "owner": "AI-1",
+      "pr": 172,
+      "head": "0e83fe7b31283a876a597809e42ddceff24d712a",
+      "superseded_sha": "0258199484a6118918a2f273f0970da5c607b357",
+      "ci": [
+        "40639902047",
+        "40639902049"
+      ],
+      "files": [
+        {
+          "path": "modules/starry-id-v1/ADR-R23-AUTH-G02-G03-ISOLATED-LIVE-PLAN.md",
+          "sha": "588b469bd81fb7c5903ff238f8950fe1dacb4980"
+        },
+        {
+          "path": "modules/starry-id-v1/scripts/r23-auth-preflight.mjs",
+          "sha": "8ee52b68e6edb08623ef3bb1871c5088f3775d91"
+        },
+        {
+          "path": "modules/starry-id-v1/src/r23-auth-g02-g03-live-preflight.ts",
+          "sha": "83092b48916ef39c5ac321c22d54e5f98a180216"
+        },
+        {
+          "path": "modules/starry-id-v1/test/r23-auth-g02-g03-live-preflight.test.mjs",
+          "sha": "eeecc65052b6ca0e6a9f386a3d0b56e12b3efd84"
+        }
+      ]
+    },
+    {
+      "owner": "AI-2",
+      "pr": 174,
+      "head": "29e0c3c396f27416a9682c8a56aac89228945797",
+      "ci": [
+        "40640008866",
+        "40640008841"
+      ],
+      "files": [
+        {
+          "path": "packages/rebuild-billing/docs/R23-GOOGLE-RTDN-CRYPTO-BOUNDARY-SANDBOX-PLAN.md",
+          "sha": "c47eb9bf89f0ff51e5ee7979e1cf0d5509a02600"
+        },
+        {
+          "path": "packages/rebuild-billing/src/r23-google-rtdn-signed-transport.ts",
+          "sha": "fc7b1c5f22e48e87bcdb9f9a8dbc75b101299909"
+        },
+        {
+          "path": "packages/rebuild-billing/test/r23-google-rtdn-signed-transport.test.mjs",
+          "sha": "c3487f3638521a1dd712782c577d4e9ca3a5d064"
+        }
+      ]
+    },
+    {
+      "owner": "AI-3",
+      "pr": 173,
+      "head": "88b6628c476333e63999c434190121dfc52696b1",
+      "ci": [
+        "40639659732"
+      ],
+      "files": [
+        {
+          "path": "packages/rebuild-ai3/docs/R24-G07-AUTHORIZED-STAGING-CHAOS-TEST-PLAN-20261028.md",
+          "sha": "b7e76b04839501c7da4287a3a7c46bf6e9cc2119"
+        },
+        {
+          "path": "packages/rebuild-ai3/test/r24-g07-staging-trial-plan.test.mjs",
+          "sha": "49a9064cb101ffef420b4e3ffd856b9601598db6"
+        },
+        {
+          "path": "packages/rebuild-ai3/tools/r24-g07-staging-trial-plan.mjs",
+          "sha": "0032ef56312897a37cb0a945afb5f783e41ca8a6"
+        }
+      ]
+    },
+    {
+      "owner": "AI-4",
+      "pr": 175,
+      "head": "01ef512d068d99f2fb2b8a5a2fefd6c2677113de",
+      "ci": [
+        "40639877661"
+      ],
+      "files": [
+        {
+          "path": "apps/api/src/r24-offline-staging-auth-http-smoke.ts",
+          "sha": "a790be14b81af76edb2464d246f571c26664e776"
+        },
+        {
+          "path": "apps/api/test/r24-offline-staging-auth-http-smoke.test.mjs",
+          "sha": "9cffb2a087f3058280c416d2b6e1795fbe0cb99b"
+        },
+        {
+          "path": "docs/operations/AI4-R24-G08-G09-SIGNED-AUTH-STAGING-EVIDENCE-PLAN.md",
+          "sha": "39d27b3eddcdccc05063bbe585d98bd62cf0059a"
+        }
+      ]
+    },
+    {
+      "owner": "AI-0",
+      "pr": 176,
+      "head": "afe126ea450d8bee049f33ecc22ae39249f3f1f1",
+      "ci": [
+        "40640918204"
+      ],
+      "files": [
+        {
+          "path": "docs/portfolio/AI0-APP-INTAKE-EVIDENCE-REVIEW-AND-ANTI-CLONE-20261028.md",
+          "sha": "d59bc9e718b91c5466592b63e914320bfda38d7b"
+        },
+        {
+          "path": "docs/portfolio/ai0-app-intake-cli.mjs",
+          "sha": "3a56a024f87f2a7915782d998c4e1135f3c49686"
+        },
+        {
+          "path": "docs/portfolio/ai0-app-intake-evidence-gate.mjs",
+          "sha": "99d882c6c7cfb33615dfe174d9e07b1c868921a6"
+        },
+        {
+          "path": "docs/portfolio/ai0-app-intake-example-H01-unapproved.json",
+          "sha": "6f22068819a7ad68157d95676ebb6a995e1b9f7f"
+        },
+        {
+          "path": "packages/integration/test/ai0-app-intake-evidence-gate.test.mjs",
+          "sha": "d6947ceb50a29854e4d4690f71858d405706d7c1"
+        }
+      ]
+    }
+  ],
+  "total_new_original_blobs": 18,
+  "verification": {
+    "exact_owner_blobs_checked_with_github_fetch_file": true,
+    "final_integrated_ci_status": "PENDING",
+    "approved_live_resources": false,
+    "release_gates_blocked": 11,
+    "google_rtdn_live_jwks": false,
+    "google_play_purchase_live_verified": false,
+    "cloudflare_preview_live_verified": false,
+    "oidc_and_d1_live_verified": false,
+    "physical_queue_chaos_run": false,
+    "ios_android_native_build": false,
+    "product_approved_count": 0,
+    "free_battery_purchasable": false
+  },
+  "restrictions": {
+    "no_changes_to_existing_owner_files": true,
+    "no_main_merge": true,
+    "no_production_deploy": true,
+    "no_hglobal_work": true,
+    "no_secret_or_real_person_data": true,
+    "no_provider_spend": true
+  }
+}
