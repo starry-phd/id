@@ -169,7 +169,7 @@ test('scope mismatch, production, malformed event and unsupported kind deny',()=
 test('malicious getters, unknown fields and nested prototypes never authorize',()=>{
  const x=evidence();
  Object.defineProperty(x,'issuer',{enumerable:true,get(){throw Error('getter');}});
- const a=review(x);assert.equal(a.state,'blocked');noRights(a);
+ const a=review(x,evidence());assert.equal(a.state,'blocked');noRights(a);
  const y=evidence();y.receipt.pii='forbidden';
  const b=review(y);assert.equal(b.reason,'RECEIPT_OR_CAS_PENDING');noRights(b);
  const z=evidence();Object.setPrototypeOf(z.claim,new Date());
