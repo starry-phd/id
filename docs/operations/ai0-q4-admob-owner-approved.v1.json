@@ -1,0 +1,42 @@
+{
+  "schema_version": "starry.ai0.owner-decision.q4-admob.v1",
+  "date": "2026-10-28",
+  "supersedes": {
+    "prior_Q4": "D",
+    "prior_D04_stage": "C - compare three candidates; no final provider",
+    "previous_provider_selection": null
+  },
+  "current": {
+    "Q4": "A",
+    "provider": "Google AdMob Mediation",
+    "provider_key": "google-admob-mediation",
+    "selection_approved": true,
+    "ads_enabled": false,
+    "sdk_install_authorized": false,
+    "sdk_initialized": false,
+    "ad_requests_authorized": false,
+    "ad_unit_creation_authorized": false,
+    "admob_account_creation_authorized": false,
+    "payments_or_paid_resources_authorized": false,
+    "production_change_authorized": false,
+    "app_store_submission_authorized": false,
+    "activation_requires_separate_owner_approval": true
+  },
+  "scope": "Starry future consumer Apps; central existing Expo54 unchanged; Q5=B private consumer Monorepo creation deferred",
+  "unchanged": {
+    "Q1": "A",
+    "Q2": "A",
+    "Q3": "A",
+    "Q5": "B",
+    "battery_permanently_free": true,
+    "release_gates_blocked": 11,
+    "main_merge_authorized": false
+  },
+  "precedence": "Most recent signed-off owner instruction supersedes historical Q4=D and D04=C vendor-pending wording; preserve prior decision documents and round history for audit.",
+  "references": {
+    "owner_decision": "https://github.com/starry-phd/id/issues/156#issuecomment-6473604896",
+    "ai0": "https://github.com/starry-phd/id/issues/1#issuecomment-6473610547",
+    "ai4": "https://github.com/starry-phd/id/issues/5#issuecomment-6473611669",
+    "google_doc": "https://docs.google.com/document/d/1wHBuIJCA1cMhLcI25MR_EYEdgmpXmzXx_D0UlEWHBAQ/edit"
+  }
+}
