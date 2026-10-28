@@ -137,8 +137,29 @@
       "id": "D00",
       "owner": "product owner",
       "topic": "G00 Starry centralized ID MVP and 128-heading SSOT, with newer central-only scope; no authorizing external Apps",
-      "status": "OWNER_DECISION_REQUIRED",
-      "prerequisites": []
+      "status": "OWNER_ACCEPTANCE_STRATEGY_A_PHASED_APPROVED_MVP_SCOPE_STILL_BLOCKED",
+      "prerequisites": [],
+      "approved_acceptance_strategy": "A_PHASED_ACCEPTANCE",
+      "owner_decision_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6479057455",
+      "owner_decision_document": "docs/adr/AI0-D00-STARRY-PHASED-ACCEPTANCE-OWNER-DECISION-20261029.md",
+      "approved_order": [
+        "CENTRAL_ID_AUTH_MEMBER_SESSION_PERMISSIONS",
+        "CENTRAL_BILLING_STORE_ENTITLEMENTS",
+        "FREE_STARRY_BATTERY_NOTIFICATIONS_AUDIT_RECOVERY_AND_OTHER_APPROVED_CENTRAL_MODULES"
+      ],
+      "all_previously_approved_in_scope_features_preserved": true,
+      "requirements_128_heading_index_not_all_approved": true,
+      "phase1_exact_feature_source_ids_approved": false,
+      "gate_status": "BLOCKED",
+      "release_authorized": false,
+      "phased_production_release_authorized": false,
+      "remaining_review": [
+        "Approve precise Starry-only central first phase source IDs, clauses, acceptance criteria",
+        "Reconcile unresolved source contradictions with master 128 and DEV A-I",
+        "Verify core Auth/Session/permissions with applicable security and platform evidence",
+        "Preserve Billing/Battery/notifications and other approved central functions for staged review",
+        "Separate true project release gate from per-phase internal acceptance"
+      ]
     },
     {
       "id": "D01",
@@ -282,6 +303,22 @@
       "deploy_approved": false,
       "issue_comment_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6478960617",
       "decision_adr_path": "docs/adr/AI0-D06-P05-LAYERED-EVENT-SECURITY-OWNER-DECISION-20261029.md"
+    },
+    "D00": {
+      "date_taiwan": "2026-10-29",
+      "scope": "Starry centralized membership only",
+      "selected_direction": "A_PHASED_ACCEPTANCE",
+      "approved_acceptance_strategy": true,
+      "all_previously_approved_central_functions_preserved": true,
+      "exact_mvp_source_id_and_clauses_approved": false,
+      "g00_ssot_gate_approved": false,
+      "live_testing_approved": false,
+      "resource_creation_approved": false,
+      "paid_usage_approved": false,
+      "main_merge_approved": false,
+      "deploy_approved": false,
+      "issue_comment_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6479057455",
+      "decision_adr_path": "docs/adr/AI0-D00-STARRY-PHASED-ACCEPTANCE-OWNER-DECISION-20261029.md"
     }
   }
 }
