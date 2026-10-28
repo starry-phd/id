@@ -52,16 +52,16 @@ test('Round-002 proposals match the real three inherited owner version constants
 test('canonical OpenAPI remains ONLY deployed liveness; route proposal is not published',()=>{
  const yaml=readFileSync(new URL('../openapi.yaml',import.meta.url),'utf8');
  assert.match(yaml,/^openapi: 3\.1\.0/m);
- assert.match(yaml,/^  \/v1\/health:/m);
+ assert.match(yaml,/^ {2}\/v1\/health:/m);
  for(const proposed of R002_PROPOSED_ROUTES)
   assert.equal(yaml.includes(proposed.path),false);
 });
-test('actual Worker does NOT register the three proposed sensitive routes',()=>{
+test('actual Worker does NOT register the three proposed sensitive routes',async()=>{
  for(const route of R002_PROPOSED_ROUTES){
   const request=new Request('https://starry.invalid'+route.path,{method:'POST'});
   const response=handleRequest(request,env);
   assert.equal(response.status,405);
-  const body=JSON.stringify(response.json());
+  const body=JSON.stringify(await response.json());
   assert.doesNotMatch(body,/member_digest|session_id|transaction|user_id/i);
  }
  const actualGet=handleRequest(
