@@ -1,0 +1,163 @@
+{
+  "schema_version": "starry.ai0.d01-readonly-research.v1",
+  "record_date": "2026-10-28",
+  "decision_id": "D-01",
+  "kind": "TECHNICAL_RESEARCH_AND_CONDITIONAL_POC_PLAN",
+  "status": "RESEARCH_DOCS_CONFIRMED_D01_OWNER_CHOICE_PENDING_NATIVE_POC_NOT_STARTED",
+  "selected_option": null,
+  "owner_approved_D01": false,
+  "new_repo_creation_approved": false,
+  "full_native_poc_started": false,
+  "prior_parent_D08_commit": "86c7f055c4238911ad3dc8c3223627774666a388",
+  "current_existing_central_mobile_untouched": {
+    "repo": "starry-phd/id",
+    "workspace": "apps/mobile",
+    "expo": "~54.0.20",
+    "react_native": "0.81.5",
+    "expo_router": "~6.0.13",
+    "react": "19.1.0",
+    "package_manager": "npm workspaces",
+    "upgrade_executed": false
+  },
+  "new_app_candidate": {
+    "expo_sdk": "58.0.0",
+    "react_native": "0.88",
+    "react": "19.3.0",
+    "react_native_web": "0.21.0",
+    "node_22_minimum": "22.13.x",
+    "official_release_date": "2026-10-15",
+    "official_sources": [
+      "https://expo.dev/changelog/sdk-58",
+      "https://docs.expo.dev/versions/v58.0.0/",
+      "https://expo.dev/blog/how-to-upgrade-to-sdk-58"
+    ],
+    "owner_selected_sdk58": false,
+    "native_compatibility_verified": false,
+    "expo_router_strict_ts_migration_review_required": true,
+    "expo_go_not_equivalent_to_native_build": true,
+    "sdk58_new_expo_go_store_distribution_status": "STORE_ROLLOUT_NOT_ASSUMED_AS_OF_2026_10_28"
+  },
+  "native_integration_research": {
+    "revenuecat": {
+      "D03_provider_owner_approved": true,
+      "expo_official_integration_documented": true,
+      "expo_go_preview_api_mock_not_real_transaction": true,
+      "development_build_required_for_real_iap": true,
+      "sdk58_ios_android_build_verified": false,
+      "sandbox_store_flow_approved": false,
+      "source": "https://www.revenuecat.com/docs/getting-started/installation/expo"
+    },
+    "sentry": {
+      "expo_official_integration_documented": true,
+      "sdk58_ios_android_build_verified": false,
+      "account_creation_approved": false,
+      "live_telemetry_enabled": false,
+      "source": "https://docs.expo.dev/guides/using-sentry/"
+    },
+    "ads": {
+      "D04_comparison_approved": true,
+      "final_provider_selected": null,
+      "provider_sdk_approved": false,
+      "noop_adapter_plan_only": true,
+      "expo_go_native_ads_not_supported": true,
+      "real_native_ads_test_started": false,
+      "source": "https://docs.page/invertase/react-native-google-mobile-ads"
+    },
+    "mobile_build": {
+      "development_build_required": true,
+      "eas_local_build_not_assumed_offline_or_free": true,
+      "ios_android_builds_completed": 0,
+      "source": "https://docs.expo.dev/develop/development-builds/faq/"
+    }
+  },
+  "proposed_decision_options": {
+    "A": "AFTER_SEPARATE_EXPLICIT_APPROVAL_ISOLATED_EXPO58_RN088_SYNTHETIC_NATIVE_POC_THEN_FINALIZE_VERSION",
+    "B": "PREFER_A_PROVEN_ALTERNATIVE_SDK_AFTER_NATIVE_COMPATIBILITY_EVIDENCE",
+    "C": "HOLD_FINAL_EXPO_VERSION_AND_CONTINUE_NON_NATIVE_RESEARCH"
+  },
+  "proposed_recommended_option": "A",
+  "recommendation_is_owner_approval": false,
+  "steps": [
+    {
+      "id": "P0",
+      "name": "READ_ONLY_OFFICIAL_SDK_AND_PLUGIN_MATRIX",
+      "status": "SOURCE_RESEARCH_PERFORMED_NO_NATIVE_TEST"
+    },
+    {
+      "id": "P1",
+      "name": "OWNER_APPROVES_PRECISE_SYNTHETIC_REPO_APPS_ACL_ENV_COST_BUILD_LIMITS",
+      "status": "PENDING"
+    },
+    {
+      "id": "P2",
+      "name": "ISOLATED_IOS_AND_ANDROID_NATIVE_DEV_BUILD_WITH_STYLESHEET_TOKENS_AND_MOCK_CLIENTS",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "P3",
+      "name": "REVENUECAT_NATIVE_AND_SENTRY_TESTS_NO_LIVE_STORE_OR_TELEMETRY",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "P4",
+      "name": "REAL_STORE_SANDBOX_REFUNDS_RESTORE_ENTITLEMENTS_WITH_AI2_APPROVAL",
+      "status": "NOT_AUTHORIZED"
+    },
+    {
+      "id": "P5",
+      "name": "REAL_AD_SDK_ONLY_AFTER_D04_FINAL_PROVIDER_AND_CONSENT_APPROVAL",
+      "status": "NOT_AUTHORIZED"
+    },
+    {
+      "id": "P6",
+      "name": "REVIEW_PASS_FAIL_BUILD_COST_ROLLBACK_EVIDENCE_AND_OWNER_FINAL_VERSION_CHOICE",
+      "status": "NOT_STARTED"
+    }
+  ],
+  "negative_gates": [
+    "central_Auth_Billing_Battery_unique_writers_untouched",
+    "no_cross_app_entitlement_or_battery_purchase",
+    "no_unverified_RevenueCat_or_Store_receipt_grant",
+    "no_Ads_provider_autoselected",
+    "no_native_build_claim_without_build_id",
+    "no_ExpoGo_mock_purchase_claimed_real",
+    "no_auto_release_after_PoC",
+    "no_stage_prod_d1_cloudflare_changes",
+    "no_HGlobal_changes"
+  ],
+  "prior_owner_decisions": {
+    "D02": "A",
+    "D03": "A",
+    "D04": "C",
+    "D05": "A",
+    "D06": "A",
+    "D07": "A",
+    "D08": "A"
+  },
+  "operation_authorization": {
+    "official_public_docs_readonly_research": true,
+    "read_existing_github_package_versions": true,
+    "github_source_only_draft_research_plan": true,
+    "offline_fail_closed_consistency_tests": true,
+    "owner_formally_selects_D01_option_A": false,
+    "create_private_monorepo": false,
+    "create_synthetic_app": false,
+    "install_or_upgrade_expo_sdk": false,
+    "install_revenuecat_or_sentry_or_ads_sdk": false,
+    "build_eas_or_native_locally": false,
+    "link_revenuecat_or_store_account": false,
+    "create_sentry_account_or_emit_telemetry": false,
+    "real_store_sandbox_purchase": false,
+    "ad_provider_final_choice": false,
+    "create_ad_ids_or_run_ads": false,
+    "modify_central_services": false,
+    "cloudflare_staging_or_production": false,
+    "paid_services_or_overspending": false,
+    "merge_main": false,
+    "publish_mobile_or_web": false,
+    "touch_HGlobal": false
+  },
+  "official_release_gates_blocked": 11,
+  "release_authorization_granted": false,
+  "p05_publishable": false
+}
