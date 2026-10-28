@@ -1,0 +1,83 @@
+{
+  "schema_version": "starry.ai0.r008.real-resource-readiness-audit.v1",
+  "observed_date_taiwan": "2026-10-29",
+  "record_class": "HISTORICAL_READ_ONLY_ATTESTATION_NOT_A_CONTINUOUS_MONITOR",
+  "scope": {
+    "cloud_provider": "Cloudflare",
+    "account": "Starry account only",
+    "repository": "starry-phd/id",
+    "integrated_pr": 234,
+    "integrated_sha": "e47c068449b3aca37ddbf5d6d7f4255c2391a7c9",
+    "hglobal_inspected": false
+  },
+  "cloudflare_api": {
+    "workers": {
+      "http": 200,
+      "success": true,
+      "first_response_count": 6,
+      "names": [
+        "echo-starry",
+        "id-starry",
+        "id-starry-ai1-gate1-preview",
+        "id-starry-ai2-gate0-preview",
+        "temp-starry-echo-bridge",
+        "temp-starry-home-bridge"
+      ],
+      "assume_live_auth_ready": false
+    },
+    "d1": {
+      "http": 200,
+      "success": true,
+      "first_response_count": 1,
+      "names": [
+        "echo-starry"
+      ],
+      "auth_d1_verified": false,
+      "billing_d1_verified": false
+    },
+    "queues": {
+      "http": 200,
+      "success": true,
+      "first_response_count": 0,
+      "names": [],
+      "queue_and_dlq_verified": false
+    },
+    "id_starry_build_config": {
+      "http": 200,
+      "success": true,
+      "previews_enabled": false,
+      "production_auto_build_enabled": false,
+      "repo": "starry-phd/id",
+      "production_branch": "main"
+    }
+  },
+  "github": {
+    "final_integrated_sha": "e47c068449b3aca37ddbf5d6d7f4255c2391a7c9",
+    "owner_original_blob_count": 12,
+    "offline_ai0_run": "https://github.com/starry-phd/id/actions/runs/40745802066",
+    "offline_auth_run": "https://github.com/starry-phd/id/actions/runs/40745803356",
+    "node_pass": 1776,
+    "sqlite_memory_pass": 413,
+    "offline_ci": "SUCCESS",
+    "release_authorization_granted": false,
+    "gates_blocked": 11,
+    "main_merge_performed": false
+  },
+  "limitations": [
+    "Inventory is from one authenticated read-only Cloudflare Starry account only",
+    "Returned list sizes do not prove all enterprise-level resources or other accounts",
+    "No H-Global Cloudflare account inspection or cross-brand isolation proof",
+    "Do not interpret echo-starry D1 as real Auth or Billing authority",
+    "No real D1/Queue/Store/OIDC/physical device test authorized or executed",
+    "No billing or cost statement verified",
+    "Historical state must be rechecked before any external action"
+  ],
+  "next_actions": [
+    "G00 formal first Starry app MVP and 128-item decision sign-off",
+    "G01 brand/env account-resource evidence mapping and isolation review (no H-Global writes)",
+    "G06 reconcile official P05 required 13-field specification with 17-field offline vNext candidate",
+    "Owner choice for #87 architecture A vs B and legal Q104/Q119 erasure retention",
+    "Separate approval to prepare isolated test-only Cloudflare staging, credentials and budgets"
+  ],
+  "release_readiness_file": "docs/release-readiness/release-readiness.v0.json"
+}
