@@ -11,7 +11,7 @@ const event={...scope,schema_version:CANDIDATE_VERSION,
  idempotency_key:'idempotent_1234',resource_ref:'pseudo_resource_1',
  actor_ref:'pseudo_actor_1',result:'queued',classification:'metadata_only'};
 const req=(e=event,ch='inbox')=>({event:e,channel:ch});
-const session={state:'active',auth_version:3,session_version:7};
+const session={state:'active',auth_version:3,session_version:7,event_id:event.event_id};
 const copy=x=>structuredClone(x);
 function fixture(options={}){
  const calls={session:0,signed:0,dedupe:0,retention:0,preference:0};
@@ -80,6 +80,15 @@ test('unverified AI0 P05 source fails even if app claims sent/queued',async()=>{
   const f=fixture({signed}),x=await f.make().review(req());
   assert.equal(x.reason,'SOURCE_UNVERIFIED');noRights(x);
  }
+});
+test('unsigned source must not reach the private AI-1 session proof reader',async()=>{
+ const f=fixture({signed:'unverified'}),x=await f.make().review(req());
+ assert.equal(x.reason,'SOURCE_UNVERIFIED');noRights(x);
+ assert.equal(f.calls.session,0);
+});
+test('AI-1 session proof must be bound to this exact P05 event ID',async()=>{
+ const f=fixture({session:{...session,event_id:'different_event'}}),x=await f.make().review(req());
+ assert.equal(x.reason,'AUTH_UNKNOWN');noRights(x);
 });
 test('duplicate delivery and unknown durable receipt never auto ACK',async()=>{
  for(const dedupe of ['committed','unknown']){

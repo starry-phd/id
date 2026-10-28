@@ -23,10 +23,10 @@ export type Wave1SecurityDecision=Readonly<{
  may_restore_member:false;may_purge:false;live:false;
 }>;
 type SessionProof=Readonly<{state:'active'|'revoked'|'deleted'|'unknown';
- auth_version:number;session_version:number}>;
+ auth_version:number;session_version:number;event_id:string}>;
 type Wave1Ports=Readonly<{
  /** AI-1 authoritative trust domain. Not supplied by HTTP body. */
- readSessionFence:(scope:Scope)=>Promise<unknown>;
+ readSessionFence:(scope:Scope,event:AuditMetadata)=>Promise<unknown>;
  /** AI-0/AI-4 future P05 signed issuer, not this module. */
  verifyCanonicalSource:(scope:Scope,event:AuditMetadata)=>Promise<'verified'|'unverified'|'unknown'>;
  /** Persisted receipt from AI-3 audit inbox (not an in-memory Set). */
@@ -47,12 +47,12 @@ function output(status:Wave1SecurityDecision['status'],
  return Object.freeze({schema_version:WAVE1_SECURITY_FENCE_VERSION,status,reason,
  purpose:'notification_audit_preflight_only',...FREE});
 }
-const validSession=(v:unknown):v is SessionProof=>{
+const validSession=(v:unknown,eventId:string):v is SessionProof=>{
  try{
   if(!v||typeof v!=='object'||Array.isArray(v))return false;
   const proto=Object.getPrototypeOf(v);
   if(proto!==Object.prototype&&proto!==null)return false;
-  const keys=Reflect.ownKeys(v),allowed=['state','auth_version','session_version'];
+  const keys=Reflect.ownKeys(v),allowed=['state','auth_version','session_version','event_id'];
   if(keys.length!==allowed.length||keys.some(k=>typeof k!=='string'||!allowed.includes(k)))return false;
   const x:Record<string,unknown>=Object.create(null) as Record<string,unknown>;
   for(const k of allowed){
@@ -60,7 +60,7 @@ const validSession=(v:unknown):v is SessionProof=>{
    if(!d||!d.enumerable||!('value' in d))return false;
    x[k]=d.value;
   }
-  return ['active','revoked','deleted','unknown'].includes(x.state as string)
+  return x.event_id===eventId&&['active','revoked','deleted','unknown'].includes(x.state as string)
    &&Number.isSafeInteger(x.auth_version)&&Number(x.auth_version)>0
    &&Number.isSafeInteger(x.session_version)&&Number(x.session_version)>=0;
  }catch{return false;}
@@ -92,19 +92,20 @@ export function createWave1SecurityNotificationFence(config:Readonly<{
    try{
     if(await ports.lawfulRetentionNow(scope)!==true)
      return output('blocked','LAWFUL_RETENTION_UNAPPROVED');
-    const first=await ports.readSessionFence(scope);
-    if(!validSession(first))return output('blocked','AUTH_UNKNOWN');
+    // Do not reveal or query even pseudonymous Auth state for unsigned events.
+    const signed=await ports.verifyCanonicalSource(scope,e);
+    if(signed!=='verified')return output('blocked','SOURCE_UNVERIFIED');
+    const first=await ports.readSessionFence(scope,e);
+    if(!validSession(first,e.event_id))return output('blocked','AUTH_UNKNOWN');
     if(first.state==='revoked'||first.state==='deleted')
      return output('blocked','AUTH_REVOKED_OR_DELETED');
     if(first.state!=='active')return output('blocked','AUTH_UNKNOWN');
-    const signed=await ports.verifyCanonicalSource(scope,e);
-    if(signed!=='verified')return output('blocked','SOURCE_UNVERIFIED');
     const receipt=await ports.readDedupe(scope,e.idempotency_key);
     if(receipt!=='unseen')return output('blocked','DUPLICATE_OR_UNKNOWN');
     const preference=await ports.notificationPreference(scope,e,input.channel);
     if(preference!=='allow')return output('blocked','CONSENT_DENIED_OR_UNKNOWN');
-    const second=await ports.readSessionFence(scope);
-    if(!validSession(second))return output('blocked','AUTH_UNKNOWN');
+    const second=await ports.readSessionFence(scope,e);
+    if(!validSession(second,e.event_id))return output('blocked','AUTH_UNKNOWN');
     if(second.state!=='active')return output('blocked','AUTH_REVOKED_OR_DELETED');
     if(second.auth_version!==first.auth_version||
        second.session_version!==first.session_version)

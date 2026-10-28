@@ -20,3 +20,6 @@ Earlier `sbase-battery-client-contract.ts` is an offline, default OFF **free-onl
 
 ### Tests / compatibility / backout
 No package change, new D1 migration, Cloudflare Worker/Trigger/Preview setting, CI workflow, Store/RN/EAS dependency, secrets, personal data or paid service. Existing Node22/TS strict and --test runner; this is two new code/test files plus this owner-only doc. Backout by closing Draft (3 added files) without changing central Auth or Battery writers. Same SHA GitHub Actions must finish before claiming CI success. **All G00–G10 11/11 BLOCKED, P05/PUBLISHABLE=false**. GitHub Issue handoff does not auto-run other chats.
+
+## Hardened second commit (same Round-001)
+AI-1's `readSessionFence(scope,event)` must bind its **authoritative** session/member verification to the specific signed P05 `event_id`; reject mismatched IDs, unknown state and version drift. The AI-0 canonical source validation now occurs **before any AI-1 private Session read**, preventing unsigned events from using the candidate fence to probe Auth state. Tests explicitly verify both denials. This is still a read-only proposal and neither verifies P05 signatures itself nor authorizes notification delivery.
