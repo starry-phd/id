@@ -1,0 +1,151 @@
+{
+  "schema_version": "starry.ai0.owner-approved-wave1.v1",
+  "record_date": "2026-10-28",
+  "owner_authorization_source": "User approved D-01 option D, Q1=A Q2=A Q3=A Q4=D Q5=B; explicitly started central Starry GitHub-based five-AI development 2026-10-28",
+  "scope": {
+    "existing_central_repo": "starry-phd/id",
+    "current_central_mobile_expo": "~54.0.20",
+    "current_central_mobile_upgrade_authorized": false,
+    "new_consumer_app_private_monorepo_created": false,
+    "new_consumer_app_private_monorepo_creation_authorized_now": false,
+    "consumer_monorepo_create_trigger": "FIRST_STARRY_CONSUMER_APP_FORMALLY_STARTED_WITH_SEPARATE_RESOURCE_AUTHORIZATION",
+    "HGlobal_development_enabled": false
+  },
+  "D01": {
+    "selected_option": "D",
+    "owner_approved": true,
+    "rule": "LATEST_STABLE_OFFICIAL_EXPO_SDK_AT_NEW_APP_START_WITH_OFFICIALLY_MATCHED_REACT_NATIVE",
+    "reference_expo_sdk": "58",
+    "reference_react_native": "0.88",
+    "reference_date": "2026-10-28",
+    "isolated_predevelopment_native_poc_required": false,
+    "real_app_ios_android_native_build_required_before_release": true,
+    "real_app_native_plugins_and_iap_sandbox_required_before_release": true,
+    "native_builds_claimed_completed": 0
+  },
+  "D02": {
+    "selected_option": "A",
+    "owner_approved": true,
+    "private_monorepo_direction": true,
+    "repo_creation_timing": "FIRST_STARRY_CONSUMER_APP_FORMALLY_STARTED",
+    "create_repo_now": false
+  },
+  "D03": {
+    "selected_option": "A",
+    "owner_approved": true,
+    "billing_provider_direction": "RevenueCat",
+    "interface": "thin BillingClient",
+    "allowed_store_iap_product_types": [
+      "NON_CONSUMABLE",
+      "AUTO_RENEWABLE_SUBSCRIPTION"
+    ],
+    "allowed_subscription_periods": [
+      "MONTH",
+      "YEAR"
+    ],
+    "excluded_store_iap_product_types": [
+      "CONSUMABLE",
+      "NON_RENEWING_SUBSCRIPTION"
+    ]
+  },
+  "D04": {
+    "selected_option": "C",
+    "owner_approved": true,
+    "Q4_choice": "D",
+    "candidates": [
+      "Google AdMob Mediation",
+      "AppLovin MAX",
+      "Unity LevelPlay"
+    ],
+    "final_provider_selected": null,
+    "ads_enabled": false
+  },
+  "D05": {
+    "selected_option": "A",
+    "app_web_optional": true,
+    "app_web_enabled_by_default": false
+  },
+  "D06": {
+    "selected_option": "A",
+    "free_first": true,
+    "each_new_cost_requires_owner_approval": true,
+    "monthly_budget_approved": null
+  },
+  "D07": {
+    "selected_option": "A",
+    "per_app_sku_isolation": true,
+    "across_apps_entitlement_auto_shared": false
+  },
+  "D08": {
+    "selected_option": "A",
+    "ui": "React Native StyleSheet + Design Tokens + versioned owned UI library"
+  },
+  "Q1": {
+    "choice": "A",
+    "same_app_valid_entitlement_shared_across_ios_android": true,
+    "only_same_starry_id": true,
+    "store_policy_and_sandbox_verified": false,
+    "store_transaction_is_cross_store_transferred": false
+  },
+  "Q2": {
+    "choice": "A",
+    "guest_free_browsing_trial_allowed": true,
+    "authenticated_starry_id_required_before_store_purchase": true
+  },
+  "Q3": {
+    "choice": "A",
+    "per_app_may_select_nonconsumable_buyout": true,
+    "per_app_may_select_monthly_or_yearly_subscription": true,
+    "both_may_coexist": true,
+    "entitlement_feature_mapping_per_app": true
+  },
+  "Q4": {
+    "choice": "D",
+    "final_ads_provider_requires_separate_owner_choice": true,
+    "ads_off_until_choice_and_gates": true
+  },
+  "Q5": {
+    "choice": "B",
+    "private_consumer_monorepo_creation_deferred": true
+  },
+  "wave1": {
+    "owner_approval_for_existing_central_repo_safe_source_branches": true,
+    "owner_task_assignments": {
+      "AI0": "#1",
+      "AI1": "#2",
+      "AI2": "#3",
+      "AI3": "#4",
+      "AI4": "#5"
+    },
+    "handoff_protocol": "docs/ai/HANDOFF-PROTOCOL.md",
+    "handoff_required_evidence": [
+      "Draft PR",
+      "commit SHA",
+      "test command/results",
+      "CI URL/status",
+      "blockers",
+      "next owner"
+    ],
+    "independent_ai_chats_auto_started": false
+  },
+  "safety": {
+    "ads_off": true,
+    "starry_battery_for_sale": false,
+    "any_production_deployment_authorized": false,
+    "any_live_store_transaction_authorized": false,
+    "new_paid_service_authorized": false,
+    "cloudflare_staging_production_mutation_authorized": false,
+    "auto_merge_main_authorized": false,
+    "release_gates_expected_blocked": 11,
+    "p05_publishable": false
+  },
+  "supersedes_as_owner_decision": [
+    "docs/operations/ai0-d01-expo58-readonly-compatibility-research.v1.json",
+    "docs/operations/ai0-d08-owner-approved-style-tokens-shared-ui.v1.json#decision_register.D01"
+  ],
+  "sources": {
+    "google_docs_v1_2": "https://docs.google.com/document/d/1wHBuIJCA1cMhLcI25MR_EYEdgmpXmzXx_D0UlEWHBAQ/edit?usp=drivesdk",
+    "github_five_questions": "https://github.com/starry-phd/id/issues/156#issuecomment-6465986591",
+    "wave1_dispatch": "https://github.com/starry-phd/id/issues/1#issuecomment-6466165352"
+  }
+}
