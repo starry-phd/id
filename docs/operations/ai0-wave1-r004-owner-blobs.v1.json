@@ -1,0 +1,141 @@
+{
+  "schema_version": "starry.ai0.wave1.r004.original-owner-source-integration.v1",
+  "date": "2026-10-28",
+  "repository": "starry-phd/id",
+  "ai0_base": {
+    "pr": 204,
+    "head_sha": "f843c82b9f8b6d38a838ffa38d1c629ed28ee7fb",
+    "includes_round3_4owner": true,
+    "includes_q4_a_admob_selection": true
+  },
+  "owners": [
+    {
+      "owner": "AI-1",
+      "pr": 203,
+      "head_sha": "e6582555f1251bac8ad51f9c2a34b311afec7746",
+      "files": [
+        {
+          "path": "modules/starry-id-v1/ADR-WAVE1-ROUND004-EVENT-BOUND-SESSION-FENCE.md",
+          "blob_sha": "b174d6ad2cadb88802fbbbd0d70c0c69d83f3783"
+        },
+        {
+          "path": "modules/starry-id-v1/src/wave1-round004-event-session-fence.ts",
+          "blob_sha": "c521d139469eeea290720bbf3c4bd6262d4ecc15"
+        },
+        {
+          "path": "modules/starry-id-v1/test/wave1-round004-event-session-fence.test.mjs",
+          "blob_sha": "0495f292775b024d20e11639d42a3d3108464c1c"
+        }
+      ]
+    },
+    {
+      "owner": "AI-2",
+      "pr": 207,
+      "head_sha": "1fffb9ee18272c4e8a5b90da86ec442ecf94ef5f",
+      "files": [
+        {
+          "path": "packages/rebuild-billing/docs/WAVE1-ROUND004-CROSS-OWNER-AUTH-ENTITLEMENT-GATES.md",
+          "blob_sha": "c2f06d4e9b79b0831a7a0320e7a21348d4beb336"
+        },
+        {
+          "path": "packages/rebuild-billing/src/wave1-r004-entitlement-continuity-review.ts",
+          "blob_sha": "46e6e1389bc1006f39ac4c092e6c10b683c81551"
+        },
+        {
+          "path": "packages/rebuild-billing/test/wave1-r004-entitlement-continuity-review.test.mjs",
+          "blob_sha": "48c81e6bb009a7925544a54a2102d314e8dbbe90"
+        }
+      ]
+    },
+    {
+      "owner": "AI-3",
+      "pr": 206,
+      "head_sha": "cda5bbd650917495294023b22d8ffcc5d40be80d",
+      "files": [
+        {
+          "path": "packages/rebuild-ai3/docs/WAVE1-ROUND004-P05-CANONICAL-CLAIM-HANDSHAKE.md",
+          "blob_sha": "af48e97fdc22a212f919a7b90a35acf42c95bf9c"
+        },
+        {
+          "path": "packages/rebuild-ai3/src/wave1-r004-p05-canonical-claim-handshake.ts",
+          "blob_sha": "d5d39cc21243d32daca80e68a87ed20a17c8dbc7"
+        },
+        {
+          "path": "packages/rebuild-ai3/test/wave1-r004-p05-canonical-claim-handshake.test.mjs",
+          "blob_sha": "fbed6351a43e4164458627865ee85167677aad53"
+        }
+      ]
+    },
+    {
+      "owner": "AI-4",
+      "pr": 205,
+      "head_sha": "e9ed97673f9e213dc0d1ff6412eb49772e16c47d",
+      "files": [
+        {
+          "path": "apps/api/src/wave1-r004-admob-offline-gate.ts",
+          "blob_sha": "e5902adb43453fdbadca71b0832f11b6a780555f"
+        },
+        {
+          "path": "apps/api/test/wave1-r004-admob-offline-gate.test.mjs",
+          "blob_sha": "b68d1ae7a510b8b76c59297a0ea1b98b86e02e56"
+        },
+        {
+          "path": "docs/ai/AI4-WAVE1-ROUND004-ADMOB-OFFLINE-CONTRACT-HANDOFF.md",
+          "blob_sha": "663cab46274f03d4961e24aa0a87f8d23a1f717b"
+        }
+      ]
+    }
+  ],
+  "source_provenance": "Original R004 owner immutable Git blob SHAs from each final PR HEAD; AI-0 did not reauthor, amend, or overwrite domain owner code.",
+  "contract_versions": {
+    "AI1": "starry.auth.event-session-fence.r004.v1-candidate",
+    "AI2": "starry.billing.r004.entitlement-continuity.v1-candidate",
+    "AI3": "starry.ai3.p05.canonical-claim-handshake.r004.v1-candidate",
+    "AI4": "starry.ai4.r004.admob-ads-off.v1-candidate"
+  },
+  "gate1": {
+    "state": "PARTIAL_BLOCKED",
+    "owner_contract_sources_integrated": true,
+    "live_authority_approved": false,
+    "remaining": [
+      "AI0_CANONICAL_P05_CRYPTO_SIGNER_KEY_CUSTODY_AND_EVENT_ACTOR_BINDING_PENDING",
+      "AI1_EVENT_SESSION_FENCE_DEPENDS_ON_UNAPPROVED_REAL_VERIFIER_ACTOR_RESOLVER_AND_MONOTONIC_SESSION_VERSION",
+      "AI2_TRUE_SIGNED_APPLE_GOOGLE_STORE_AND_REVENUECAT_PROVENANCE_DURABLE_ENTITLEMENT_UNVERIFIED",
+      "AI3_DURABLE_CAS_RECEIPT_INDEPENDENT_ANTI_PITR_AND_ATOMIC_QUEUE_ACK_NOT_CONNECTED",
+      "AI4_REAL_PROTECTED_OPENAPI_ROUTES_UNREGISTERED_CLOUDFLARE_EXTERNAL_BUILD_REPAIR_NOT_APPROVED",
+      "Q104_Q119_LAWFUL_RETENTION_AND_R87_CROSS_D1_OWNER_DECISIONS_PENDING"
+    ]
+  },
+  "gate2": {
+    "state": "PENDING_SAME_HEAD_CI_AT_MANIFEST_CREATION",
+    "new_integrated_sha_checked": false,
+    "owner_individual_sha_ci_success": true
+  },
+  "gate3": {
+    "state": "BLOCKED",
+    "release_g00_g10_blocked": 11,
+    "main_merge_allowed": false,
+    "live_deployment_allowed": false,
+    "actual_store_billing_authorized": false,
+    "cloudflare_preview_authorized": false,
+    "ads_enabled": false,
+    "admob_sdk_install_authorized": false,
+    "paid_resources_authorized": false,
+    "consumer_private_monorepo_creation_authorized": false
+  },
+  "admob": {
+    "Q4": "A",
+    "selected_vendor": "Google AdMob Mediation",
+    "provider_key": "google-admob-mediation",
+    "selection_only": true,
+    "ads_on": false,
+    "ad_request_allowed": false,
+    "ad_unit_creation_allowed": false,
+    "ad_exclusion_preferences_managed_via_official_admob_ui": true
+  },
+  "battery": {
+    "permanently_free": true,
+    "purchasable": false
+  },
+  "next": "Run and separately record exact integrated-head GitHub Actions status, external Workers Builds, and release authorization; never promote owner CI green to live."
+}
