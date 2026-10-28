@@ -77,7 +77,9 @@ test('R24 offline staging adapter is NOT wired to the actual Worker entrypoint',
  assert.equal(R24_G08_STAGING_DEPLOY_AUTHORIZED,false);
  const res=actualWorkerHandler(new Request(origin+R24_G08_ROUTE),
   {STARRY_ENVIRONMENT:'staging',STARRY_APP_ID:'starry-id'});
- assert.equal(res.status,404);await assertSafe(res);
+ assert.equal(res.status,404);
+ assert.equal(res.headers.get('cache-control'),'no-store');
+ assert.equal((await res.json()).error.code,'NOT_FOUND');
 });
 test('real AI-1 signed HMAC Bearer + Member/Session/Identity SQLite SELECT yields bodyless 204 ONLY offline',async()=>{
  const x=await fixture();try{
