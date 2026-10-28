@@ -19,7 +19,7 @@ test('AI-0 source-preserving integration imports exact 12 original owner Git blo
    assert.ok(!seen.has(f.path),f.path);
    seen.add(f.path);
    const contents=get(f.path);
-   const actual=createHash('sha1').update(Buffer.from('blob '+contents.length+'\\0')).update(contents).digest('hex');
+   const actual=createHash('sha1').update(Buffer.from('blob '+contents.length+'\0')).update(contents).digest('hex');
    assert.equal(actual,f.blob_sha,f.path);
   }
  }
