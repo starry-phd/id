@@ -96,13 +96,16 @@ function active(lease:Lease|null,e:R005P05Event):lease is Lease{
   key.usages.includes('verify');
 }
 /** Canonical JSON array and explicit domain separation, not object key order. */
-function canonical(e:R005P05Event):Uint8Array{
- return new TextEncoder().encode(JSON.stringify([
+function canonical(e:R005P05Event):ArrayBuffer{
+ const bytes=new TextEncoder().encode(JSON.stringify([
   AI0_R005_P05_VERSION,
   e.brand_id,e.app_id,e.environment,e.event_id,e.event_type,
   e.actor_ref,e.idempotency_key,e.issuer_kid,e.issuer_epoch,
   e.issued_at,e.nonce,e.payload_sha256
  ]));
+ const buffer=new ArrayBuffer(bytes.length);
+ new Uint8Array(buffer).set(bytes);
+ return buffer;
 }
 export function createOfflineR005P05CanonicalVerifier(deps:Readonly<{
  enabled?:boolean;scope:Scope;
@@ -133,9 +136,9 @@ export function createOfflineR005P05CanonicalVerifier(deps:Readonly<{
    try{
     const lease=await deps.readVerificationKey(e.issuer_kid);
     if(!active(lease,e))return response('KEY_UNAVAILABLE');
-    const bytes=new Uint8Array(32);
+    const bytes=new Uint8Array(new ArrayBuffer(32));
     for(let i=0;i<32;i++)bytes[i]=Number.parseInt(r.signature_hex.slice(i*2,i*2+2),16);
-    const valid=await crypto.subtle.verify('HMAC',lease.key,bytes,canonical(e));
+    const valid=await crypto.subtle.verify('HMAC',lease.key,bytes.buffer,canonical(e));
     if(!valid)return response('SIGNATURE_INVALID');
     const again=await deps.readVerificationKey(e.issuer_kid);
     if(!active(again,e)||again.key!==lease.key)
