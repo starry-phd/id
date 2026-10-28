@@ -1,0 +1,54 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+const get = p => readFileSync(new URL('../../../'+p,import.meta.url),'utf8');
+const d04=JSON.parse(get('docs/operations/ai0-d04-owner-approved-option-c.v1.json'));
+const d03=JSON.parse(get('docs/operations/ai0-d03-owner-approved-choice-a.v1.json'));
+const d02=JSON.parse(get('docs/operations/ai0-d02-owner-approved-choice-a.v1.json'));
+const release=JSON.parse(get('docs/release-readiness/release-readiness.v0.json'));
+test('D-04 official owner C selects comparison, not AdMob, AppLovin, or Unity as provider',()=>{
+  assert.equal(d04.selected_option,'C');
+  assert.ok(d04.owner_exact_choice.includes('正式選擇方案 C'));
+  assert.equal(d04.status,'OWNER_APPROVED_COMPARISON_ONLY_PROVIDER_UNDECIDED');
+  assert.equal(d04.decision_kind,'EVALUATE_MEDIATION_AND_AD_NETWORK_OPTIONS');
+  assert.equal(d04.ads_provider_selected,null);
+  assert.equal(d04.ads_provider_approved,false);
+  assert.equal(d04.initial_provider,'none');
+  assert.equal(d04.enable_ads_by_default,false);
+  assert.equal(d04.ads_sdk_installed,false);
+  assert.ok(get('docs/adr/AI0-D04-OWNER-APPROVED-ADS-COMPARISON-20261028.md').includes('AD_PROVIDER_UNDECIDED'));
+});
+test('comparison matrix distinguishes exactly three mediation platform candidates, never fabricated compatibility/revenue',()=>{
+  assert.equal(d04.mediation_candidates.length,3);
+  const ids=d04.mediation_candidates.map(x=>x.id);
+  assert.deepEqual(ids,['admob-mediation','applovin-max','unity-levelplay']);
+  assert.ok(d04.mediation_candidates.every(x=>x.role==='MEDIATION_PLATFORM' && x.evidence_url.startsWith('https:') && x.expo_compatibility_verified===false && x.native_build_verified===false));
+  assert.ok(Object.values(d04.pending_evidence).filter(v=>typeof v!=='boolean').length===0);
+  assert.equal(d04.pending_evidence.actual_ecpm_verified,false);
+  assert.equal(d04.pending_evidence.actual_ad_fill_rate_verified,false);
+  assert.equal(d04.pending_evidence.provider_comparison_completed,false);
+  assert.equal(d04.pending_evidence.owner_provider_choice_made,false);
+});
+test('D-04 keeps D02 central membership/battery separate and D03 RevenueCat no-ads entitlement trustworthy',()=>{
+  assert.equal(d02.selected_option,'A');
+  assert.equal(d03.selected_option,'A');
+  assert.equal(d03.provider,'RevenueCat');
+  assert.equal(d04.related_approved.D02,'A_NEW_PRIVATE_MULTI_APP_MONOREPO_ARCHITECTURE_ONLY');
+  assert.equal(d04.related_approved.D03,'A_REVENUECAT_PLUS_OWN_THIN_BILLINGCLIENT_ARCHITECTURE_ONLY');
+  assert.ok(d04.hard_invariants.includes('refund_and_revocation_from_AI2_only'));
+  assert.ok(d04.hard_invariants.includes('free_Battery_never_monetized_or_purchased'));
+  assert.ok(d04.hard_invariants.includes('no_automatic_cross_App_paid_no_ads_entitlements'));
+  assert.ok(d04.hard_invariants.includes('non_ads_Apps_remain_allowed'));
+});
+test('no C research consent can create paid accounts, install SDK, track users or unblock formal release',()=>{
+  const allow=new Set(['official_readonly_research','github_draft_documentation','offline_policy_and_decision_tests']);
+  for(const [k,v] of Object.entries(d04.operation_authorization))assert.equal(v,allow.has(k),k);
+  assert.equal(d04.release_authorization_granted,false);
+  assert.equal(d04.official_central_release_gates_blocked,11);
+  assert.equal(release.gates.length,11);
+  assert.ok(release.gates.every(x=>x.status==='blocked'));
+  assert.equal(release.release_authorization.granted,false);
+  assert.equal(release.deployment_automation.can_auto_deploy,false);
+  assert.ok(d04.remaining_decisions.includes('D-04_FINAL_PROVIDER_AFTER_RESEARCH'));
+  assert.ok(d04.remaining_decisions.includes('D-05'));
+});

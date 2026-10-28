@@ -1,0 +1,113 @@
+{
+  "schema_version": "starry.ai0.d04-owner-decision.v1",
+  "decision_id": "D-04",
+  "decision_date": "2026-10-28",
+  "owner_exact_choice": "D-04 我正式選擇方案 C（先比較其他廣告平台）。請記錄到 GitHub，說明正式選型及授權界線，接著繼續 D-05 下一題。",
+  "status": "OWNER_APPROVED_COMPARISON_ONLY_PROVIDER_UNDECIDED",
+  "selected_option": "C",
+  "decision_kind": "EVALUATE_MEDIATION_AND_AD_NETWORK_OPTIONS",
+  "ads_provider_selected": null,
+  "ads_provider_approved": false,
+  "initial_provider": "none",
+  "enable_ads_by_default": false,
+  "ads_sdk_installed": false,
+  "mediation_candidates": [
+    {
+      "id": "admob-mediation",
+      "role": "MEDIATION_PLATFORM",
+      "evidence_url": "https://developers.google.com/admob/android/mediation",
+      "expo_compatibility_verified": false,
+      "native_build_verified": false
+    },
+    {
+      "id": "applovin-max",
+      "role": "MEDIATION_PLATFORM",
+      "evidence_url": "https://developers.axon.ai/zh/max/react-native/overview/integration/",
+      "expo_compatibility_verified": false,
+      "native_build_verified": false
+    },
+    {
+      "id": "unity-levelplay",
+      "role": "MEDIATION_PLATFORM",
+      "evidence_url": "https://docs.unity.com/en-us/grow/levelplay/sdk/react/plugin-integration",
+      "expo_compatibility_verified": false,
+      "native_build_verified": false
+    }
+  ],
+  "evaluation_criteria": [
+    "Expo_React_Native_D01_plugin_compatibility",
+    "native_iOS_and_Android_development_build",
+    "per_App_ad_format_unit_and_configuration_isolation",
+    "native_build_plugin_cost_and_CI_Monorepo_p95",
+    "region_and_demo_app_actual_ad_measurement_without_fabrication",
+    "privacy_consent_UMP_ATT_applicable_laws_and_ad_network_partner_configuration",
+    "child_safety_brand_safety_and_creative_review",
+    "RevenueCat_D03_trusted_per_App_no_ads_entitlement_and_refund_reconciliation",
+    "billing_and_mediation_actual_fee_thresholds_and_exit_plan",
+    "SDK_security_upgrade_fallback_and_tracking_data_minimization"
+  ],
+  "pending_evidence": {
+    "legitimate_mediation_provider_quote": false,
+    "official_sdk_compatibility_checked": true,
+    "expo_native_build_verified": false,
+    "actual_ad_fill_rate_verified": false,
+    "actual_ecpm_verified": false,
+    "fees_contract_verified": false,
+    "policy_consent_cleared": false,
+    "sandbox_test_ad_proof": false,
+    "provider_comparison_completed": false,
+    "owner_provider_choice_made": false
+  },
+  "related_approved": {
+    "D02": "A_NEW_PRIVATE_MULTI_APP_MONOREPO_ARCHITECTURE_ONLY",
+    "D03": "A_REVENUECAT_PLUS_OWN_THIN_BILLINGCLIENT_ARCHITECTURE_ONLY"
+  },
+  "hard_invariants": [
+    "new_Apps_consume_central_Auth_and_free_Battery_via_versioned_API_only",
+    "no_duplicate_central_Billing_Auth_Battery_writer",
+    "per_App_ads_off_by_default_until_provider_and_native_approval",
+    "no_automatic_cross_App_paid_no_ads_entitlements",
+    "refund_and_revocation_from_AI2_only",
+    "free_Battery_never_monetized_or_purchased",
+    "ad_sdk_cannot_self_grant_billing_entitlement",
+    "privacy_and_tracking_consent_before_ad_loading_if_required",
+    "non_ads_Apps_remain_allowed",
+    "no_fake_eCPM_or_fill_rate_or_profit_data"
+  ],
+  "operation_authorization": {
+    "official_readonly_research": true,
+    "github_draft_documentation": true,
+    "offline_policy_and_decision_tests": true,
+    "ads_provider_final_choice": false,
+    "ad_account_creation": false,
+    "ad_unit_creation": false,
+    "ad_partner_contract": false,
+    "ads_sdk_native_installation": false,
+    "ios_android_build": false,
+    "ad_network_test_request": false,
+    "real_ad_impressions": false,
+    "ads_monetization": false,
+    "ump_att_real_consent_collection": false,
+    "tracking_ids_collection": false,
+    "revenuecat_entitlement_mutation": false,
+    "store_or_billing_charge": false,
+    "cloudflare_live_resource_write": false,
+    "github_main_merge": false,
+    "private_monorepo_creation": false,
+    "hglobal_work": false
+  },
+  "remaining_decisions": [
+    "D-01",
+    "D-04_FINAL_PROVIDER_AFTER_RESEARCH",
+    "D-05",
+    "D-06",
+    "D-07",
+    "D-08",
+    "#87_CROSS_D1",
+    "P05_SIGNER",
+    "Q104_Q119"
+  ],
+  "official_central_release_gates_blocked": 11,
+  "release_authorization_granted": false,
+  "notes": "Owner C authorizes comparative research, not adopting Google AdMob, AppLovin or Unity LevelPlay. The platform is still undecided."
+}
