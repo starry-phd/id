@@ -1,0 +1,151 @@
+{
+  "schema_version": "starry.ai0.d08-owner-decision.v1",
+  "decision_id": "D-08",
+  "decision_date": "2026-10-28",
+  "owner_exact_choice": "D-08 我正式選擇方案 A（StyleSheet＋Design Tokens＋共用 UI 元件庫）。請記錄 GitHub 並說明授權範圍，彙總 D-01～D-08 所有決議。",
+  "selected_option": "A",
+  "status": "OWNER_APPROVED_STYLESHEET_DESIGN_TOKENS_SHARED_UI_ARCHITECTURE_NOT_IMPLEMENTED",
+  "target_scope": "STARRY_CONSUMER_IOS_ANDROID_APP_FIRST_OPTIONAL_WEB_PER_D05",
+  "ui_baseline": {
+    "native_style_system": "React Native StyleSheet",
+    "semantic_design_tokens": true,
+    "versioned_owned_shared_ui_component_library": true,
+    "private_app_monorepo_package_candidates": [
+      "packages/design-tokens",
+      "packages/ui"
+    ],
+    "packages_created": false,
+    "style_runtime_or_ui_library_installed": false,
+    "per_app_theme_override_allowed": true,
+    "global_single_visual_identity_required": false,
+    "per_app_content_navigation_product_design_separate": true,
+    "theme_modes": [
+      "light",
+      "dark"
+    ],
+    "design_token_candidates": [
+      "color.background",
+      "color.text.primary",
+      "color.action.primary",
+      "space.md",
+      "radius.card",
+      "typography.body"
+    ],
+    "component_contract_candidates": [
+      "Button",
+      "Text",
+      "Input",
+      "Card",
+      "Badge",
+      "Dialog",
+      "FormField",
+      "Loading",
+      "EmptyState",
+      "ErrorState"
+    ],
+    "accessibility_and_native_qa_required": true,
+    "nativewind_as_first_phase_default": false,
+    "tamagui_as_first_phase_default": false,
+    "other_ui_families_future_proposal_requires_new_ADR": true,
+    "component_library_writer_cannot_modify_central_auth_billing_or_battery": true
+  },
+  "independent_admin_preserved": {
+    "approved_second_wave_stack": "React+Vite+TypeScript / Tailwind CSS+shadcn/ui / TanStack Router+Query+Table / React Hook Form+Zod",
+    "source_issue": "https://github.com/starry-phd/id/issues/15",
+    "admin_replaced_by_RN_StyleSheet": false,
+    "second_wave_admin_started": false,
+    "HGlobal_admin_merged": false,
+    "admin_design_system_shared_runtime_by_decision": false
+  },
+  "decision_register": {
+    "D01": {
+      "owner_approved": false,
+      "selected_option": null,
+      "status": "PENDING_EXPO_SDK58_RN088_NATIVE_PLUGIN_POC_AND_VERSION_DECISION",
+      "source_issue": "https://github.com/starry-phd/id/issues/156"
+    },
+    "D02": {
+      "owner_approved": true,
+      "selected_option": "A",
+      "status": "ONE_NEW_PRIVATE_MULTI_APP_MONOREPO_ARCHITECTURE_ONLY_NOT_CREATED",
+      "reference": "docs/operations/ai0-d02-owner-approved-choice-a.v1.json"
+    },
+    "D03": {
+      "owner_approved": true,
+      "selected_option": "A",
+      "status": "REVENUECAT_PLUS_THIN_BILLINGCLIENT_PROVIDER_ONLY_NOT_LIVE",
+      "reference": "docs/operations/ai0-d03-owner-approved-choice-a.v1.json"
+    },
+    "D04": {
+      "owner_approved": true,
+      "selected_option": "C",
+      "status": "APPROVED_TO_COMPARE_AD_NETWORKS_FINAL_PROVIDER_UNDECIDED",
+      "reference": "docs/operations/ai0-d04-owner-approved-option-c.v1.json"
+    },
+    "D05": {
+      "owner_approved": true,
+      "selected_option": "A",
+      "status": "PER_APP_OPTIONAL_WEB_AND_INDEPENDENT_APPROVED_ADMIN_V21_NOT_IMPLEMENTED",
+      "reference": "docs/operations/ai0-d05-owner-approved-optional-web.v1.json"
+    },
+    "D06": {
+      "owner_approved": true,
+      "selected_option": "A",
+      "status": "FREE_FIRST_ALL_NEW_SPEND_REQUIRES_INDIVIDUAL_OWNER_APPROVAL_MONTHLY_BUDGET_UNDECIDED",
+      "reference": "docs/operations/ai0-d06-owner-approved-free-first-spend-gate.v1.json"
+    },
+    "D07": {
+      "owner_approved": true,
+      "selected_option": "A",
+      "status": "PER_APP_PAID_ENTITLEMENT_ISOLATION_SAME_APP_CROSS_PLATFORM_UNDECIDED",
+      "reference": "docs/operations/ai0-d07-owner-approved-per-app-entitlements.v1.json"
+    },
+    "D08": {
+      "owner_approved": true,
+      "selected_option": "A",
+      "status": "STYLESHEET_DESIGN_TOKENS_SHARED_UI_ARCHITECTURE_NOT_IMPLEMENTED",
+      "reference": "docs/operations/ai0-d08-owner-approved-style-tokens-shared-ui.v1.json"
+    }
+  },
+  "remaining_independent_gates": [
+    "D01_NATIVE_VERSION_POC",
+    "D04_FINAL_AD_VENDOR_CHOICE",
+    "D06_MONTHLY_BUDGET_AMOUNT",
+    "D07_SAME_APP_CROSS_PLATFORM_ENTITLEMENT_POLICY",
+    "UI_NATIVE_ACCESSIBILITY_AND_DARK_LIGHT_QA",
+    "PRIVATE_REPO_CREATION_SEPARATE_APPROVAL",
+    "ADMIN_SECOND_WAVE_SEPARATE_START",
+    "P05_SIGNER",
+    "CROSS_D1_ISSUE_87",
+    "Q104_Q119_PRIVACY_RETENTION"
+  ],
+  "operation_authorization": {
+    "D08_ui_architecture_choice": true,
+    "shared_UI_component_contract_planning": true,
+    "source_only_draft_ADR_json_and_offline_tests": true,
+    "install_react_native_or_ui_packages": false,
+    "create_shared_ui_package_code": false,
+    "create_new_private_monorepo": false,
+    "create_or_modify_10_apps": false,
+    "native_build_or_eas": false,
+    "react_native_web_deployment": false,
+    "second_wave_admin_work": false,
+    "modify_central_auth_writer": false,
+    "modify_central_billing_writer": false,
+    "modify_permanently_free_battery_writer": false,
+    "touch_HGlobal": false,
+    "create_cloudflare_staging_or_production": false,
+    "create_stores_or_paid_SKU": false,
+    "activate_real_ads": false,
+    "real_provider_purchase_or_subscription": false,
+    "increase_usage_quota_or_paid_plan": false,
+    "merge_github_main": false,
+    "publish_app_or_backend": false
+  },
+  "official_release_gates_blocked": 11,
+  "p05_publishable": false,
+  "release_authorization_granted": false,
+  "actual_new_ui_packages_created": false,
+  "actual_new_apps_approved": false,
+  "cost_approved": false
+}
