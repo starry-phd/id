@@ -1,0 +1,26 @@
+# AI-1 Wave1 Round-004｜Event/actor-bound Current SessionFence (OFFLINE Candidate)
+
+AI-0 dispatch: [Issue #2 #6473999566](https://github.com/starry-phd/id/issues/2#issuecomment-6473999566); cross-owner [Issue #1 #6473979811](https://github.com/starry-phd/id/issues/1#issuecomment-6473979811). **Not a P05 issuer, Auth D1 migration, Live Gate or Queue feature.**
+
+## Provenance, scope and ownership
+
+- This R004 **stacks on the actual AI-1 R003 Draft #198** HEAD \`e81788d2e0f2a08eb0bf1d6f9beccbe3dfb1a367\` (which already contains all approved R001/R002 files from AI-0 #197). Retain R003 source, do not recreate or change existing original blob IDs. Only add three \`modules/starry-id-v1/**\` files.
+- Contract: \`starry.auth.event-session-fence.r004.v1-candidate\`, \`R004_SESSION_FENCE_LIVE=false\`; default OFF. \`createOfflineR004EventBoundSessionFence\` exposes \`readEventBoundCurrentSession(opaqueCanonicalEvent,signedRequest,serverNow)\` and one-use non-serializable \`readServerFence(originalView)\`. All public views omit \`s_user_id\`, session, event/actor_ref, auth KIDs and HMAC digests; every sending/Queue ACK/grant/purchase/publish/Live flag is hard FALSE.
+- AI-0/4 must implement and approve the **ONE canonical signed P05 verifier/issuer**. This package *only accepts an injected \`verifyCanonicalSource\` function*. The test verifier checks ephemeral synthetic WebCrypto HMAC; it is **not an AI-0 P05 issuer**, official event schema or live signing capability. A JSON body containing \`signature_verified:true\` cannot call Auth. Server-only \`resolveEventActor\` maps cryptographically verified event_id + actor_ref to member/session/provider; no caller-provided raw ID can bypass it.
+
+## Current Session read behavior and physical limitations
+
+1. Verify signed source before any Auth D1 read; reject different brand/App/environment, unexpected event/actor, expired or future event, issuer versions.
+2. Independently resolve event/actor server-side; read **current** Starry Auth/member/provider/session using existing immutable AI-1 \`createStarryD1Port\` 001 schema. Also require separate authoritative monotonic \`readSessionEpoch\` for session_version. **The existing 001 Auth schema has no physical session_version.** Therefore a test-only SQLite table supplies it in disposable :memory:; no migration/new real Auth writer is claimed.
+3. For \`notification.delivery.queued\`, additionally call actual AI-1 R003 \`createOfflineR003IdentityAuthorityPort.reviewFresh\` (WebCrypto signed R23 + current SQLite reads + HMAC KID/epoch) and existing R23 sealed principal. Require exact verified member, Session, auth_version, app/env and epoch. Rejected if revoked/suspended/deleted, missing signature, changed key, provider mismatch, different account, stale version, key/database failure.
+4. For **signed revoked or deleted audit event candidate** the expired/revoked bearer **cannot** be used to authenticate an active Session. Require trusted actor binding and current D1 revoked_at/member tombstone, monotonic epoch, and separately validated signed source; output is still \`review_only\` with **no** notification permission. Delete audit still requires Q104/Q119 legal hold and retention Gate before any durable action.
+5. Recheck signed source, actor mapping and all current SQL/version a second time, deny any drift. An in-memory bounded event_id set denies local replay, but **does not constitute durable cross-process idempotency/anti-PITR**; cap of 256 fails closed. Late revoke after second read and concurrent D1/Queue atomicity remain unresolved, so no ACK.
+6. AI-2 Auth→Billing version linkage remains \`starry.auth.identity-authority.r003.v1-candidate\`, \`kind=signed_auth_d1_review_only\`, \`digest_format=ai1.r002.json-hmac.v1\`; \`readActiveDigestKey {kid,epoch,key}\` is App/environment purpose-scoped; **never downgrade to \`offline_auth_fixture_only\`**, never treat it as Store authority. AI-0 must decide canonical KID/key custody/rotation and Q104/Q119 legal use.
+
+## Contract handoffs and blockers
+
+AI-3 #4 owns P05 event, durable receipt, independent anti-PITR and Queue commit-before-ACK. AI-4 #5 owns Worker/OpenAPI route; only GET /v1/health currently live, protected POST are still proposals. AI-0 #1 owns issuer, typed schema, required session_version migration/CAS, lawful retention and Gate1/2/3 decisions. No AI-1 real database write, Audit writer, Queue ACK, notification or store entitlement.
+
+Unit tests with \`node --experimental-strip-types --test modules/starry-id-v1/test/wave1-round004-event-session-fence.test.mjs\` use ephemeral generated HMAC keys, signed R23 sessions and disposable SQLite, including source spoofing, app/env mismatch, session/member switch, mid-read revoke, replay, tombstone, stale epochs and KID loss. No production secrets or PII.
+
+**Release stays BLOCKED** G00–G10 11/11, P05/PUBLISHABLE=false, Gate1 pending. Google v1.3 Q4=A chooses future AdMob provider but Ads OFF, no SDK installed. No Cloudflare Preview/Staging/Production, real D1/Queue, Store/EAS, paid services or main merge; H-Global suspended. Rollback: close R004 Draft / discard only these three new paths; R003 #198 and previous owner source untouched.
