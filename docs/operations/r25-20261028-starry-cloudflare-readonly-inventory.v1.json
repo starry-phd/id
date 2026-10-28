@@ -1,0 +1,67 @@
+{
+  "schema_version": "starry.ai0.cloudflare-live-readonly-inventory.r25.v1",
+  "date_utc": "2026-10-28",
+  "evidence_class": "LIVE_READ_ONLY_ACCOUNT_SCOPE_METADATA",
+  "source": "Connected Cloudflare Starry account, account identifier intentionally excluded from public repository",
+  "account_scope_only": true,
+  "operations_performed": [
+    "GET /accounts/{account_id}/d1/database",
+    "GET /accounts/{account_id}/queues",
+    "GET /accounts/{account_id}/workers/scripts",
+    "GET /accounts/{account_id}/workers/scripts/id-starry/settings",
+    "GET /accounts/{account_id}/workers/scripts/id-starry-ai1-gate1-preview/settings",
+    "GET /accounts/{account_id}/workers/scripts/id-starry-ai2-gate0-preview/settings",
+    "GET /accounts/{account_id}/workers/scripts/id-starry/deployments"
+  ],
+  "observations": {
+    "d1_databases_count": 1,
+    "queues_count": 0,
+    "workers_scripts_count": 6,
+    "id_starry_script_found": true,
+    "id_starry_settings_bindings_count": 0,
+    "historical_id_starry_deployment_latest_utc": "2026-10-25T15:54:34.162822Z",
+    "two_other_historical_id_starry_named_preview_scripts_exist": true,
+    "these_two_scripts_settings_bindings_counts": [
+      0,
+      0
+    ],
+    "physical_auth_d1_verified": false,
+    "physical_billing_d1_verified": false,
+    "physical_battery_d1_verified": false,
+    "physical_queue_dlq_verified": false,
+    "separate_clean_staging_worker_verified": false,
+    "latest_cloudflare_preview_success_verified": false,
+    "formal_oidc_identity_provider_verified": false,
+    "store_sandbox_transaction_verified": false
+  },
+  "important_limitations": [
+    "Only one connected Cloudflare account checked. Does not prove other accounts or environments contain no resources.",
+    "One discovered D1 database is not classified as approved central Auth/Billing/Battery staging data source; name/account metadata are not proof of purpose or isolation.",
+    "A Worker name containing 'preview' does not establish that it is safe, connected to this Git SHA, accessible or actually deployed as an R25 preview.",
+    "Script settings GET reported zero bindings for named scripts; this does not exhaust every Worker environment, service binding or external resource.",
+    "Current result has not resolved Workers Builds internal external_script_id/script_tag; an empty result from a name-based builds search is not evidence of no build history.",
+    "Prior 2026-10-28 R23 incident report #165 independently documented Cloudflare #164 preview build failure (missing previews configuration); no fresh corrective deployment evidence here.",
+    "No live user data was read or tested, and no resource was changed."
+  ],
+  "gates": {
+    "external_staging_approval_documented": false,
+    "resource_creation_approved": false,
+    "live_d1_write_approved": false,
+    "live_queue_write_approved": false,
+    "worker_deployment_approved": false,
+    "production_deployment_approved": false,
+    "live_real_identity_approved": false,
+    "live_store_purchase_approved": false,
+    "paid_service_approved": false,
+    "hglobal_development_approved": false,
+    "release_authorization_granted": false,
+    "official_release_gates_blocked": 11
+  },
+  "decision_requests": {
+    "R25_00": "Choose whether to authorize a separately named, isolated, synthetic-only Starry staging environment with a capped budget and no production bindings.",
+    "R25_01": "Resolve D1 consistency A single authority vs B durable outbox/saga from existing ADR #87 before any data mutation.",
+    "R25_02": "Name responsible approver for Q104/Q119 retention, P05 signing authority, key custody, cleanup, cost cap and rollback.",
+    "R25_03": "Do not use existing id-starry monitored Cloudflare Build trigger for the experiment; a new branch/Worker requires separate approval."
+  },
+  "state": "LIVE_METADATA_OBSERVED_AUTHORIZATION_NOT_GRANTED"
+}
