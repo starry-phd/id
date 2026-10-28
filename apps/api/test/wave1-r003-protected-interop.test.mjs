@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {URL} from 'node:url';
 import {handleRequest} from '../src/index.ts';
 import {
   R003_INTEROP_VERSION, R003_UPSTREAM_CANDIDATES, R003_REVIEW_ONLY,
