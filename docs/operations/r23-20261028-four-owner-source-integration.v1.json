@@ -1,0 +1,160 @@
+{
+  "schema_version": "ai0.r23.single-checkout-original-blob-integration.v1",
+  "state": "REVIEW_CANDIDATE_ONLY_NOT_LIVE",
+  "date": "2026-10-28",
+  "repo": "starry-phd/id",
+  "base": {
+    "pr": 165,
+    "head_sha": "f8a34d843b38c91b5d9d351ee3d54b27696be9d1",
+    "inherited_sbase_pr": 164,
+    "inherited_sbase_sha": "11a0c9443ec34c60bcbcf77e1231e4b0f5381e04",
+    "preserved_previous_18_blobs": true
+  },
+  "source_prs": [
+    {
+      "owner": "AI-1",
+      "pr": 167,
+      "head_sha": "ff36d6ee732a287458767bad4e4d459579387f65",
+      "origin_base_sha": "11a0c9443ec34c60bcbcf77e1231e4b0f5381e04",
+      "ci": [
+        "https://github.com/starry-phd/id/actions/runs/40636532054",
+        "https://github.com/starry-phd/id/actions/runs/40636532095"
+      ],
+      "files": [
+        {
+          "path": "modules/starry-id-v1/ADR-R23-SIGNED-SESSION-D1-REQUEST-BOUNDARY.md",
+          "blob_sha": "cb16fad76e9da065ec8b8d690a15380ad21c422c"
+        },
+        {
+          "path": "modules/starry-id-v1/src/r23-signed-session-d1-request-boundary.ts",
+          "blob_sha": "95f89cae3a436811f9a07fff25a9d4bffc174585"
+        },
+        {
+          "path": "modules/starry-id-v1/test/r23-signed-session-d1-request-boundary.test.mjs",
+          "blob_sha": "54fb16eeb5784dc7738f0edb367b966a67248b41"
+        }
+      ]
+    },
+    {
+      "owner": "AI-2",
+      "pr": 169,
+      "head_sha": "31d2969eb8aa8e7bb5e326c8b3124b92d568a358",
+      "origin_base_sha": "f8a34d843b38c91b5d9d351ee3d54b27696be9d1",
+      "ci": [
+        "https://github.com/starry-phd/id/actions/runs/40636672128",
+        "https://github.com/starry-phd/id/actions/runs/40636672090"
+      ],
+      "files": [
+        {
+          "path": "packages/rebuild-billing/docs/R23-STORE-G04-G05-PREFLIGHT.md",
+          "blob_sha": "85bb0624e07d4bcbc6a428069fbb297170cd00e7"
+        },
+        {
+          "path": "packages/rebuild-billing/scripts/r23-store-preflight.mjs",
+          "blob_sha": "c941f3f8a772db56f3949d4a5de4cddbd2a0c4e9"
+        },
+        {
+          "path": "packages/rebuild-billing/src/r23-store-release-preflight.ts",
+          "blob_sha": "81036e17224c225256387b8dd3c7035730aececb"
+        },
+        {
+          "path": "packages/rebuild-billing/test/r23-store-release-preflight.test.mjs",
+          "blob_sha": "390444b7b8aa3ac75b242159fa86ae9d52039cb1"
+        }
+      ]
+    },
+    {
+      "owner": "AI-3",
+      "pr": 168,
+      "head_sha": "a43fe791395c40ceaba12b06a59007030722b9ce",
+      "origin_base_sha": "f8a34d843b38c91b5d9d351ee3d54b27696be9d1",
+      "ci": [
+        "https://github.com/starry-phd/id/actions/runs/40636619518"
+      ],
+      "files": [
+        {
+          "path": "packages/rebuild-ai3/docs/R23-G07-PHYSICAL-READINESS-PREFLIGHT-20261028.md",
+          "blob_sha": "95516e4c0f554acfc3af7ced751af0b3bad7bcf0"
+        },
+        {
+          "path": "packages/rebuild-ai3/test/r23-g07-readiness-preflight.test.mjs",
+          "blob_sha": "3666970f6b7bda85a44b827976db42bae4baa854"
+        },
+        {
+          "path": "packages/rebuild-ai3/tools/r23-g07-readiness-preflight.mjs",
+          "blob_sha": "f830ef64abac967018c8f0567b653d6692ffff12"
+        }
+      ]
+    },
+    {
+      "owner": "AI-4",
+      "pr": 166,
+      "head_sha": "55406d54082b0bf54d892697a348dc62ffa2e654",
+      "origin_base_sha": "11a0c9443ec34c60bcbcf77e1231e4b0f5381e04",
+      "ci": [
+        "https://github.com/starry-phd/id/actions/runs/40636623909"
+      ],
+      "files": [
+        {
+          "path": "apps/api/src/r23-cloudflare-preview-preflight.ts",
+          "blob_sha": "0c29fd68c457c428cb7466d506d722f516962f41"
+        },
+        {
+          "path": "apps/api/test/r23-cloudflare-preview-preflight.test.mjs",
+          "blob_sha": "21a1d7fbefdf25a08fb4fe61861d69fa158c6460"
+        },
+        {
+          "path": "docs/operations/AI4-R23-CLOUDFLARE-PREVIEW-PREFLIGHT-ADR-20261028.md",
+          "blob_sha": "08b248fe62e6de64dbe833d612e49ef473a1e27d"
+        }
+      ]
+    },
+    {
+      "owner": "AI-0",
+      "pr": 170,
+      "head_sha": "7f42d3d484705391332472af8325fa0aaeb8fb55",
+      "origin_base_sha": "11a0c9443ec34c60bcbcf77e1231e4b0f5381e04",
+      "ci": [
+        "https://github.com/starry-phd/id/actions/runs/40637182517"
+      ],
+      "files": [
+        {
+          "path": "docs/operations/AI0-SBASE-D02-MULTI-APP-REPO-TOPOLOGY-ADR-20261028-DRAFT.md",
+          "blob_sha": "38b3f1b553d2111cda978a89cd7e13da0dbb02f9"
+        },
+        {
+          "path": "docs/portfolio/STARRY-P0-APP-TEST-COHORT-AND-PORTFOLIO-DECISIONS-20261028-DRAFT.md",
+          "blob_sha": "2692f274dc7fb51abe20fd6b6cbfedde4a87a37d"
+        },
+        {
+          "path": "docs/portfolio/starry-app-p0-governance.v0.json",
+          "blob_sha": "db5b6c6c4a01e3fdf4f0e79fdd8408a477d35f07"
+        }
+      ]
+    }
+  ],
+  "expected_source_file_count": 16,
+  "gate_summary": {
+    "official_release_gates_blocked": 11,
+    "formal_release_authorized": false,
+    "cloudflare_preview_deploy_verified": false,
+    "signed_oidc_jwks_live_verified": false,
+    "auth_d1_live_verified": false,
+    "official_store_sandbox_verified": false,
+    "billing_d1_live_verified": false,
+    "queue_dlq_physical_live_verified": false,
+    "p05_canonical_signed_event_approved": false,
+    "rollback_protected_witness_verified": false,
+    "private_repo_option_selected": false,
+    "three_p0_apps_native_built": false
+  },
+  "other": {
+    "no_main_merge": true,
+    "no_hglobal_work": true,
+    "no_true_d1_or_secret_write": true,
+    "no_real_store_or_paid_purchase": true,
+    "no_production_deploy": true,
+    "free_battery_never_sku": true,
+    "owner_original_18_blobs_unchanged": true
+  }
+}
