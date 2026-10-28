@@ -1,0 +1,53 @@
+{
+  "schema_version": "starry.ai0.wave1.observed-ci-evidence-snapshot.v1",
+  "observation_date": "2026-10-28",
+  "source": "Direct GitHub API GET workflow runs and commit check-runs; verified exact-head 2026-10-28; snapshot is historical, not ongoing monitoring or cryptographic attestation",
+  "source_pr": "https://github.com/starry-phd/id/pull/191",
+  "source_commit": "84a23e6ed31fd5a91675ac46b3ab012d01567df6",
+  "observation": {
+    "expected_sha": "84a23e6ed31fd5a91675ac46b3ab012d01567df6",
+    "workflows": [
+      {
+        "name": "AI-0 Current Complete Offline Integration Gate (release BLOCKED)",
+        "head_sha": "84a23e6ed31fd5a91675ac46b3ab012d01567df6",
+        "id": 40675067302,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "AI-1 Rebuild Starry ID v1",
+        "head_sha": "84a23e6ed31fd5a91675ac46b3ab012d01567df6",
+        "id": 40675067119,
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Rebuild Starry Billing Sandbox (AI-2)",
+        "head_sha": "84a23e6ed31fd5a91675ac46b3ab012d01567df6",
+        "id": 40675067128,
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "external_check": {
+      "name": "Workers Builds: id-starry",
+      "head_sha": "84a23e6ed31fd5a91675ac46b3ab012d01567df6",
+      "status": "completed",
+      "conclusion": "failure"
+    }
+  },
+  "source_urls": {
+    "ai0": "https://github.com/starry-phd/id/actions/runs/40675067302",
+    "ai1": "https://github.com/starry-phd/id/actions/runs/40675067119",
+    "ai2": "https://github.com/starry-phd/id/actions/runs/40675067128",
+    "cloudflare_external": "https://github.com/starry-phd/id/runs/122774636580"
+  },
+  "asserted_status": {
+    "offline_same_sha_ci": "PASS",
+    "external_cloudflare_worker_build": "FAIL",
+    "live_release": "BLOCKED",
+    "store_sandbox": "UNVERIFIED",
+    "production_deployment": "NOT_AUTHORIZED"
+  },
+  "warning": "Do not use this record to claim the current status of another commit or deployed environment. Re-fetch on new SHA."
+}
