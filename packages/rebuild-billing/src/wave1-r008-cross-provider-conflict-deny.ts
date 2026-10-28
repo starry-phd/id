@@ -170,7 +170,7 @@ export function createOfflineR008CrossProviderConflictGate(config:Readonly<{
      return base(scope,'UNKNOWN_VENDOR_STATE');
     return Object.freeze({...base(scope,'UNVERIFIED_DOUBLE_SOURCE'),
      status:'review_only',reason:'MATCHING_UNVERIFIED_CLAIMS_NO_AUTHORITY',
-     store_candidate:store.provider_candidate,
+     store_candidate:store.provider_candidate as 'apple'|'google',
      revenuecat_candidate:true});
    }catch{return base(scope,'SOURCE_OR_INPUT_UNAVAILABLE');}
   }
