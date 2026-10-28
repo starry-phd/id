@@ -1,0 +1,40 @@
+# AI-3 Wave1 R006｜AI-0 P05 vNext 17-key proposal × disposable SQLite CAS/witness
+
+**Status:** OWNER OFFLINE / REVIEW-ONLY / NO P05 ISSUER OR QUEUE ACK. [正式 Round-006 工作令](https://github.com/starry-phd/id/issues/4#issuecomment-6474939888); [唯一共用 P05 vNext](https://github.com/starry-phd/id/issues/1#issuecomment-6474929122).
+
+## Verified starting source
+- Fixed parent AI-0 R005 **four-owner integrated** [OPEN/DRAFT #214](https://github.com/starry-phd/id/pull/214) exact `55b8e31a64b62828dbdeb075f38150f02983fa86`. Its GitHub Actions 3/3 on this SHA succeed OFFLINE ONLY; Cloudflare external same SHA [failure #122957469384](https://github.com/starry-phd/id/runs/122957469384) is separate and its actual root cause NOT confirmed.
+- AI-3 R005 [Draft #212](https://github.com/starry-phd/id/pull/212) `starry.ai3.p05.sqlite-cas-recovery.r005.v1-offline-candidate` and original `wave1_r005_p05_sqlite_cas.py` inherited byte-for-byte. R006 adds only a vNext **structural adapter and new tests**, NOT another CAS schema or issuer.
+- AI-1 latest R005 `starry.auth.p05-envelope-r005.v1-offline-candidate` and R004 `starry.auth.event-session-fence.r004.v1-candidate` inherited as Owner source but NOT elevated to a canonical issuer. AI-4 future-only `starry.ai4.wave1.r003.protected-interop.v1-offline-candidate` ordering remains deny-only.
+
+## AI-0 owns the exact only proposed vNext interface
+
+- Contract: `starry.p05.canonical.vnext.offline-candidate`; `purpose=p05_delivery_review_only`; wrapper **exact keys in order** `{envelope,mac_hex}`. Legacy AI-0 `{event,signature_hex}` and AI-1 `{envelope,mac}` are incompatible and rejected. This is the **AI-0 chosen R006 proposal**, not an approved live format.
+- Envelope exactly **17 JSON own data keys, in this precise order**:
+`version,purpose,brand_id,app_id,environment,event_id,event_type,actor_ref,auth_version,session_version,idempotency_key,issuer_kid,issuer_epoch,issued_at,expires_at,nonce,payload_sha256`.
+- AI-0 domain literal: `starry.ai0.p05.canonical.vnext.offline:hmac-sha256:v1`. Its proposed HMAC-SHA256 payload is `JSON.stringify([domain,...17 field values in that fixed order])`, with lowercase 64-hex `mac_hex`. **Only AI-0 owns the real verifier/proposed signer design**. AI-3 returns the ordered 18-element DATA ARRAY for contract review; **does not implement HMAC/JSON cryptographic bytes, verify MAC, own KID/KMS, or mint a signature**. Well-formed `mac_hex` is **not cryptographic evidence**.
+- Scope: Starry development/staging, exact app/event/actor, approved event types only, no extra keys or hostile mapping. Unix seconds safe integers; `0 < expires_at-issued_at <=120`, `issued_at <= now+5` and `now < expires_at`. Client `signature_verified/loggedIn/consentGranted` flags cannot grant or change source truth.
+- The R006 local adapter binds the parsed event and `auth_version/session_version` to two **synthetic** `FixtureFence` observations and a synthetic lawful expiration. If any change or expired legal policy, block BEFORE calling original disposable R005 SQLite. This **does not** invoke AI-1 actual Auth, verify AI-0 real source, authorize Q104/Q119, nor become a legal deadline.
+- Only after structural checks, R005's unchanged `BEGIN IMMEDIATE` claim/outbox against `:memory:` may return `review_only`. Duplicate idempotency/nonce, competing claim, late revoke, malformed event, crash, rollback, unknown optional future Port or synthetic independent-witness outage/mismatch/floor denies. A **matching second SQLite memory witness** still only returns `review_only`—not external independence/physical anti-PITR.
+- Every R006 output permanently denies `cryptographic_verified,external_witness_verified,may_ack,may_send,may_enqueue,may_retry,may_write_real_d1,may_grant_battery,may_sell_battery,may_publish,live`. Local rows are disposable **not** committed Cloudflare D1.
+
+## Actual tests
+
+`test/test_round006_p05_vnext_sqlite.py` is discovered by existing `python3 -m unittest discover -s packages/rebuild-ai3/test -p 'test_*.py' -v`. New positive/negative cases explicitly inspect ordered 17 keys, proposed domain-value tuple, reject old wrappers, wrong order, missing/extra/hostile keys and MAC shape, actor/event/scope, KID/epoch/TTL, forged rights, repeat/competing claim and nonce, crash before commit, late revoke, expired lawful policy, deletion/erasure hold, independent-memory witness outage/digest mismatch/rollback and never-ACK invariants. The preexisting R005 SQLite test suite is retained.
+
+## AI-0 / Product Owner decisions required (options without automatic selection)
+
+| Topic | Option A | Option B | Trade-offs and minimum authorized evidence |
+| --- | --- | --- | --- |
+| **#87 Cross-D1 architecture** | **One Starry transactional authority** for receipt/claim where atomicity can be physically proven | **Durable Outbox/Saga** with versioned events and reconciliation across separate D1 domains | A simplifies a single DB atomic claim but may couple service ownership; B preserves domain boundaries but needs idempotent consumers, compensations, independently verified commits and careful ACK-after-commit. No final choice in R006. Source [AI-0 #87](https://github.com/starry-phd/id/issues/87). |
+| **Q104 lawful purpose / consent** | Per event class narrowly authorized audit-only retention | Split mandatory security audit from separately consented optional notifications | Legal basis, opt-out, audience, scope, purpose, minimization and privacy review must be decided by Owner/legal experts; engineering cannot invent approval from `lawful_now=true`. |
+| **Q119 deletion and retention** | Short, category-specific records with audited erasure and approved holds | Distinct security/complaint hold rules with explicit sunset and independent access audit | Legal basis, duration, exception/appeal periods, irreversible deletion and dispute handling require Owner/legal approval; **no default number of days** and no automatic purge code. |
+| **P05 KID/replay/outbox/anti-PITR** | Centrally managed canonical signer and independently governed monotonic external witness | Centrally registered delegated issuer and separately operated immutable external witness | Choice of custody, key rotation, stable actor mapping, durable nonce ledger, independent PITR survive/restore proof, staging resource scope, fees and rollback must precede any Queue ACK. |
+
+## Gate and rollback
+
+Gate1 **PARTIAL/BLOCKED** until AI-0 canonical issuer/KID/legal actor/session binding, Q104/Q119, #87 A/B, durable physical D1 CAS/outbox, independent external PITR witness and AI-4 Queue transport are authorized and verified. Gate2 this AI-3 PR is **only exact-owner-SHA offline CI** after recorded outcome; it is NOT R006 same-SHA four-owner integration. Gate3 **G00–G10 11/11 BLOCKED**, `P05/PUBLISHABLE=false`, `release_authorization.granted=false`.
+
+No changes to existing writers, SQL migrations, Worker/OpenAPI, GitHub Actions, Secrets, main, Store/RevenueCat/EAS, Ads/AdMob SDK, real D1/Queue, Cloudflare triggers, Preview/Staging/Production, paid resources or H-Global. Starry Battery **forever FREE**, Ads OFF (Q4=A selection alone). Central Expo54 unchanged, no early Q5 private consumer repo.
+
+Rollback: close the isolated R006 Draft PR and drop its 3 AI-3-only added files. AI-0 #214 and all R005 original Owner Git blobs remain untouched.
