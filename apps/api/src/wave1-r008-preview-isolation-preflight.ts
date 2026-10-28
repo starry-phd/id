@@ -76,10 +76,13 @@ export function reviewR008PreviewProposal(raw:unknown):R008Review{
  if(p.config_path!==R008_LIMITS.config_path||
    p.preview_command!==R008_LIMITS.preview_command)
   return denied('UNSAFE_PREVIEW_COMMAND');
- if(!Array.isArray(p.requested_binding_names)||
-   p.requested_binding_names.length!==0||
-   Reflect.ownKeys(p.requested_binding_names).length!==1)
-  return denied('UNREVIEWED_BINDING_OR_ROUTE');
+ let bindingsEmpty=false;
+ try{
+  bindingsEmpty=Array.isArray(p.requested_binding_names)&&
+    p.requested_binding_names.length===0&&
+    Reflect.ownKeys(p.requested_binding_names).length===1;
+ }catch{return denied('UNREVIEWED_BINDING_OR_ROUTE');}
+ if(!bindingsEmpty)return denied('UNREVIEWED_BINDING_OR_ROUTE');
  if(typeof p.preview_config_text!=='string'||
    p.preview_config_text.length<10||
    p.preview_config_text.length>R008_LIMITS.max_config_characters)
@@ -87,7 +90,7 @@ export function reviewR008PreviewProposal(raw:unknown):R008Review{
  const conf=p.preview_config_text;
  // Reject ANY resource, env override, production route or dangerous secret.
  // This is a conservative denylist for an OFFLINE plan, not a TOML parser.
- if(/(?:d1_databases|r2_buckets|queues|services|service_bindings|durable_objects|kv_namespaces|unsafe|secrets|secrets_store|production|routes|route\\s*=|cron|triggers|workflows|hyperdrive|ai_gateway|send_email|browser|dispatch_namespaces|containers)/i.test(conf))
+ if(/(?:d1_databases|r2_buckets|queues|services|service_bindings|durable_objects|kv_namespaces|unsafe|secrets|secrets_store|production|routes|route\s*=|cron|triggers|workflows|hyperdrive|ai_gateway|send_email|browser|dispatch_namespaces|containers)/i.test(conf))
   return denied('UNREVIEWED_BINDING_OR_ROUTE');
  if(!/^\[previews\]$/m.test(conf)||
    !/^\[previews\.vars\]$/m.test(conf)||
