@@ -130,6 +130,7 @@ export function createOfflineR006P05Verifier(deps:Readonly<{
   throw Error('R006_ONLY_OFFLINE_STARRY_SCOPE');
  const scope=Object.freeze({...s});
  const consumed=new Set<string>(); // in-process test-only; NOT durable replay ledger.
+ const inFlight=new Set<string>(); // ephemeral per-instance reservations; NOT cross-Worker/D1.
  return Object.freeze({
   contract:AI0_R006_P05_VERSION,
   async review(raw:unknown):Promise<Review>{
@@ -145,8 +146,11 @@ export function createOfflineR006P05Verifier(deps:Readonly<{
     now-e.issued_at>120)return response('TIME_WINDOW_DENIED');
    const replayKey=[scope.app_id,scope.environment,e.event_id,
     e.idempotency_key,e.nonce].join('\u0000');
-   if(consumed.has(replayKey)||consumed.size>=128)
+   // Reserve synchronously BEFORE any async key/crypto boundary. In-memory only.
+   if(consumed.has(replayKey)||inFlight.has(replayKey)||
+      consumed.size+inFlight.size>=128)
     return response('REPLAY_OR_CAPACITY_DENIED');
+   inFlight.add(replayKey);
    try{
     const key1=await deps.readCurrentVerificationKey(e.issuer_kid);
     if(!leaseOk(key1,e))return response('KEY_UNAVAILABLE');
@@ -162,6 +166,7 @@ export function createOfflineR006P05Verifier(deps:Readonly<{
     consumed.add(replayKey);
     return response('CRYPTO_ONLY_NOT_AUTHORITY','review_only',true);
    }catch{return response('KEY_UNAVAILABLE');}
+   finally{inFlight.delete(replayKey);}
   }
  });
 }
