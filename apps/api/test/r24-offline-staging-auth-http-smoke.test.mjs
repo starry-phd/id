@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
+import {URL} from 'node:url';
+import {webcrypto as crypto} from 'node:crypto';
 import {signServerSession} from '../../../modules/starry-id-v1/src/session-crypto.ts';
 import {createOfflineStarryRequestAuthBoundary} from '../../../modules/starry-id-v1/src/r23-signed-session-d1-request-boundary.ts';
 import {handleRequest as actualWorkerHandler} from '../src/index.ts';
