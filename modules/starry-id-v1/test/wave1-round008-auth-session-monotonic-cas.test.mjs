@@ -55,7 +55,7 @@ function fixture(opts={}){
    if(state.throwRead)throw Error('synthetic read failure');
    if(req.headers.get('authorization')!=='Bearer valid_token_000001')
     return null;
-   return opts.claimFactory?.()??claim();
+   return 'claimFactory' in opts?opts.claimFactory():claim();
   },
   readMockMonotonicFloor:async()=>state.floor,
   readMockIssuerLease:async()=>{
@@ -148,7 +148,7 @@ test('old token, malformed bearer and missing authenticated principal fail close
 });
 test('server-only scope brand/app/env, wrong binding and getter reject',async()=>{
  for(const patch of [{brand_id:'hglobal'},{app_id:'other.app'},
-  {environment:'production'},{provider_ref:'bad'},
+  {environment:'production'},{provider_ref:'provider-CHANGED'},
   {actor_ref:'event-CHANGED'}]){
   const f=fixture({claimFactory:()=>claim(patch)});try{
    blocked(await f.port.review(request(),NOW),'blocked');
