@@ -1,0 +1,100 @@
+{
+  "schema_version": "starry.ai0.d03-owner-decision.v1",
+  "decision_id": "D-03",
+  "decision_date": "2026-10-28",
+  "owner_explicit_choice": "D-03 我正式選擇方案 A（RevenueCat＋自有 BillingClient）。請記錄到 GitHub，明確說明授權與實施範圍，再繼續 D-04 下一題。",
+  "decision_status": "OWNER_APPROVED_PROVIDER_ARCHITECTURE_NOT_IMPLEMENTED",
+  "selected_option": "A",
+  "provider": "RevenueCat",
+  "consumer_contract": "Starry-owned versioned thin BillingClient",
+  "store_platforms": [
+    "Apple StoreKit",
+    "Google Play Billing"
+  ],
+  "authoritative_boundaries": {
+    "store_transaction_validation": "RevenueCat-mediated provider and authoritative Apple/Google transaction status, detailed trust flow needs AI-2 PoC",
+    "business_entitlement_projection": "AI-2/DEV-B central Billing owner only, no independent second provider or writer",
+    "client_role": "per-app thin BillingClient and RevenueCat adapter, must never grant durable entitlements by local claim",
+    "auth_and_member_role": "AI-1 central membership/Auth; scoped ID mapping subject to privacy review",
+    "free_battery_role": "AI-3 free-only Battery; never purchasable or Store SKU",
+    "app_repo_d02": "Option A one NEW private Starry multi-App monorepo, central public id remains independent",
+    "monetization_app_scoped": true,
+    "cross_app_subscription_decided": false
+  },
+  "future_app_features_candidate": [
+    "single_nonconsumable_unlock",
+    "monthly_subscription",
+    "annual_subscription",
+    "restore_purchases",
+    "optional_no_ads_entitlement"
+  ],
+  "client_api_names_concept_only": [
+    "purchase(productKey)",
+    "getOfferings()",
+    "getEntitlements()",
+    "restorePurchases()",
+    "identifyUser()",
+    "logout()",
+    "observeEntitlementChanges()"
+  ],
+  "app_isolation_fields": [
+    "app_id",
+    "ios_bundle_id",
+    "android_package_name",
+    "store_product_id",
+    "offering_id",
+    "entitlement_key",
+    "environment",
+    "store_account_mapping",
+    "subscription",
+    "ad_configuration"
+  ],
+  "safe_invariants": [
+    "one_store_entitlement_authority_not_two_competing_sources",
+    "per_app_purchase_isolation_no_implicit_shared_entitlement",
+    "no_client_self_reported_purchase_grant",
+    "no_unverified_webhook_notification_grant",
+    "no_purchase_based_battery_gift_or_balance",
+    "refund_revocation_expiry_restore_and_offline_reconciliation",
+    "auth_and_Battery_use_versioned_consumers_only",
+    "no_revenuecat_transition_promised_without_migration_plan",
+    "signing_keys_and_real_member_personal_data_not_committed",
+    "no_cross_app_purchased_entitlement_without_D07"
+  ],
+  "operation_authorization": {
+    "provider_selection": true,
+    "billing_client_interface_planning": true,
+    "revenuecat_account_creation": false,
+    "revenuecat_project_creation": false,
+    "paid_plan_subscription": false,
+    "native_sdk_installation_and_build": false,
+    "store_account_linking": false,
+    "store_sandbox_purchase": false,
+    "store_product_creation": false,
+    "real_purchase_or_charge": false,
+    "cloudflare_staging_deployment": false,
+    "cloudflare_production_deployment": false,
+    "central_billing_writer_change": false,
+    "github_private_repo_creation": false,
+    "github_main_merge": false,
+    "app_store_submission": false
+  },
+  "remaining_gates": {
+    "D01_native_poc": "PENDING",
+    "D02_repo_design": "OWNER_APPROVED_NOT_CREATED",
+    "D04_ad_provider": "PENDING",
+    "D05_web": "PENDING",
+    "D06_provider_costs": "PENDING",
+    "D07_cross_app_subscriptions": "PENDING",
+    "D08_ui": "PENDING",
+    "auth_billing_battery_real_integration": "PENDING",
+    "store_ios_android_receipt_sandbox": "PENDING",
+    "billing_webhook_validation_refund_rollback": "PENDING",
+    "cross_d1_87_p05_q104_q119": "PENDING",
+    "official_release_gates_blocked": 11,
+    "release_authorization_granted": false
+  },
+  "actual_implementation": false,
+  "official_p05_publishable": false,
+  "notes": "Decision binds provider choice but neither approves charges nor makes the synthetic RTDN work a production RevenueCat entitlement authority. Private Monorepo exists only as an approved topology until separately created."
+}
