@@ -7,8 +7,6 @@
  *
  * Google RTDN is a change notification, not a purchase authorization.
  */
-import {createPublicKey, verify as cryptoVerify} from 'node:crypto';
-
 export const R23_GOOGLE_RTDN_LIVE=false as const;
 export const R23_GOOGLE_RTDN_CONTRACT='starry.billing.google-rtdn-transport.v0-offline' as const;
 export type R23GooglePushOutcome=Readonly<{
@@ -63,16 +61,22 @@ const dict=(raw:unknown):raw is Record<string,unknown>=>
  raw!==null&&typeof raw==='object'&&!Array.isArray(raw)&&
  (Object.getPrototypeOf(raw)===Object.prototype||
   Object.getPrototypeOf(raw)===null);
-function fromUrlBase64(s:string):Buffer|null{
+function fromUrlBase64(s:string):Uint8Array|null{
  if(!s||!B64URL.test(s)||s.length>8192||s.length%4===1)return null;
- const b=Buffer.from(s,'base64url');
- return b.toString('base64url')===s?b:null;
+ try{
+  const base=s.replace(/-/g,'+').replace(/_/g,'/');
+  const binary=atob(base+'='.repeat((4-base.length%4)%4));
+  const bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));
+  const canonical=btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-')
+   .replace(/\//g,'_').replace(/=+$/g,'');
+  return canonical===s?bytes:null;
+ }catch{return null;}
 }
 function jsonPart(s:string):Record<string,unknown>|null{
  const b=fromUrlBase64(s);
  if(!b||b.length>8192)return null;
  try{
-  const d=JSON.parse(b.toString('utf8')) as unknown;
+  const d=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(b)) as unknown;
   return dict(d)?d:null;
  }catch{return null;}
 }
@@ -89,9 +93,9 @@ function readPush(raw:string,scope:Config['scope']){
   if(typeof encoded!=='string'||encoded.length<4||encoded.length>32000
    ||!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encoded))
    return null;
-  const buffer=Buffer.from(encoded,'base64');
-  if(buffer.toString('base64')!==encoded)return null;
-  const rt=JSON.parse(buffer.toString('utf8')) as unknown;
+  const buffer=Uint8Array.from(atob(encoded),c=>c.charCodeAt(0));
+  if(btoa(String.fromCharCode(...buffer))!==encoded)return null;
+  const rt=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(buffer)) as unknown;
   if(!dict(rt)||rt.version!=='1.0'||rt.packageName!==scope.package_name
    ||typeof rt.eventTimeMillis!=='string'
    ||!/^\d{12,14}$/.test(rt.eventTimeMillis))return null;
@@ -147,12 +151,16 @@ export function createOfflineGoogleRtdnTransportCheck(config:Config){
  const fixed=Object.freeze({...s});
  const expected=Object.freeze({audience:config.audience,
   email:config.service_account_email,kid:config.kid});
- let key;
+ let spki:Uint8Array;
  try{
-  key=createPublicKey(config.offlinePublicKeyPem);
-  if(key.asymmetricKeyType!=='rsa')throw Error('NOT_RSA_KEY');
+  const parts=config.offlinePublicKeyPem.match(
+   /^-----BEGIN PUBLIC KEY-----\s*([A-Za-z0-9+/=\s]+)\s*-----END PUBLIC KEY-----\s*$/);
+  if(!parts)throw Error('SPKI_PEM_REQUIRED');
+  const b64=parts[1].replace(/\s/g,'');
+  spki=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+  if(spki.length<128||spki.length>4096)throw Error('SPKI_LENGTH_INVALID');
  }catch{throw Error('R23_RTDN_INVALID_OFFLINE_PUBLIC_KEY');}
- return Object.freeze({inspect(request:unknown):R23GooglePushOutcome{
+ return Object.freeze({async inspect(request:unknown):Promise<R23GooglePushOutcome>{
   if(config.enabled!==true)return reason('blocked','DISABLED_UNTIL_AUTHORIZED_SANDBOX');
   try{
    if(!dict(request))return reason('blocked','INVALID_REQUEST');
@@ -170,8 +178,12 @@ export function createOfflineGoogleRtdnTransportCheck(config:Config){
     ||(h.typ!==undefined&&h.typ!=='JWT')
     ||Object.keys(h).some(k=>!['alg','kid','typ'].includes(k)))
     return reason('blocked','JWT_ALGORITHM_OR_KEY_NOT_TRUSTED');
-   if(!cryptoVerify('RSA-SHA256',Buffer.from(parts[0]+'.'+parts[1]),
-     key,sig))return reason('blocked','JWT_SIGNATURE_INVALID');
+   const key=await crypto.subtle.importKey('spki',spki,
+    {name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['verify']);
+   const signatureMatched=await crypto.subtle.verify(
+    'RSASSA-PKCS1-v1_5',key,sig,
+    new TextEncoder().encode(parts[0]+'.'+parts[1]));
+   if(!signatureMatched)return reason('blocked','JWT_SIGNATURE_INVALID');
    if(!['https://accounts.google.com','accounts.google.com'].includes(c.iss as string)
     ||c.aud!==expected.audience
     ||c.email!==expected.email||c.email_verified!==true
