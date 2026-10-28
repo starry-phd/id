@@ -178,10 +178,16 @@ export function createOfflineGoogleRtdnTransportCheck(config:Config){
     ||(h.typ!==undefined&&h.typ!=='JWT')
     ||Object.keys(h).some(k=>!['alg','kid','typ'].includes(k)))
     return reason('blocked','JWT_ALGORITHM_OR_KEY_NOT_TRUSTED');
-   const key=await crypto.subtle.importKey('spki',spki,
+   // TS 5.9 DOM BufferSource requires ArrayBuffer-backed views.
+   // Make defensive copies so SharedArrayBuffer inputs cannot reach WebCrypto.
+   const trustedSpki=new Uint8Array(new ArrayBuffer(spki.byteLength));
+   trustedSpki.set(spki);
+   const signature=new Uint8Array(new ArrayBuffer(sig.byteLength));
+   signature.set(sig);
+   const key=await crypto.subtle.importKey('spki',trustedSpki,
     {name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['verify']);
    const signatureMatched=await crypto.subtle.verify(
-    'RSASSA-PKCS1-v1_5',key,sig,
+    'RSASSA-PKCS1-v1_5',key,signature,
     new TextEncoder().encode(parts[0]+'.'+parts[1]));
    if(!signatureMatched)return reason('blocked','JWT_SIGNATURE_INVALID');
    if(!['https://accounts.google.com','accounts.google.com'].includes(c.iss as string)
