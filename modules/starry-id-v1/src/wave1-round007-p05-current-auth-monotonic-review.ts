@@ -44,7 +44,7 @@ const deny=(reason:Reason,status:R007AuthReview['status']='blocked'):
  may_send:false as const,may_enqueue:false as const,may_ack_queue:false as const,
  may_grant:false as const,may_charge:false as const,may_publish:false as const
 });
-const number=(n:unknown)=>typeof n==='number'&&
+const number=(n:unknown):n is number=>typeof n==='number'&&
  Number.isSafeInteger(n)&&n>=0;
 const nonblank=(v:unknown)=>typeof v==='string'&&
  v.length>0&&v.length<=180;
