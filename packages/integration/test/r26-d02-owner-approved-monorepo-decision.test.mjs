@@ -1,0 +1,50 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+const read = (path) => readFileSync(new URL('../../../' + path, import.meta.url),'utf8');
+const doc = JSON.parse(read('docs/operations/ai0-d02-owner-approved-choice-a.v1.json'));
+const official = JSON.parse(read('docs/release-readiness/release-readiness.v0.json'));
+test('owner D-02 option A is an actual architecture choice, not a C-hybrid recommendation',()=>{
+  assert.equal(doc.decision_id,'D-02');
+  assert.equal(doc.status,'OWNER_APPROVED_ARCHITECTURE_NOT_IMPLEMENTED');
+  assert.equal(doc.selected_option,'A');
+  assert.equal(doc.first_phase_architecture,'ONE_NEW_PRIVATE_STARRY_MULTI_APP_MONOREPO');
+  assert.ok(doc.owner_exact_choice.includes('正式選擇方案 A'));
+  assert.equal(doc.previous_candidate_C_policy,'SUPERSEDED_AS_RECOMMENDATION_NOT_DELETED_AS_HISTORY');
+  assert.match(read('docs/adr/AI0-D02-OWNER-APPROVED-PRIVATE-APP-MONOREPO-20261028.md'),/OWNER_APPROVED_ARCHITECTURE/);
+});
+test('one new private multi-App repo does not replace public central ID or duplicate its sole writers',()=>{
+  assert.equal(doc.current_central_repository.name,'starry-phd/id');
+  assert.equal(doc.current_central_repository.access,'PUBLIC_UNCHANGED');
+  assert.equal(doc.current_central_repository.central_auth_writer_remains_separate,true);
+  assert.equal(doc.current_central_repository.central_billing_writer_remains_separate,true);
+  assert.equal(doc.current_central_repository.central_free_battery_writer_remains_separate,true);
+  assert.ok(doc.shared_services.some(s=>s.includes('AuthClient')));
+  assert.ok(doc.shared_services.some(s=>s.includes('BatteryClient')));
+  assert.ok(doc.prohibited_behavior.includes('direct_central_D1_access_from_apps'));
+  assert.ok(doc.prohibited_behavior.includes('duplicate_central_auth_billing_battery_writers'));
+  assert.ok(doc.prohibited_behavior.includes('commercialize_free_Battery'));
+  assert.ok(doc.prohibited_behavior.includes('cross_app_entitlement_grant_without_D07'));
+});
+test('ten upcoming apps / 30-50 capacity do not imply app approval or a Store or deploy right',()=>{
+  assert.equal(doc.business_context.first_cohort_expected_app_count,10);
+  assert.equal(doc.business_context.long_term_capacity_min,30);
+  assert.equal(doc.business_context.long_term_capacity_max,50);
+  assert.equal(doc.business_context.approved_product_count_from_decision,0);
+  assert.equal(doc.actual_private_repo_created,false);
+  assert.equal(doc.actual_app_approved_by_this_decision,false);
+  assert.equal(doc.new_cost_authorized,false);
+  assert.equal(doc.actual_staging_created,false);
+  assert.equal(doc.release_authorization_granted,false);
+  assert.ok(doc.implementation_requires_approval.includes('repo_creation'));
+  assert.ok(doc.implementation_requires_approval.includes('production_deploy'));
+  assert.ok(doc.implementation_requires_approval.includes('store_submission'));
+  assert.ok(doc.pending_other_decisions.includes('D-03'));
+});
+test('D-02 choice cannot mutate the official release manifest or clear official gates',()=>{
+  assert.equal(doc.central_release_gates_blocked,11);
+  assert.equal(official.gates.length,11);
+  assert.ok(official.gates.every(x=>x.status==='blocked'));
+  assert.equal(official.release_authorization.granted,false);
+  assert.equal(official.deployment_automation.can_auto_deploy,false);
+});
