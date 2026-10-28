@@ -89,7 +89,7 @@ export function reviewR008PreviewProposal(raw:unknown):R008Review{
   return denied('INVALID_INPUT');
  const conf=p.preview_config_text;
  // A full-line TOML comment is not an active binding; inline values remain scanned.
- const activeConfig=conf.replace(/^\\s*#.*$/gm,'');
+ const activeConfig=conf.split('\n').filter(line=>!line.trimStart().startsWith('#')).join('\n');
  // Reject ANY resource, env override, production route or dangerous secret.
  // This is a conservative denylist for an OFFLINE plan, not a TOML parser.
  if(/(?:d1_databases|r2_buckets|queues|services|service_bindings|durable_objects|kv_namespaces|unsafe|secrets|secrets_store|production|routes|route\s*=|cron|triggers|workflows|hyperdrive|ai_gateway|send_email|browser|dispatch_namespaces|containers)/i.test(activeConfig))
