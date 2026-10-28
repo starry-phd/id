@@ -73,7 +73,8 @@ export async function auditWave1WorkerOpenApiContract(
  const failures:Finding[]=[];
  if(typeof spec!=='string'){failures.push('OPENAPI_NOT_31')}
  else inspectSpec(spec,failures);
- if(!probes||Object.values(probes).some(v=>!(v instanceof Response))){
+ const required=['health','unknown','unsafeVerb','foreignApp','production','auth'] as const;
+ if(!probes||required.some(k=>!(probes[k] instanceof Response))){
   failures.push('LIVENESS_RESPONSE_MISMATCH');
  }else{
   const v=await normal(probes.health);
