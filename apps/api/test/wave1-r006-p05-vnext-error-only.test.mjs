@@ -217,7 +217,10 @@ test('AI-0 #219 identifier length ranges and positive issued_at are mirrored',()
  })),NOW),'OWNER_GATE_REQUIRED',true);
  for(const changes of [{event_id:'e'.repeat(129)},
    {actor_ref:'a'.repeat(129)}, {idempotency_key:'i'.repeat(129)},
-   {app_id:'s'.repeat(101)}, {issued_at:0,expires_at:120}])
+   {app_id:'s'.repeat(101)}])
   denied(reviewR006P05VNextSchema(wrap(canonical(changes)),NOW),
    'INVALID_ENVELOPE');
+ denied(reviewR006P05VNextSchema(wrap(canonical({
+  issued_at:0,expires_at:120
+ })),NOW),'BAD_TIME_OR_TTL');
 });
