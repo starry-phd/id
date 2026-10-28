@@ -105,13 +105,19 @@ class P05R006(unittest.TestCase):
 
     def test_06_exact_order_missing_extra_17_field_rejected(self):
         e = self.m["envelope"]
-        variants = [dict(reversed(list(e.items()))),
-                    {k: v for k, v in e.items() if k != "nonce"},
+        # AI-0 PR #219 exact() accepts own-key sets regardless of insertion
+        # order, then canonicalizes with AI0_R006_FIELDS. R006 must match.
+        reordered = dict(reversed(list(e.items())))
+        reverse_wrapper = {"mac_hex": "f" * 64, "envelope": reordered}
+        self.assertEqual(self.run_review(reverse_wrapper).status, "review_only")
+        self.assertEqual(mod.proposed_domain_values(reverse_wrapper),
+                         mod.proposed_domain_values(self.m))
+        variants = [{k: v for k, v in e.items() if k != "nonce"},
                     {**e, "signature_verified": True}]
         for v in variants:
             self.assertEqual(self.run_review({"envelope": v, "mac_hex": "f" * 64}).reason,
                              "INVALID_17_KEY_ORDER")
-        self.assertEqual(self.store.count_claims(), 0)
+        self.assertEqual(self.store.count_claims(), 1)
 
     def test_07_own_dict_only_not_user_mapping_or_accessor(self):
         class Hostile(dict):
@@ -243,6 +249,20 @@ class P05R006(unittest.TestCase):
         for name in ("sign", "verify_signature", "ack", "send",
                      "publish", "deploy", "grant_battery", "write_real_d1"):
             self.assertFalse(hasattr(self.a, name))
+
+    def test_25_ai0_pr219_identifier_and_issued_at_boundaries(self):
+        # AI-0 actual source #219: actor/event/idem require 8..128;
+        # app requires 3..100; issued_at strictly > 0. Its field key
+        # enumeration order does not depend on input object insertion.
+        for candidate in (message(event_id="short"),
+                          message(actor_ref="short"),
+                          message(idempotency_key="short"),
+                          message(app_id="ab"),
+                          message(app_id="a" * 101),
+                          message(issued_at=0, expires_at=60)):
+            result = self.run_review(candidate)
+            self.assertEqual(result.status, "blocked")
+        self.assertEqual(self.store.count_claims(), 0)
 
 if __name__ == "__main__":
     unittest.main()
