@@ -1,0 +1,77 @@
+{
+  "version": "starry.ai0.r008.owner-staging-partial.v1",
+  "base": {
+    "draft_pr": 227,
+    "sha": "aecdee944158b40ffbbd129ddd126136687d7652"
+  },
+  "integration_status": "PARTIAL_2_OF_4_NOT_FOUR_OWNER_GATE2",
+  "validated_owner_count": 2,
+  "owners": [
+    {
+      "id": "AI-2",
+      "pr": 228,
+      "final_head_sha": "70b12ae7722ca7f9f4b3e975a5e43416a3ea2c5b",
+      "files": [
+        {
+          "path": "packages/rebuild-billing/docs/WAVE1-R008-CROSS-PROVIDER-CONFLICT-DENY-MATRIX.md",
+          "blob_sha": "ba82a871a78ebef383da2777d86770b55c635c07"
+        },
+        {
+          "path": "packages/rebuild-billing/src/wave1-r008-cross-provider-conflict-deny.ts",
+          "blob_sha": "85cbb2f6fca4c93d08dca05830e4a5ed78b95ef3"
+        },
+        {
+          "path": "packages/rebuild-billing/test/wave1-r008-cross-provider-conflict-deny.test.mjs",
+          "blob_sha": "05fca79fe780ccf5a84fedc1fb8cce6da7d27892"
+        }
+      ],
+      "owner_same_head_ci": "https://github.com/starry-phd/id/actions/runs/40742483922",
+      "full_offline_ci": "https://github.com/starry-phd/id/actions/runs/40742483903"
+    },
+    {
+      "id": "AI-4",
+      "pr": 229,
+      "final_head_sha": "faa29e2efb179f413a167933b22b92cbe0df9334",
+      "files": [
+        {
+          "path": "apps/api/src/wave1-r008-preview-isolation-preflight.ts",
+          "blob_sha": "ee3761bd095319e050f19e0fb2539fa08c4bc122"
+        },
+        {
+          "path": "apps/api/test/wave1-r008-preview-isolation-preflight.test.mjs",
+          "blob_sha": "1aadab2f1cdd427391c74f36f6845a1d14fd7011"
+        },
+        {
+          "path": "docs/operations/AI4-WAVE1-R008-CLOUDFLARE-STAGE2-ISOLATION-PREFLIGHT.md",
+          "blob_sha": "d385d4f70bb716cc23880589805ade43687c9bc1"
+        }
+      ],
+      "full_offline_ci": "https://github.com/starry-phd/id/actions/runs/40742784480"
+    }
+  ],
+  "not_yet_integrated": [
+    "AI-1",
+    "AI-3"
+  ],
+  "owner_status_is_point_in_time": true,
+  "new_same_checkout_ci": "PENDING_NEW_CI",
+  "cloudflare_preview_enabled": false,
+  "cloudflare_production_auto_build_enabled": false,
+  "cloudflare_status": "HISTORICAL_AUDIT_ONLY_REQUERY_TO_CLAIM_CURRENT",
+  "gate1": "PARTIAL_BLOCKED",
+  "gate3": "BLOCKED_11_OF_11",
+  "p05_publishable": false,
+  "release_authorization_granted": false,
+  "ads_on": false,
+  "battery_paid": false,
+  "authorized_actions": {
+    "main_merge": false,
+    "preview_deploy": false,
+    "production_deploy": false,
+    "real_d1": false,
+    "real_queue": false,
+    "real_store": false,
+    "paid": false,
+    "hglobal": false
+  }
+}
