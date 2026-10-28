@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {AI0_WAVE1_EXPECTED_WORKFLOWS,AI0_WAVE1_EVIDENCE_SCHEMA,
  evaluateAi0Wave1Evidence} from '../src/ai0-wave1-ci-evidence-gate.ts';
 
@@ -80,4 +81,14 @@ test('untrusted accessor, invalid payload, or an injected merge approval fails c
  const s=snapshot();Object.defineProperty(s,'workflows',{enumerable:true,get(){throw Error('should not access')}});
  const denied=evaluateAi0Wave1Evidence(s);
  assert.equal(denied.offline_gate,'unverified');notLive(denied);
+});
+
+test('frozen real GitHub API R001 #191 observation is offline PASS while Cloudflare FAIL',()=>{
+ const historic=JSON.parse(readFileSync(new URL('../../../docs/operations/ai0-wave1-r001-verified-ci-observation.v1.json',import.meta.url),'utf8'));
+ assert.equal(historic.source_commit,sha);
+ const result=evaluateAi0Wave1Evidence(historic.observation);
+ assert.equal(result.expected_sha,historic.source_commit);
+ assert.equal(result.offline_gate,'verified');
+ assert.equal(result.external_worker_build,'fail');
+ notLive(result);
 });
