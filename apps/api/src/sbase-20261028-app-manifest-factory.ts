@@ -63,11 +63,6 @@ function exact(v:unknown,keys:readonly string[]):Record<string,unknown>|null{
   return o;
  }catch{return null;}
 }
-function uniqueStrings(raw:unknown,pattern:RegExp,max=50):raw is string[]{
- return Array.isArray(raw)&&raw.length<=max&&
- raw.every(x=>typeof x==='string'&&pattern.test(x))&&
- new Set(raw).size===raw.length;
-}
 const reason=(ok:boolean,key:string,list:string[])=>{if(!ok)list.push(key)};
 const BLOCKED=Object.freeze({
  approved:false,may_deploy:false,may_build_native:false,may_sell:false,
