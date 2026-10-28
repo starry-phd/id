@@ -77,7 +77,7 @@ test('W1 missing no-store/nosniff or permissive CORS on response blocked',async(
   {'access-control-allow-origin':'*'}
  ];
  for(const change of changes){
-  const fake=actual(),headers=new Headers(fake.health.headers);
+  const fake=actual(),headers=new Response(null,{headers:fake.health.headers}).headers;
   for(const [key,value] of Object.entries(change))headers.set(key,value);
   fake.health=new Response(await fake.health.text(),{status:200,headers});
   const r=await auditWave1WorkerOpenApiContract(spec,fake);
