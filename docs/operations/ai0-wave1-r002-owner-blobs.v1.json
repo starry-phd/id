@@ -1,0 +1,128 @@
+{
+  "schema_version": "starry.ai0.wave1.r002.immutable-owner-integrated.v1",
+  "created_at": "2026-10-28",
+  "repository": "starry-phd/id",
+  "base_ai0_r001_plus_evidence_sha": "965c5f405c81336109752eb0873a5df90d6f3460",
+  "base_ai0_prs": [
+    191,
+    192
+  ],
+  "description": "Round002 four-owner immutable Git blobs imported on AI0 #192, no owner edits",
+  "owners": [
+    {
+      "owner": "AI-1",
+      "pr": 194,
+      "head": "047ad076e2ad2ecd00563a6b3e4770b74904eea8",
+      "files": [
+        {
+          "path": "modules/starry-id-v1/ADR-WAVE1-ROUND002-SIGNED-AUTH-TO-BILLING-IDENTITY.md",
+          "blob": "db8877d5c9d410635147cb3cef523694a7125859"
+        },
+        {
+          "path": "modules/starry-id-v1/src/wave1-round002-auth-billing-bridge.ts",
+          "blob": "af399af6e324af24fbb8461307d90077111a253c"
+        },
+        {
+          "path": "modules/starry-id-v1/test/wave1-round002-auth-billing-bridge.test.mjs",
+          "blob": "2c5d171519eb48a43c4032618c7eddb7245e7bae"
+        }
+      ]
+    },
+    {
+      "owner": "AI-2",
+      "pr": 193,
+      "head": "f04f6baddc42b0abcd3710d0381508902bfa987c",
+      "files": [
+        {
+          "path": "packages/rebuild-billing/docs/WAVE1-ROUND002-SIGNED-SESSION-BILLING-BRIDGE.md",
+          "blob": "bd490613b1fa3489a05cf65d5388fdd8076f6583"
+        },
+        {
+          "path": "packages/rebuild-billing/src/wave1-r002-signed-auth-billing-bridge.ts",
+          "blob": "eab58fc534bbbec5455cfb67689f58383df1ca3f"
+        },
+        {
+          "path": "packages/rebuild-billing/test/wave1-r002-signed-auth-billing-bridge.test.mjs",
+          "blob": "51dcc005a24ab9663b761ea4831912df163f1385"
+        }
+      ]
+    },
+    {
+      "owner": "AI-3",
+      "pr": 196,
+      "head": "963a7eecedb7e764d65f561efb26f6be15a7f093",
+      "files": [
+        {
+          "path": "packages/rebuild-ai3/docs/WAVE1-ROUND002-P05-AUDIT-RECEIPT-CONTRACT.md",
+          "blob": "229ecfbb32e33a35761903898722b3f1f227b8d3"
+        },
+        {
+          "path": "packages/rebuild-ai3/src/wave1-r002-p05-audit-review.ts",
+          "blob": "dbfd497e7d3cada5b8016445ad4bc6b9a9e9977c"
+        },
+        {
+          "path": "packages/rebuild-ai3/test/wave1-r002-p05-audit-review.test.mjs",
+          "blob": "bee29c6cf59bf5b82ead3df851c7dd196a46a596"
+        }
+      ]
+    },
+    {
+      "owner": "AI-4",
+      "pr": 195,
+      "head": "06de12c7a229e4fd12544442eedd53701ce572a4",
+      "files": [
+        {
+          "path": "apps/api/src/wave1-r002-protected-route-proposal.ts",
+          "blob": "3855b78c6ee855a4cab004277bb0cd2a47536efd"
+        },
+        {
+          "path": "apps/api/test/wave1-r002-protected-route-proposal.test.mjs",
+          "blob": "5a90fdc88691bdc5479a7965db0db761ea3f0f2a"
+        },
+        {
+          "path": "docs/ai/AI4-WAVE1-ROUND002-PROTECTED-OPENAPI-P05-CLOUDFLARE-PROPOSAL.md",
+          "blob": "948401c121d6cef532cf5704935d9ca27a0d9063"
+        }
+      ]
+    }
+  ],
+  "contracts": {
+    "AI1": "starry.auth.billing-identity.r002.v1-offline",
+    "AI2": "starry.billing.wave1.r002.signed-identity-bridge.v1-offline",
+    "AI3": "starry.ai3.p05-receipt.r002.v1-candidate",
+    "AI4": "starry.api.wave1.r002.protected-proposal.v1-offline"
+  },
+  "gate1": {
+    "status": "PARTIAL_BLOCKED",
+    "independently_reviewed_offline_modules": true,
+    "formal_cross_owner_trust_adapter_approved": false,
+    "blockers": [
+      "AI1_TO_AI2_IDENTITY_BRIDGE_VERSION_AND_PER_APP_HMAC_PURPOSE_NOT_RECONCILED",
+      "AI2_STORE_REVENUECAT_TRUSTED_RECEIPTS_AND_SUBSCRIPTION_CYCLE_NOT_VERIFIED",
+      "AI3_CANONICAL_P05_ISSUER_EVENT_BOUND_AUTH_REVOKE_DURABLE_ACK_AND_LEGAL_RETENTION_NOT_WIRED",
+      "AI4_PROTECTED_OPENAPI_ROUTES_ONLY_PROPOSALS_NO_LIVE_API"
+    ]
+  },
+  "gate2": {
+    "status": "PENDING_NEW_INTEGRATED_SHA_CI",
+    "separate_owner_cis_passed": true,
+    "new_integrated_sha_ci_passed": false
+  },
+  "gate3": {
+    "status": "BLOCKED",
+    "release_g00_g10_blocked": 11,
+    "cloudflare_workers_build_failed_on_previous_ai0_sha": true,
+    "ios_android_store_sandbox_verified": false,
+    "production_authorized": false,
+    "main_merge_authorized": false,
+    "new_paid_resource_authorized": false,
+    "consumer_private_monorepo_creation_authorized_now": false,
+    "ads_enabled": false,
+    "battery_can_be_sold": false
+  },
+  "links": {
+    "ai0_r001": "https://github.com/starry-phd/id/pull/191",
+    "ai0_evidence": "https://github.com/starry-phd/id/pull/192",
+    "google_v12": "https://docs.google.com/document/d/1wHBuIJCA1cMhLcI25MR_EYEdgmpXmzXx_D0UlEWHBAQ/edit"
+  }
+}
