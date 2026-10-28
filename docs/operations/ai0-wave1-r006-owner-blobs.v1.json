@@ -1,0 +1,136 @@
+{
+  "schema": "starry.ai0.wave1.r006.four-owner-original-blobs.v1",
+  "repository": "starry-phd/id",
+  "mode": "offline_source_preserving_draft_only",
+  "integration_parent": {
+    "pr": 219,
+    "head_sha": "64f949e4d40277d964f9d4a8c4d33cc442df2c32",
+    "baseline_r005_pr": 214,
+    "baseline_sha": "55b8e31a64b62828dbdeb075f38150f02983fa86"
+  },
+  "canonical_p05": {
+    "version": "starry.p05.canonical.vnext.offline-candidate",
+    "purpose": "p05_delivery_review_only",
+    "wrapper": [
+      "envelope",
+      "mac_hex"
+    ],
+    "field_count": 17,
+    "hmac_domain": "starry.ai0.p05.canonical.vnext.offline:hmac-sha256:v1"
+  },
+  "owners": [
+    {
+      "owner": "AI-1",
+      "pr": 216,
+      "head_sha": "a509b3c8bb63a430487dfbe8e45e67cf4a3ab965",
+      "files": [
+        {
+          "path": "modules/starry-id-v1/ADR-WAVE1-ROUND006-P05-VNEXT-AUTH-ADAPTER.md",
+          "blob_sha": "468d97daa76903987c6e913d0259dd5e2381cb28"
+        },
+        {
+          "path": "modules/starry-id-v1/src/wave1-round006-p05-vnext-auth-adapter.ts",
+          "blob_sha": "6e56b8f5957a326001c78a289dc82c09f26d951e"
+        },
+        {
+          "path": "modules/starry-id-v1/test/wave1-round006-p05-vnext-auth-adapter.test.mjs",
+          "blob_sha": "ef378de87e72365c62d6816577a03dbb3abbe416"
+        }
+      ]
+    },
+    {
+      "owner": "AI-2",
+      "pr": 218,
+      "head_sha": "cb343ce3549cdbb2adc711d1d3f10eca8b1e470a",
+      "files": [
+        {
+          "path": "packages/rebuild-billing/docs/WAVE1-ROUND006-STORE-SIGNATURE-PROVENANCE-AND-P05-GATE.md",
+          "blob_sha": "5c5c925a012cc315e6373619d61a760f4bedfab3"
+        },
+        {
+          "path": "packages/rebuild-billing/src/wave1-r006-synthetic-store-provenance.ts",
+          "blob_sha": "d64a655ce4713035a8e590f6e93c65f30f7c7eae"
+        },
+        {
+          "path": "packages/rebuild-billing/test/wave1-r006-synthetic-store-provenance.test.mjs",
+          "blob_sha": "591121ae4e60e17d184833d82f01f04e821e8af0"
+        }
+      ]
+    },
+    {
+      "owner": "AI-3",
+      "pr": 217,
+      "head_sha": "57cafd145cd49a048caeed4f83842ed3504ce569",
+      "files": [
+        {
+          "path": "packages/rebuild-ai3/docs/WAVE1-ROUND006-P05-VNEXT-SQLITE-REVIEW.md",
+          "blob_sha": "227f172c7cf8af855ba0bc59cfbcd3607344a639"
+        },
+        {
+          "path": "packages/rebuild-ai3/src/wave1_r006_p05_vnext_sqlite_review.py",
+          "blob_sha": "cf0c73495ff3c93c04be4b776adba7be9c3b981c"
+        },
+        {
+          "path": "packages/rebuild-ai3/test/test_round006_p05_vnext_sqlite.py",
+          "blob_sha": "f868e09bdbdadee4369d614140bec67044ff79bb"
+        }
+      ]
+    },
+    {
+      "owner": "AI-4",
+      "pr": 215,
+      "head_sha": "3f8695e84a6e80fe0412b30521dabba6164b754e",
+      "files": [
+        {
+          "path": "apps/api/src/wave1-r006-p05-vnext-error-only.ts",
+          "blob_sha": "fb0df10d3018ef83381c1c445b3137abf6eda3ea"
+        },
+        {
+          "path": "apps/api/test/wave1-r006-p05-vnext-error-only.test.mjs",
+          "blob_sha": "eb2fa38fbdb11ad61387da74ef215c6792c88043"
+        },
+        {
+          "path": "docs/ai/AI4-WAVE1-ROUND006-P05-VNEXT-ADMOB-CLOUDFLARE-RCA-HANDOFF.md",
+          "blob_sha": "a32ba0afbf7f93394199c568162dc8ec257b7ca5"
+        }
+      ]
+    }
+  ],
+  "gate1": {
+    "status": "PARTIAL_BLOCKED",
+    "causes": [
+      "official issuer/KMS and current Auth session",
+      "Q104/Q119/#87 policy and physical cross-D1 CAS",
+      "independent durable anti-PITR witness, commit-before-Queue ACK",
+      "official Store/RevenueCat and protected Worker approvals"
+    ]
+  },
+  "gate2": {
+    "status": "PENDING_EXACT_INTEGRATION_SHA_CI",
+    "offline_only": true
+  },
+  "gate3": {
+    "status": "BLOCKED",
+    "g00_g10_blocked": 11,
+    "p05_publishable": false,
+    "release_authorization_granted": false
+  },
+  "cloudflare_external": {
+    "status": "UNRESOLVED_EXTERNAL_FAILURE",
+    "reference_pr": 219,
+    "reference_check": "https://github.com/starry-phd/id/runs/122964065187",
+    "evidence": "npx wrangler preview missing previews block; root command config-path mismatch risk; no repair authorization"
+  },
+  "restrictions": {
+    "main_merge": false,
+    "preview_deploy": false,
+    "staging_deploy": false,
+    "production_deploy": false,
+    "actual_store": false,
+    "real_d1_queue": false,
+    "admob_ads": false,
+    "battery_sale": false,
+    "paid_resources": false,
+    "hglobal_development": false
+  }
+}
