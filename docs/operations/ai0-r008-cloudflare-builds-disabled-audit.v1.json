@@ -1,0 +1,58 @@
+{
+  "schema_version": "starry.ai0.cloudflare-builds-r008-offline-governance.v1",
+  "observed_on_utc_date": "2026-10-28",
+  "record_kind": "HISTORICAL_SNAPSHOT_NOT_A_LIVE_CLOUDFLARE_QUERY",
+  "user_authorized_change": "Disable only id-starry Worker automatic Preview Builds; keep existing production auto builds disabled",
+  "cloudflare": {
+    "connection": "starry.phd",
+    "worker_name": "id-starry",
+    "git_repository": "starry-phd/id",
+    "production_branch": "main",
+    "observed_after_patch": {
+      "previews_enabled": false,
+      "auto_build_enabled": false,
+      "production_deploy_command": "npx wrangler deploy",
+      "production_root_directory": "/",
+      "preview_command": "npx wrangler preview",
+      "preview_root_directory": "/"
+    },
+    "write_operation": "PATCH previews_enabled=false only",
+    "patch_result": "HTTP_200_SUCCESS_POST_PATCH_GET_VERIFIED",
+    "no_deploy_api_called": true
+  },
+  "source": {
+    "r007_offline_integrated_head_sha": "766ee89cc9991d8c17c6f610e6bdbbdb4aa78172",
+    "cloudflare_r007_build_uuid": "a5d6e3a0-4319-4fb5-9db1-45f2a7d3fe7c",
+    "cloudflare_r007_external_check": "https://github.com/starry-phd/id/runs/122989662357",
+    "cloudflare_r007_build_result": "FAIL_MISSING_PREVIEWS_BLOCK",
+    "github_r007_same_sha_offline_result": "PASS",
+    "github_r007_full_offline_run": "https://github.com/starry-phd/id/actions/runs/40737406227"
+  },
+  "phase2": {
+    "previews_reenabled": false,
+    "preview_deploy_authorized": false,
+    "production_auto_build_authorized": false,
+    "production_deploy_authorized": false,
+    "preview_bindings_authorized": false,
+    "live_d1_authorized": false,
+    "live_queue_authorized": false,
+    "store_authorized": false,
+    "paid_resource_authorized": false,
+    "ads_authorized": false,
+    "hglobal_authorized": false,
+    "access_exposure_review_completed": false,
+    "cost_review_completed": false
+  },
+  "gates": {
+    "gate1": "PARTIAL_BLOCKED",
+    "gate2": "R007_EXACT_SHA_OFFLINE_PASS",
+    "gate3": "BLOCKED_11_OF_11",
+    "p05_publishable": false,
+    "release_authorization_granted": false
+  },
+  "references": [
+    "https://developers.cloudflare.com/workers/ci-cd/builds/build-branches/",
+    "https://developers.cloudflare.com/workers/previews/configuration/",
+    "https://developers.cloudflare.com/workers/previews/resources/"
+  ]
+}
