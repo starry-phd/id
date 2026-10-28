@@ -35,10 +35,10 @@ function fixture(options={}){
   enabled:options.enabled??true,r006,
   readCurrentActorSession:async()=>{
    authReads++;if(options.authError)throw Error('offline mock failure');
-   return options.snapshots?.[authReads-1]??snapshot();
+   return options.snapshots&&authReads<=options.snapshots.length?options.snapshots[authReads-1]:snapshot();
   },
   readCurrentIssuerLease:async()=>{
-   keyReads++;return options.leases?.[keyReads-1]??lease();
+   keyReads++;return options.leases&&keyReads<=options.leases.length?options.leases[keyReads-1]:lease();
   }
  });
  return {port,get reads(){return {authReads,keyReads,r006Reads};}};
