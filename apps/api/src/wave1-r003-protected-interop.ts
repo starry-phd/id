@@ -129,6 +129,29 @@ function exactOwnData(raw: unknown, keys: readonly string[]):
   }
 }
 
+/** Copy array entries by own data descriptors; do not run accessor code. */
+function safeStageArray(raw: unknown): string[] | null {
+  try {
+    if (!Array.isArray(raw) || Object.getPrototypeOf(raw) !== Array.prototype)
+      return null;
+    const len = Object.getOwnPropertyDescriptor(raw, 'length');
+    if (!len || !('value' in len) || typeof len.value !== 'number' ||
+      len.value > R003_P05_ORDER.length) return null;
+    const keys = Reflect.ownKeys(raw);
+    if (keys.length !== len.value + 1) return null;
+    const copy: string[] = [];
+    for (let i = 0; i < len.value; i++) {
+      const d = Object.getOwnPropertyDescriptor(raw, String(i));
+      if (!d || !d.enumerable || !('value' in d) ||
+        typeof d.value !== 'string') return null;
+      copy.push(d.value);
+    }
+    return copy;
+  } catch {
+    return null;
+  }
+}
+
 /** Review a deliberately UNTRUSTED description of order, not the evidence
  * itself. No future port is invoked here. Even every stage in order cannot
  * authorize a Queue ACK or imply actual physical D1 / independent witness.
@@ -147,16 +170,18 @@ export function reviewR003QueueSequence(raw: unknown): R003Review {
     return denial('SCOPE_DENIED');
   if (!/^[A-Za-z0-9._:-]{8,128}$/.test(x.event_ref) ||
     !/^[A-Za-z0-9._:-]{8,128}$/.test(x.actor_ref)) return denial('INVALID_TRACE');
-  const stages = x.stages as unknown[];
+  const stages = safeStageArray(x.stages);
+  if (!stages) return denial('INVALID_TRACE');
   if (stages.length > R003_P05_ORDER.length ||
     stages.some(s => typeof s !== 'string' ||
       !(R003_P05_ORDER as readonly string[]).includes(s)))
     return denial('INVALID_TRACE');
   if (new Set(stages).size !== stages.length ||
     stages.some((stage, i) => stage !== R003_P05_ORDER[i]))
-    return denial(stages.includes('queue-ack') &&
-      stages.indexOf('commit-confirmed') > stages.indexOf('queue-ack')
-        ? 'PREMATURE_QUEUE_ACK' : 'DUPLICATE_OR_REORDERED_STAGE', stages.length);
+    const ack = stages.indexOf('queue-ack');
+    const commit = stages.indexOf('commit-confirmed');
+    return denial(ack >= 0 && (commit < 0 || commit > ack)
+      ? 'PREMATURE_QUEUE_ACK' : 'DUPLICATE_OR_REORDERED_STAGE', stages.length);
   if (stages.length < R003_P05_ORDER.length)
     return denial('UNVERIFIED_CANONICAL_AUTHORITY', stages.length);
   // This string array is supplied by an untrusted caller, not by cryptographic
