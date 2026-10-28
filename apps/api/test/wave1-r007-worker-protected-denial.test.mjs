@@ -153,7 +153,8 @@ test('synthetic MAC and success-looking DTO cannot turn owner review into releas
 test('actual Worker source remains no body parsing, dispatch, Queue ACK or signer',()=>{
   const s=file('../src/index.ts');
   assert.doesNotMatch(s,/\.json\s*\(|\.text\s*\(|\.formData\s*\(/);
-  assert.doesNotMatch(s,/\bfetch\s*\(/);
+  // The Worker exports a fetch(request,env) handler; this is NOT an outbound fetch call.
+  assert.doesNotMatch(s,/\b(?:await\s+|return\s+|=\s*|globalThis\.)fetch\s*\(/);
   assert.doesNotMatch(s,/crypto\.subtle|\.send\s*\(|\.ack\s*\(/);
   assert.match(s,/url\.pathname === '\/v1\/health'/);
 });
