@@ -151,7 +151,7 @@ test('frozen denial cannot be turned into Preview publish permission',()=>{
  const result=reviewR008PreviewProposal(candidate());
  assert.equal(result.may_reenable_preview,false);
  assert.equal(result.may_deploy,false);
- assert.equal(R008_LIMITS.previews_enabled,false);
+ assert.equal(R008_LIMITS.preview_builds_enabled,false);
  assert.equal(R008_LIMITS.production_auto_builds_enabled,false);
  assert.equal(R008_LIMITS.ads_enabled,false);
  assert.equal(R008_LIMITS.release_authorized,false);
