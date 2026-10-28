@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { URL } from 'node:url';
 import { buildReviewQueue, loadReviewQueue } from '../../../docs/requirements/ai0-w1-review-queue.mjs';
 
 const directory = new URL('../../../docs/requirements/', import.meta.url);
