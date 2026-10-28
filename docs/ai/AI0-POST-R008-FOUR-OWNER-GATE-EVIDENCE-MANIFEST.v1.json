@@ -153,9 +153,27 @@
       "id": "D06",
       "owner": "product owner/AI-0 + all owners",
       "topic": "G06 P05 authoritative version: 11 core + conditional idempotency key versus unenumerated 13-field release gate versus offline 17-field candidate",
-      "status": "OWNER_CONTRACT_DECISION_REQUIRED",
+      "status": "OWNER_DIRECTION_A_LAYERED_P05_APPROVED",
       "prerequisites": [
         "D00"
+      ],
+      "approved_direction": "A_BUSINESS_EVENT_CORE_PLUS_INDEPENDENT_SECURITY_DELIVERY_ENVELOPE",
+      "owner_decision_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6478960617",
+      "owner_decision_document": "docs/adr/AI0-D06-P05-LAYERED-EVENT-SECURITY-OWNER-DECISION-20261029.md",
+      "contract_final_schema_approved": false,
+      "event_layer_existing_core_field_count": 11,
+      "event_layer_conditional_field": "idempotency_key",
+      "unresolved_g06_13_field_authority": true,
+      "r006_17_field_candidate_promoted_to_live": false,
+      "p05_publishable": false,
+      "gate_status": "BLOCKED",
+      "implementation_and_live_resource_authorized": false,
+      "remaining_design_review": [
+        "Finalize two layer schema identifiers, versioning, signed serialization and compatibility",
+        "Reconcile G06 unenumerated 13-field authority without guessing the 13th field",
+        "Define event-specific required/optional fields and trust/PII minimization",
+        "Map D87 authoritative committed outbox to durable inbox/ACK under domain owners",
+        "Obtain explicit test-stage resource, cost, safety and legal authorizations"
       ]
     },
     {
@@ -249,6 +267,21 @@
       "deploy_approved": false,
       "issue_comment_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6478861308",
       "decision_adr_path": "docs/adr/AI0-D87-STARRY-SINGLE-TRANSACTION-AUTHORITY-OWNER-DECISION-20261029.md"
+    },
+    "D06": {
+      "date_taiwan": "2026-10-29",
+      "scope": "Starry centralized membership only",
+      "selected_direction": "A_BUSINESS_EVENT_CORE_PLUS_INDEPENDENT_SECURITY_DELIVERY_ENVELOPE",
+      "approved_direction": true,
+      "final_schema_approved": false,
+      "g06_13_fields_reconciled": false,
+      "real_p05_test_approved": false,
+      "resource_creation_approved": false,
+      "paid_usage_approved": false,
+      "main_merge_approved": false,
+      "deploy_approved": false,
+      "issue_comment_url": "https://github.com/starry-phd/id/issues/1#issuecomment-6478960617",
+      "decision_adr_path": "docs/adr/AI0-D06-P05-LAYERED-EVENT-SECURITY-OWNER-DECISION-20261029.md"
     }
   }
 }
