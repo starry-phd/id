@@ -1,0 +1,97 @@
+{
+  "schema_version": "starry.ai0.d02-owner-decision.v1",
+  "decision_id": "D-02",
+  "decision_date": "2026-10-28",
+  "record_source": "Owner's explicit approval in ChatGPT conversation on 2026-10-28; also to be mirrored in GitHub Issue #156/#158/#1",
+  "owner_exact_choice": "D-02 我正式選擇方案 A。請記錄到 GitHub，說明這項架構決議的實施範圍，接著繼續下一題。",
+  "status": "OWNER_APPROVED_ARCHITECTURE_NOT_IMPLEMENTED",
+  "selected_option": "A",
+  "first_phase_architecture": "ONE_NEW_PRIVATE_STARRY_MULTI_APP_MONOREPO",
+  "current_central_repository": {
+    "name": "starry-phd/id",
+    "access": "PUBLIC_UNCHANGED",
+    "central_auth_writer_remains_separate": true,
+    "central_billing_writer_remains_separate": true,
+    "central_free_battery_writer_remains_separate": true
+  },
+  "business_context": {
+    "first_cohort_expected_app_count": 10,
+    "long_term_capacity_min": 30,
+    "long_term_capacity_max": 50,
+    "approved_product_count_from_decision": 0
+  },
+  "shared_services": [
+    "versioned_AuthClient_to_central_Starry_ID",
+    "versioned_BatteryClient_to_central_free_Starry_Battery",
+    "versioned_BillingClient_contract_to_official_Billing_owner",
+    "versioned_OpenAPI_contract"
+  ],
+  "app_specific_isolation": [
+    "app_id",
+    "ios.bundle_id",
+    "android.application_id",
+    "store_listing",
+    "store_sku",
+    "subscription",
+    "ads_unit_id",
+    "app_content",
+    "release_version",
+    "environment",
+    "secrets",
+    "privacy_review"
+  ],
+  "future_repo_impl_candidates": [
+    "pnpm workspaces",
+    "Turborepo",
+    "Expo Router+React Native+TypeScript after D-01 native PoC",
+    "App Factory+per-App Manifest+CI"
+  ],
+  "prohibited_behavior": [
+    "direct_central_D1_access_from_apps",
+    "duplicate_central_auth_billing_battery_writers",
+    "cross_app_entitlement_grant_without_D07",
+    "commercialize_free_Battery",
+    "commit_secrets",
+    "force_migrate_existing_apps",
+    "auto_deploy_all_apps",
+    "use_public_id_repo_for_private_app_code"
+  ],
+  "implementation_requires_approval": [
+    "private_repo_exact_owner_and_name",
+    "repo_creation",
+    "repo_acl_and_secret_management",
+    "GitHub_Actions_or_package_costs",
+    "native_build_and_sdk_migration",
+    "Cloudflare_Staging_resource_creation",
+    "production_deploy",
+    "store_submission",
+    "paid_services"
+  ],
+  "revisit_signals_advisory_not_hard_limits": [
+    "number_of_apps_approaches_25",
+    "PR_CI_p95_exceeds_25_minutes",
+    "native_dependency_version_drift",
+    "App_level_access_or_sale_requirements",
+    "observed_size_or_cost_constraints"
+  ],
+  "previous_candidate_C_policy": "SUPERSEDED_AS_RECOMMENDATION_NOT_DELETED_AS_HISTORY",
+  "pending_other_decisions": [
+    "D-01",
+    "D-03",
+    "D-04",
+    "D-05",
+    "D-06",
+    "D-07",
+    "D-08",
+    "cross_D1_87",
+    "P05_signer",
+    "Q104_Q119_retention"
+  ],
+  "actual_private_repo_created": false,
+  "actual_app_approved_by_this_decision": false,
+  "release_authorization_granted": false,
+  "new_cost_authorized": false,
+  "actual_staging_created": false,
+  "central_release_gates_blocked": 11,
+  "note": "Architecture selection A is binding. Implementation and real infra are separately authorized decisions; SBASE v1.0 technology stack remains candidate until native tests."
+}
