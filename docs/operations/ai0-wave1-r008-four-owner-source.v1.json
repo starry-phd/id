@@ -1,0 +1,87 @@
+{
+  "version": "ai0.r008.four-owner.source.v1",
+  "parent_sha": "e815561a2d6549da792df59190f7bb727bd5c9ce",
+  "owners": [
+    {
+      "id": "AI-1",
+      "pr": 231,
+      "head": "d668add2153bae35ec89c55786d368718bdf61f6",
+      "files": [
+        {
+          "path": "modules/starry-id-v1/ADR-WAVE1-ROUND008-AUTH-MONOTONIC-CAS.md",
+          "sha": "f559a91df27834826ed9d244071555031816fec7"
+        },
+        {
+          "path": "modules/starry-id-v1/src/wave1-round008-auth-session-monotonic-cas.ts",
+          "sha": "3756588340581aec7ec1ea496a5746f0fbe19f03"
+        },
+        {
+          "path": "modules/starry-id-v1/test/wave1-round008-auth-session-monotonic-cas.test.mjs",
+          "sha": "3a2b3b43c869c5bcfc9e273f73b6ef007b74e448"
+        }
+      ]
+    },
+    {
+      "id": "AI-2",
+      "pr": 228,
+      "head": "70b12ae7722ca7f9f4b3e975a5e43416a3ea2c5b",
+      "files": [
+        {
+          "path": "packages/rebuild-billing/docs/WAVE1-R008-CROSS-PROVIDER-CONFLICT-DENY-MATRIX.md",
+          "sha": "ba82a871a78ebef383da2777d86770b55c635c07"
+        },
+        {
+          "path": "packages/rebuild-billing/src/wave1-r008-cross-provider-conflict-deny.ts",
+          "sha": "85cbb2f6fca4c93d08dca05830e4a5ed78b95ef3"
+        },
+        {
+          "path": "packages/rebuild-billing/test/wave1-r008-cross-provider-conflict-deny.test.mjs",
+          "sha": "05fca79fe780ccf5a84fedc1fb8cce6da7d27892"
+        }
+      ]
+    },
+    {
+      "id": "AI-3",
+      "pr": 232,
+      "head": "46ea40cba9074c2d8bca76a0916428b974d643f5",
+      "files": [
+        {
+          "path": "packages/rebuild-ai3/docs/WAVE1-ROUND008-P05-P06-ERASURE-FAILURE-ORDER.md",
+          "sha": "ebd13c03a032aea314f8def5eefdfaf6699aac80"
+        },
+        {
+          "path": "packages/rebuild-ai3/src/wave1_r008_p05_p06_failure_order.py",
+          "sha": "4f8566bce9feb7da4c592a98d05ad6ecf74907c3"
+        },
+        {
+          "path": "packages/rebuild-ai3/test/test_round008_p05_p06_failure_order.py",
+          "sha": "271a31823b42b1f60a3bb465e64ded8abdf81fb0"
+        }
+      ]
+    },
+    {
+      "id": "AI-4",
+      "pr": 229,
+      "head": "faa29e2efb179f413a167933b22b92cbe0df9334",
+      "files": [
+        {
+          "path": "apps/api/src/wave1-r008-preview-isolation-preflight.ts",
+          "sha": "ee3761bd095319e050f19e0fb2539fa08c4bc122"
+        },
+        {
+          "path": "apps/api/test/wave1-r008-preview-isolation-preflight.test.mjs",
+          "sha": "1aadab2f1cdd427391c74f36f6845a1d14fd7011"
+        },
+        {
+          "path": "docs/operations/AI4-WAVE1-R008-CLOUDFLARE-STAGE2-ISOLATION-PREFLIGHT.md",
+          "sha": "d385d4f70bb716cc23880589805ade43687c9bc1"
+        }
+      ]
+    }
+  ],
+  "stage": "CANDIDATE_PENDING_NEW_CI",
+  "release": "BLOCKED_11_GATES",
+  "p05_live": false,
+  "ads_enabled": false,
+  "battery_paid": false
+}

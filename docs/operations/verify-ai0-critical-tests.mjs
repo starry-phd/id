@@ -38,7 +38,8 @@ const required=[
  'packages/integration/test/ai0-wave1-r007-four-owner-cross-checkout-gate.test.mjs',
  'packages/integration/test/ai0-r008-cloudflare-preview-disabled-offline-gate.test.mjs',
  'packages/integration/test/ai0-r008-two-owner-partial-cross-checkout-gate.test.mjs',
- 'packages/integration/test/ai0-r008-cross-domain-legacy-bridge-denial.test.mjs'
+ 'packages/integration/test/ai0-r008-cross-domain-legacy-bridge-denial.test.mjs',
+ 'packages/integration/test/ai0-r008-four-owner-full-cross-checkout-gate.test.mjs'
 ];
 for(const p of required){
  const path=join(root,p);
