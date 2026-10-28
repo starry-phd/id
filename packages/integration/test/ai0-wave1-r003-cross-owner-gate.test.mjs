@@ -24,7 +24,7 @@ test('AI-0 R003 4 owner x 3 files are immutable original Git blob bytes',()=>{
   for(const f of o.files){
    assert.equal(seen.has(f.path),false,f.path);seen.add(f.path);
    const b=read(f.path);
-   const sha=createHash('sha1').update(Buffer.from('blob '+b.length+'\\0')).update(b).digest('hex');
+   const sha=createHash('sha1').update(Buffer.from('blob '+b.length+'\0')).update(b).digest('hex');
    assert.equal(sha,f.blob_sha,f.path);
   }
  }
