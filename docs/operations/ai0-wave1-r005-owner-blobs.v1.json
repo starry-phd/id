@@ -1,0 +1,131 @@
+{
+  "schema_version": "starry.ai0.wave1.r005.four-owner-immutable-integration.v1",
+  "date": "2026-10-28",
+  "repository": "starry-phd/id",
+  "source": {
+    "ai0_independent_candidate_pr": 211,
+    "base_sha": "86b0c66a62810ae1bff724054ec66e70e933cce5",
+    "ai0_offline_p05_hmac_and_ci_guard_included": true
+  },
+  "owners": [
+    {
+      "owner": "AI-1",
+      "pr": 210,
+      "head_sha": "ceb74c0dab7aba3fea4195a689121c05ae5fcb17",
+      "files": [
+        {
+          "path": "modules/starry-id-v1/ADR-WAVE1-ROUND005-SEALED-EVENT-SESSION-AUTHORITY.md",
+          "blob_sha": "6e23c0e949282975b486930e12e4dee3203d49b9"
+        },
+        {
+          "path": "modules/starry-id-v1/src/wave1-round005-sealed-event-session-authority.ts",
+          "blob_sha": "cc5e047805909317fb1cb6d2d70df5707038c08f"
+        },
+        {
+          "path": "modules/starry-id-v1/test/wave1-round005-sealed-event-session-authority.test.mjs",
+          "blob_sha": "289bf3f374fd6ac46ded8db0eff5b0a3d786f353"
+        }
+      ]
+    },
+    {
+      "owner": "AI-2",
+      "pr": 213,
+      "head_sha": "71f12c50c576cd3ec9aef7b66ad50913b1c19c5e",
+      "files": [
+        {
+          "path": "packages/rebuild-billing/docs/WAVE1-ROUND005-REAL-AUTH-CROSS-OS-SANDBOX-MATRIX.md",
+          "blob_sha": "09d5cb488b79630bc0e7acfaf0ed1859d9cb2c09"
+        },
+        {
+          "path": "packages/rebuild-billing/src/wave1-r005-cross-os-signed-auth-review.ts",
+          "blob_sha": "7b8ee1b2bbf1539696b2e01dc367bfe88f489c52"
+        },
+        {
+          "path": "packages/rebuild-billing/test/wave1-r005-cross-os-signed-auth-review.test.mjs",
+          "blob_sha": "254e2f653a7ffb16b39857f4106925f86e248b16"
+        }
+      ]
+    },
+    {
+      "owner": "AI-3",
+      "pr": 212,
+      "head_sha": "ad4930a11e22931f2607820d93b36a0771326905",
+      "files": [
+        {
+          "path": "packages/rebuild-ai3/docs/WAVE1-ROUND005-P05-SQLITE-CAS-ANTI-PITR-OFFLINE.md",
+          "blob_sha": "afaa7b3062d91fd695b2acbfecb23bc095ee8dc7"
+        },
+        {
+          "path": "packages/rebuild-ai3/src/wave1_r005_p05_sqlite_cas.py",
+          "blob_sha": "f7723cbfe6bfcb67be383ac998c9aa5d85e917e7"
+        },
+        {
+          "path": "packages/rebuild-ai3/test/test_round005_p05_receipt_sqlite.py",
+          "blob_sha": "b29cc4496de313df770ec77ecae73e80a66b6868"
+        }
+      ]
+    },
+    {
+      "owner": "AI-4",
+      "pr": 209,
+      "head_sha": "fba336e33d8a534af5b0b2406152744915c57341",
+      "files": [
+        {
+          "path": "apps/api/src/wave1-r005-admob-native-consent-gate.ts",
+          "blob_sha": "f811c65b2c0da35f937c34201a3636db6927777e"
+        },
+        {
+          "path": "apps/api/test/wave1-r005-admob-native-consent-gate.test.mjs",
+          "blob_sha": "3625755247173d69d8b5a5e32f5c63643dabbe33"
+        },
+        {
+          "path": "docs/ai/AI4-WAVE1-ROUND005-ADMOB-NATIVE-PROTECTED-CLOUDFLARE-HANDOFF.md",
+          "blob_sha": "2ab73ad8a162eb41757c7b222116639813d33799"
+        }
+      ]
+    }
+  ],
+  "contracts": {
+    "ai0_p05": "starry.ai0.p05.canonical-hmac.r005.offline-proposal",
+    "ai1_p05": "starry.auth.p05-envelope-r005.v1-offline-candidate",
+    "ai2": "starry.billing.r005.cross-os-signed-auth-review.v1-candidate",
+    "ai3": "starry.ai3.p05.sqlite-cas-recovery.r005.v1-offline-candidate",
+    "ai4": "starry.ai4.r005.admob-native-consent-protected.v1-offline"
+  },
+  "gate1": {
+    "state": "PARTIAL_BLOCKED",
+    "blocks": [
+      "AI0_AI1_P05_CANONICAL_DIALECT_MISMATCH_INPUT_SCHEMA_DOMAIN_SEPARATION",
+      "UNAPPROVED_SINGLE_P05_ISSUER_KEY_CUSTODY_AND_CURRENT_ACTOR_SESSION_VERSION",
+      "AI2_NO_REAL_SIGNED_STORE_REVENUECAT_RECEIPTS_OR_DURABLE_RIGHTS",
+      "AI3_SQLITE_SECOND_MEMORY_CONNECTION_NOT_REAL_INDEPENDENT_ANTI_PITR_WITNESS_OR_D1_QUEUE",
+      "AI4_ADMOB_NATIVE_UMP_ATT_SYNTHETIC_UNAUTHORIZED_SDK_OR_AD_REQUEST",
+      "Q104_Q119_AND_R87_LEGAL_AND_CROSS_DB_OWNER_DECISIONS_OPEN"
+    ]
+  },
+  "gate2": {
+    "state": "PENDING_INTEGRATED_HEAD_CI",
+    "same_sha_verified": false,
+    "owner_pr_individual_ci_success": true
+  },
+  "gate3": {
+    "state": "BLOCKED",
+    "g00_g10": 11,
+    "main_merge": false,
+    "deploy": false,
+    "store": false,
+    "paid_resources": false,
+    "ads_on": false,
+    "p05_publishable": false,
+    "external_cloudflare_verified": false
+  },
+  "admob": {
+    "Q4": "A",
+    "provider": "Google AdMob Mediation",
+    "ads_off": true
+  },
+  "battery": {
+    "free": true,
+    "purchasable": false
+  }
+}
