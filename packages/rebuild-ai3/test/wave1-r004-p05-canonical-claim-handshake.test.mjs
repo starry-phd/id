@@ -118,7 +118,7 @@ test('CAS missing/incorrect, out of order revision and replay idempotency deny',
   x=>x.receipt.cas_state='pending',x=>x.receipt.claim_revision=0,
   x=>x.receipt.idempotency_key='replayed_other',
   x=>x.receipt.event_digest='b'.repeat(64),
-  x=>x.receipt.claim_ref='different']){
+  x=>x.receipt.claim_ref='']){
   const x=evidence();mutate(x);const r=review(x);
   assert.equal(r.reason,'RECEIPT_OR_CAS_PENDING');noRights(r);
  }
