@@ -35,7 +35,8 @@ FIELDS = (
 )
 ALLOWED = frozenset(("notification.delivery.queued", "identity.session.revoked",
                      "identity.member.deleted", "privacy.erasure.requested"))
-IDENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$")
+IDENT = re.compile(r"^[A-Za-z0-9._:-]{8,128}$")
+APP = re.compile(r"^[A-Za-z0-9._:-]{3,100}$")
 KID = re.compile(r"^[a-z0-9][a-z0-9._-]{2,63}$")
 NONCE = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
 HEX = re.compile(r"^[a-f0-9]{64}$")
@@ -77,17 +78,18 @@ def _deny(reason: str, local: bool = False) -> Decision:
 
 
 def _parse(raw: object, scope: object, now: object):
-    # EXACT order matters for the agreed AI-0 domain/JSON.stringify proposal;
-    # this module intentionally does NOT calculate or verify HMAC bytes.
-    if type(raw) is not dict or tuple(raw) != ("envelope", "mac_hex"):
+    # AI-0 source #219 accepts own keys in any input insertion order and
+    # canonicalizes VALUES in fixed FIELDS order; do not confuse those.
+    # This module intentionally does NOT calculate or verify HMAC bytes.
+    if type(raw) is not dict or len(raw) != 2 or set(raw) != {"envelope", "mac_hex"}:
         return None, "INVALID_WRAPPER"
     env = raw["envelope"]
-    if type(env) is not dict or tuple(env) != FIELDS:
+    if type(env) is not dict or len(env) != len(FIELDS) or set(env) != set(FIELDS):
         return None, "INVALID_17_KEY_ORDER"
     mac = raw["mac_hex"]
     if type(mac) is not str or not HEX.fullmatch(mac):
         return None, "UNVERIFIED_MAC_SHAPE"
-    if type(scope) is not dict or tuple(scope) != ("brand_id", "app_id", "environment"):
+    if type(scope) is not dict or len(scope) != 3 or set(scope) != {"brand_id", "app_id", "environment"}:
         return None, "INVALID_SCOPE"
     if scope["brand_id"] != "starry" or scope["environment"] not in ("development", "staging"):
         return None, "INVALID_SCOPE"
@@ -102,8 +104,8 @@ def _parse(raw: object, scope: object, now: object):
         return None, "CROSS_SCOPE"
     if env["event_type"] not in ALLOWED:
         return None, "UNAPPROVED_EVENT"
-    if not all(IDENT.fullmatch(env[k]) for k in (
-        "app_id", "event_id", "actor_ref", "idempotency_key")):
+    if not APP.fullmatch(env["app_id"]) or not all(IDENT.fullmatch(env[k]) for k in (
+        "event_id", "actor_ref", "idempotency_key")):
         return None, "INVALID_IDENTIFIER"
     if not KID.fullmatch(env["issuer_kid"]) or not NONCE.fullmatch(env["nonce"]):
         return None, "INVALID_ISSUER_OR_NONCE"
@@ -112,7 +114,7 @@ def _parse(raw: object, scope: object, now: object):
     if (not _integer(env["auth_version"], 1) or
         not _integer(env["session_version"]) or
         not _integer(env["issuer_epoch"], 1) or
-        not _integer(env["issued_at"]) or not _integer(env["expires_at"]) or
+        not _integer(env["issued_at"], 1) or not _integer(env["expires_at"]) or
         not _integer(now)):
         return None, "INVALID_INTEGER"
     if not (env["issued_at"] < env["expires_at"] <= env["issued_at"] + 120):
@@ -123,11 +125,11 @@ def _parse(raw: object, scope: object, now: object):
 
 
 def proposed_domain_values(raw: object) -> tuple | None:
-    """DATA ONLY: the AI-0 18-element [domain,...17 values] proposal, no MAC."""
-    if type(raw) is not dict or tuple(raw) != ("envelope", "mac_hex"):
+    """DATA ONLY: AI-0 18-element [domain,...17 FIELD-ORDER values], no MAC."""
+    if type(raw) is not dict or len(raw) != 2 or set(raw) != {"envelope", "mac_hex"}:
         return None
     e = raw["envelope"]
-    if type(e) is not dict or tuple(e) != FIELDS:
+    if type(e) is not dict or len(e) != len(FIELDS) or set(e) != set(FIELDS):
         return None
     return (DOMAIN, *(e[k] for k in FIELDS))
 
