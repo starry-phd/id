@@ -3,6 +3,16 @@
 > GitHub Owner: `starry-phd`; personal administrator: `yukidu`.
 > 狀態：全新開發；此檔是工程分工規則，不代表五個 AI 已自行啟動，也不是任何功能完成、CI 通過或 Production 上線的證明。
 
+## 現行優先規範｜2026-10-29 整合版 v1.0 / 流程 v3.0
+
+依業主本次授權，後續未完成工作採[最新開發技術規範](https://docs.google.com/document/d/1urLja9i9A63jHuz4jQPhPMTgoCtoq-i1TafXPQd3PYU)。本節及[工程落實規則](docs/ai/OPTIMIZED-DEVELOPMENT.md)取代下文衝突的歷史啟動、分工和重複核准敘述；其餘已核准需求保留。GitHub #220 是最新工程進度入口。
+
+- 一個垂直切片、一位主責實作者、一個主 PR；最多兩個相互獨立切片。其他 Owner 按領域審查，不強制四份平行實作與永久三層來源提升。
+- AI-0 已獲必要合併／部署操作授權，仍須具體範圍、驗收及各環境准入；授權不等於驗收通過，不反覆詢問已批准事項。
+- Issue 留言不會啟動其他對話；分別記錄已派工、實際啟動、已交付與已驗收。不購買付費背景 Agent。
+- 合併、staging、production、商店發布分別驗收；main/tag 不自動部署。保留正式發布封鎖，guard 透過受審 PR 演進。
+- 僅中央會員系統；H-Global／繁星回聲不介入，Battery 免費、Ads OFF。未核准費用或新真資源不自行建立。
+
 ## 2026-10-26 第一波正式開發啟動｜舊帳號 starryphp 棄用
 - **業主已授權正式開始 Starry 第一波開發**。GitHub 個人管理帳號為 `yukidu`，已核實組織 `starry-phd`、唯一 Repo `starry-phd/id`。口語的 `starry/id` 尚無有效 GitHub Repo（404），不能自行改成該 remote。
 - **舊 GitHub ID `starryphp` 已封鎖並由業主捨棄**，不得作為 Repo owner、Remote、Secrets、部署或工作交接來源；不可嘗試登入或恢復舊帳號。

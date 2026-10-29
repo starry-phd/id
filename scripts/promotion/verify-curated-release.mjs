@@ -89,6 +89,8 @@ for(const item of finalW3Allowed){
 }
 allowed.add('docs/operations/AI4-W3-FINAL-PROMOTION-CLOSURE.v1.json');
 allowed.add('scripts/promotion/w3-final-source-closure.test.mjs');
+// GOV v1.0: one reviewed documentation path; no runtime allowlist expansion.
+allowed.add('docs/ai/OPTIMIZED-DEVELOPMENT.md');
 const tracked=execFileSync('git',['ls-files','-z'],{cwd:new URL('.',root),encoding:'utf8'}).split('\0').filter(Boolean);
 const mainOriginals=new Set([".github/CODEOWNERS",".github/agents/ai-0-coordinator.agent.md",".github/agents/ai-1-auth-member.agent.md",".github/agents/ai-2-billing-iap.agent.md",".github/agents/ai-3-battery-trust.agent.md",".github/agents/ai-4-expo-workers.agent.md",".github/dependabot.yml",".github/pull_request_template.md",".gitignore","AGENTS.md","docs/ai/HANDOFF-PROTOCOL.md","docs/ai/OFFICIAL-DEVELOPMENT-KICKOFF-2026-10-26.md","docs/contracts/FUTURE-HGLOBAL-MEMBER-API.md","docs/contracts/FUTURE-STARRY-ADMIN-API.md","docs/operations/GITHUB-TEAM-COPILOT-READINESS.md","scripts/ci/validate_repository.py"]);
 for(const name of tracked)assert(allowed.has(name)||mainOriginals.has(name),'Non-curated tracked path: '+name);

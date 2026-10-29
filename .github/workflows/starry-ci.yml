@@ -15,6 +15,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  required-validation:
+    name: Required validation
+    if: always()
+    needs: [repository-policy, app-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Reject failed, cancelled or skipped validation
+        env:
+          POLICY_RESULT: ${{ needs.repository-policy.result }}
+          APP_RESULT: ${{ needs.app-tests.result }}
+        run: |
+          test "$POLICY_RESULT" = success
+          test "$APP_RESULT" = success
+
   repository-policy:
     name: Repository policy
     runs-on: ubuntu-latest
