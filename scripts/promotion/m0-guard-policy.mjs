@@ -150,7 +150,7 @@ export function inspectWorkflow(raw,kind){
         if(step.uses==='actions/setup-node@v4' && step.with?.['node-version']!=='22')
           error('unreviewed CI Node version');
         if(step.run && name==='app-tests' && !approvedRuns.has(step.run.trim()) &&
-           !/^node -e '[^\\n]+'$/.test(step.run.trim()))
+           !/^node -e '.+'$/.test(step.run.trim()))
           error('unapproved App CI shell command');
       }
     }
