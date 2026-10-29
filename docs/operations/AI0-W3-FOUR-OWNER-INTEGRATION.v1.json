@@ -1,0 +1,86 @@
+{
+  "schema": "starry.ai0.w3.four-owner-integration.v1",
+  "base_pr": 255,
+  "base_sha": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79",
+  "source_files": [
+    {
+      "owner": "AI-1",
+      "pr": 259,
+      "source_commit": "c7df134629357cfc6c5ddd82bac8ae9189cfbf5b",
+      "path": "modules/starry-id-v1/src/w3-local-vnext-typed-self-profile.ts",
+      "sha": "4063e75d2ee20c191599f40fc0b8e5f7ff821359",
+      "mode": "100644"
+    },
+    {
+      "owner": "AI-1",
+      "pr": 259,
+      "source_commit": "c7df134629357cfc6c5ddd82bac8ae9189cfbf5b",
+      "path": "modules/starry-id-v1/test/w3-local-vnext-typed-self-profile.test.mjs",
+      "sha": "b760568effdf8d6b8f81423bb2773c11a79afb28",
+      "mode": "100644"
+    },
+    {
+      "owner": "AI-2",
+      "pr": 260,
+      "source_commit": "dd1f1ccb464542a916db58d26e3a2dfc48e18709",
+      "path": "packages/rebuild-billing/src/trusted-store-namespace.ts",
+      "sha": "e7a8734980f23282750e5701d0721f44b70fe782",
+      "mode": "100644"
+    },
+    {
+      "owner": "AI-2",
+      "pr": 260,
+      "source_commit": "dd1f1ccb464542a916db58d26e3a2dfc48e18709",
+      "path": "packages/rebuild-billing/test/trusted-store-namespace.test.mjs",
+      "sha": "3bda222c7fcc7194dbda65bcd13412718f112f12",
+      "mode": "100644"
+    },
+    {
+      "owner": "AI-3",
+      "pr": 261,
+      "source_commit": "ea48f434788022e8f7ece2a7d4249a8b218e114e",
+      "path": "packages/rebuild-ai3/src/w3-offline-only-factory.ts",
+      "sha": "c00f2bb02a38d361537c8cc77cf1644c5216b03a",
+      "mode": "100644"
+    },
+    {
+      "owner": "AI-3",
+      "pr": 261,
+      "source_commit": "ea48f434788022e8f7ece2a7d4249a8b218e114e",
+      "path": "packages/rebuild-ai3/test/w3-offline-only-factory.test.mjs",
+      "sha": "83a539cf37c720558ee7b5238a1481a8d072aaa8",
+      "mode": "100644"
+    },
+    {
+      "owner": "AI-4",
+      "pr": 262,
+      "source_commit": "494f276716408ea5c3ecbf4fc858c36cef49425e",
+      "path": "docs/operations/AI4-W3-AUTH-SOURCE-CLOSURE.v1.json",
+      "sha": "cde8818735567636c6076dc45e477038983a029a",
+      "mode": "100644"
+    },
+    {
+      "owner": "AI-4",
+      "pr": 262,
+      "source_commit": "494f276716408ea5c3ecbf4fc858c36cef49425e",
+      "path": "scripts/promotion/w3-auth-dependency-closure.test.mjs",
+      "sha": "714b1b2ceca39b48d5d53a6f67b16e24e4693e5f",
+      "mode": "100644"
+    }
+  ],
+  "source_blob_policy": "8 original Git blobs preserved; no owner original modified",
+  "ai4_source_closure": {
+    "original_w2_blobs": 20,
+    "already_present_in_base": true,
+    "promoted_to_main_pr": 262,
+    "actual_main_merge_sha": "83f3dac0e65da54b426817d27ba89f9981557c01"
+  },
+  "status": "OFFLINE_INTEGRATION_CANDIDATE_NOT_LIVE",
+  "release_gates": "G00-G10 remain BLOCKED, evidence unchanged",
+  "protected_worker_route_registered": false,
+  "real_resources_created": false,
+  "paid_services_enabled": false,
+  "owner_authorization_record": "https://github.com/starry-phd/id/issues/1#issuecomment-6489687399",
+  "ci_status_at_creation": "pending exact integrated SHA; owner CI is not combined acceptance",
+  "rollback": "close this Draft/drop eleven added files; do not revert live config automatically"
+}
