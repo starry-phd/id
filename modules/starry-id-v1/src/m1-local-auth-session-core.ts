@@ -68,7 +68,7 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
     provider:deps.provider.provider,clientId:deps.provider.clientId,
     issuer:deps.provider.issuer,
     jwks:Object.freeze((Array.isArray(deps.provider.jwks)?deps.provider.jwks:[])
-      .map(j=>Object.freeze({...j,key_ops:j.key_ops?[...j.key_ops]:undefined}))),
+      .map(j=>Object.freeze({...j,key_ops:j.key_ops?Object.freeze([...j.key_ops]):undefined}))),
   }) as PinnedOidcProvider;
   if(scope.brand_id!=='starry'||scope.app_id!=='starry-id'||
     !['development','staging'].includes(scope.environment)||
@@ -116,12 +116,12 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
   });
   return Object.freeze({
     contract:M1_AUTH_CONTRACT,local_only:true as const,live_enabled:M1_AUTH_LIVE_ENABLED,
-    async beginOAuthAttempt():Promise<Readonly<{state:string;codeChallenge:string;provider:string}>|null>{
+    async beginOAuthAttempt():Promise<Readonly<{state:string;codeChallenge:string;nonce:string;provider:string}>|null>{
       if(!enabled)return null;
       try {
         const now=deps.now();if(!validTime(now))return null;
         const random=deps.randomBytes??secureBytes;
-        const bytes=Array.from({length:4},()=>random(32));
+        const bytes=Array.from({length:3},()=>random(32));
         if(bytes.some(b=>!(b instanceof Uint8Array)||b.length!==32))return null;
         const state=bytesToBase64url(bytes[0]);
         const verifier=bytesToBase64url(bytes[1]);
@@ -131,7 +131,7 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
         const written=await deps.authDb.prepare('INSERT INTO starry_m1_oauth_attempts(state,provider,client_id,code_verifier,code_challenge,nonce,app_id,environment,expires_at,consumed_at) VALUES(?,?,?,?,?,?,?,?,?,NULL)')
           .bind(state,provider.provider,provider.clientId,verifier,challenge,nonce,scope.app_id,scope.environment,issuedAt+180).run();
         if(written.success===false||written.meta?.changes!==1)return null;
-        return Object.freeze({state,codeChallenge:challenge,provider:provider.provider});
+        return Object.freeze({state,codeChallenge:challenge,nonce,provider:provider.provider});
       }catch{return null;}
     },
     async issueFromVerifiedCallback(input:unknown):Promise<Result|null>{
@@ -153,7 +153,8 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
       const memberEntropy=known?null:random(24);
       if(!known&&(!(memberEntropy instanceof Uint8Array)||memberEntropy.length!==24))return null;
       const row=known??{s_user_id:'su-'+hex(memberEntropy!),auth_version:1};
-      const key=await deps.activeKey();
+      const suppliedKey=await deps.activeKey();
+      const key=suppliedKey&&Object.freeze({kid:suppliedKey.kid,key:suppliedKey.key});
       if(!validKey(key))return null;
       const entropy=random(32);
       if(!(entropy instanceof Uint8Array)||entropy.length!==32)return null;
