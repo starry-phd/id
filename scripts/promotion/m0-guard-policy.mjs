@@ -131,12 +131,37 @@ export function inspectWorkflow(raw,kind){
     if(job.steps.some(s=>s.with?.['persist-credentials']===true))
       error('checkout credentials persisted: '+name);
   }
+  // Reject extra CI steps and disguised auto-deploy calls, not only known names.
+  if(kind==='ci'){
+    const approvedRuns=new Set([
+      'npm ci --no-audit --no-fund',
+      'npm run typecheck','npm run lint','npm test',
+      'npm run auth:typecheck','npm run w3:typecheck','npm run auth:test',
+      'npm run mobile:config','npm run api:check','npm run api:runtime',
+      'npm run release:blocked','npm run promotion:verify',
+      'python3 scripts/ci/validate_repository.py',
+    ]);
+    for(const [name,job] of Object.entries(y.jobs)){
+      for(const step of job.steps||[]){
+        if(step.uses && !['actions/checkout@v4','actions/setup-node@v4'].includes(step.uses))
+          error('unapproved workflow action: '+step.uses);
+        if(step.uses==='actions/checkout@v4' && step.with?.['persist-credentials']!==false)
+          error('checkout must drop credentials');
+        if(step.uses==='actions/setup-node@v4' && step.with?.['node-version']!=='22')
+          error('unreviewed CI Node version');
+        if(step.run && name==='app-tests' && !approvedRuns.has(step.run.trim()) &&
+           !/^node -e '[^\\n]+'$/.test(step.run.trim()))
+          error('unapproved App CI shell command');
+      }
+    }
+  }
   if(kind==='production'){
     if(!keys(y.jobs,['blocked']))error('production must have only hard-blocked job');
     const blocked=y.jobs.blocked;
     if(!blocked||blocked.environment!=='production'||blocked.steps?.length!==1 ||
       typeof blocked.steps[0]?.run!=='string' ||
-      !/(?:^|\n)\s*exit\s+1\s*(?:\n|$)/.test(blocked.steps[0].run))
+      !(() => {const lines=blocked.steps[0].run.trim().split(/\r?\n/).map(x=>x.trim());
+        return lines.length===2 && lines[0].startsWith('echo "::error::Production deployment deliberately unavailable.') && lines[1]==='exit 1';})())
       error('production job must exit 1, with no side effects');
   }else{
     if(!keys(y.jobs,['required-validation','repository-policy','app-tests']))
