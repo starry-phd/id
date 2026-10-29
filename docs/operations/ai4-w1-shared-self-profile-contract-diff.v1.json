@@ -1,0 +1,201 @@
+{
+  "schema_version": "starry.ai4.w1.shared-self-profile-wiring-review.v1",
+  "record_type": "SOURCE_PINNED_CONTRACT_DIFF_FOR_AI0_REVIEW_NOT_RUNTIME_NOT_RELEASE",
+  "owner_issue": 5,
+  "dispatcher_issue": 1,
+  "base": {
+    "pr": 242,
+    "sha": "22d7ab1c127546e9e131810d58fdf7e0ccb17882",
+    "branch": "ai0/post-r008-four-owner-evidence-integration-20261029"
+  },
+  "upstream": {
+    "requirements": {
+      "pr": 243,
+      "sha": "4638621d3408019a1c3660c8f13177cf2bedea6d"
+    },
+    "handler": {
+      "pr": 244,
+      "sha": "7965ee9a9b0a80bc595b207382aac75bf7a33548",
+      "path": "packages/integration/src/ai0-w1-isolated-self-profile.ts",
+      "blob": "3acd105e0942514cbc24dd8032c3166b484bb5c2"
+    },
+    "client": {
+      "pr": 245,
+      "sha": "e1b255b014c673439f134ef5a58107a036f4b60f",
+      "path": "packages/integration/src/ai0-w1-isolated-self-profile-client.ts",
+      "blob": "f60b4063277b36c180fcece85a47db0482eda641"
+    },
+    "standalone_openapi": {
+      "pr": 245,
+      "sha": "e1b255b014c673439f134ef5a58107a036f4b60f",
+      "path": "docs/contracts/AI0-W1-ISOLATED-SELF-PROFILE.openapi.json",
+      "blob": "638d242f3b799a894f8a3587ee3ca48737236cee"
+    },
+    "ai0_w1_ci": {
+      "url": "https://github.com/starry-phd/id/actions/runs/40823124420",
+      "status": "completed",
+      "conclusion": "success",
+      "node_tests_pass": 1838,
+      "sqlite_memory_tests_pass": 413,
+      "scope": "isolated AI0 branch only"
+    }
+  },
+  "shared_sources_at_fixed_base": [
+    {
+      "path": "apps/api/src/index.ts",
+      "blob": "a9addff8a16c351ee8cbf3900c8aee52e7fb012b",
+      "actual": "GET /v1/health only; no auth handler registered"
+    },
+    {
+      "path": "apps/api/openapi.yaml",
+      "blob": "2d7d42d8ed9529db5b4e92f895bd83a71702da77",
+      "actual": "Only public health operation; not self-profile"
+    },
+    {
+      "path": "apps/api/openapi.member.DRAFT.yaml",
+      "blob": "24616d90a8b5f56f2837c30dee5551b2902e0b77",
+      "actual": "Older unserved /v1/member/self draft with profile_revision min 0"
+    },
+    {
+      "path": "packages/sdk/src/index.ts",
+      "blob": "b73c40bb72c7c2605e9caf77df4ffe6f0d71eee9",
+      "actual": "Health client only; no protected user SDK export"
+    },
+    {
+      "path": "apps/mobile/app.json",
+      "blob": "4bf6d502a95038d088f1d2e11f6d050397a1ed41",
+      "actual": "Dev Expo scheme/bundle/package; no approved real service environment"
+    },
+    {
+      "path": "apps/api/wrangler.toml",
+      "blob": "55f53e1e63349b2ab275d92479d10258af47b6b4",
+      "actual": "Development/staging local metadata, no D1/Queue/Preview/live production bindings"
+    }
+  ],
+  "reviewed_contract": {
+    "current_status": "ISOLATED_UNREGISTERED_DEFAULT_OFF",
+    "canonical_path": "/v1/starry-id/members/me",
+    "unserved_legacy_path": "/v1/member/self",
+    "legacy_alias_authorized": false,
+    "method": "GET",
+    "response_required_fields": [
+      "s_user_id",
+      "display_name",
+      "directory_opt_in",
+      "display_name_public",
+      "profile_revision"
+    ],
+    "required_fields_count": 5,
+    "profile_revision_minimum": 1,
+    "profile_revision_maximum": 9007199254740990,
+    "body_additional_properties": false,
+    "bearer": "signed session plus current member/session/provider association, not caller-selected ID",
+    "request_defaults": {
+      "credentials": "omit",
+      "redirect": "error",
+      "cache": "no-store",
+      "automatic_retry": false,
+      "explicit_fetch_required": true,
+      "explicit_getBearer_required": true
+    },
+    "response_defaults": {
+      "cache_control": "no-store",
+      "pragma": "no-cache",
+      "content_type": "application/json",
+      "x_content_type_options": "nosniff"
+    },
+    "transport_limit_bytes": 16384,
+    "handler_http_codes": {
+      "200": "five-field own-profile snapshot",
+      "400": "query or request-target denied",
+      "401": "initial authentication verification rejected, including suppressed initial DB/key errors",
+      "403": "final current member/session/provider join absent or revoked",
+      "404": "unknown origin/path, legacy alias not served",
+      "405": "non-GET, Allow GET",
+      "503": "disabled, invalid clock, malformed final snapshot or final storage fault"
+    },
+    "detached_client_results": {
+      "200": "strict five-field success only",
+      "401": "AUTH_REQUIRED",
+      "403": "CURRENT_RECORD_DENIED",
+      "503": "SERVICE_UNAVAILABLE",
+      "400_404_405_unexpected": "PROTOCOL_DENIED",
+      "transport_exception": "SERVICE_UNAVAILABLE"
+    },
+    "retry_authorized": false,
+    "token_storage_authorized": false,
+    "actual_store_test_authorized": false,
+    "real_oidc_authorized": false,
+    "real_worker_route_registered": false,
+    "secure_client_token_custody_owner_approved": false
+  },
+  "starry_logical_identity_candidate": {
+    "brand_id": "starry",
+    "app_id": "starry-id",
+    "development": {
+      "state": "LOCAL_CANDIDATE_ONLY",
+      "default_protected_read": "DENY"
+    },
+    "staging": {
+      "state": "LOCAL_CANDIDATE_ONLY",
+      "default_protected_read": "DENY"
+    },
+    "production": {
+      "state": "DISABLED",
+      "default_protected_read": "DENY"
+    },
+    "authoritative_origin_map_approved": false,
+    "runtime_brand_from_arbitrary_request_header": false,
+    "hglobal_enabled": false,
+    "cloudflare_test_binding_approved": false
+  },
+  "proposed_shared_changes_after_ai0_review": [
+    {
+      "path": "apps/api/src/index.ts",
+      "action": "CONDITIONAL_FUTURE_EDIT_ONLY",
+      "decision": "After approved source-preserving integration of #244 and #245, and distinct route authorization: exact method/path/host/env gating, pass verified dependencies, keep health public and all other paths fail-closed"
+    },
+    {
+      "path": "apps/api/openapi.yaml",
+      "action": "CONDITIONAL_FUTURE_EDIT_ONLY",
+      "decision": "Use standalone #245 schema as source, exact canonical path, signedSession and five-field response with revision>=1 and HTTP errors; do not publish before runtime review"
+    },
+    {
+      "path": "packages/sdk/src/index.ts",
+      "action": "CONDITIONAL_FUTURE_EDIT_ONLY",
+      "decision": "Reuse #245 detached client through a reviewed typed port; supply explicit secure bearer custody and transport, deny redirects/cookies and retries, do not duplicate read implementation"
+    },
+    {
+      "path": "apps/mobile/app.json",
+      "action": "NO_CHANGE_W1",
+      "decision": "Dev app identity only; real platform/app environment mapping is G01 and future owner approval"
+    },
+    {
+      "path": "apps/api/wrangler.toml",
+      "action": "NO_CHANGE_W1",
+      "decision": "Do not create actual bindings/Preview or deploy"
+    },
+    {
+      "path": ".github/workflows/",
+      "action": "NO_CHANGE_W1",
+      "decision": "Reuse existing offline validation; no paid or live workflow"
+    }
+  ],
+  "sequencing": {
+    "ai4_current_delivery": "DESIGN_AND_SOURCE_REVIEW_ONLY",
+    "ai0_contract_review_required_before_shared_runtime": true,
+    "ai0_must_integrate_ai0_243_244_245_and_owner_prs_in_new_exact_sha": true,
+    "do_not_rebase_owner_branch_onto_245": true,
+    "release_gate_unmodified": true,
+    "required_new_ci_after_runtime_change": true
+  },
+  "official_release": {
+    "gates": "G00_G10_11_OF_11_BLOCKED",
+    "p05_publishable": false,
+    "release_authorization_granted": false,
+    "main_merge_allowed": false,
+    "deployments_allowed": false,
+    "preview_enable_allowed": false,
+    "real_d1_queue_secrets_store_eas_paid_allowed": false
+  }
+}
