@@ -1,0 +1,427 @@
+{
+  "contract": "starry.ai3.w1.d87-d06.membership-commit-inbox-ack.v1-review-only",
+  "basis": {
+    "repo": "starry-phd/id",
+    "fixed_parent": "22d7ab1c127546e9e131810d58fdf7e0ccb17882",
+    "ai0_issue_work_order": "https://github.com/starry-phd/id/issues/4#issuecomment-6479255573",
+    "d87": "https://github.com/starry-phd/id/issues/1#issuecomment-6478861308",
+    "d06": "https://github.com/starry-phd/id/issues/1#issuecomment-6478960617",
+    "d00": "https://github.com/starry-phd/id/issues/1#issuecomment-6479057455",
+    "other_new_work": "AI0 PR #243/#244/#245 reviewed; not inherited into fixed #242 owner base"
+  },
+  "approved_directions": {
+    "D00": "member_first_stage",
+    "D87": "A_SINGLE_TRANSACTION_AUTHORITY_DIRECTION_ONLY",
+    "D06": "A_BUSINESS_CORE_PLUS_PRIVATE_DELIVERY_ENVELOPE_DIRECTION_ONLY"
+  },
+  "contract_not_final": true,
+  "official_g06_13_field_source_unresolved": true,
+  "ai0_r006_17_field_candidate_not_authoritative": true,
+  "core": {
+    "layer": "business_event_core",
+    "required_review_candidates": [
+      "event_id",
+      "event_type",
+      "schema_version",
+      "brand_id",
+      "app_id",
+      "environment",
+      "occurred_at",
+      "correlation_id",
+      "resource_type",
+      "resource_id",
+      "result"
+    ],
+    "conditional_review_candidates": [
+      {
+        "field": "idempotency_key",
+        "when": "retry, payment or at-least-once delivery"
+      }
+    ],
+    "forbidden_public_core": [
+      "raw_session_token",
+      "oauth_id_token",
+      "session_secret",
+      "raw_email",
+      "raw_phone",
+      "address",
+      "raw_message_body",
+      "payment_card",
+      "HMAC_key",
+      "password",
+      "unnecessary_personal_data"
+    ],
+    "notes": "11 names from ADMIN-PREP P05, not an approved final schema; never synthesize 13th field; schema_version not version, occurred_at not issued_at"
+  },
+  "envelope": {
+    "layer": "independent_private_security_delivery_envelope",
+    "required_if_verified_delivery_candidate": [
+      "envelope_version",
+      "issuer_ref",
+      "kid",
+      "issuer_epoch",
+      "issued_at",
+      "expires_at",
+      "nonce",
+      "event_digest",
+      "integrity_signature",
+      "bound_brand_app_environment",
+      "bound_event_id",
+      "bound_correlation_id"
+    ],
+    "conditional_server_only_candidates": [
+      "current_auth_version",
+      "current_session_version",
+      "revocation_floor",
+      "trusted_actor_ref",
+      "trusted_member_ref",
+      "legal_policy_ref",
+      "erasure_hold_state",
+      "operator_approval_ref",
+      "outbox_commit_ref",
+      "inbox_commit_ref",
+      "recovery_witness_ref"
+    ],
+    "forbidden": [
+      "raw_access_token",
+      "raw_refresh_token",
+      "raw_session_cookie",
+      "raw_password",
+      "raw_key_material",
+      "raw_provider_receipt",
+      "unmasked_user_pii",
+      "payment_card_data",
+      "client_supplied_verified_true"
+    ],
+    "notes": "All key names are W1 integration review candidates, not approved issuer signature format or trusted proof. Any client-provided 'verified' flag is untrusted"
+  },
+  "events": [
+    {
+      "event_type": "identity.session.revoked",
+      "phase": "P0_MEMBER",
+      "source_writer": "AI-1 Auth SessionVersion/CAS authority",
+      "conditional_core": [
+        "idempotency_key when transported/retried"
+      ],
+      "auth_requirements": [
+        "current issuer and auth_version",
+        "latest session_version/revocation floor",
+        "scoped app/environment and member binding"
+      ],
+      "consumer_behavior": "invalidate_only; stale event -> audit_only; no notification on outdated session"
+    },
+    {
+      "event_type": "identity.member.deleted",
+      "phase": "P0_MEMBER",
+      "source_writer": "AI-1 Auth committed deletion and outbox in source transaction",
+      "conditional_core": [
+        "idempotency_key for at-least-once delivery"
+      ],
+      "auth_requirements": [
+        "committed Auth outbox exact source event",
+        "current Member deleted and no unrevoked sessions",
+        "Q104/Q119 lawful deletion/hold review"
+      ],
+      "consumer_behavior": "AI-3 local domain tombstone/receipt only; no regrant, no Queue ACK from current bridge"
+    },
+    {
+      "event_type": "privacy.erasure.requested",
+      "phase": "P0_MEMBER",
+      "source_writer": "AI-1/member privacy authority; final owner/signature schema pending",
+      "conditional_core": [
+        "idempotency_key on retry or async delivery"
+      ],
+      "auth_requirements": [
+        "authenticated approved requester or explicitly authorized admin",
+        "Q104/Q119 policy and legal hold",
+        "erasure floor, current Auth and restoration restriction"
+      ],
+      "consumer_behavior": "pending quarantine/barrier; not a real erasure command"
+    },
+    {
+      "event_type": "notification.delivery.queued",
+      "phase": "LATER_DEPENDENCY",
+      "source_writer": "approved event origin owner; not a client",
+      "conditional_core": [
+        "idempotency_key for Queue delivery/retries"
+      ],
+      "auth_requirements": [
+        "current session/consent/opt-out plus legal permission when needed",
+        "signed envelope and recipient minimization",
+        "committed target audit receipt before any ACK"
+      ],
+      "consumer_behavior": "fail closed; no live send, consumer Ack withheld"
+    },
+    {
+      "event_type": "billing.store_state_observed",
+      "phase": "LATER_BILLING",
+      "source_writer": "AI-2 Billing provider-verified committed receipt/outbox",
+      "conditional_core": [
+        "idempotency_key required for Queue/retries"
+      ],
+      "auth_requirements": [
+        "AI-2 post-commit provider truth",
+        "G06 approved layered contract and AI0 canonical verifier",
+        "AI-3 owned digest-bound inbox/append"
+      ],
+      "consumer_behavior": "current Billing-only queue-consumer is candidate, not cross-domain Auth P05"
+    }
+  ],
+  "ownership": {
+    "AI-1": "only writer of Member/AuthVersion/SessionVersion/revocation and source deletion outbox; exact committed source read required",
+    "AI-3": "only writer of its local audit inbox/quarantine/masked audit and optional free Battery tombstone/journal; separate atomic transaction per owned domain",
+    "AI-2": "only writer of Billing provider-verified receipt/entitlement/outbox (not a membership event in P0)",
+    "AI-0": "P05 final core/security schema authority and Gate, cross-owner integration review",
+    "AI-4": "real transport/Worker bindings and Queue ACK integration only upon explicit test/live authorization"
+  },
+  "source_transaction_rule": "Within an explicitly approved authority writer's SAME transaction, atomically apply CAS/revocation/unique event+outbox; never claim cross-D1 atomicity",
+  "receiver_transaction_rule": "AI-3 local transaction shall compare full scoped event identity + digest and append masked audit and durable inbox receipt; duplicate same digest no mutation, competing digest quarantine/deny",
+  "ack_policy": "commit-before-ACK is required design ordering, not authorization to ACK. Current new W1 contract never may_live_ack; real independent witness and actual G06/G07 must be approved",
+  "legacy_auth_deletion_adapter": "Existing AI-1 raw account_deleted {event_id,s_user_id,occurred_at,event_type} is NOT a canonical D06 identity.member.deleted core or a signed envelope; no implicit cast or fake fields",
+  "legacy_billing_adapter": "Current queue-consumer only accepts billing.store_state_observed 13-field candidate and existing actor_ref; D06 cannot reuse it as approved membership/notification handler",
+  "legal_choices": [
+    {
+      "choice": "block_until_owner_legal_policy",
+      "status": "proposed_review",
+      "retention": "UNSPECIFIED",
+      "result": "no real erase/purge/restore/replay without legal approval"
+    },
+    {
+      "choice": "minimal_masked_audit_with_separate_legal_hold",
+      "status": "proposed_review",
+      "retention": "UNSPECIFIED",
+      "result": "scope and immutable proof fields require lawful policy and access review"
+    },
+    {
+      "choice": "lawful_tombstone_plus_erasure_barrier",
+      "status": "proposed_review",
+      "retention": "UNSPECIFIED",
+      "result": "prevent resurrection on PITR; never identify legal period by inference"
+    }
+  ],
+  "code_review_sha": {
+    "packages/rebuild-ai3/src/queue-consumer.ts": "291d8758b5cad03dca32a08a0ae5ec7b50e404b8",
+    "packages/rebuild-ai3/src/queue-transport.ts": "f75d3d4928874012eac88f460d6ca6435540d3c0",
+    "packages/rebuild-ai3/src/d1-audit-adapter.ts": "b1c7b56f05c9fb4a37500c271b906fb9e2fea533",
+    "packages/rebuild-ai3/src/auth-deletion-battery-bridge.ts": "62e6035c4d944e30412bf6fc150fb3c274452e47",
+    "packages/rebuild-ai3/src/auth-deletion-battery-consumer.ts": "7d9c8d9436f2bbf5c3739a9184f7950897ac9dd3",
+    "packages/rebuild-ai3/schema/0010_auth_delete_battery_inbox_DRAFT.sql": "f50ded1a25b0064131c4f4368f31c879b9135204",
+    "packages/rebuild-ai3/src/recovery-guard.ts": "8f840294919ff134ada79eebc20d7af46a60b463",
+    "packages/rebuild-ai3/src/audit-retention.ts": "11cc434a136cbbcde0ed6eb7b789e3010f5586cf",
+    "packages/rebuild-ai3/src/index.ts": "20a12af5cfb07940a041bd4fa633192dcad3f27f",
+    "modules/starry-id-v1/src/wave1-round008-auth-session-monotonic-cas.ts": "3756588340581aec7ec1ea496a5746f0fbe19f03"
+  },
+  "state_matrix": [
+    {
+      "state": "SOURCE_UNCOMMITTED",
+      "when": "missing/unknown committed writer and outbox",
+      "disposition": "retry_or_hold",
+      "effect": "no enqueue/ACK",
+      "may_live_ack": false,
+      "may_real_erase": false,
+      "may_restore": false,
+      "may_grant_battery": false
+    },
+    {
+      "state": "AUTH_CAS_REVOKE_PENDING",
+      "when": "AI-1 current Auth/Session CAS not committed",
+      "disposition": "blocked",
+      "effect": "no inferred revocation",
+      "may_live_ack": false,
+      "may_real_erase": false,
+      "may_restore": false,
+      "may_grant_battery": false
+    },
+    {
+      "state": "OUTBOX_COMMITTED",
+      "when": "unique writer committed domain event + outbox in single authority transaction",
+      "disposition": "review_only",
+      "effect": "eligible for controlled delivery only after G06; no live send",
+      "may_live_ack": false,
+      "may_real_erase": false,
+      "may_restore": false,
+      "may_grant_battery": false
+    },
+    {
+      "state": "ENVELOPE_UNVERIFIED",
+      "when": "issuer/KID/signature/nonce/expiry/Auth epoch missing, untrusted, or replayed",
+      "disposition": "blocked",
+      "effect": "no inbox claim or ACK",
+      "may_live_ack": false,
+      "may_real_erase": false,
+      "may_restore": false,
+      "may_grant_battery": false
+    },
+    {
+      "state": "AUTH_STALE_OR_REVOKED",
+      "when": "stale issuer/session/version, invalid actor, bad scope, or late revoke",
+      "disposition": "blocked",
+      "effect": "no delivery/ACK/regrant",
+      "may_live_ack": false,
+      "may_real_erase": false,
+      "may_restore": false,
+      "may_grant_battery": false
+    },
+    {
+      "state": "LEGAL_UNKNOWN_OR_HOLD",
+      "when": "Q104/Q119 purpose/retention/erasure/hold undecided, on hold, or policy unavailable",
+      "disposition": "blocked",
+      "effect": "no erase/replay/ACK",
+      "may_live_ack": false,
+      "may_real_erase": false,
+      "may_restore": false,
+      "may_grant_battery": false
+    },
+    {
+      "state": "DELIVERY_UNACKNOWLEDGED",
+      "when": "Queue has delivery but receiver has not committed durable inbox",
+      "disposition": "retry_or_hold",
+      "effect": "never default auto-ACK",
+      "may_live_ack": false,
+      "may_real_erase": false,
+      "may_restore": false,
+      "may_grant_battery": false
+    },
+    {
+      "state": "INBOX_TRANSACTION_CRASH",
+      "when": "claim or audit insert errors before source-domain local commit",
+      "disposition": "retry",
+      "effect": "transaction rollback; no ACK",
+      "may_live_ack": false,
+      "may_real_erase": false,
+      "may_restore": false,
+      "may_grant_battery": false
+    },
+    {
+      "state": "INBOX_COMMITTED_UNVERIFIED",
+      "when": "target D1 claims success but no durable readback/unique digest evidence",
+      "disposition": "retry_or_hold",
+      "effect": "no ACK",
+      "may_live_ack": false,
+      "may_real_erase": false,
+      "may_restore": false,
+      "may_grant_battery": false
+    },
+    {
+      "state": "INBOX_COMMITTED_VERIFIED",
+      "when": "one target-domain transaction commits unique inbox+audit with exact payload digest",
+      "disposition": "review_only",
+      "effect": "candidate ACK precondition only; G06/G07+independent witness not approved",
+      "may_live_ack": false,
+      "may_real_erase": false,
+      "may_restore": false,
+      "may_grant_battery": false
+    },
+    {
+      "state": "DUPLICATE_SAME_DIGEST",
+      "when": "identical scoped event_id/idempotency/digest with committed inbox and audit receipt",
+      "disposition": "review_only",
+      "effect": "no second mutation; conditional ACK review only",
+      "may_live_ack": false,
+      "may_real_erase": false,
+      "may_restore": false,
+      "may_grant_battery": false
+    },
+    {
+      "state": "DUPLICATE_COMPETING_DIGEST",
+      "when": "same identity or nonce with different digest/issuer/source",
+      "disposition": "quarantine_required",
+      "effect": "no ACK until separately approved durable quarantine and scope recheck",
+      "may_live_ack": false,
+      "may_real_erase": false,
+      "may_restore": false,
+      "may_grant_battery": false
+    },
+    {
+      "state": "QUARANTINE_PERSIST_FAILED",
+      "when": "invalid/competing event quarantine write failed",
+      "disposition": "retry_or_hold",
+      "effect": "no ACK or silent loss",
+      "may_live_ack": false,
+      "may_real_erase": false,
+      "may_restore": false,
+      "may_grant_battery": false
+    },
+    {
+      "state": "DLQ_PERSIST_FAILED",
+      "when": "terminal attempt DLQ receipt not durable",
+      "disposition": "retry",
+      "effect": "no ACK",
+      "may_live_ack": false,
+      "may_real_erase": false,
+      "may_restore": false,
+      "may_grant_battery": false
+    },
+    {
+      "state": "LATE_ERASURE_OR_REVOKE",
+      "when": "Auth/member revoke/erase after commit or enqueue before ACK",
+      "disposition": "blocked",
+      "effect": "recheck current authority and quarantine; no send/ACK",
+      "may_live_ack": false,
+      "may_real_erase": false,
+      "may_restore": false,
+      "may_grant_battery": false
+    },
+    {
+      "state": "PITR_RESTORED_OLD_FLOOR",
+      "when": "backup restores old Auth/session/erasure floor or witness absent",
+      "disposition": "blocked",
+      "effect": "no replay/restore/ACK",
+      "may_live_ack": false,
+      "may_real_erase": false,
+      "may_restore": false,
+      "may_grant_battery": false
+    },
+    {
+      "state": "WITNESS_NOT_INDEPENDENT",
+      "when": "same database or memory-only witness, no physical trust-domain attestation",
+      "disposition": "blocked",
+      "effect": "cannot upgrade to live",
+      "may_live_ack": false,
+      "may_real_erase": false,
+      "may_restore": false,
+      "may_grant_battery": false
+    },
+    {
+      "state": "MANUAL_REPLAY_NOT_APPROVED",
+      "when": "human approval/legal scope/issuer verification not documented",
+      "disposition": "blocked",
+      "effect": "no manual retry/Queue replay",
+      "may_live_ack": false,
+      "may_real_erase": false,
+      "may_restore": false,
+      "may_grant_battery": false
+    },
+    {
+      "state": "FINAL_ACK_REVIEW",
+      "when": "candidate committed source+target may satisfy conceptual ordering",
+      "disposition": "review_only",
+      "effect": "live ACK requires separately approved real Gate evidence; never enabled here",
+      "may_live_ack": false,
+      "may_real_erase": false,
+      "may_restore": false,
+      "may_grant_battery": false
+    }
+  ],
+  "flags": {
+    "w1_live": false,
+    "may_ack_real_queue": false,
+    "may_send_real_notification": false,
+    "may_erase_real_pii": false,
+    "may_restore_real_backup": false,
+    "may_grant_battery": false,
+    "may_sell_battery": false,
+    "may_deploy": false,
+    "may_change_release_gate": false,
+    "independent_durable_witness_verified": false,
+    "legal_q104_q119_approved": false,
+    "formal_p05_schema_approved": false
+  },
+  "gates": {
+    "G00": "blocked",
+    "G06": "blocked",
+    "G07": "blocked",
+    "release_authorization_granted": false
+  },
+  "deployment_scope": "No main merge; no Preview/Staging/Production; no real D1/Queue/Secrets/Store/OIDC/EAS/paid; no H-Global/Echo; Battery always free; Ads off"
+}
