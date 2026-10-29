@@ -1,0 +1,322 @@
+{
+  "kind": "starry.ai3.main-promotion.source-and-side-effect-review.v1",
+  "scope": "AI-3-only review / AI-0 is exclusive merge-deploy authority",
+  "baseline": {
+    "main_commit": "8be31efb3dfba66755f297b315593e33cdacfe39",
+    "main_tree": "148dae3aafd548a8690ebf46b7fc6ec557baf7b6",
+    "main_total_git_entries": 27,
+    "main_blob_count": 18,
+    "promotion_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79",
+    "promotion_tree": "6f0550d0201b6e9871756a7ca47ec64476745ce4",
+    "promotion_git_entries": 907,
+    "promotion_blob_count": 846,
+    "main_identical_sha_count": 18,
+    "added_blob_count": 828,
+    "modified_blob_count": 0,
+    "deleted_blob_count": 0,
+    "main_tree_truncated": false,
+    "promotion_tree_truncated": false,
+    "method": "GitHub git/trees/{sha}?recursive=1 for BOTH commits; full 18 and 846 blob maps in memory, not compare API 300 limit"
+  },
+  "main_unchanged_blobs": {
+    ".github/CODEOWNERS": "7292b3ff1863ca050ff21ba84e696e7024aa3517",
+    ".github/agents/ai-0-coordinator.agent.md": "f59581842b174a1551c375fcdd57d0fedaf6c599",
+    ".github/agents/ai-1-auth-member.agent.md": "89722292b90dbf8758c2acc5ee474de1e5671131",
+    ".github/agents/ai-2-billing-iap.agent.md": "2ed49325f3d70315083634ccb7bb9488e921ec7f",
+    ".github/agents/ai-3-battery-trust.agent.md": "b32a3bf906263c41b6adadf9bdc107723a01881b",
+    ".github/agents/ai-4-expo-workers.agent.md": "3f33ea8a97ff40e51bd7e82ad26100d34c2a0a6b",
+    ".github/dependabot.yml": "ebfe2e7bcaff6d55e09fb6b2bd6ab4b1e41f7ecd",
+    ".github/pull_request_template.md": "8349ab1f7f802b9261ace4a20ada64f9ab3d3cea",
+    ".github/workflows/starry-ci.yml": "d52c5f5ef8a6bff4b84fb5a3631e7e99f7dd8f4e",
+    ".github/workflows/starry-production.yml": "f555ea7257e383458bb9b2e0bb1cd4abcf962d62",
+    ".gitignore": "63f28238e45bca4621be6136117f5ec5d9b7ddf5",
+    "AGENTS.md": "6fdbd6b6632de4676a8df4c7c73bf427a4416465",
+    "docs/ai/HANDOFF-PROTOCOL.md": "1bc1443c395ac17df65815abf1e624cb6d582f94",
+    "docs/ai/OFFICIAL-DEVELOPMENT-KICKOFF-2026-10-26.md": "627ad37cc4f83dac850d3ae914f7690382972f16",
+    "docs/contracts/FUTURE-HGLOBAL-MEMBER-API.md": "07aa77c9ed4f81ee69268b3936774a2858cb7408",
+    "docs/contracts/FUTURE-STARRY-ADMIN-API.md": "3b859441ce778cabb3e1000c0096a604f4ded81e",
+    "docs/operations/GITHUB-TEAM-COPILOT-READINESS.md": "f647b3382556f0c134e116ecf6d953efd88d6c6d",
+    "scripts/ci/validate_repository.py": "a683574aa439887543d82c81d1230d13f7b7d35a"
+  },
+  "ai3_30_source_blobs": {
+    "packages/rebuild-ai3/src/anonymous-appeals.ts": "de93cb78e659f17f07fbfbc9352a7b6f3a0d719e",
+    "packages/rebuild-ai3/src/audit-retention.ts": "11cc434a136cbbcde0ed6eb7b789e3010f5586cf",
+    "packages/rebuild-ai3/src/auth-deletion-battery-bridge.ts": "62e6035c4d944e30412bf6fc150fb3c274452e47",
+    "packages/rebuild-ai3/src/auth-deletion-battery-consumer.ts": "7d9c8d9436f2bbf5c3739a9184f7950897ac9dd3",
+    "packages/rebuild-ai3/src/battery-recovery-integrity.ts": "25aa07e5dee8aa04b9ad44e29f43ab66e0d741b2",
+    "packages/rebuild-ai3/src/battery-settlement-d1.ts": "1b94988c7d014795a98faded9603904c664fe978",
+    "packages/rebuild-ai3/src/d1-audit-adapter.ts": "b1c7b56f05c9fb4a37500c271b906fb9e2fea533",
+    "packages/rebuild-ai3/src/free-battery.ts": "fd75a550f43ab8c1c56b4b6a742c845b226fc37e",
+    "packages/rebuild-ai3/src/index.ts": "20a12af5cfb07940a041bd4fa633192dcad3f27f",
+    "packages/rebuild-ai3/src/queue-consumer.ts": "291d8758b5cad03dca32a08a0ae5ec7b50e404b8",
+    "packages/rebuild-ai3/src/queue-transport.ts": "f75d3d4928874012eac88f460d6ca6435540d3c0",
+    "packages/rebuild-ai3/src/r16-battery-publisher-receipt.ts": "3a4bc7e501770844c38a90d6eef9e79fd59ed179",
+    "packages/rebuild-ai3/src/r18-cross-d1-recovery-review.ts": "85add52d0c2581f7a992e6fea181682307251ab5",
+    "packages/rebuild-ai3/src/r19-task-wallet-receipt-gate.ts": "06e2e1b35de3542c91f992cc5a8c8b4a9b44ccd6",
+    "packages/rebuild-ai3/src/r20-task-wallet-source-binding.ts": "59fc09daca6fdc8301f29b57ee5519be320ef91f",
+    "packages/rebuild-ai3/src/r21-candidate-ui-task-battery-status.ts": "13b5069293032787f02dbcdb4326386c4a5a1a5a",
+    "packages/rebuild-ai3/src/recovery-guard.ts": "8f840294919ff134ada79eebc20d7af46a60b463",
+    "packages/rebuild-ai3/src/replay-review.ts": "cf0d4cf0abe0c55dd8d82fc658de4ba1b2aa9354",
+    "packages/rebuild-ai3/src/sbase-audit-retry-contract.ts": "abb8a08f6d052141862a6ed5c635f12762754673",
+    "packages/rebuild-ai3/src/sbase-battery-client-contract.ts": "5cfb03433937be1d3c955659c3328bd36060c375",
+    "packages/rebuild-ai3/src/signed-audit-head.ts": "b82adb79bfe795e1929a1783ad766294e323ebd8",
+    "packages/rebuild-ai3/src/signed-audit-recovery.ts": "16f5a64711afc20d349349f599af603848c3f378",
+    "packages/rebuild-ai3/src/wave1-r002-p05-audit-review.ts": "dbfd497e7d3cada5b8016445ad4bc6b9a9e9977c",
+    "packages/rebuild-ai3/src/wave1-r003-p05-ack-interop.ts": "78d48d08d33da7508735b3d32113ae46d22bf8bf",
+    "packages/rebuild-ai3/src/wave1-r004-p05-canonical-claim-handshake.ts": "d5d39cc21243d32daca80e68a87ed20a17c8dbc7",
+    "packages/rebuild-ai3/src/wave1-security-notification-fence.ts": "d2d1f88c0cc1dd2ba3fcff379b7ec7c89e87f850",
+    "packages/rebuild-ai3/src/wave1_r005_p05_sqlite_cas.py": "f7723cbfe6bfcb67be383ac998c9aa5d85e917e7",
+    "packages/rebuild-ai3/src/wave1_r006_p05_vnext_sqlite_review.py": "cf0c73495ff3c93c04be4b776adba7be9c3b981c",
+    "packages/rebuild-ai3/src/wave1_r007_p05_recovery_matrix.py": "105431d41ac0542630b3113104c18d6aa1955e79",
+    "packages/rebuild-ai3/src/wave1_r008_p05_p06_failure_order.py": "4f8566bce9feb7da4c592a98d05ad6ecf74907c3"
+  },
+  "ai3_10_sql_draft_blobs": {
+    "packages/rebuild-ai3/schema/0001_audit_DRAFT.sql": "1d6ac8f4dfd5b33c47bb67aff5b49be1cfc343b5",
+    "packages/rebuild-ai3/schema/0002_billing_audit_DRAFT.sql": "d836fd81975405f766d9e0675375afc35b69b6b0",
+    "packages/rebuild-ai3/schema/0003_queue_atomic_DRAFT.sql": "0234dbf5dd49f8890c4e3a2a81be6be0920d33f7",
+    "packages/rebuild-ai3/schema/0004_d1_atomic_DRAFT.sql": "b469b1846df6f29f83ff305970a83c785ac0aaa0",
+    "packages/rebuild-ai3/schema/0005_free_battery_DRAFT.sql": "e888a9ca0d3fd489a62bff837e9a64eb406b8bdc",
+    "packages/rebuild-ai3/schema/0006_anonymous_appeal_DRAFT.sql": "a721dfe37a391975e8631f5ffa540183e0ea3884",
+    "packages/rebuild-ai3/schema/0007_recovery_gate_DRAFT.sql": "d4743b6d9bbac8f5a6b67e091d6622668d151431",
+    "packages/rebuild-ai3/schema/0008_battery_settlement_CAS_DRAFT.sql": "52ddd61da13d928be1dee23519bddc634a09fd0c",
+    "packages/rebuild-ai3/schema/0009_signed_audit_recovery_DRAFT.sql": "f961482257fc0ddc0ec04d7b6f0dc1f75d96d9f",
+    "packages/rebuild-ai3/schema/0010_auth_delete_battery_inbox_DRAFT.sql": "f50ded1a25b0064131c4f4368f31c879b9135204"
+  },
+  "critical": [
+    {
+      "path": "packages/rebuild-ai3/src/queue-transport.ts",
+      "sha": "f75d3d4928874012eac88f460d6ca6435540d3c0",
+      "decision": "ISOLATE_QUEUE_ACK",
+      "source_finding": "dispatchQueueMessage() calls abstract msg.ack() on injected decision.ack_safe or durable-looking DLQ receipt; import does not ACK; runtime registration would, no native/verifiable Gate binding."
+    },
+    {
+      "path": "packages/rebuild-ai3/src/queue-consumer.ts",
+      "sha": "291d8758b5cad03dca32a08a0ae5ec7b50e404b8",
+      "decision": "ISOLATE_INJECTED_ACK_POLICY",
+      "source_finding": "createReliableBillingAuditConsumer() emits ack_safe true on injected claim return inserted|duplicate or injected quarantine write; it only verifies Billing candidate, not formally approved P05/G07 or real D1 durability."
+    },
+    {
+      "path": "packages/rebuild-ai3/src/d1-audit-adapter.ts",
+      "sha": "b1c7b56f05c9fb4a37500c271b906fb9e2fea533",
+      "decision": "ISOLATE_REAL_D1_WRITES",
+      "source_finding": "createAi3AuditD1Store() uses db.batch() SQL write/claim/quarantine on injected D1 port; rejects production env but not staging; no live binding approved."
+    },
+    {
+      "path": "packages/rebuild-ai3/src/auth-deletion-battery-bridge.ts",
+      "sha": "62e6035c4d944e30412bf6fc150fb3c274452e47",
+      "decision": "ISOLATE_DELETION_SIDE_EFFECT",
+      "source_finding": "createOfflineVerifiedAuthDeletionBatteryBridge({enabled:true,...}) reads exact AI1 original outbox and invokes Battery consumer using supplied real ports; static LIVE constant false not a mandatory runtime guard."
+    },
+    {
+      "path": "packages/rebuild-ai3/src/auth-deletion-battery-consumer.ts",
+      "sha": "7d9c8d9436f2bbf5c3739a9184f7950897ac9dd3",
+      "decision": "ISOLATE_REAL_BATTERY_DELETE",
+      "source_finding": "createOfflineAuthDeletionBatteryConsumer({enabled:true,...}) actually executes INSERT to inbox with revocation trigger via db.prepare().run(); result receipt_only & may_ack_queue=false does NOT prevent local DB mutation if miswired."
+    },
+    {
+      "path": "packages/rebuild-ai3/src/battery-settlement-d1.ts",
+      "sha": "1b94988c7d014795a98faded9603904c664fe978",
+      "decision": "ISOLATE_D1_SETTLEMENT_WRITES",
+      "source_finding": "createOfflineBatterySettlementD1() generates and batches UPDATE/INSERT/guard assertions on injected DB port; LIVE constant false not its execution lock; no real authorized Battery rates/settlement."
+    },
+    {
+      "path": "packages/rebuild-ai3/src/anonymous-appeals.ts",
+      "sha": "de93cb78e659f17f07fbfbc9352a7b6f3a0d719e",
+      "decision": "ISOLATE_APPEAL_WRITER",
+      "source_finding": "createAnonymousAppeals() may call store.atomicCreate() on an injected store; LIVE_ANONYMOUS_APPEALS_ENABLED=false flag by itself does not establish non-mutation if wired."
+    },
+    {
+      "path": "packages/rebuild-ai3/src/index.ts",
+      "sha": "20a12af5cfb07940a041bd4fa633192dcad3f27f",
+      "decision": "KEEP_INERT_NOTIFICATIONS",
+      "source_finding": "bindTrust().notify returns safe recipient/channel projection from approved injected Auth port; does not send external email/push at import, but must not be connected to real notification driver."
+    },
+    {
+      "path": "packages/rebuild-ai3/src/recovery-guard.ts",
+      "sha": "8f840294919ff134ada79eebc20d7af46a60b463",
+      "decision": "REVIEW_ONLY_RESTORE_DENIED",
+      "source_finding": "assessIsolatedRestore() may call injected recordReviewEvidence; always may_restore:false and no actual restore method; candidate witness is not independent real platform proof."
+    },
+    {
+      "path": "packages/rebuild-ai3/src/battery-recovery-integrity.ts",
+      "sha": "25aa07e5dee8aa04b9ad44e29f43ab66e0d741b2",
+      "decision": "REVIEW_ONLY_WITNESS",
+      "source_finding": "assessIsolatedRestore() plus injected read/verifyProtectedAnchor ports; may_restore:false; independent nonrollbackable witness not evidenced."
+    },
+    {
+      "path": "packages/rebuild-ai3/src/signed-audit-recovery.ts",
+      "sha": "16f5a64711afc20d349349f599af603848c3f378",
+      "decision": "REVIEW_ONLY_WITNESS",
+      "source_finding": "audit chain/proof verification is isolated/offline and returns may_restore:false; no independent physical proof."
+    },
+    {
+      "path": "packages/rebuild-ai3/src/signed-audit-head.ts",
+      "sha": "b82adb79bfe795e1929a1783ad766294e323ebd8",
+      "decision": "REVIEW_ONLY_WITNESS",
+      "source_finding": "checks candidate protected audit head/floor but actual independent witness service not present; may_restore=false."
+    },
+    {
+      "path": "packages/rebuild-ai3/src/audit-retention.ts",
+      "sha": "11cc434a136cbbcde0ed6eb7b789e3010f5586cf",
+      "decision": "REVIEW_ONLY_NOT_Q104_Q119",
+      "source_finding": "existing Q115 review threshold 90d ordinary/1y important_management, but AUTOMATED_AUDIT_PURGE_ENABLED=false and purge_permitted:false. Never translate these code values into lawful Q104/Q119 retention."
+    },
+    {
+      "path": "packages/rebuild-ai3/src/replay-review.ts",
+      "sha": "cf0d4cf0abe0c55dd8d82fc658de4ba1b2aa9354",
+      "decision": "REVIEW_ONLY_REPLAY",
+      "source_finding": "requires review evidence; enqueue_permitted=false; no actual Queue replay."
+    },
+    {
+      "path": "packages/rebuild-ai3/src/wave1-security-notification-fence.ts",
+      "sha": "d2d1f88c0cc1dd2ba3fcff379b7ec7c89e87f850",
+      "decision": "REVIEW_ONLY_NOTIFY",
+      "source_finding": "returns may_send=false/may_ack_queue=false; no send driver and should not be mistaken for legal approval."
+    },
+    {
+      "path": "packages/rebuild-ai3/src/r16-battery-publisher-receipt.ts",
+      "sha": "3a4bc7e501770844c38a90d6eef9e79fd59ed179",
+      "decision": "ISOLATE_DELETION_SIDE_EFFECT",
+      "source_finding": "createOfflineBatteryPublisherReceiptSync({enabled:true}) wraps R15 bridge and may mutate local Battery via injected DB, despite no Queue ACK."
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0010_auth_delete_battery_inbox_DRAFT.sql",
+      "sha": "f50ded1a25b0064131c4f4368f31c879b9135204",
+      "decision": "SCHEMA_DRAFT_DO_NOT_APPLY",
+      "source_finding": "actual AFTER INSERT trigger revokes held Battery rights/zeroes wallet; harmless on Git but must not be applied to real D1 without Gate."
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0003_queue_atomic_DRAFT.sql",
+      "sha": "0234dbf5dd49f8890c4e3a2a81be6be0920d33f7",
+      "decision": "SCHEMA_DRAFT_DO_NOT_APPLY",
+      "source_finding": "migration candidate only; no real D1 application"
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0009_signed_audit_recovery_DRAFT.sql",
+      "sha": "f961482257fc0ddc0ec04d7b6f0dc1f75d96d9f",
+      "decision": "SCHEMA_DRAFT_DO_NOT_APPLY",
+      "source_finding": "candidate signed audit storage not a physically independent verified witness"
+    }
+  ],
+  "entry": [
+    {
+      "path": "apps/api/src/index.ts",
+      "sha": "a9addff8a16c351ee8cbf3900c8aee52e7fb012b",
+      "decision": "SAFE_CURRENT_RUNTIME_ONLY",
+      "source_finding": "health-only public route; default fetch delegates only to handleRequest; no AI3 import/Queue handler"
+    },
+    {
+      "path": "apps/api/wrangler.toml",
+      "sha": "55f53e1e63349b2ab275d92479d10258af47b6b4",
+      "decision": "SAFE_LOCAL_NO_BINDINGS",
+      "source_finding": "main entry src/index.ts; workers_dev=false; only staging vars; no D1/R2/Queue bindings or production env"
+    },
+    {
+      "path": ".github/workflows/starry-ci.yml",
+      "sha": "d52c5f5ef8a6bff4b84fb5a3631e7e99f7dd8f4e",
+      "decision": "MERGE_HAZARD_STAGING_FLAG",
+      "source_finding": "existing main push staging deploy branch IF vars.STARRY_STAGING_ENABLED == true (must read actual settings pre-merge)"
+    },
+    {
+      "path": ".github/workflows/starry-production.yml",
+      "sha": "f555ea7257e383458bb9b2e0bb1cd4abcf962d62",
+      "decision": "P0_PROD_GATE_GAP",
+      "source_finding": "manual actor/ref/phrase/var gates, but no release-readiness verification in deploy steps; does not validate real Gate evidence"
+    },
+    {
+      "path": "docs/release-readiness/release-readiness.v0.json",
+      "sha": "0ea2e40692fb2e9f7e0c282ac1ece91ad2c740ba",
+      "decision": "KEEP_BLOCKED",
+      "source_finding": "G00-G10 all blocked evidence []; release authorization false; deployment automation disabled; new in draft"
+    },
+    {
+      "path": "docs/release-readiness/check-release-readiness.mjs",
+      "sha": "2e00932950bf97e6bb8fe5503e90752c1bc3108f",
+      "decision": "STATIC_PRECHECK_ONLY",
+      "source_finding": "validator does not inspect external approval or true resource and is not referenced by existing production workflow"
+    }
+  ],
+  "import_startup": {
+    "entry_file": "apps/api/src/index.ts",
+    "import_has_ai3": false,
+    "worker_has_queue_export": false,
+    "public_paths": [
+      "/v1/health"
+    ],
+    "wrangler_main": "src/index.ts",
+    "wrangler_queue_binding": false,
+    "wrangler_d1_binding": false,
+    "wrangler_production_environment": false,
+    "direct_import_pure_at_load_assessment": "The reviewed AI3 modules define functions and constants, not a top-level Worker queue/fetch binding; this is a source review of entry/import path, not full runtime deployment proof.",
+    "not_proven": "Absence of dynamic external deployment settings/new Worker routes; Cloudflare settings and GitHub variables/environments require AI0 exact real verification.",
+    "policy": "No AI3 module is authorized for server runtime import or dependency injection into deployed Worker merely from merging to main."
+  },
+  "merge_deploy": {
+    "merge_authority": "AI-0 ONLY under owner record #6489238005",
+    "owner_merge_allowed_in_principle": true,
+    "ai3_main_source_admission": "CONDITIONAL_YES_AS_NONEXECUTED_DEVELOPMENT_ONLY",
+    "ai3_runtime_activation": "DENY",
+    "ai3_real_queue_ack": "DENY",
+    "ai3_real_send": "DENY",
+    "ai3_real_erase": "DENY",
+    "ai3_real_restore": "DENY",
+    "ai3_real_schema_migration": "DENY",
+    "staging_main_push_risk": "Existing starry-ci.yml runs conditional main-push deploy when vars.STARRY_STAGING_ENABLED == true; owner must verify variable and environment are disabled/protected pre-merge, no assumption.",
+    "production_manual_risk": "Existing starry-production.yml uses workflow_dispatch with confirmation+actor+variable+environment but does NOT itself invoke check-release-readiness.mjs before deploy; AI0/AI4 must require explicit --assert-blocked fail-before-deploy or equivalent guard/review.",
+    "release_readiness_guard_separation": "OFF manifest is checked in offline CI but not automatically consulted by existing production workflow; CI PASS does not imply deployment forbidden absent external policy"
+  },
+  "gate_evidence": {
+    "current": {
+      "gates_blocked": 11,
+      "evidence_empty": true,
+      "approval_granted": false,
+      "automation_enabled": false
+    },
+    "G06": "Final AI0 P05 schema authoritative 13-field conflict, signed issuer/nonce/session mappings, approved source provenance, cross-domain negative version compatibility.",
+    "G07": "True Starry-only D1/Queue/DLQ bindings and isolated authoritative actor, durable inbox/commit-before-ACK under crash/retry/duplicate/DLQ/quarantine with real evidence; no independent anti-PITR witness.",
+    "G10": "Q104/Q119 legal hold/retention/erasure authority approved and enforced, independent protected recovery witness, audit masking/role access/operator replay/recovery and incident runbook.",
+    "G02_G03": "True official Auth/Session/Member D1 current revocation authority; source committed outbox and approved server issuer. Offline bridge not proof.",
+    "release": "All eleven official G00–G10 blocked with evidence=[]; release_authorization.granted=false; P05/PUBLISHABLE=false"
+  },
+  "next_fixes": [
+    {
+      "priority": "P0_PRE_MERGE_AI0",
+      "owner": "AI-0",
+      "requirement": "Before any main promotion examine GitHub Actions vars.STARRY_STAGING_ENABLED and staging Environment, ensure conditional staging workflow cannot deploy on main push. Do not infer off from YAML."
+    },
+    {
+      "priority": "P0_PRE_DEPLOY_AI0_AI4",
+      "owner": "AI-0/AI-4",
+      "requirement": "Add/require fail-closed release-readiness gate to any executable deployment path (both staging and manual production as applicable); current production workflow does NOT invoke blocked gate script. Only AI0 changes cross-owner workflows."
+    },
+    {
+      "priority": "P0_KEEP_RUNTIME_QUARANTINE_AI0_AI4",
+      "owner": "AI-0/AI-4",
+      "requirement": "Keep apps/api/src/index.ts health-only and wrangler without real DB/Queue bindings/production; never import/invoke AI3 queue-transport, consumer, deletion adapter, audit DB port or SQL migration in deployed Worker until G06/G07 independently approved."
+    },
+    {
+      "priority": "P0_DELETION_AI1_AI3",
+      "owner": "AI-0+AI-1+AI-3",
+      "requirement": "Never bind enabled:true AI3 deletion/settlement/appeals to real SQL before verified AI1 Auth source/approved Q104-Q119 legal purpose, independent monotonic witness, recovery non-resurrection and audit evidence."
+    },
+    {
+      "priority": "P0_QUEUE_AI3_AI4",
+      "owner": "AI-0+AI-3+AI-4",
+      "requirement": "Replace abstract ack_safe/receipt typed trust with verifiable server-only committed outbox + nonce/signer/current event class + same-domain inbox receipt+DLQ, strictly ACK after actual durable commit and independent approved recovery proof."
+    }
+  ],
+  "flags": {
+    "battery_permanently_free": true,
+    "ads_enabled": false,
+    "may_owner_merge": false,
+    "may_owner_deploy": false,
+    "may_activate_ai3_runtime": false,
+    "may_ack_real_queue": false,
+    "may_delete_real_data": false,
+    "may_restore_real_data": false,
+    "may_use_paid_or_new_real_resources": false,
+    "independent_durable_witness_verified": false,
+    "legal_q104_q119_approved": false,
+    "release_authorized": false
+  }
+}
