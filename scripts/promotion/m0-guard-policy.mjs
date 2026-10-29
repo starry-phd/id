@@ -140,6 +140,7 @@ export function inspectWorkflow(raw,kind){
       'npm run mobile:config','npm run api:check','npm run api:runtime',
       'npm run release:blocked','npm run promotion:verify',
       'python3 scripts/ci/validate_repository.py',
+      'node -e \'const s=require("./package.json").scripts||{}; for(const k of ["typecheck","lint","test"]) if(!s[k]) throw Error("Missing "+k)\'',
     ]);
     for(const [name,job] of Object.entries(y.jobs)){
       for(const step of job.steps||[]){
@@ -149,8 +150,7 @@ export function inspectWorkflow(raw,kind){
           error('checkout must drop credentials');
         if(step.uses==='actions/setup-node@v4' && step.with?.['node-version']!=='22')
           error('unreviewed CI Node version');
-        if(step.run && name==='app-tests' && !approvedRuns.has(step.run.trim()) &&
-           !/^node -e '.+'$/.test(step.run.trim()))
+        if(step.run && name==='app-tests' && !approvedRuns.has(step.run.trim()))
           error('unapproved App CI shell command');
       }
     }
