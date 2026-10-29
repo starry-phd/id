@@ -1,0 +1,417 @@
+{
+  "schema": "starry.ai2.w1.d87-a.billing-single-authority-interfaces.v0-proposal",
+  "status": "DESIGN_REVIEW_ONLY_NOT_RUNTIME_NOT_RELEASE",
+  "approved_directions": {
+    "D00": "STAGED_CENTRAL_MEMBER_FIRST",
+    "D87": "OWNER_DIRECTION_A_SINGLE_TRANSACTION_AUTHORITY_APPROVED",
+    "D06": "OWNER_DIRECTION_A_BUSINESS_CORE_PLUS_SEPARATE_SECURITY_ENVELOPE_APPROVED",
+    "details_approved": false,
+    "official_store_verified": false,
+    "real_d1_authorized": false,
+    "live_enabled": false
+  },
+  "provenance": {
+    "repo": "starry-phd/id",
+    "base_pr": 242,
+    "base_sha": "22d7ab1c127546e9e131810d58fdf7e0ccb17882",
+    "ai0_w1_non_inherited_references": [
+      {
+        "pr": 243,
+        "kind": "requirements-review-queue"
+      },
+      {
+        "pr": 244,
+        "kind": "isolated-self-profile-handler"
+      },
+      {
+        "pr": 245,
+        "head": "e1b255b014c673439f134ef5a58107a036f4b60f",
+        "kind": "isolated-five-field-self-profile-roundtrip"
+      }
+    ],
+    "reads": [
+      "packages/rebuild-billing/src/wave1-billing-revenuecat-review.ts",
+      "packages/rebuild-billing/src/wave1-r002-signed-auth-billing-bridge.ts",
+      "packages/rebuild-billing/src/wave1-r006-synthetic-store-provenance.ts",
+      "packages/rebuild-billing/src/wave1-r007-official-provider-adapter-deny.ts",
+      "packages/rebuild-billing/src/wave1-r008-cross-provider-conflict-deny.ts",
+      "docs/adr/AI0-D06-P05-LAYERED-EVENT-SECURITY-OWNER-DECISION-20261029.md",
+      "docs/contracts/FUTURE-STARRY-ADMIN-API.md",
+      "packages/rebuild-billing/docs/POST-R008-G04-G05-AUTHORITY-APPROVAL-MATRIX.v1.json"
+    ]
+  },
+  "authority": {
+    "logical_unit": "A single approved Starry Billing transaction authority for first-claim, receipt, entitlement CAS, and pending P05 business-core outbox in ONE durable commit boundary; not a guarantee of one physical D1 across all modules.",
+    "single_writer": "AI-2-owned server BillingAuthorityWriter called ONLY by authorized protected server services; no client/admin/SDK/AI-3 direct SQL/grant writer",
+    "separate_owners": {
+      "identity": "AI-1 signed current Auth/Session authority",
+      "p05_security": "AI-0 + AI-3 issuer/verifier policy, AI-4 common DTO/SDK",
+      "event_inbox": "AI-3 durable validator/inbox/dedup/ACK",
+      "transport": "AI-4 protected Worker/Queue port",
+      "release": "AI-0 owner Gate"
+    },
+    "no_cross_database_atomicity": true,
+    "no_store_receipt_authority_from_r007_r008": true,
+    "one_authority_does_not_imply_one_physical_d1_for_all_domains": true
+  },
+  "identity_keys": {
+    "transaction_unique_key": [
+      "brand_id",
+      "app_id",
+      "environment",
+      "provider",
+      "store_namespace",
+      "store_transaction_ref"
+    ],
+    "first_claim_lineage_unique_key": [
+      "provider",
+      "store_namespace",
+      "original_transaction_ref"
+    ],
+    "source_event_unique_key": [
+      "provider",
+      "store_namespace",
+      "provider_event_ref"
+    ],
+    "entitlement_unique_key": [
+      "brand_id",
+      "app_id",
+      "environment",
+      "s_user_id",
+      "entitlement_key"
+    ],
+    "outbox_unique_key": [
+      "brand_id",
+      "app_id",
+      "environment",
+      "event_id"
+    ],
+    "rules": [
+      "provider/store_namespace/ids derived only from independently official server-verified evidence, NEVER client-supplied receipt claims",
+      "first_claim lineage uniqueness does NOT include s_user_id; a new member cannot claim the same purchase",
+      "cross-app/brand/environment association must be checked before insert, not bypassed by introducing another scoped row",
+      "provider versions are separate incomparable domains; use provider-specific verified lineage and event ordering, not comparison between RevenueCat and Store counters",
+      "store_transaction_ref, provider_event_ref, original_transaction_ref names are abstract opaque verified references; representation, hashing/legal retention unresolved"
+    ]
+  },
+  "ports": [
+    {
+      "owner": "AI-1",
+      "name": "CurrentAuthFencePort",
+      "signature": "readAndRevalidate(identity_context,expected_auth_version,expected_session_version,issuer_epoch)-> AuthFence | DENY",
+      "trust": "server-only signed current issuer+Session+member/app/env; client x-verified and user_id forbidden",
+      "commit_boundary": "MUST provide approved monotonic fencing / lock-with-authority strategy for revoke/write race; external independent Auth D1 read by itself cannot prove atomicity"
+    },
+    {
+      "owner": "OfficialStoreVerifier future, externally approved",
+      "name": "OfficialProviderEvidencePort",
+      "signature": "verifyOfficialProviderEvidence(source_opaque)-> VerifiedProviderEvidence | DENY",
+      "trust": "official Apple/Google server-side provider authority only; RC claims remain supplemental, NOT independent purchase proof",
+      "commit_boundary": "NO IMPLEMENTATION OR CALL AUTHORIZED IN W1"
+    },
+    {
+      "owner": "AI-2",
+      "name": "BillingAuthorityWriterPort",
+      "signature": "applyVerifiedTransition(auth_fence,verified_provider_evidence,expected_entitlement_revision)-> CommittedReceipt | DENY",
+      "trust": "server-only; no UI, Admin or unverified R007/R008 review object",
+      "commit_boundary": "ONE durable transaction: verify first-claim+source event uniqueness, upsert receipt, conditional entitlement revision, append P05 business-core outbox"
+    },
+    {
+      "owner": "AI-2",
+      "name": "BillingPostCommitReadPort",
+      "signature": "readCommittedEntitlement(commit_ref,current_auth_fence)-> EntitlementSnapshot | DENY",
+      "trust": "authoritative same-store committed read; no read-replica/cache optimism",
+      "commit_boundary": "only after commit confirmation and current Auth fencing, never from in-memory candidate"
+    },
+    {
+      "owner": "AI-3",
+      "name": "P05DeliveryPort",
+      "signature": "deliverCommittedOutbox(record_ref)-> Delivered | RETRY | QUARANTINE",
+      "trust": "AI-3 verifies separate approved security envelope, current issuer/session policy and durable inbox",
+      "commit_boundary": "ACK only after receiver durable inbox commit; dispatch never inside buyer transaction and never grant by itself"
+    },
+    {
+      "owner": "AI-0+AI-4",
+      "name": "ProtectedBillingApiBoundary",
+      "signature": "future-approved protected route maps verified Auth, Store and writer ports; W1 has no registered endpoint",
+      "trust": "Route/Auth/App/Env scopes and status/errors must be approved; no arbitrary SQL admin gateway",
+      "commit_boundary": "default OFF, non-deployable in this proposal"
+    }
+  ],
+  "writer_preconditions": [
+    "D00 stage permits contract study only, not Billing live activation",
+    "valid server current AuthFence for same Starry member/app/environment; deny revoked/expired/deleted/guest and changed issuer/session versions",
+    "official provider verification AND approved App/SKU/ownership/lifecycle mapping; until G04 approved, ALWAYS DENY",
+    "no cross-brand, cross-environment, cross-app transfer, duplicate source event, same lineage double claim, unknown SKU or policy",
+    "entitlement expected_revision exact CAS; stale or missing expected revision is DENY",
+    "independent anti-PITR monotonic witness and cross-boundary current Auth lock semantics remain blocking until reviewed"
+  ],
+  "proposed_tables": [
+    {
+      "name": "billing_original_lineage",
+      "unique": [
+        [
+          "provider",
+          "store_namespace",
+          "original_transaction_ref"
+        ]
+      ],
+      "fields": [
+        "provider",
+        "store_namespace",
+        "original_transaction_ref",
+        "brand_id",
+        "app_id",
+        "environment",
+        "s_user_id",
+        "first_claim_receipt_ref",
+        "created_at"
+      ],
+      "invariant": "first claim immutable; verified original transaction binds exactly one owner; account transfer requires separate new approved process"
+    },
+    {
+      "name": "billing_source_event",
+      "unique": [
+        [
+          "provider",
+          "store_namespace",
+          "provider_event_ref"
+        ],
+        [
+          "brand_id",
+          "app_id",
+          "environment",
+          "provider",
+          "store_namespace",
+          "store_transaction_ref"
+        ]
+      ],
+      "fields": [
+        "provider",
+        "store_namespace",
+        "provider_event_ref",
+        "store_transaction_ref",
+        "lineage_ref",
+        "verified_evidence_ref",
+        "status",
+        "observed_at",
+        "commit_ref"
+      ],
+      "invariant": "dedupe source, never accept client event as Store proof"
+    },
+    {
+      "name": "billing_entitlement",
+      "unique": [
+        [
+          "brand_id",
+          "app_id",
+          "environment",
+          "s_user_id",
+          "entitlement_key"
+        ]
+      ],
+      "fields": [
+        "brand_id",
+        "app_id",
+        "environment",
+        "s_user_id",
+        "entitlement_key",
+        "state",
+        "revision",
+        "last_verified_source_ref",
+        "revoked_or_refunded_tombstone"
+      ],
+      "invariant": "revision monotonic and sealed negative transitions; no implicit restore after refund/revoke"
+    },
+    {
+      "name": "billing_p05_outbox",
+      "unique": [
+        [
+          "brand_id",
+          "app_id",
+          "environment",
+          "event_id"
+        ]
+      ],
+      "fields": [
+        "event_id",
+        "event_type",
+        "schema_version",
+        "brand_id",
+        "app_id",
+        "environment",
+        "occurred_at",
+        "correlation_id",
+        "resource_type",
+        "resource_id",
+        "result",
+        "idempotency_key",
+        "source_receipt_ref",
+        "commit_ref",
+        "delivery_status"
+      ],
+      "invariant": "business core and eligible receipt written atomically; security envelope later and separate"
+    },
+    {
+      "name": "billing_commit_receipt",
+      "unique": [
+        [
+          "commit_ref"
+        ]
+      ],
+      "fields": [
+        "commit_ref",
+        "authority_revision",
+        "source_event_ref",
+        "receipt_ref",
+        "entitlement_revision",
+        "outbox_event_id",
+        "commit_status"
+      ],
+      "invariant": "only committed authoritative rows exposed; no successful response after failed commit"
+    }
+  ],
+  "transaction_protocol": [
+    {
+      "n": 1,
+      "action": "REJECT untrusted R007/R008 review_only, provisional Auth, policy-unknown SKU, RC-only evidence"
+    },
+    {
+      "n": 2,
+      "action": "ACQUIRE current Auth fence + independently official verified Store evidence; validate app/env/member/issuer and monotonic authority"
+    },
+    {
+      "n": 3,
+      "action": "BEGIN approved single durable transaction within chosen logical authority (real storage primitive/migrations NOT yet authorized)"
+    },
+    {
+      "n": 4,
+      "action": "INSERT unique provider event and immutable lineage first claim; if duplicate identical -> replay/no grant; if conflicting owner -> hard DENY"
+    },
+    {
+      "n": 5,
+      "action": "CAS entitlement revision; apply only authorized state transition, enforce terminal refund/revoke and anti-PITR policy"
+    },
+    {
+      "n": 6,
+      "action": "INSERT receipt + D06 Layer-1 business core/outbox with conditional idempotency_key in SAME transaction; ensure event/source dedup"
+    },
+    {
+      "n": 7,
+      "action": "COMMIT, then read-after-commit from same authority; failure/ambiguous commit -> read unique receipt/commit_ref for reconciliation, NEVER blindly retry grant"
+    },
+    {
+      "n": 8,
+      "action": "AFTER COMMIT independent AI-3 delivery uses separately approved D06 Layer-2 security envelope; inbox durable commit-before-ACK, retry/DLQ"
+    },
+    {
+      "n": 9,
+      "action": "Revalidate Auth/issuer epoch and irreversible revoke before any externally visible entitlement (full atomic cross-domain fence unresolved; DO NOT enable live)"
+    }
+  ],
+  "denial_matrix": [
+    {
+      "case": "unverified Apple/Google/RevenueCat or synthetic R007/8 claim",
+      "decision": "DENY_AND_NO_WRITE"
+    },
+    {
+      "case": "new s_user_id claiming same original lineage",
+      "decision": "DENY_CROSS_ACCOUNT_REBIND"
+    },
+    {
+      "case": "same provider event replay",
+      "decision": "IDEMPOTENT_NO_NEW_GRANT_OR_OUTBOX"
+    },
+    {
+      "case": "same original lineage but wrong app/brand/env/sku",
+      "decision": "DENY_CROSS_SCOPE"
+    },
+    {
+      "case": "stale CAS revision or concurrent first claim",
+      "decision": "ROLLBACK_OR_CONFLICT_NO_SIDE_EFFECT"
+    },
+    {
+      "case": "refund/revoke then restore/renewal or late active",
+      "decision": "DENY_REGRANT_PENDING_OFFICIAL_POLICY"
+    },
+    {
+      "case": "auth revoked/deleted/issuer epoch rotated during process",
+      "decision": "DENY_NO_GRANT_UNTIL_APPROVED_MONOTONIC_FENCE"
+    },
+    {
+      "case": "transaction error after receipt before outbox",
+      "decision": "WHOLE_TRANSACTION_ROLLBACK_NO_VISIBLE_GRANT"
+    },
+    {
+      "case": "uncertain commit response and redelivery",
+      "decision": "QUERY_COMMIT_REF_THEN_RECONCILE_NO_BLIND_RETRY"
+    },
+    {
+      "case": "Queue send or ACK before durable inbox commit",
+      "decision": "DENY_ACK_RETRY_AFTER_COMMIT"
+    },
+    {
+      "case": "PITR rollback resurrects previously revoked entitlement",
+      "decision": "DENY_REQUIRE_INDEPENDENT_DURABLE_WITNESS"
+    }
+  ],
+  "p05": {
+    "approved_direction": "D06_LAYERED_EVENT_CORE_AND_SEPARATE_SECURITY_ENVELOPE",
+    "layer1_existing_core_fields": [
+      "event_id",
+      "event_type",
+      "schema_version",
+      "brand_id",
+      "app_id",
+      "environment",
+      "occurred_at",
+      "correlation_id",
+      "resource_type",
+      "resource_id",
+      "result"
+    ],
+    "conditional_idempotency_key": "required_when_payment_or_retry; ALWAYS for proposed Billing payment/refund/revoke/restore candidate events unless AI-0 approves per-type matrix",
+    "event_type_examples_are_proposals": [
+      "billing.receipt_verified",
+      "billing.entitlement_changed",
+      "billing.refund_revoke"
+    ],
+    "emission": "only persisted in billing_p05_outbox inside committed transaction; no network emission until separate approval",
+    "layer2": "separately versioned/signed/issuer/KID/replay fenced delivery structure owned by AI-0/AI-3/AI-4; no schema or signer declared final",
+    "mapping": [
+      "event_id is the immutable outbox dedupe key",
+      "correlation_id ties authorized server request and eventual dispatch",
+      "idempotency_key is derived from approved business operation identity; not arbitrary client-supplied value",
+      "outbox commit_ref and receipt_ref are internal, NOT required core public fields",
+      "P05 13-column G06 requirement still unenumerated; do not guess 13th or replace with 17-field R006 offline candidate"
+    ],
+    "publishable": false,
+    "ack_allowed": false
+  },
+  "blockers": [
+    "G00 formally scoped MVP and SKU policy unknown; 13-item POST-R008 approvals unchanged",
+    "G04 real Apple/Google/RevenueCat verification and test resources unapproved",
+    "G05 real D1/transactions/migrations and physical DB count unapproved",
+    "AI-1 Auth session fence atomicity across domains unresolved",
+    "G06 exact schema version, unenumerated 13 fields, issuer/keys unapproved",
+    "AI-3 reliable inbox/Queue/PITR/ACK witness unapproved",
+    "Q104/Q119 retention/erasure/legal hold unapproved",
+    "Gate1 PARTIAL/BLOCKED; Gate3 G00-G10 11/11 BLOCKED; release_authorization.granted=false"
+  ],
+  "operative_flags": {
+    "can_charge": false,
+    "can_purchase": false,
+    "can_restore": false,
+    "can_grant": false,
+    "can_regrant": false,
+    "can_write_real_d1": false,
+    "can_send_p05": false,
+    "can_ack": false,
+    "can_publish": false,
+    "preview_enabled": false,
+    "ads_enabled": false,
+    "battery_paid": false,
+    "main_merged": false,
+    "hglobal_or_echo_work": false
+  }
+}
