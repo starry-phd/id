@@ -18,7 +18,9 @@
     "mobile:config": "npm exec --workspace @starry/id-app -- expo config --type public",
     "web:dev": "npm run web --workspace @starry/id-app",
     "release:blocked": "node docs/release-readiness/check-release-readiness.mjs --assert-blocked",
-    "promotion:verify": "node scripts/promotion/verify-curated-release.mjs"
+    "promotion:verify": "node scripts/promotion/verify-curated-release.mjs",
+    "auth:typecheck": "tsc --noEmit -p modules/starry-id-v1/tsconfig.json",
+    "auth:test": "node --experimental-strip-types --test modules/starry-id-v1/test/session-crypto.test.mjs modules/starry-id-v1/test/d1-ports.test.mjs modules/starry-id-v1/test/r23-signed-session-d1-request-boundary.test.mjs modules/starry-id-v1/test/w2-r23-auth-outcome-adapter.test.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
