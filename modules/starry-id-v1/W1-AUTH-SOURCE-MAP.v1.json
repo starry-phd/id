@@ -1,0 +1,211 @@
+{
+  "schema_version": "starry.ai1.w1.auth-source-and-boundary-review.v1",
+  "source": {
+    "inventory_path": "docs/requirements/original-inventory.v0.json",
+    "inventory_blob": "7a3131bc1a92d73145091a8bae51cb4aa135780c",
+    "reconciliation_path": "docs/requirements/source-reconciliation-r8.v0.json",
+    "reconciliation_blob": "13f386a9c1defd2ac945e2235f5e237bafa07057",
+    "reviewed_ai0_pr244_head": "7965ee9a9b0a80bc595b207382aac75bf7a33548",
+    "reviewed_ai0_pr245_head": "e1b255b014c673439f134ef5a58107a036f4b60f",
+    "reviewed_server_blob": "3acd105e0942514cbc24dd8032c3166b484bb5c2",
+    "reviewed_client_blob": "f60b4063277b36c180fcece85a47db0482eda641",
+    "reviewed_openapi_blob": "638d242f3b799a894f8a3587ee3ca48737236cee",
+    "parent_sha": "22d7ab1c127546e9e131810d58fdf7e0ccb17882"
+  },
+  "owner": "AI-1",
+  "scope": "starry-central-only",
+  "read_path": "GET /v1/starry-id/members/me",
+  "read_response_exact_fields": [
+    "s_user_id",
+    "display_name",
+    "directory_opt_in",
+    "display_name_public",
+    "profile_revision"
+  ],
+  "gate": {
+    "g00": "blocked",
+    "g02": "blocked",
+    "g03": "blocked",
+    "g06": "blocked",
+    "g00_g10_release": "blocked",
+    "publishable": false,
+    "release_authorized": false,
+    "deploy_allowed": false,
+    "auth_live_verified": false
+  },
+  "direction": {
+    "D00": "member-auth-session-authorization-first",
+    "D87": "single-transaction-authority-direction-approved-physical-boundaries-pending",
+    "D06": "business-core-plus-private-security-envelope-direction-approved-schema-pending"
+  },
+  "entries": [
+    {
+      "source_id": "01.01",
+      "source_title": "Google 登入",
+      "r8_decision_class": "owner_approved_release_blocked",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "01.02",
+      "source_title": "Apple 登入及帳號綁定",
+      "r8_decision_class": "owner_approved_release_blocked",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "01.03",
+      "source_title": "唯一會員識別碼",
+      "r8_decision_class": "owner_approved_release_blocked",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "01.04",
+      "source_title": "登入狀態及 Session",
+      "r8_decision_class": "owner_approved_release_blocked",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "01.05",
+      "source_title": "跨品牌登入與一般登出界線",
+      "r8_decision_class": "superseded_by_latest",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "01.06",
+      "source_title": "一鍵登出所有裝置",
+      "r8_decision_class": "owner_approved_release_blocked",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "01.07",
+      "source_title": "同裝置家庭成員切換",
+      "r8_decision_class": "partially_approved_details_pending",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "01.08",
+      "source_title": "登入協助與帳號救援",
+      "r8_decision_class": "owner_approved_release_blocked",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "02.01",
+      "source_title": "基本個人資料",
+      "r8_decision_class": "owner_approved_release_blocked",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "02.02",
+      "source_title": "手機號碼管理",
+      "r8_decision_class": "partially_approved_details_pending",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "02.03",
+      "source_title": "頭像裁切與壓縮",
+      "r8_decision_class": "owner_approved_release_blocked",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "02.04",
+      "source_title": "生日與衍生資訊",
+      "r8_decision_class": "partially_approved_details_pending",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "02.07",
+      "source_title": "逐欄編輯與自動儲存",
+      "r8_decision_class": "superseded_by_latest",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "02.08",
+      "source_title": "多人同時編輯衝突",
+      "r8_decision_class": "owner_approved_release_blocked",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "02.09",
+      "source_title": "欄位公開與隱藏",
+      "r8_decision_class": "owner_approved_release_blocked",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "02.10",
+      "source_title": "會員欄位最後更動資訊",
+      "r8_decision_class": "owner_approved_release_blocked",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "05.01",
+      "source_title": "兩名最高管理者",
+      "r8_decision_class": "superseded_by_latest",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "05.04",
+      "source_title": "逐次後端授權與操作阻擋",
+      "r8_decision_class": "owner_approved_release_blocked",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "05.05",
+      "source_title": "暫時停權",
+      "r8_decision_class": "partially_approved_details_pending",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "05.06",
+      "source_title": "人工復權",
+      "r8_decision_class": "partially_approved_details_pending",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "05.08",
+      "source_title": "永久刪除會員帳號",
+      "r8_decision_class": "owner_approved_release_blocked",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    },
+    {
+      "source_id": "05.09",
+      "source_title": "本人與管理端資料查閱",
+      "r8_decision_class": "partially_approved_details_pending",
+      "semantic_approval_by_this_packet": false,
+      "live_verified": false
+    }
+  ],
+  "owner_writers": {
+    "provider-first-claim": "AI-1 Auth authority, one normalized (provider, subject) UNIQUE binding + account creation under same approved Auth transaction; no auto-link on email; exact physical commit design remains review",
+    "session-issue-refresh-revoke": "AI-1 Auth authority; server-only session/issuer keys and current auth_version, session CAS; step-up/expiry/revoke in same approved Auth atomic scope",
+    "profile-update": "AI-1 Auth authority; one UPDATE starry_members WHERE s_user_id=current sealed principal AND status=active AND auth_version=current AND profile_revision=expected; success requires changes=1",
+    "suspend-restore-delete": "AI-1 Auth authority only with verified P04 step-up & approved legal path; atomically fence auth_version/session issuance; deletion/legal retention pending Q104/Q119",
+    "profile-self-read": "AI-1 read authority via existing #244 isolated handler; no second writer; single SELECT current fence, not a write/ACK authority",
+    "billing-events": "AI-2 domain owns billing decisions; cannot write Auth identity/session; cross-domain coherence via AI-0 D87 adjudicated transaction/commit/outbox only"
+  },
+  "downstream": {
+    "ai4": "shared Worker/OpenAPI/SDK publisher and runtime registration after AI-0 review only",
+    "ai3": "P05/P06 private envelope validator/durable ACK after commit",
+    "ai0": "final schema, physical authority boundary, G00/G06/G02/G03 Gate and owner approval"
+  },
+  "review_status": "review_only_no_runtime_registration"
+}
