@@ -24,7 +24,7 @@ async function makeFixture(){
  const jwk=await webcrypto.subtle.exportKey('jwk',providerPair.publicKey);
  const provider={provider:'google',clientId:'starry-test-only-client',issuer:'https://accounts.google.com',
    jwks:[{...jwk,kid:'test-only-kid',alg:'RS256',use:'sig'}]};
- const state={reads:0,writes:0,exchanges:0,keyReads:0,clock:now,blockedWrite:false,failKey:false,verifySub:'verified-sub'};
+ const state={reads:0,writes:0,exchanges:0,keyReads:0,clock:now,blockedWrite:false,failKey:false,beforeInsert:null,dbFault:false,verifySub:'verified-sub'};
  const adapter={
    prepare(sql){
      const values=[];
@@ -33,6 +33,8 @@ async function makeFixture(){
        async first(){state.reads++;return db.prepare(sql).get(...values)??null;},
        async run(){
          state.writes++;
+         if(sql.startsWith('INSERT INTO starry_sessions')&&state.beforeInsert){const hook=state.beforeInsert;state.beforeInsert=null;hook();}
+         if(state.dbFault)throw Error('PRIVATE_SQL_TABLE_NAME');
          if(state.blockedWrite&&sql.startsWith('INSERT INTO starry_sessions'))
            return {success:true,meta:{changes:0}};
          const out=db.prepare(sql).run(...values);
@@ -172,7 +174,6 @@ test('RS256 signature tamper and wrong nonce deny without a Session',async()=>{
   const valid=await f.signIdToken(good);
   const parts=valid.split('.');
   const tampered=parts[0]+'.'+parts[1]+'.'+(parts[2].endsWith('A')?'B':'A');
-  const originalExchange=f.deps.exchangeCode;
   const badCore=createM1LocalAuthSessionCore({...f.deps,exchangeCode:async()=>({idToken:tampered})});
   assert.equal(await badCore.issueFromVerifiedCallback(first),null);
   const second=await f.prepare();
@@ -187,6 +188,67 @@ test('wrong KID or inaccessible signer fails closed before session INSERT',async
   const core=createM1LocalAuthSessionCore({...f.deps,activeKey:async()=>null});
   const input=await f.prepare();
   assert.equal(await core.issueFromVerifiedCallback(input),null);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,0);
+ }finally{f.close();}
+});
+
+test('SQL/KMS exceptions are sanitized and no bearer or SQL detail escapes',async()=>{
+ for(const fault of ['key','db']){
+  const f=await makeFixture();try{
+   if(fault==='key')f.state.failKey=true;
+   else f.state.dbFault=true;
+   const core=createM1LocalAuthSessionCore(f.deps);
+   const got=await core.issueFromVerifiedCallback(await f.prepare());
+   assert.equal(got,null);
+   assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,0);
+  }finally{f.close();}
+ }
+});
+test('mutable provider clientId/issuer/JWKS after constructor cannot change trusted authority',async()=>{
+ const f=await makeFixture();try{
+  const core=createM1LocalAuthSessionCore(f.deps);
+  const input=await f.prepare();
+  f.deps.provider.clientId='attacker-client';
+  f.deps.provider.issuer='https://appleid.apple.com';
+  f.deps.provider.jwks=[];
+  const got=await core.issueFromVerifiedCallback(input);
+  assert.equal(got?.status,'issued');
+  const token=JSON.parse(Buffer.from(got.bearer.split('.')[1],'base64url').toString());
+  assert.equal(token.provider,'google');assert.equal(token.provider_subject,'verified-sub');
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,1);
+ }finally{f.close();}
+});
+test('INSERT fence rejects member version bump, suspension or provider unlink after identity pre-read',async()=>{
+ for(const action of [
+  ()=>"UPDATE starry_members SET auth_version=auth_version+1 WHERE s_user_id='u1'",
+  ()=>"UPDATE starry_members SET status='suspended' WHERE s_user_id='u1'",
+  ()=>"DELETE FROM starry_identities WHERE provider='google'",
+ ]){
+  const f=await makeFixture();try{
+   const core=createM1LocalAuthSessionCore(f.deps);
+   f.state.beforeInsert=()=>f.db.exec(action());
+   assert.equal(await core.issueFromVerifiedCallback(await f.prepare()),null);
+   assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,0);
+  }finally{f.close();}
+ }
+});
+test('bad client callback claims fail strict parser; no DB-authenticated principal from client JSON',async()=>{
+ const f=await makeFixture();try{
+  const core=createM1LocalAuthSessionCore(f.deps);
+  const input=await f.prepare();
+  assert.equal(await core.issueFromVerifiedCallback({...input,s_user_id:'other'}),null);
+  assert.equal(await core.issueFromVerifiedCallback({...input,app_id:'other'}),null);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,0);
+ }finally{f.close();}
+});
+test('expired trusted time during key await rejects issuance and leaves Session absent',async()=>{
+ const f=await makeFixture();try{
+  const core=createM1LocalAuthSessionCore({...f.deps,activeKey:async()=>{
+   f.state.clock=now+301;
+   return f.deps.activeKey();
+  }});
+  const got=await core.issueFromVerifiedCallback(await f.prepare());
+  assert.equal(got,null);
   assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,0);
  }finally{f.close();}
 });
