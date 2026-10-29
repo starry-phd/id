@@ -93,3 +93,27 @@
 4. H-Global／繁星回聲完全不介入，Battery FREE、Ads OFF、Expo54 unchanged。
 
 **Rollback：** 關閉本 AI-2 source-review Draft／只棄審查文件與 source-only Git Tree test；#255／main／#249/#251 原始 Git blobs 全都不動。
+
+## 6｜完整 846 條 Git Tree 已可取得後追加的 Store/Refund Network Port 定點審查（同 #255 blob）
+
+> **必要補充：不能說「整個 Billing 沒有任何發送網路請求的能力」。正確描述是「目前公開 Worker／startup 與被動 PR CI 沒有執行真 Store/RC 商業請求，但候選 Store Port 一旦被明確注入真 fetch/密鑰並呼叫，的確可能連網」。** 這些 port 的存在**不是**已獲業主批准做真 Store 測試或收付款。完整 Tree audit 比對主幹相對整合來源 846 個物件後，依其無截斷清單補檢以下實體碼：
+
+| #255 已有檔案 | Git Blob SHA | 真實風險與限制 |
+| --- | --- | --- |
+| `packages/rebuild-billing/src/google-play-requery.ts` | `7f64945f9c50b5c55080097d9adedb45afc02dc0` | `createSandboxPlaySubscriptionsV2Requery` **可在調用 `querySubscriptionV2` 時**先呼叫注入的 `obtainServerToken()`、再用 `fetchTrusted()` 送出 `GET https://androidpublisher.googleapis.com/androidpublisher/v3/applications/…/purchases/subscriptionsv2/tokens/…`。URL 由固定官方 host + server registry package 和 token 組成。**匯入模組本身不發請求**；若未經核准注入真 server token/fetch 而連 Google API 就是跨過 Gate。不可把「沒有 module-init fetch」誤說成「程式沒有 network-capable port」。 |
+| `packages/rebuild-billing/src/sandbox-providers.ts` | `65531a467240d73541b2ce493dfe3a913ba05cf8` | `verifyGoogleSandboxRtdn()` 驗 Google OIDC/PubSub 來源，**會在顯式調用時**使用注入的 `resolveGoogleOidcKey`、`querySubscriptionV2`、`opaquePurchaseTokenRef`；後者可包住上面的 HTTP requery。Apple sandbox routines也依賴注入可信簽名／鏈檢。**無可信 Registry/issuer/官方帳戶/Store 權威時不可用於正式 entitlement**。 |
+| `packages/rebuild-billing/src/apple-pki-node.mjs` | `32780a5b355ab4c1b4685e4ba496487c4b482ab1` | `createPinnedNodeApplePkiCandidate` 用 Node X509／WebCrypto，本機審憑證鏈；`trustedAppleLeafKey` 會**調用被注入的 `verifyOcspEvidence`**，這個 callback 是否連 OCSP 網路由呼叫者決定。模組明註 callback 只是 trust boundary，不等於已實作/驗收真 OCSP 回應簽章與撤銷。 |
+| `packages/rebuild-billing/src/r23-google-rtdn-signed-transport.ts` | `fc7b1c5f22e48e87bcdb9f9a8dbc75b101299909` | `R23_GOOGLE_RTDN_LIVE=false`，採離線注入公鑰驗簽，**沒有任何自主遠端 Play requery**；註解明確警告 RTDN 不是交易權威，不能 ACK。 |
+| `packages/rebuild-billing/src/r18-refund-inbox.ts` | `9ea1ec310d7e80dfd98be5ffa9c30f3352849ce4` | 存在獨立 **OFFLINE** `createOfflineBillingR18RefundInbox`，要求可信 store revocation、獨立簽章、legal retention、deleted-member `review_only` 和 SQLite candidate 收據；`LIVE_BILLING_R18_ENABLED=false`、`ACK_ALLOWED=false`。它**不是**商店官方 webhook 端點，也未解決通用 server-to-server Refund writer 的正式權威；同時 `src/index.ts` 舊 `planSandboxPurchase` 的會員 ACTIVE Session 依賴仍在。不能把兩個候選拼接稱為正式退款。 |
+| `packages/rebuild-billing/src/r20-namespace-mapping-gate.ts` | `cde293f5c7bc5b59fbc36b69321531fce91d1aca` | 跨 Auth/Billing/Store namespace 是**UNAPPROVED OFFLINE OBSERVATION**，`R20_BILLING_BINDING_APPROVED=false`、`STORE_SIGNER_APPROVED=false`，未解 #251 真 Store issuer/六維 scope 唯一權威。 |
+| `packages/rebuild-billing/src/sbase-billing-client-candidate.ts` | `47c776e707aed12657528fe00e32cecccb34ca1f` | `SBASE_BILLING_LIVE=false`、`SBASE_STORE_PAYMENTS_ENABLED=false`，沒有真正 Store/RC SDK import/付款 network call。 |
+| `packages/rebuild-billing/src/r23-store-release-preflight.ts` | `81036e17224c225256387b8dd3c7035730aececb` | `R23_STORE_PREFLIGHT_LIVE=false`，只產出缺失報告，沒有官方交易驗收。 |
+| `packages/rebuild-billing/scripts/r23-store-preflight.mjs` | `c941f3f8a772db56f3949d4a5de4cddbd2a0c4e9` | 讀取本機 repo 檔、產生阻塞報告；不啟動真 Store/RC。 |
+
+**更新後的嚴格分類：**
+
+- **MAIN SOURCE-ONLY CONDITIONAL**：以上純程式模組可以作未連接正式 Worker 的資料／測試候選；匯入時未觀察到自主取得真 Store token／立即發購買或 apply D1 migration。
+- **MUST ISOLATE FROM LIVE RUNTIME**：`google-play-requery.ts` 的 `fetchTrusted`／`obtainServerToken`、`sandbox-providers.ts` 的 `querySubscriptionV2`／`resolveGoogleOidcKey`、`apple-pki-node.mjs` 的 `verifyOcspEvidence`，以及 `billing-d1.ts.commit`、`r18-refund-inbox.accept`、`src/index.ts.planSandboxPurchase`；未經業主逐資源批准/AI0 Gate 絕不注入真 credential／HTTP transport／D1。
+- **MUST FIX BEFORE BILLING LIVE**：官方 supplier-root/JWKS/OCSP 信任與帳戶、#251 六維 namespace/first-claim 真 SQL 及 Auth fence、獨立 trusted refund/revoke、G06 P05 正式層次與 durable outbox/Queue、防 PITR，及 Q104/Q119 法遵證據。**目前沒有正式 Refund consumer 保證在會員已刪除時仍可無錯誤減權**。
+
+此定點補充與上述 21 workflow 靜態檢視並不矛盾：PR CI 中的 `npm ci`／GitHub 稽核 fetch 是依賴/程式碼網路，不是 Google Play purchase API；在已讀工作流程步驟中沒有執行 `google-play-requery.ts` 的**正式購買**。這是抽樣已讀碼的事實，非毫無例外的全專案網路不可能性證明。只接受 Git Blob SHA 和明確的可達性／資源驗收再升權。
