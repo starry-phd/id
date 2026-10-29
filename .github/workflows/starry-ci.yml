@@ -60,6 +60,7 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run auth:typecheck
+      - run: npm run w3:typecheck
       - run: npm run auth:test
       - run: npm run mobile:config
       - run: npm run api:check

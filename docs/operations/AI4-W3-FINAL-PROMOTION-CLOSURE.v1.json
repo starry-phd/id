@@ -1,0 +1,103 @@
+{
+  "schema": "starry.ai4.w3.final-promotion-source-closure.v1",
+  "status": "OFFLINE_ONLY_DRAFT_NO_DEPLOY",
+  "base_branch": "main",
+  "base_sha": "83f3dac0e65da54b426817d27ba89f9981557c01",
+  "source_w3_pr": 263,
+  "source_w3_sha": "ab21c72f6be4c68df8c5a2abc0f67a483463a76a",
+  "source_ai2_corrected": "dd1f1ccb464542a916db58d26e3a2dfc48e18709",
+  "rejected_ai2": "3907b468",
+  "preserved_w2_20_manifest": "docs/operations/AI4-W3-AUTH-SOURCE-CLOSURE.v1.json",
+  "preserved_w2_20_count": 20,
+  "new_owner_blobs": 6,
+  "ai3_original_dependencies": 4,
+  "selected_count": 10,
+  "source_files": [
+    {
+      "owner": "AI-1",
+      "pr": 259,
+      "source_commit": "c7df134629357cfc6c5ddd82bac8ae9189cfbf5b",
+      "path": "modules/starry-id-v1/src/w3-local-vnext-typed-self-profile.ts",
+      "sha": "4063e75d2ee20c191599f40fc0b8e5f7ff821359",
+      "mode": "100644"
+    },
+    {
+      "owner": "AI-1",
+      "pr": 259,
+      "source_commit": "c7df134629357cfc6c5ddd82bac8ae9189cfbf5b",
+      "path": "modules/starry-id-v1/test/w3-local-vnext-typed-self-profile.test.mjs",
+      "sha": "b760568effdf8d6b8f81423bb2773c11a79afb28",
+      "mode": "100644"
+    },
+    {
+      "owner": "AI-2",
+      "pr": 260,
+      "source_commit": "dd1f1ccb464542a916db58d26e3a2dfc48e18709",
+      "path": "packages/rebuild-billing/src/trusted-store-namespace.ts",
+      "sha": "e7a8734980f23282750e5701d0721f44b70fe782",
+      "mode": "100644"
+    },
+    {
+      "owner": "AI-2",
+      "pr": 260,
+      "source_commit": "dd1f1ccb464542a916db58d26e3a2dfc48e18709",
+      "path": "packages/rebuild-billing/test/trusted-store-namespace.test.mjs",
+      "sha": "3bda222c7fcc7194dbda65bcd13412718f112f12",
+      "mode": "100644"
+    },
+    {
+      "owner": "AI-3",
+      "pr": 261,
+      "source_commit": "ea48f434788022e8f7ece2a7d4249a8b218e114e",
+      "path": "packages/rebuild-ai3/src/w3-offline-only-factory.ts",
+      "sha": "c00f2bb02a38d361537c8cc77cf1644c5216b03a",
+      "mode": "100644"
+    },
+    {
+      "owner": "AI-3",
+      "pr": 261,
+      "source_commit": "ea48f434788022e8f7ece2a7d4249a8b218e114e",
+      "path": "packages/rebuild-ai3/test/w3-offline-only-factory.test.mjs",
+      "sha": "83a539cf37c720558ee7b5238a1481a8d072aaa8",
+      "mode": "100644"
+    },
+    {
+      "owner": "AI-3",
+      "source_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79",
+      "path": "packages/rebuild-ai3/src/index.ts",
+      "sha": "20a12af5cfb07940a041bd4fa633192dcad3f27f",
+      "mode": "100644"
+    },
+    {
+      "owner": "AI-3",
+      "source_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79",
+      "path": "packages/rebuild-ai3/src/queue-transport.ts",
+      "sha": "f75d3d4928874012eac88f460d6ca6435540d3c0",
+      "mode": "100644"
+    },
+    {
+      "owner": "AI-3",
+      "source_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79",
+      "path": "packages/rebuild-ai3/src/queue-consumer.ts",
+      "sha": "291d8758b5cad03dca32a08a0ae5ec7b50e404b8",
+      "mode": "100644"
+    },
+    {
+      "owner": "AI-3",
+      "source_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79",
+      "path": "packages/rebuild-ai3/src/d1-audit-adapter.ts",
+      "sha": "b1c7b56f05c9fb4a37500c271b906fb9e2fea533",
+      "mode": "100644"
+    }
+  ],
+  "copy_policy": "ORIGINAL_GIT_BLOB_SHA_EXACT_NO_SOURCE_EDITS",
+  "registered_public_worker": false,
+  "registered_sdk": false,
+  "registered_openapi": false,
+  "added_bindings": false,
+  "live_auth_or_iap": false,
+  "live_queue_or_audit": false,
+  "ai3_factory_result": "offline_review_only_is_not_durable_audit_or_ack",
+  "release_gates": "11/11 blocked",
+  "owner_final_gate": "AI-0"
+}
