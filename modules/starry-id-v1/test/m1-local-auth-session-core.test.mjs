@@ -42,7 +42,17 @@ async function makeFixture(){
        },
      };
    },
-   async batch(){throw Error('M1_NO_BATCH_ALLOWED');},
+   async batch(statements){
+     db.exec('BEGIN IMMEDIATE');
+     try{
+       const results=[];
+       for(const statement of statements)results.push(await statement.run());
+       if(results.some(v=>v.success===false||v.meta?.changes!==1)){
+         db.exec('ROLLBACK');return results;
+       }
+       db.exec('COMMIT');return results;
+     }catch(error){db.exec('ROLLBACK');throw error;}
+   },
  };
  const verifier='v'.repeat(43),challenge=b64(new Uint8Array(await webcrypto.subtle.digest('SHA-256',utf(verifier))));
  let counter=0;
@@ -118,12 +128,22 @@ test('one-time OAuth CAS concurrent callback gives exactly one signer and one Se
   assert.equal(f.state.exchanges,1);
  }finally{f.close();}
 });
-test('unknown provider subject NEVER auto-links email/name and never issues Session',async()=>{
+test('first verified subject creates member+identity+session+two minimal audit events atomically, never links by email',async()=>{
  const f=await makeFixture();try{
   const core=createM1LocalAuthSessionCore(f.deps);
-  assert.equal(await core.issueFromVerifiedCallback(await f.prepare('unlinked-subject')),null);
-  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,0);
-  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_members').get().n,1);
+  const got=await core.issueFromVerifiedCallback(await f.prepare('unlinked-subject'));
+  assert.equal(got?.status,'issued');
+  assert.ok(got.s_user_id.startsWith('su-'));
+  assert.notEqual(got.s_user_id,'u1');
+  const record=f.db.prepare('SELECT * FROM starry_members WHERE s_user_id=?').get(got.s_user_id);
+  assert.equal(record.display_name,null);
+  assert.equal(record.directory_opt_in,0);assert.equal(record.display_name_public,0);
+  assert.equal(record.status,'active');assert.equal(record.auth_version,1);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_identities WHERE provider=? AND subject=? AND s_user_id=?')
+    .get('google','unlinked-subject',got.s_user_id).n,1);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,1);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_m1_audit_intents').get().n,2);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_members').get().n,2);
  }finally{f.close();}
 });
 test('unknown code and expired attempt reject before issuance',async()=>{
@@ -250,5 +270,55 @@ test('expired trusted time during key await rejects issuance and leaves Session 
   const got=await core.issueFromVerifiedCallback(await f.prepare());
   assert.equal(got,null);
   assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,0);
+ }finally{f.close();}
+});
+
+test('server-generated login-start persists unique PKCE SHA256 challenge, nonce and state only in local SQLite',async()=>{
+ const f=await makeFixture();try{
+  const core=createM1LocalAuthSessionCore(f.deps);
+  const a=await core.beginOAuthAttempt(),b=await core.beginOAuthAttempt();
+  assert.ok(a?.state);assert.notEqual(a.state,b.state);
+  assert.equal(a.provider,'google');assert.equal(Object.hasOwn(a,'codeVerifier'),false);
+  const stored=f.db.prepare('SELECT * FROM starry_m1_oauth_attempts WHERE state=?').get(a.state);
+  const digest=new Uint8Array(await webcrypto.subtle.digest('SHA-256',utf(stored.code_verifier)));
+  assert.equal(b64(digest),a.codeChallenge);
+  assert.equal(stored.consumed_at,null);assert.equal(stored.environment,'staging');
+  assert.ok(stored.nonce.length>=16);
+ }finally{f.close();}
+});
+test('two valid first-login attempts for one subject never create orphan member or replace mapping',async()=>{
+ const f=await makeFixture();try{
+  const core=createM1LocalAuthSessionCore(f.deps);
+  const [a,b]=await Promise.all([
+    core.issueFromVerifiedCallback(await f.prepare('first-login-sub')),
+    core.issueFromVerifiedCallback(await f.prepare('first-login-sub')),
+  ]);
+  const identities=f.db.prepare('SELECT s_user_id FROM starry_identities WHERE provider=? AND subject=?')
+    .all('google','first-login-sub');
+  assert.equal(identities.length,1);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_members').get().n,2);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,[a,b].filter(Boolean).length);
+  for(const result of [a,b].filter(Boolean))assert.equal(result.s_user_id,identities[0].s_user_id);
+ }finally{f.close();}
+});
+test('first-login SQL audit failure atomically rolls back member, identity and Session but never reactivates OAuth state',async()=>{
+ const f=await makeFixture();try{
+  const adapter={...f.adapter,batch:async stmts=>{
+    const base=stmts[stmts.length-1];
+    // inject an impossible audit event to force SQLite CHECK/FK failure
+    const illegal=f.adapter.prepare('INSERT INTO starry_m1_audit_intents(event_id,source_operation_id,event_type,brand_id,app_id,environment,s_user_id,created_at) VALUES(?,?,?,?,?,?,?,?)')
+      .bind('invalid','invalid','invalid-event','starry','starry-id','staging','u1',now);
+    return f.adapter.batch([...stmts,illegal]);
+  }};
+  const core=createM1LocalAuthSessionCore({...f.deps,authDb:adapter});
+  const input=await f.prepare('will-not-register');
+  assert.equal(await core.issueFromVerifiedCallback(input),null);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_members').get().n,1);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_identities').get().n,1);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,0);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_m1_audit_intents').get().n,0);
+  assert.notEqual(f.db.prepare('SELECT consumed_at FROM starry_m1_oauth_attempts WHERE state=?')
+    .get(input.state).consumed_at,null);
+  assert.equal(await core.issueFromVerifiedCallback(input),null);
  }finally{f.close();}
 });
