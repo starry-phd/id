@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import {webcrypto} from 'node:crypto';
-import {bytesToBase64url,verifyPkceS256} from '../src/oidc-crypto.ts';
+import {bytesToBase64url} from '../src/oidc-crypto.ts';
 import {createM1LocalAuthSessionCore,M1_AUTH_LIVE_ENABLED} from '../src/m1-local-auth-session-core.ts';
 const now=1793000000;
 const origin='https://id.starry.example';
@@ -124,11 +124,10 @@ test('unknown provider subject NEVER auto-links email/name and never issues Sess
   assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_members').get().n,1);
  }finally{f.close();}
 });
-test('bad signature, nonce, tampering, code replay, expiry and missing provider exchange are denied',async()=>{
+test('unknown code and expired attempt reject before issuance',async()=>{
  const f=await makeFixture();try{
   const core=createM1LocalAuthSessionCore(f.deps);
   const bad=await f.prepare();
-  f.deps.exchangeCode=undefined;
   assert.equal(await core.issueFromVerifiedCallback({code:'unknown',state:bad.state}),null);
   const expired=await f.prepare();f.state.clock=now+151;
   assert.equal(await core.issueFromVerifiedCallback(expired),null);
@@ -163,4 +162,31 @@ test('revoked Session and provider unlink immediately deny previously issued W3 
    assert.notEqual(response.status,200);
   }finally{f.close();}
  }
+});
+
+test('RS256 signature tamper and wrong nonce deny without a Session',async()=>{
+ const f=await makeFixture();try{
+  const core=createM1LocalAuthSessionCore(f.deps);
+  const first=await f.prepare();
+  const good=f.db.prepare('SELECT nonce FROM starry_m1_oauth_attempts WHERE state=?').get(first.state).nonce;
+  const valid=await f.signIdToken(good);
+  const parts=valid.split('.');
+  const tampered=parts[0]+'.'+parts[1]+'.'+(parts[2].endsWith('A')?'B':'A');
+  const originalExchange=f.deps.exchangeCode;
+  const badCore=createM1LocalAuthSessionCore({...f.deps,exchangeCode:async()=>({idToken:tampered})});
+  assert.equal(await badCore.issueFromVerifiedCallback(first),null);
+  const second=await f.prepare();
+  const wrongNonceCore=createM1LocalAuthSessionCore({...f.deps,
+    exchangeCode:async()=>({idToken:await f.signIdToken('nonce-not-the-original-state')})});
+  assert.equal(await wrongNonceCore.issueFromVerifiedCallback(second),null);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,0);
+ }finally{f.close();}
+});
+test('wrong KID or inaccessible signer fails closed before session INSERT',async()=>{
+ const f=await makeFixture();try{
+  const core=createM1LocalAuthSessionCore({...f.deps,activeKey:async()=>null});
+  const input=await f.prepare();
+  assert.equal(await core.issueFromVerifiedCallback(input),null);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,0);
+ }finally{f.close();}
 });
