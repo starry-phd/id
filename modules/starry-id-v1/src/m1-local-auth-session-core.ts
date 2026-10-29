@@ -51,10 +51,13 @@ function secureBytes(n:number):Uint8Array {
 function hex(bytes:Uint8Array):string {
   return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
 }
-function validKey(v:SessionSigningKey):boolean {
-  return !!v&&id.test(v.kid)&&v.key instanceof CryptoKey&&
-    v.key.extractable===false&&v.key.algorithm.name==='HMAC'&&
-    v.key.usages.includes('sign')&&v.key.usages.includes('verify');
+function validKey(v:unknown):v is SessionSigningKey {
+  if(!v||typeof v!=='object')return false;
+  const candidate=v as Partial<SessionSigningKey>;
+  return typeof candidate.kid==='string'&&id.test(candidate.kid)&&
+    candidate.key instanceof CryptoKey&&candidate.key.extractable===false&&
+    candidate.key.algorithm.name==='HMAC'&&candidate.key.usages.includes('sign')&&
+    candidate.key.usages.includes('verify');
 }
 /**
  * Existing-member M1 issuance uses a guarded single-statement atomic INSERT.
@@ -68,7 +71,7 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
     provider:deps.provider.provider,clientId:deps.provider.clientId,
     issuer:deps.provider.issuer,
     jwks:Object.freeze((Array.isArray(deps.provider.jwks)?deps.provider.jwks:[])
-      .map(j=>Object.freeze({...j,key_ops:j.key_ops?Object.freeze([...j.key_ops]):undefined}))),
+      .map(j=>Object.freeze({...j,key_ops:j.key_ops?[...j.key_ops]:undefined}))),
   }) as PinnedOidcProvider;
   if(scope.brand_id!=='starry'||scope.app_id!=='starry-id'||
     !['development','staging'].includes(scope.environment)||
