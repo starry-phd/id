@@ -25,7 +25,7 @@ async function setup() {
     raw.prepare('INSERT INTO starry_identities(provider,subject,s_user_id) VALUES(?,?,?)')
       .run('apple',sub,id);
     raw.prepare('INSERT INTO starry_sessions(session_id,s_user_id,app_id,environment,auth_version,refresh_hash,expires_at) VALUES(?,?,?,?,?,?,?)')
-      .run(sid,id,'starry-id','staging',3,'a'.repeat(64),now+300);
+      .run(sid,id,'starry-id','staging',3,String(num).repeat(64),now+300);
   }
   const keys = new Map();
   const tokens = new Map();
