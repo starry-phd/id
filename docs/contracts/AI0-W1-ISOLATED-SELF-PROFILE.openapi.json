@@ -1,0 +1,112 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Starry isolated W1 self-profile integration contract (NOT SERVED)",
+    "version": "0.1.0-draft"
+  },
+  "servers": [],
+  "x-starry-safety": {
+    "worker_registered": false,
+    "production_authorized": false,
+    "release_authorized": false,
+    "scope": "isolated development/staging integration only"
+  },
+  "paths": {
+    "/v1/starry-id/members/me": {
+      "get": {
+        "operationId": "readIsolatedStarrySelf",
+        "security": [
+          {
+            "signedSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Own current profile read snapshot only",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SelfProfile"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "URL query or request denied"
+          },
+          "401": {
+            "description": "Identity denied; includes initial verifier/key/storage failure"
+          },
+          "403": {
+            "description": "Final current-record snapshot denied"
+          },
+          "404": {
+            "description": "Unknown host/path; no alias"
+          },
+          "405": {
+            "description": "Only GET; Allow GET"
+          },
+          "503": {
+            "description": "Disabled, clock failure, final storage failure or malformed record"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "signedSession": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Actual existing signed session plus current server DB; no client JSON identity"
+      }
+    },
+    "schemas": {
+      "SelfProfile": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "s_user_id",
+          "display_name",
+          "directory_opt_in",
+          "display_name_public",
+          "profile_revision"
+        ],
+        "properties": {
+          "s_user_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._:-]{1,180}$"
+          },
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^(?!\\s)(?!.*[\\u0000-\\u001F\\u007F]).*\\S$"
+          },
+          "directory_opt_in": {
+            "type": "boolean"
+          },
+          "display_name_public": {
+            "type": "boolean"
+          },
+          "profile_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740990
+          }
+        }
+      }
+    }
+  }
+}
