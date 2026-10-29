@@ -37,6 +37,7 @@ function fail(code: string): never { throw new Error(code); }
 function validText(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0 && value.length <= 512
     && value === value.trim() && value === value.normalize('NFC')
+    && new TextDecoder('utf-8', {fatal: true}).decode(new TextEncoder().encode(value)) === value
     && !/[\u0000-\u001f\u007f-\u009f]/u.test(value);
 }
 function identifier(value: unknown): value is string {
