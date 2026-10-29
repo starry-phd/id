@@ -33,7 +33,7 @@ function project(row: Snapshot, memberId: string): SelfProfile | null {
     || ![0,1].includes(row.directory_opt_in) || ![0,1].includes(row.display_name_public)
     || (row.display_name !== null && (typeof row.display_name !== 'string'
       || row.display_name.length < 1 || row.display_name.length > 80
-      || row.display_name.trim() !== row.display_name || /[\x00-\x1F\x7F]/.test(row.display_name)))) return null;
+      || row.display_name.trim() !== row.display_name || [...row.display_name].some(c => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127)))) return null;
   // Never spread the database record: private or future columns cannot leak.
   return Object.freeze({
     s_user_id: row.s_user_id, display_name: row.display_name,
