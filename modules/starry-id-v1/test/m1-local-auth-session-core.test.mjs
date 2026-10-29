@@ -33,7 +33,6 @@ async function makeFixture(){
        async first(){state.reads++;return db.prepare(sql).get(...values)??null;},
        async run(){
          state.writes++;
-         if(sql.startsWith('INSERT INTO starry_sessions')&&state.beforeInsert){const hook=state.beforeInsert;state.beforeInsert=null;hook();}
          if(state.dbFault)throw Error('PRIVATE_SQL_TABLE_NAME');
          if(state.blockedWrite&&sql.startsWith('INSERT INTO starry_sessions'))
            return {success:true,meta:{changes:0}};
@@ -43,6 +42,8 @@ async function makeFixture(){
      };
    },
    async batch(statements){
+     // Simulate an independent revoke after identity read but BEFORE transaction.
+     if(state.beforeInsert){const hook=state.beforeInsert;state.beforeInsert=null;hook();}
      db.exec('BEGIN IMMEDIATE');
      try{
        const results=[];
@@ -279,6 +280,7 @@ test('server-generated login-start persists unique PKCE SHA256 challenge, nonce 
   const a=await core.beginOAuthAttempt(),b=await core.beginOAuthAttempt();
   assert.ok(a?.state);assert.notEqual(a.state,b.state);
   assert.equal(a.provider,'google');assert.equal(Object.hasOwn(a,'codeVerifier'),false);
+  assert.equal(typeof a.nonce,'string');
   const stored=f.db.prepare('SELECT * FROM starry_m1_oauth_attempts WHERE state=?').get(a.state);
   const digest=new Uint8Array(await webcrypto.subtle.digest('SHA-256',utf(stored.code_verifier)));
   assert.equal(b64(digest),a.codeChallenge);
