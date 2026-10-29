@@ -100,7 +100,7 @@ test('await boundary cannot change app or authority or split first-claim namespa
   let release;
   const pending=new Promise(resolve=>{release=resolve});
   const created=createOfflineStoreNamespaceBuilder(mutable,{
-    async readOfficialVerifiedScope(){await pending;return {...config};},
+    async readOfficialVerifiedScope(){await pending;return official(config).readOfficialVerifiedScope();},
   });
   const inFlight=created.build('receipt','original','refund');
   mutable.appId='other.app';
