@@ -4,21 +4,17 @@
  * simulation in production. Real issuer/nonce/JWKS/PKCE verification is owned by
  * the existing createVerifiedOidcCallback; no email/name account linking.
  */
-import {createVerifiedOidcCallback, verifyPkceS256} from './oidc-crypto.ts';
+import {createVerifiedOidcCallback} from './oidc-crypto.ts';
 import type {OAuthAttempt, PinnedOidcProvider, TrustedOAuthBackend} from './oidc-crypto.ts';
 import {signServerSession} from './session-crypto.ts';
 import type {SessionSigningKey} from './session-crypto.ts';
-import type {D1Database, D1Result} from './d1-ports.ts';
+import type {D1Database} from './d1-ports.ts';
 import type {TrustedScope} from './index.ts';
 import {createLocalOnlyVNextTypedSelfProfileHandler} from './w3-local-vnext-typed-self-profile.ts';
 
 export const M1_AUTH_LIVE_ENABLED = false as const;
 export const M1_AUTH_CONTRACT = 'starry.ai1.m1.oauth-session.local-v1' as const;
-type Statement = ReturnType<D1Database['prepare']>;
-export type M1WriteDatabase = D1Database & Readonly<{
-  /** On a single authoritative SQLite/D1 instance. No cross-D1 atomicity. */
-  batch: (statements: Statement[]) => Promise<D1Result[]>;
-}>;
+export type M1WriteDatabase = D1Database;
 type Scope = TrustedScope & {environment: 'development'|'staging'};
 type Exchange = TrustedOAuthBackend['exchangeCode'];
 type Result = Readonly<{status:'issued'; bearer:string; s_user_id:string; expires_at:number}>;
@@ -62,7 +58,7 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
   const scope=Object.freeze({...deps.serverScope});
   if(scope.brand_id!=='starry'||scope.app_id!=='starry-id'||
     !['development','staging'].includes(scope.environment)||
-    !deps.authDb||typeof deps.authDb.prepare!=='function'||typeof deps.authDb.batch!=='function'||
+    !deps.authDb||typeof deps.authDb.prepare!=='function'||
     typeof deps.exchangeCode!=='function'||typeof deps.activeKey!=='function'||
     typeof deps.now!=='function'||typeof deps.getVerificationKey!=='function'||
     !deps.provider||!id.test(deps.provider.clientId)||
