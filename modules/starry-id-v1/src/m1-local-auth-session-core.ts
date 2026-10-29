@@ -51,8 +51,8 @@ function validKey(v:SessionSigningKey):boolean {
     v.key.usages.includes('sign')&&v.key.usages.includes('verify');
 }
 /**
- * The only writer for this local M1 slice. D1 batch must be a transaction.
- * No upsert member, no provider-subject alias and no unapproved registration.
+ * Existing-member M1 issuance uses a guarded single-statement atomic INSERT.
+ * First-login multi-table registration/audit is separately gated below.
  */
 export function createM1LocalAuthSessionCore(deps:Dependencies) {
   const scope=Object.freeze({...deps.serverScope});
@@ -98,8 +98,8 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
         codeVerifier:r.code_verifier,codeChallenge:r.code_challenge,nonce:r.nonce,
         appId:r.app_id,environment:r.environment,expiresAt:r.expires_at,consumedAt:r.consumed_at};
     },
-    async consumeAttemptCAS(state,provider,now){
-      const r=await deps.authDb.prepare(attemptConsume).bind(now,state,provider,scope.app_id,
+    async consumeAttemptCAS(state,callbackProvider,now){
+      const r=await deps.authDb.prepare(attemptConsume).bind(now,state,callbackProvider,scope.app_id,
         scope.environment,provider.clientId,now).run();
       return r.success!==false&&r.meta?.changes===1;
     },
