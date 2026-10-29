@@ -56,15 +56,23 @@ function validKey(v:SessionSigningKey):boolean {
  */
 export function createM1LocalAuthSessionCore(deps:Dependencies) {
   const scope=Object.freeze({...deps.serverScope});
+  // Snapshot trusted provider metadata, including individual JWKS records.
+  // A caller changing its DI object after an await cannot move our issuer.
+  const provider=deps.provider&&Object.freeze({
+    provider:deps.provider.provider,clientId:deps.provider.clientId,
+    issuer:deps.provider.issuer,
+    jwks:Object.freeze((Array.isArray(deps.provider.jwks)?deps.provider.jwks:[])
+      .map(j=>Object.freeze({...j,key_ops:j.key_ops?[...j.key_ops]:undefined}))),
+  }) as PinnedOidcProvider;
   if(scope.brand_id!=='starry'||scope.app_id!=='starry-id'||
     !['development','staging'].includes(scope.environment)||
     !deps.authDb||typeof deps.authDb.prepare!=='function'||
     typeof deps.exchangeCode!=='function'||typeof deps.activeKey!=='function'||
     typeof deps.now!=='function'||typeof deps.getVerificationKey!=='function'||
-    !deps.provider||!id.test(deps.provider.clientId)||
-    !['google','apple'].includes(deps.provider.provider)||
-    (deps.provider.provider==='apple'&&deps.provider.issuer!=='https://appleid.apple.com')||
-    (deps.provider.provider==='google'&&!['https://accounts.google.com','accounts.google.com'].includes(deps.provider.issuer)))
+    !provider||!id.test(provider.clientId)||
+    !['google','apple'].includes(provider.provider)||
+    (provider.provider==='apple'&&provider.issuer!=='https://appleid.apple.com')||
+    (provider.provider==='google'&&!['https://accounts.google.com','accounts.google.com'].includes(provider.issuer)))
     throw Error('M1_AUTH_CONFIGURATION_DENIED');
   const enabled=deps.enabled===true;
   const origin=new URL(deps.expectedOrigin);
@@ -78,12 +86,12 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
   const port:TrustedOAuthBackend={
     async readAttempt(state:string):Promise<OAuthAttempt|null>{
       if(!statePattern.test(state))return null;
-      const r=await deps.authDb.prepare(attemptSelect).bind(state,deps.provider.provider,scope.app_id,scope.environment).first<{
+      const r=await deps.authDb.prepare(attemptSelect).bind(state,provider.provider,scope.app_id,scope.environment).first<{
         state:string;provider:'apple'|'google';client_id:string;code_verifier:string;code_challenge:string;
         nonce:string;app_id:string;environment:Scope['environment'];expires_at:number;consumed_at:number|null;
       }>();
-      if(!r||r.state!==state||r.provider!==deps.provider.provider||
-        r.client_id!==deps.provider.clientId||r.app_id!==scope.app_id||
+      if(!r||r.state!==state||r.provider!==provider.provider||
+        r.client_id!==provider.clientId||r.app_id!==scope.app_id||
         r.environment!==scope.environment||!validTime(r.expires_at)||
         (r.consumed_at!==null&&!validTime(r.consumed_at)))return null;
       return {state:r.state,provider:r.provider,clientId:r.client_id,
@@ -92,25 +100,26 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
     },
     async consumeAttemptCAS(state,provider,now){
       const r=await deps.authDb.prepare(attemptConsume).bind(now,state,provider,scope.app_id,
-        scope.environment,deps.provider.clientId,now).run();
+        scope.environment,provider.clientId,now).run();
       return r.success!==false&&r.meta?.changes===1;
     },
     exchangeCode:deps.exchangeCode,
   };
   const callback=createVerifiedOidcCallback({
-    config:deps.provider,appId:scope.app_id,environment:scope.environment,backend:port,
+    config:provider,appId:scope.app_id,environment:scope.environment,backend:port,
   });
   return Object.freeze({
     contract:M1_AUTH_CONTRACT,local_only:true as const,live_enabled:M1_AUTH_LIVE_ENABLED,
     async issueFromVerifiedCallback(input:unknown):Promise<Result|null>{
       if(!enabled)return null;
+      try {
       const now=deps.now();
       if(!validTime(now))return null;
       // The callback validates exact code/state, PKCE, nonce and *real RS256*
       // token against injected pinned JWKS; a fake subject cannot bypass it.
       const verified=await callback(input,now);
-      if(!verified||verified.provider!==deps.provider.provider||
-        verified.issuer!==deps.provider.issuer||verified.audience!==deps.provider.clientId||
+      if(!verified||verified.provider!==provider.provider||
+        verified.issuer!==provider.issuer||verified.audience!==provider.clientId||
         !id.test(verified.providerSubject))return null;
       const row=await deps.authDb.prepare(identitySelect)
         .bind(verified.provider,verified.providerSubject)
@@ -127,20 +136,25 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
       const refreshBuffer=new ArrayBuffer(refresh.length);
       new Uint8Array(refreshBuffer).set(refresh);
       const refreshDigest=new Uint8Array(await crypto.subtle.digest('SHA-256',refreshBuffer));
-      const expiry=now+300;
+      const committedAt=deps.now();
+      if(!validTime(committedAt)||committedAt<now||committedAt>=now+300)return null;
+      const expiry=committedAt+300;
       // Sign first, then commit. Never return an uncommitted bearer.
       const claims={...scope,provider:verified.provider,provider_subject:verified.providerSubject,
         s_user_id:row.s_user_id,session_id:sessionId,auth_version:row.auth_version,
-        issued_at:now,expires_at:expiry,key_id:key.kid};
-      const bearer=await signServerSession(claims,scope,now,key);
+        issued_at:committedAt,expires_at:expiry,key_id:key.kid};
+      const bearer=await signServerSession(claims,scope,committedAt,key);
+      const atWrite=deps.now();
+      if(!validTime(atWrite)||atWrite<committedAt||atWrite>=expiry)return null;
       // The INSERT SELECT repeats the identity, status, version and scope
       // fence at the actual write, preventing stale pre-read issuance.
       const commit=await deps.authDb.prepare(insertSession).bind(
-        sessionId,row.s_user_id,scope.app_id,scope.environment,refreshDigest.length===32?hex(refreshDigest):'',
+        sessionId,scope.app_id,scope.environment,refreshDigest.length===32?hex(refreshDigest):'',
         expiry,row.s_user_id,row.auth_version,verified.provider,verified.providerSubject,
       ).run();
       if(commit.success===false||commit.meta?.changes!==1)return null;
       return Object.freeze({status:'issued' as const,bearer,s_user_id:row.s_user_id,expires_at:expiry});
+      } catch { return null; } // Never emit raw SQL / KMS / token error details.
     },
     /** Already-verified bearer is passed to unchanged W3 for final Auth fence. */
     readSelf(request:Request):Promise<Response>{return self.handle(request);},
