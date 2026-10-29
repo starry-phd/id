@@ -124,7 +124,9 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
       const sessionId='m1-'+hex(entropy);
       const refresh=random(32);
       if(!(refresh instanceof Uint8Array)||refresh.length!==32)return null;
-      const refreshDigest=new Uint8Array(await crypto.subtle.digest('SHA-256',refresh));
+      const refreshBuffer=new ArrayBuffer(refresh.length);
+      new Uint8Array(refreshBuffer).set(refresh);
+      const refreshDigest=new Uint8Array(await crypto.subtle.digest('SHA-256',refreshBuffer));
       const expiry=now+300;
       // Sign first, then commit. Never return an uncommitted bearer.
       const claims={...scope,provider:verified.provider,provider_subject:verified.providerSubject,
