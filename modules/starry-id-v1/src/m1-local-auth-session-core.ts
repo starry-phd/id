@@ -168,7 +168,7 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
       new Uint8Array(refreshBuffer).set(refresh);
       const refreshDigest=new Uint8Array(await crypto.subtle.digest('SHA-256',refreshBuffer));
       const committedAt=deps.now();
-      if(!validTime(committedAt)||committedAt<now||committedAt>=now+300)return null;
+      if(!validTime(committedAt)||committedAt<now||committedAt>now+30)return null;
       const expiry=committedAt+300;
       // Sign first, then commit. Never return an uncommitted bearer.
       const claims={...scope,provider:verified.provider,provider_subject:verified.providerSubject,
@@ -176,7 +176,7 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
         issued_at:committedAt,expires_at:expiry,key_id:key.kid};
       const bearer=await signServerSession(claims,scope,committedAt,key);
       const atWrite=deps.now();
-      if(!validTime(atWrite)||atWrite<committedAt||atWrite>=expiry)return null;
+      if(!validTime(atWrite)||atWrite<committedAt||atWrite>now+30||atWrite>=expiry)return null;
       // The INSERT SELECT repeats the identity, status, version and scope
       // fence at the actual write, preventing stale pre-read issuance.
       const statements:D1Prepared[]=[];
