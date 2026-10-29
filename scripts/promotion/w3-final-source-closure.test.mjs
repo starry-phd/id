@@ -43,9 +43,12 @@ test('Final W3 import closure contains no missing or out-of-repo runtime/test im
 });
 test('Final W3 tests remain wired; active platform follows reviewed M0 guard instead of ancient SHA',()=>{
  const pkg=JSON.parse(read('package.json'));const ci=read('.github/workflows/starry-ci.yml');
- for(const name of ['w3-local-vnext-typed-self-profile.test.mjs','trusted-store-namespace.test.mjs','w3-offline-only-factory.test.mjs'])
-  assert.ok(pkg.scripts.test.includes(name),name);
- assert.ok(pkg.scripts['auth:test'].includes('w3-local-vnext-typed-self-profile.test.mjs'));
+ for(const [needle,script] of [
+  ['modules/starry-id-v1/test/*.test.mjs',pkg.scripts.test],
+  ['packages/rebuild-billing/test/*.test.mjs',pkg.scripts.test],
+  ['packages/rebuild-ai3/test/*.test.mjs',pkg.scripts.test],
+  ['modules/starry-id-v1/test/*.test.mjs',pkg.scripts['auth:test']]])
+  assert.ok(script.includes(needle),'Missing automatic reviewed test discovery: '+needle);
  assert.ok(ci.includes('npm run w3:typecheck'));
  const tracked=execFileSync('git',['ls-files','-z'],{cwd:ROOT,encoding:'utf8'}).split('\0').filter(Boolean);
  const result=inspectM0({
