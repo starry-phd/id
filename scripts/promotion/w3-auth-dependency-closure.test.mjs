@@ -10,6 +10,7 @@ const manifest=JSON.parse(readFileSync(rootFile('docs/operations/AI4-W3-AUTH-SOU
 const allSelected=new Set(manifest.source_files.map(x=>x.path));
 const preservedBaseline=[
 'apps/api/src/index.ts',
+'apps/api/wrangler.toml',
 'packages/sdk/src/index.ts',
 'docs/release-readiness/check-release-readiness.mjs'
 ];
