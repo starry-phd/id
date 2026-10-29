@@ -1,0 +1,144 @@
+{
+  "schema": "starry.ai0.w1.four-owner-integration.v1",
+  "scope": "CENTRAL_ID_ONLY_OFFLINE",
+  "base": {
+    "pr": 245,
+    "sha": "e1b255b014c673439f134ef5a58107a036f4b60f"
+  },
+  "owners": [
+    {
+      "owner": "AI-1",
+      "pr": 247,
+      "sha": "abb0a10bc91bcf72990d6abf11facea0277fadea",
+      "files": [
+        {
+          "path": "modules/starry-id-v1/W1-AUTH-SOURCE-AND-SELF-REVIEW.md",
+          "blob": "524e5ff1e266b1abff6fea034faa2ca10a5ddfea"
+        },
+        {
+          "path": "modules/starry-id-v1/W1-AUTH-SOURCE-MAP.v1.json",
+          "blob": "2755bafc88efdd45b5efb75e83f2a7a0ab0698f3"
+        },
+        {
+          "path": "modules/starry-id-v1/src/w1-auth-boundary-contract.ts",
+          "blob": "77001de2d89e481c5c00aa4696d6781a54188222"
+        },
+        {
+          "path": "modules/starry-id-v1/test/w1-auth-boundary-contract.test.mjs",
+          "blob": "b85edbebc20fb65d1cca898d5ab28ec9d4558675"
+        }
+      ]
+    },
+    {
+      "owner": "AI-2",
+      "pr": 249,
+      "sha": "bda400fbbd1092cae5f29ce7a994f519a92fdf85",
+      "files": [
+        {
+          "path": "packages/rebuild-billing/docs/AI2-W1-D87-A-BILLING-AUTHORITY-INTERFACES.v0.json",
+          "blob": "ced186d571a49c23f68f6b9e41822034b17a36db"
+        },
+        {
+          "path": "packages/rebuild-billing/docs/AI2-W1-D87-A-BILLING-SINGLE-AUTHORITY-ADR.md",
+          "blob": "84122261d24df18b15ba4db39c606f16cb9a3e0c"
+        }
+      ]
+    },
+    {
+      "owner": "AI-3",
+      "pr": 248,
+      "sha": "dc81ed3a9c27a99fff1066899d69795683736553",
+      "files": [
+        {
+          "path": "packages/rebuild-ai3/docs/W1-D87-D06-AUTH-INBOX-ACK-CONTRACT.md",
+          "blob": "53e7f62a2214b7616189876014527181e69f06d3"
+        },
+        {
+          "path": "packages/rebuild-ai3/docs/W1-D87-D06-AUTH-INBOX-ACK-CONTRACT.v1.json",
+          "blob": "c67e2009db08ddb7e1fa00e30d1b0f49247a0f63"
+        },
+        {
+          "path": "packages/rebuild-ai3/test/w1-d87-d06-owner-contract.test.mjs",
+          "blob": "f6a6d885138a04eec9b0d5ee46014adca144b611"
+        }
+      ]
+    },
+    {
+      "owner": "AI-4",
+      "pr": 246,
+      "sha": "06bd8f27345955f2336f7a8a39c1ae91657df8ec",
+      "files": [
+        {
+          "path": "docs/operations/AI4-W1-STARRY-SELF-PROFILE-SHARED-WIRING-REVIEW.md",
+          "blob": "5257da2b94c118b7f9addc6b860fae933645a355"
+        },
+        {
+          "path": "docs/operations/ai4-w1-shared-self-profile-contract-diff.v1.json",
+          "blob": "9834a37be4e8b0a28e58db5d2e5df848de93ea03"
+        }
+      ]
+    }
+  ],
+  "review": {
+    "canonical_path": "/v1/starry-id/members/me",
+    "fields": [
+      "s_user_id",
+      "display_name",
+      "directory_opt_in",
+      "display_name_public",
+      "profile_revision"
+    ],
+    "minimum_profile_revision": 1,
+    "maximum_profile_revision": 9007199254740990,
+    "core_fields": [
+      "event_id",
+      "event_type",
+      "schema_version",
+      "brand_id",
+      "app_id",
+      "environment",
+      "occurred_at",
+      "correlation_id",
+      "resource_type",
+      "resource_id",
+      "result"
+    ],
+    "conditional_field": "idempotency_key",
+    "accepted_scope": "ISOLATED_CONTRACT_REVIEW_ONLY",
+    "shared_worker_registration_authorized": false,
+    "live_authorized": false,
+    "final_p05_schema_approved": false,
+    "physical_database_topology_approved": false
+  },
+  "unresolved": [
+    {
+      "id": "W1-BILLING-KEY-SCOPE",
+      "status": "OWNER_CORRECTION_REQUIRED_BEFORE_WRITER_IMPLEMENTATION",
+      "detail": "AI2 JSON identity_keys.transaction_unique_key includes brand/app/environment, while proposed billing_verified_receipt unique and ADR use provider/store_namespace/store_transaction_ref. Choose authoritative receipt namespace and mark contextual fields separately; do not silently weaken first-claim uniqueness."
+    },
+    {
+      "id": "W1-PRIVATE-ENVELOPE-NAMES",
+      "status": "REVIEW_PENDING_NOT_FINAL_SCHEMA",
+      "detail": "AI1 issuer/signature/session_version and AI3 issuer_ref/integrity_signature/current_session_version are separate candidate vocabularies, not wire-compatible final schema."
+    },
+    {
+      "id": "W1-AUTH-OUTAGE-STATUS",
+      "status": "EXISTING_WIRE_BEHAVIOR_RETAINED_NO_AUTO_RETRY",
+      "detail": "Initial auth/key/storage failure may return 401; final snapshot storage fault 503. No auto refresh or retry."
+    },
+    {
+      "id": "W1-LEGAL-PITR",
+      "status": "BLOCKED",
+      "detail": "Q104/Q119 and independent anti-PITR witness remain unapproved; no guessed retention period."
+    }
+  ],
+  "release": {
+    "gates_blocked": 11,
+    "p05_publishable": false,
+    "release_authorization": false,
+    "main_merge": false,
+    "deploy": false,
+    "real_resources": false,
+    "paid": false
+  }
+}
