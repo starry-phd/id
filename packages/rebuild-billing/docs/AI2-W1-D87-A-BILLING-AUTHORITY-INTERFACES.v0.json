@@ -112,9 +112,9 @@
     {
       "owner": "AI-2",
       "name": "BillingAuthorityWriterPort",
-      "signature": "applyVerifiedTransition(auth_fence,verified_provider_evidence,expected_entitlement_revision)-> CommittedReceipt | DENY",
-      "trust": "server-only; no UI, Admin or unverified R007/R008 review object",
-      "commit_boundary": "ONE durable transaction: verify first-claim+source event uniqueness, upsert receipt, conditional entitlement revision, append P05 business-core outbox"
+      "signature": "applyVerifiedPurchase(current_auth_fence,official_store_verified_evidence,expected_entitlement_revision)-> CommittedReceipt | DENY; applyVerifiedProviderRevocation(verified_provider_revocation,expected_entitlement_revision)-> CommittedRevokeReceipt | DENY",
+      "trust": "Purchase/restore require current AI-1 Auth; verified provider refund/revoke is server-to-server and MUST proceed even when member session is revoked or deleted, without caller Auth; only verified Store authority; never accept UI, Admin or unverified R007/R008 review",
+      "commit_boundary": "ONE durable transaction: source dedup + first claim (purchase only), verified receipt/event append, conditional entitlement CAS or monotonic terminal revocation, append P05 business-core outbox; refunds must not regrant"
     },
     {
       "owner": "AI-2",
@@ -140,7 +140,7 @@
   ],
   "writer_preconditions": [
     "D00 stage permits contract study only, not Billing live activation",
-    "valid server current AuthFence for same Starry member/app/environment; deny revoked/expired/deleted/guest and changed issuer/session versions",
+    "For PURCHASE/RESTORE only: valid server current AuthFence for same Starry member/app/environment; deny revoked/expired/deleted/guest/changed issuer/session. For provider REFUND/REVOKE: authenticate provider/server authority; current member login is NOT required to revoke.",
     "official provider verification AND approved App/SKU/ownership/lifecycle mapping; until G04 approved, ALWAYS DENY",
     "no cross-brand, cross-environment, cross-app transfer, duplicate source event, same lineage double claim, unknown SKU or policy",
     "entitlement expected_revision exact CAS; stale or missing expected revision is DENY",
@@ -170,17 +170,9 @@
       "invariant": "first claim immutable; verified original transaction binds exactly one owner; account transfer requires separate new approved process"
     },
     {
-      "name": "billing_source_event",
+      "name": "billing_verified_receipt",
       "unique": [
         [
-          "provider",
-          "store_namespace",
-          "provider_event_ref"
-        ],
-        [
-          "brand_id",
-          "app_id",
-          "environment",
           "provider",
           "store_namespace",
           "store_transaction_ref"
@@ -189,15 +181,41 @@
       "fields": [
         "provider",
         "store_namespace",
+        "store_transaction_ref",
+        "original_transaction_ref",
+        "brand_id",
+        "app_id",
+        "environment",
+        "s_user_id",
+        "verified_evidence_ref",
+        "last_verified_status",
+        "receipt_revision",
+        "commit_ref"
+      ],
+      "invariant": "one verified Store transaction receipt identity; mutable only with guarded status revisions and official source; no client-granted state"
+    },
+    {
+      "name": "billing_source_event",
+      "unique": [
+        [
+          "provider",
+          "store_namespace",
+          "provider_event_ref"
+        ]
+      ],
+      "fields": [
+        "provider",
+        "store_namespace",
         "provider_event_ref",
         "store_transaction_ref",
-        "lineage_ref",
+        "original_transaction_ref",
         "verified_evidence_ref",
-        "status",
+        "verified_lifecycle_kind",
+        "source_sequence_ref",
         "observed_at",
         "commit_ref"
       ],
-      "invariant": "dedupe source, never accept client event as Store proof"
+      "invariant": "multiple legitimately distinct provider lifecycle events may refer to one Store transaction; unique provider_event_ref prevents duplicates; provider specific order checks, never cross-compare RC and Store version counters"
     },
     {
       "name": "billing_entitlement",
@@ -278,7 +296,7 @@
     },
     {
       "n": 2,
-      "action": "ACQUIRE current Auth fence + independently official verified Store evidence; validate app/env/member/issuer and monotonic authority"
+      "action": "For purchase/restore: validate current signed Auth fence, official Store verified evidence, app/env/member. For refund/revoke: validate independent server-to-server official Store authority and existing immutable purchase owner; DO NOT require user Session to revoke."
     },
     {
       "n": 3,
@@ -286,11 +304,11 @@
     },
     {
       "n": 4,
-      "action": "INSERT unique provider event and immutable lineage first claim; if duplicate identical -> replay/no grant; if conflicting owner -> hard DENY"
+      "action": "For purchase: INSERT unique official event + immutable original lineage first-claim; duplicate identical -> replay/no grant, conflicting owner -> hard DENY. For refund/revoke: append distinct verified source lifecycle event against existing owner, without needing member login."
     },
     {
       "n": 5,
-      "action": "CAS entitlement revision; apply only authorized state transition, enforce terminal refund/revoke and anti-PITR policy"
+      "action": "CAS entitlement revision; authorized transition only. REFUND/REVOKE can terminally disable grant without member Session; late active/restore must not resurrect tombstone absent separate owner-approved authoritative resolution."
     },
     {
       "n": 6,
@@ -306,7 +324,7 @@
     },
     {
       "n": 9,
-      "action": "Revalidate Auth/issuer epoch and irreversible revoke before any externally visible entitlement (full atomic cross-domain fence unresolved; DO NOT enable live)"
+      "action": "Before any outward entitlement expose: current AI-1 Auth fence/issuer must still hold; revocation from verified provider is applied regardless of member session. The global Auth-Billing race fence is not implemented and continues blocking Live."
     }
   ],
   "denial_matrix": [
@@ -335,8 +353,8 @@
       "decision": "DENY_REGRANT_PENDING_OFFICIAL_POLICY"
     },
     {
-      "case": "auth revoked/deleted/issuer epoch rotated during process",
-      "decision": "DENY_NO_GRANT_UNTIL_APPROVED_MONOTONIC_FENCE"
+      "case": "purchase or restore while Auth revoked/deleted/issuer epoch rotated; provider refund/revoke independently verified",
+      "decision": "DENY_PURCHASE_OR_RESTORE; APPLY_VERIFIED_REVOCATION_WITHOUT_USER_LOGIN"
     },
     {
       "case": "transaction error after receipt before outbox",
