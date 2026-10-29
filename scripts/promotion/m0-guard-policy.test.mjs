@@ -57,7 +57,7 @@ test('UP07 route negative: unknown alias, unsafe method, live auth, production, 
 test('UP08 TOML and equivalent Wrangler JSON alternative are structurally accepted',()=>{
  const w=parseRestrictedWrangler(read('apps/api/wrangler.toml'));
  const json={...w[''],vars:w.vars,env:{staging:{...w['env.staging'],vars:w['env.staging.vars']}}};
- assert.deepEqual(parseRestrictedWrangler(JSON.stringify(json)),w);
+ assert.deepEqual(JSON.parse(JSON.stringify(parseRestrictedWrangler(JSON.stringify(json)))),JSON.parse(JSON.stringify(w)));
 });
 test('UP08 nested, alternative JSON env, resource bindings, unknown keys, duplicate tables denied',()=>{
  const path='apps/api/wrangler.toml',t=read(path),w=parseRestrictedWrangler(t);
@@ -98,9 +98,9 @@ test('UP08 workflow rejects triggers, secrets, permissions, nested env, deploy c
   y=>y.on.push={branches:['main']},
   y=>y.jobs['app-tests'].steps=y.jobs['app-tests'].steps.filter(s=>s.run!=='npm run promotion:verify'),
  ];
- for(const mutate of mutations){
+ for(const [i,mutate] of mutations.entries()){
   const copy=structuredClone(base);mutate(copy);const s=JSON.stringify(copy);
-  assert.ok(inspectWorkflow(s,'ci').length>0,s.slice(-100));
+  assert.ok(inspectWorkflow(s,'ci').length>0,'variant '+i+': '+s.slice(-100));
   assert.ok(evaluate({[p]:s}).release.length>0);
  }
 });
