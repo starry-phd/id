@@ -95,7 +95,7 @@ test('UP08 workflow rejects triggers, secrets, permissions, nested env, deploy c
   y=>y.jobs['app-tests'].steps.push({run:'echo '+ '$'+'{{ secrets.CLOUDFLARE_API_TOKEN }}'}),
   y=>y.jobs['app-tests'].steps.push({run:'echo '+ '$'+'{{ github.token }}'}),
   y=>y.jobs['evil']={steps:[{run:'echo hi'}]},
-  y=>y.on.push={branches:['main']},
+  y=>y.on.push.branches=['develop'],
   y=>y.jobs['app-tests'].steps=y.jobs['app-tests'].steps.filter(s=>s.run!=='npm run promotion:verify'),
  ];
  for(const [i,mutate] of mutations.entries()){
