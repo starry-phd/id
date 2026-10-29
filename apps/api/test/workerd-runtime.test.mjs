@@ -19,11 +19,15 @@ const origin = 'https://runtime-test.invalid';
 async function withWorkerd(bindings, callback) {
   const result = await bundle;
   assert.equal(result.outputFiles.length, 1);
+  // The pinned Miniflare 5 runtime accepts per-Worker options in workers[].
   const mf = new Miniflare({
-    modules: true,
-    script: result.outputFiles[0].text,
-    compatibilityDate: config[''].compatibility_date,
-    bindings,
+    workers: [{
+      name: 'starry-m0-runtime',
+      modules: true,
+      script: result.outputFiles[0].text,
+      compatibilityDate: config[''].compatibility_date,
+      bindings,
+    }],
   });
   try { await callback(mf); } finally { await mf.dispose(); }
 }
