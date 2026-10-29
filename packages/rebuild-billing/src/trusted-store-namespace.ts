@@ -66,13 +66,41 @@ function validOfficial(scope: OfficialVerificationScope): void {
     || !validText(scope.providerAuthority)) fail('STORE_NAMESPACE_VERIFICATION_DENIED');
 }
 /**
+ * Snapshot only own primitive data properties. No getters, inherited values,
+ * proxies with synthetic accessors, or mutable references cross the trust seam.
+ */
+function primitiveSnapshot<T extends object>(value: T, fields: readonly string[], error: string): T {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) fail(error);
+  let descriptors: PropertyDescriptorMap;
+  let prototype: object | null;
+  try {
+    prototype = Object.getPrototypeOf(value);
+    descriptors = Object.getOwnPropertyDescriptors(value);
+  } catch { return fail(error); }
+  if (prototype !== Object.prototype && prototype !== null) fail(error);
+  if (Reflect.ownKeys(descriptors).length !== fields.length) fail(error);
+  const snapshot: Record<string, string> = Object.create(null);
+  for (const field of fields) {
+    const d = descriptors[field];
+    if (!d || !Object.hasOwn(d, 'value') || typeof d.value !== 'string') fail(error);
+    snapshot[field] = d.value;
+  }
+  return Object.freeze(snapshot) as T;
+}
+const CONFIG_FIELDS = Object.freeze(['brandId', 'appId', 'starryEnvironment', 'provider',
+  'officialStoreApp', 'storeVerificationEnvironment', 'providerAuthority']);
+const OFFICIAL_FIELDS = Object.freeze(['provider', 'officialStoreApp',
+  'storeVerificationEnvironment', 'providerAuthority']);
+
+/**
  * Injection seam deliberately has no client input, global network, live store
  * configuration, write capability or payment/entitlement side effects.
  */
 export function createOfflineStoreNamespaceBuilder(
   serverConfig: ServerStoreConfig, officialVerification: OfflineVerifiedStorePort,
 ) {
-  validConfig(serverConfig);
+  const trustedConfig = primitiveSnapshot(serverConfig, CONFIG_FIELDS, 'STORE_NAMESPACE_CONFIG_DENIED');
+  validConfig(trustedConfig);
   if (!officialVerification || typeof officialVerification.readOfficialVerifiedScope !== 'function')
     fail('STORE_NAMESPACE_PORT_DENIED');
   return Object.freeze({
@@ -80,17 +108,18 @@ export function createOfflineStoreNamespaceBuilder(
       Promise<StoreNamespaceKeys> {
       for (const value of [receiptTransactionRef, originalTransactionRef, providerEventRef])
         if (!validText(value)) fail('STORE_NAMESPACE_REFERENCE_DENIED');
-      const official = await officialVerification.readOfficialVerifiedScope();
+      const official = primitiveSnapshot(await officialVerification.readOfficialVerifiedScope(),
+        OFFICIAL_FIELDS, 'STORE_NAMESPACE_VERIFICATION_DENIED');
       validOfficial(official);
-      if (official.provider !== serverConfig.provider
-        || official.officialStoreApp !== serverConfig.officialStoreApp
-        || official.storeVerificationEnvironment !== serverConfig.storeVerificationEnvironment
-        || official.providerAuthority !== serverConfig.providerAuthority)
+      if (official.provider !== trustedConfig.provider
+        || official.officialStoreApp !== trustedConfig.officialStoreApp
+        || official.storeVerificationEnvironment !== trustedConfig.storeVerificationEnvironment
+        || official.providerAuthority !== trustedConfig.providerAuthority)
         fail('STORE_NAMESPACE_SCOPE_MISMATCH');
       // Six versioned dimensions: brand/app/Starry env/official Store app/
       // Store verification env/provider authority. Provider is a distinct key axis.
       const namespace = encode('scope', [
-        serverConfig.brandId, serverConfig.appId, serverConfig.starryEnvironment,
+        trustedConfig.brandId, trustedConfig.appId, trustedConfig.starryEnvironment,
         official.officialStoreApp, official.storeVerificationEnvironment, official.providerAuthority,
       ]);
       const provider = official.provider;
