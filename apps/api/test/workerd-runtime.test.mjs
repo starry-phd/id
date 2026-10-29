@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {fileURLToPath} from 'node:url';
+import {URL, fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
 import {build} from 'esbuild';
 import {Miniflare} from 'miniflare';
