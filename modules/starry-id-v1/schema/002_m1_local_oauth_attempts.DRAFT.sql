@@ -19,3 +19,17 @@ CREATE TABLE IF NOT EXISTS starry_m1_oauth_attempts(
  CHECK(consumed_at IS NULL OR consumed_at>=0)
 );
 CREATE INDEX IF NOT EXISTS idx_starry_m1_oauth_attempts_expiry ON starry_m1_oauth_attempts(expires_at);
+
+-- Atomic M1 transaction audit intent, local-only. No external Queue/ACK.
+CREATE TABLE IF NOT EXISTS starry_m1_audit_intents (
+ event_id TEXT PRIMARY KEY,
+ source_operation_id TEXT NOT NULL,
+ event_type TEXT NOT NULL CHECK(event_type IN ('session_issued','member_registered')),
+ brand_id TEXT NOT NULL CHECK(brand_id='starry'),
+ app_id TEXT NOT NULL CHECK(app_id='starry-id'),
+ environment TEXT NOT NULL CHECK(environment IN ('development','staging')),
+ s_user_id TEXT NOT NULL REFERENCES starry_members(s_user_id),
+ created_at INTEGER NOT NULL,
+ UNIQUE(source_operation_id,event_type)
+);
+CREATE INDEX IF NOT EXISTS idx_starry_m1_audit_intents_member ON starry_m1_audit_intents(s_user_id,created_at);
