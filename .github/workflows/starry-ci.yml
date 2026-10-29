@@ -79,6 +79,8 @@ jobs:
       - run: npm run auth:test
       - run: npm run mobile:config
       - run: npm run api:check
+      - name: Verify real workerd runtime (local Miniflare; no deploy)
+        run: npm run api:runtime
       - run: npm run release:blocked
       - run: npm run promotion:verify
 

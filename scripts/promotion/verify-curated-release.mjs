@@ -1,6 +1,7 @@
 import {readFileSync, readdirSync, existsSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {preflight} from '../../docs/release-readiness/check-release-readiness.mjs';
+import {inspectM0, flattenM0} from './m0-guard-policy.mjs';
 const root = new URL('../../', import.meta.url);
 const read = path => readFileSync(new URL(path,root),'utf8');
 const errors=[];
@@ -91,8 +92,17 @@ allowed.add('docs/operations/AI4-W3-FINAL-PROMOTION-CLOSURE.v1.json');
 allowed.add('scripts/promotion/w3-final-source-closure.test.mjs');
 // GOV v1.0: one reviewed documentation path; no runtime allowlist expansion.
 allowed.add('docs/ai/OPTIMIZED-DEVELOPMENT.md');
+allowed.add('scripts/promotion/m0-guard-policy.mjs');
+allowed.add('scripts/promotion/m0-guard-policy.test.mjs');
+allowed.add('apps/api/test/workerd-runtime.test.mjs');
+allowed.add('docs/operations/AI4-M0-PLATFORM-CAPABILITIES.v1.json');
+allowed.add('docs/operations/AI4-M0-PLATFORM-GUARD-REVIEW.md');
 const tracked=execFileSync('git',['ls-files','-z'],{cwd:new URL('.',root),encoding:'utf8'}).split('\0').filter(Boolean);
 const mainOriginals=new Set([".github/CODEOWNERS",".github/agents/ai-0-coordinator.agent.md",".github/agents/ai-1-auth-member.agent.md",".github/agents/ai-2-billing-iap.agent.md",".github/agents/ai-3-battery-trust.agent.md",".github/agents/ai-4-expo-workers.agent.md",".github/dependabot.yml",".github/pull_request_template.md",".gitignore","AGENTS.md","docs/ai/HANDOFF-PROTOCOL.md","docs/ai/OFFICIAL-DEVELOPMENT-KICKOFF-2026-10-26.md","docs/contracts/FUTURE-HGLOBAL-MEMBER-API.md","docs/contracts/FUTURE-STARRY-ADMIN-API.md","docs/operations/GITHUB-TEAM-COPILOT-READINESS.md","scripts/ci/validate_repository.py"]);
 for(const name of tracked)assert(allowed.has(name)||mainOriginals.has(name),'Non-curated tracked path: '+name);
+// M0 independently keeps immutable release refusal, source provenance and reviewed runtime scope.
+const m0=inspectM0({read, hashOf:path=>execFileSync('git',['hash-object',path],
+ {cwd:new URL('.',root),encoding:'utf8'}).trim(), trackedPaths:tracked});
+errors.push(...flattenM0(m0));
 if(errors.length){console.error(errors.map(e=>'PROMOTION BLOCKED: '+e).join('\n'));process.exitCode=1;}
 else console.log('PASS: curated health-only Starry foundation, 11/11 Release Gates blocked, no auto/manual deploy, no Consumer API');

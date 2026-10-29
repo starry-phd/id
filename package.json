@@ -21,7 +21,8 @@
     "promotion:verify": "node scripts/promotion/verify-curated-release.mjs",
     "auth:typecheck": "tsc --noEmit -p modules/starry-id-v1/tsconfig.json",
     "auth:test": "node --experimental-strip-types --test modules/starry-id-v1/test/session-crypto.test.mjs modules/starry-id-v1/test/d1-ports.test.mjs modules/starry-id-v1/test/r23-signed-session-d1-request-boundary.test.mjs modules/starry-id-v1/test/w2-r23-auth-outcome-adapter.test.mjs modules/starry-id-v1/test/w3-local-vnext-typed-self-profile.test.mjs",
-    "w3:typecheck": "tsc --noEmit --strict --target ES2022 --module ESNext --moduleResolution Bundler --skipLibCheck --allowImportingTsExtensions packages/rebuild-billing/src/trusted-store-namespace.ts packages/rebuild-ai3/src/w3-offline-only-factory.ts"
+    "w3:typecheck": "tsc --noEmit --strict --target ES2022 --module ESNext --moduleResolution Bundler --skipLibCheck --allowImportingTsExtensions packages/rebuild-billing/src/trusted-store-namespace.ts packages/rebuild-ai3/src/w3-offline-only-factory.ts",
+    "api:runtime": "node --experimental-strip-types --test apps/api/test/workerd-runtime.test.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

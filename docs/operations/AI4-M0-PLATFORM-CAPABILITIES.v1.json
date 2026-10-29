@@ -1,0 +1,13 @@
+{
+  "schema": "starry.ai4.m0.platform-capabilities.v1",
+  "stage": "source_only_not_publishable",
+  "public_routes": ["/v1/health"],
+  "auth_enabled": false,
+  "production_enabled": false,
+  "notes": "M0 reviewed capability slice; not an independent permission to deploy. Actual production hard-denial and official readiness freeze are evaluated separately.",
+  "artifact_blobs": [
+    {"path": "apps/api/src/index.ts", "sha": "a9addff8a16c351ee8cbf3900c8aee52e7fb012b"},
+    {"path": "apps/api/openapi.yaml", "sha": "2d7d42d8ed9529db5b4e92f895bd83a71702da77"},
+    {"path": "packages/sdk/src/index.ts", "sha": "b73c40bb72c7c2605e9caf77df4ffe6f0d71eee9"}
+  ]
+}
