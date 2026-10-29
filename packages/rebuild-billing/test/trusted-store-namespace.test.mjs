@@ -84,3 +84,45 @@ test('cannot pass request claims into builder or obtain grant/write/live abiliti
   assert.equal('paid' in out,false);
   assert.equal(Object.isFrozen(out),true);
 });
+
+test('constructor snapshot survives post-construction brand and runtime mutation',async()=>{
+  const mutable={...config};
+  const created=createOfflineStoreNamespaceBuilder(mutable,official(config));
+  const before=await created.build('receipt','origin','event');
+  mutable.brandId='hglobal';
+  mutable.starryEnvironment='production';
+  assert.deepEqual(await created.build('receipt','origin','event'),before);
+  assert.equal((await created.build('receipt','origin','event')).namespace,
+    (await keys(config,'receipt','origin','event')).namespace);
+});
+test('await boundary cannot change app or authority or split first-claim namespace',async()=>{
+  const mutable={...config};
+  let release;
+  const pending=new Promise(resolve=>{release=resolve});
+  const created=createOfflineStoreNamespaceBuilder(mutable,{
+    async readOfficialVerifiedScope(){await pending;return {...config};},
+  });
+  const inFlight=created.build('receipt','original','refund');
+  mutable.appId='other.app';
+  mutable.providerAuthority='another-authority';
+  mutable.officialStoreApp='other.bundle';
+  release();
+  const settled=await inFlight;
+  const expected=await keys(config,'receipt','original','refund');
+  assert.equal(settled.originalLineageIdentity,expected.originalLineageIdentity);
+  assert.deepEqual(settled,expected);
+});
+test('official scope is descriptor-snapshotted once; accessor scopes fail closed',async()=>{
+  let reads=0;
+  const accessor={...config};
+  delete accessor.brandId;delete accessor.appId;delete accessor.starryEnvironment;
+  Object.defineProperty(accessor,'providerAuthority',{enumerable:true,get(){reads++;return config.providerAuthority}});
+  await assert.rejects(createOfflineStoreNamespaceBuilder(config,{
+    readOfficialVerifiedScope:()=>accessor,
+  }).build('tx','orig','event'),/STORE_NAMESPACE_VERIFICATION_DENIED/);
+  assert.equal(reads,0);
+  const server={...config};
+  Object.defineProperty(server,'appId',{enumerable:true,get(){reads++;return config.appId}});
+  assert.throws(()=>createOfflineStoreNamespaceBuilder(server,official(config)),/STORE_NAMESPACE_CONFIG_DENIED/);
+  assert.equal(reads,0);
+});
