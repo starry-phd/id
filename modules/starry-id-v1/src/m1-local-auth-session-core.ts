@@ -4,17 +4,20 @@
  * simulation in production. Real issuer/nonce/JWKS/PKCE verification is owned by
  * the existing createVerifiedOidcCallback; no email/name account linking.
  */
-import {createVerifiedOidcCallback} from './oidc-crypto.ts';
+import {bytesToBase64url,createVerifiedOidcCallback} from './oidc-crypto.ts';
 import type {OAuthAttempt, PinnedOidcProvider, TrustedOAuthBackend} from './oidc-crypto.ts';
 import {signServerSession} from './session-crypto.ts';
 import type {SessionSigningKey} from './session-crypto.ts';
-import type {D1Database} from './d1-ports.ts';
+import type {D1Database,D1Prepared,D1Result} from './d1-ports.ts';
 import type {TrustedScope} from './index.ts';
 import {createLocalOnlyVNextTypedSelfProfileHandler} from './w3-local-vnext-typed-self-profile.ts';
 
 export const M1_AUTH_LIVE_ENABLED = false as const;
 export const M1_AUTH_CONTRACT = 'starry.ai1.m1.oauth-session.local-v1' as const;
-export type M1WriteDatabase = D1Database;
+export type M1WriteDatabase = D1Database & Readonly<{
+  /** D1 batch commits all statements atomically or rolls back every statement on SQL error. */
+  batch:(statements:D1Prepared[])=>Promise<D1Result[]>;
+}>;
 type Scope = TrustedScope & {environment: 'development'|'staging'};
 type Exchange = TrustedOAuthBackend['exchangeCode'];
 type Result = Readonly<{status:'issued'; bearer:string; s_user_id:string; expires_at:number}>;
@@ -37,6 +40,9 @@ const statePattern=/^[A-Za-z0-9_-]{32,256}$/;
 const attemptSelect='SELECT state,provider,client_id,code_verifier,code_challenge,nonce,app_id,environment,expires_at,consumed_at FROM starry_m1_oauth_attempts WHERE state=? AND provider=? AND app_id=? AND environment=?';
 const attemptConsume='UPDATE starry_m1_oauth_attempts SET consumed_at=? WHERE state=? AND provider=? AND app_id=? AND environment=? AND client_id=? AND consumed_at IS NULL AND expires_at>?';
 const identitySelect='SELECT m.s_user_id,m.auth_version FROM starry_identities i JOIN starry_members m ON m.s_user_id=i.s_user_id WHERE i.provider=? AND i.subject=? AND m.status=\'active\'';
+const newMember='INSERT INTO starry_members(s_user_id,status,auth_version,profile_revision,display_name,directory_opt_in,display_name_public,created_at,updated_at) VALUES(?,\'active\',1,1,NULL,0,0,?,?)';
+const newIdentity='INSERT INTO starry_identities(provider,subject,s_user_id) VALUES(?,?,?)';
+const auditIntent='INSERT INTO starry_m1_audit_intents(event_id,source_operation_id,event_type,brand_id,app_id,environment,s_user_id,created_at) SELECT ?,?,?,\'starry\',?,?,s_user_id,? FROM starry_sessions WHERE session_id=?';
 const insertSession='INSERT INTO starry_sessions(session_id,s_user_id,app_id,environment,auth_version,refresh_hash,expires_at) SELECT ?,m.s_user_id,?,?,m.auth_version,?,? FROM starry_members m WHERE m.s_user_id=? AND m.status=\'active\' AND m.auth_version=? AND EXISTS (SELECT 1 FROM starry_identities i WHERE i.s_user_id=m.s_user_id AND i.provider=? AND i.subject=?)';
 const validTime=(n:unknown):n is number=>typeof n==='number'&&Number.isSafeInteger(n)&&n>=0;
 function secureBytes(n:number):Uint8Array {
@@ -66,7 +72,7 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
   }) as PinnedOidcProvider;
   if(scope.brand_id!=='starry'||scope.app_id!=='starry-id'||
     !['development','staging'].includes(scope.environment)||
-    !deps.authDb||typeof deps.authDb.prepare!=='function'||
+    !deps.authDb||typeof deps.authDb.prepare!=='function'||typeof deps.authDb.batch!=='function'||
     typeof deps.exchangeCode!=='function'||typeof deps.activeKey!=='function'||
     typeof deps.now!=='function'||typeof deps.getVerificationKey!=='function'||
     !provider||!id.test(provider.clientId)||
@@ -110,6 +116,24 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
   });
   return Object.freeze({
     contract:M1_AUTH_CONTRACT,local_only:true as const,live_enabled:M1_AUTH_LIVE_ENABLED,
+    async beginOAuthAttempt():Promise<Readonly<{state:string;codeChallenge:string;provider:string}>|null>{
+      if(!enabled)return null;
+      try {
+        const now=deps.now();if(!validTime(now))return null;
+        const random=deps.randomBytes??secureBytes;
+        const bytes=Array.from({length:4},()=>random(32));
+        if(bytes.some(b=>!(b instanceof Uint8Array)||b.length!==32))return null;
+        const state=bytesToBase64url(bytes[0]);
+        const verifier=bytesToBase64url(bytes[1]);
+        const nonce=bytesToBase64url(bytes[2]);
+        const challenge=bytesToBase64url(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier))));
+        const issuedAt=deps.now();if(!validTime(issuedAt)||issuedAt<now||issuedAt>now+30)return null;
+        const written=await deps.authDb.prepare('INSERT INTO starry_m1_oauth_attempts(state,provider,client_id,code_verifier,code_challenge,nonce,app_id,environment,expires_at,consumed_at) VALUES(?,?,?,?,?,?,?,?,?,NULL)')
+          .bind(state,provider.provider,provider.clientId,verifier,challenge,nonce,scope.app_id,scope.environment,issuedAt+180).run();
+        if(written.success===false||written.meta?.changes!==1)return null;
+        return Object.freeze({state,codeChallenge:challenge,provider:provider.provider});
+      }catch{return null;}
+    },
     async issueFromVerifiedCallback(input:unknown):Promise<Result|null>{
       if(!enabled)return null;
       try {
@@ -121,13 +145,16 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
       if(!verified||verified.provider!==provider.provider||
         verified.issuer!==provider.issuer||verified.audience!==provider.clientId||
         !id.test(verified.providerSubject))return null;
-      const row=await deps.authDb.prepare(identitySelect)
+      const known=await deps.authDb.prepare(identitySelect)
         .bind(verified.provider,verified.providerSubject)
         .first<{s_user_id:string;auth_version:number}>();
-      if(!row||!id.test(row.s_user_id)||!Number.isSafeInteger(row.auth_version)||row.auth_version<1)return null;
+      if(known&&(!id.test(known.s_user_id)||!Number.isSafeInteger(known.auth_version)||known.auth_version<1))return null;
+      const random=deps.randomBytes??secureBytes;
+      const memberEntropy=known?null:random(24);
+      if(!known&&(!(memberEntropy instanceof Uint8Array)||memberEntropy.length!==24))return null;
+      const row=known??{s_user_id:'su-'+hex(memberEntropy!),auth_version:1};
       const key=await deps.activeKey();
       if(!validKey(key))return null;
-      const random=deps.randomBytes??secureBytes;
       const entropy=random(32);
       if(!(entropy instanceof Uint8Array)||entropy.length!==32)return null;
       const sessionId='m1-'+hex(entropy);
@@ -148,11 +175,26 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
       if(!validTime(atWrite)||atWrite<committedAt||atWrite>=expiry)return null;
       // The INSERT SELECT repeats the identity, status, version and scope
       // fence at the actual write, preventing stale pre-read issuance.
-      const commit=await deps.authDb.prepare(insertSession).bind(
-        sessionId,scope.app_id,scope.environment,refreshDigest.length===32?hex(refreshDigest):'',
+      const statements:D1Prepared[]=[];
+      if(!known){
+        statements.push(deps.authDb.prepare(newMember).bind(row.s_user_id,atWrite,atWrite));
+        statements.push(deps.authDb.prepare(newIdentity).bind(verified.provider,verified.providerSubject,row.s_user_id));
+      }
+      statements.push(deps.authDb.prepare(insertSession).bind(
+        sessionId,scope.app_id,scope.environment,hex(refreshDigest),
         expiry,row.s_user_id,row.auth_version,verified.provider,verified.providerSubject,
-      ).run();
-      if(commit.success===false||commit.meta?.changes!==1)return null;
+      ));
+      statements.push(deps.authDb.prepare(auditIntent).bind(
+        sessionId+':session',sessionId,'session_issued',scope.app_id,scope.environment,atWrite,sessionId,
+      ));
+      if(!known)statements.push(deps.authDb.prepare(auditIntent).bind(
+        sessionId+':member',sessionId,'member_registered',scope.app_id,scope.environment,atWrite,sessionId,
+      ));
+      // A single authoritative SQLite/D1 batch is transactional: UNIQUE/FK
+      // collision at ANY statement rolls back the member, link, session, audit.
+      const committed=await deps.authDb.batch(statements);
+      if(committed.length!==statements.length||committed.some(v=>v.success===false||v.meta?.changes!==1))
+        return null;
       return Object.freeze({status:'issued' as const,bearer,s_user_id:row.s_user_id,expires_at:expiry});
       } catch { return null; } // Never emit raw SQL / KMS / token error details.
     },
