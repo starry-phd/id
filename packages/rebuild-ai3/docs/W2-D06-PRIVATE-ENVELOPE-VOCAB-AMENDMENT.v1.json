@@ -1,0 +1,361 @@
+{
+  "kind": "starry.ai3.w2.d06.private-envelope-vocabulary-amendment.v1-review-only",
+  "upstream": {
+    "fixed_parent": "7316ee0f014a01649eea87a62b3ad6cdb6b1febd",
+    "w1_integrated_pr": 250,
+    "ai1_pr": 247,
+    "ai3_pr": 248,
+    "work_order": "https://github.com/starry-phd/id/issues/4#issuecomment-6489129127",
+    "decisions": [
+      "D00=MEMBER_FIRST_DIRECTION",
+      "D87=SINGLE_TRANSACTION_AUTHORITY_DIRECTION",
+      "D06=LAYERED_EVENT_AND_PRIVATE_ENVELOPE_DIRECTION"
+    ]
+  },
+  "proof_status": "SOURCE_GROUNDED_STATIC_REVIEW_ONLY",
+  "canonical_review_vocabulary": {
+    "source_issuer_identity": "a proven server-origin issuer identity; NOT a registry pointer",
+    "issuer_registry_ref": "opaque origin/provenance registry pointer; NOT issuer identity",
+    "verification_key_id": "key ID in issuer-scoped key registry; NOT issuer ref",
+    "integrity_proof": "typed kind/algorithm_id/encoding/value plus verified coverage; NOT an automatic rename of signature, integrity_signature or R005 mac",
+    "business_core_digest": "hashed identity of committed canonical business core; NOT proof signature/MAC",
+    "source_auth_version": "event origin Auth-version snapshot; not consumer-time read",
+    "observed_auth_version": "consumer-time server Auth read; not signed source snapshot",
+    "source_session_version": "event origin SessionVersion; not active-session requirement for revoked events",
+    "observed_session_version": "consumer-time SessionVersion monotonic fence; not always source equality",
+    "source_actor_pseudonym": "nonreversible event actor reference, not raw member ID",
+    "source_session_pseudonym": "nonreversible event session reference, not Session ID",
+    "server_actor_reference": "trusted internal actor resolved by server, not hash alias",
+    "server_member_reference": "trusted internal member resolved by server, not hash alias",
+    "business_core_schema_version": "Layer1 business version only",
+    "security_envelope_schema_version": "Layer2 security version only",
+    "proof_issued_at": "envelope proof creation clock; NOT business occurred_at",
+    "proof_nonce": "issuer-scoped replay nonce requiring durable fence"
+  },
+  "version_strategy": {
+    "decision_status": "PROPOSAL_NOT_APPROVED",
+    "layer1": "Keep existing 11 approved-direction CORE names + conditional idempotency; do not add unknown G06 thirteenth field",
+    "layer2": "Independent review-only security_envelope_schema_version candidate; never silently equate with business schema_version",
+    "compatibility": "Create future explicit, audited (core_version,envelope_version,issuer_key_epoch,proof_kind) allowlist after AI0 approval; unknown or missing or unsupported version -> reject, no automatic alias",
+    "canonicalization": "No final wire format, signing bytes, signature algorithm or HMAC key custody approved; R005 HMAC mac remains OFFLINE only; no parser or signer in this W2",
+    "time": "occurred_at business time != proof_issued_at; source version != observed current version",
+    "change_policy": "New name requires its own semantics, authority, security classification and explicit review/major version; no cross-brand fallback, no user-supplied verified flag",
+    "gate": "G06/G07 blocked"
+  },
+  "source_provenance": [
+    {
+      "owner": "AI-1",
+      "path": "modules/starry-id-v1/src/w1-auth-boundary-contract.ts",
+      "blob": "77001de2d89e481c5c00aa4696d6781a54188222",
+      "note": "private proposal names issuer/kid/issued_at/nonce/signature/auth_version/session_version/session_ref_hash/actor_ref_hash; review guard, not signing"
+    },
+    {
+      "owner": "AI-1",
+      "path": "modules/starry-id-v1/W1-AUTH-SOURCE-AND-SELF-REVIEW.md",
+      "blob": "524e5ff1e266b1abff6fea034faa2ca10a5ddfea",
+      "note": "line 67 private proposal and line 29-38 Auth sole writer"
+    },
+    {
+      "owner": "AI-1",
+      "path": "modules/starry-id-v1/src/wave1-round005-sealed-event-session-authority.ts",
+      "blob": "cc5e047805909317fb1cb6d2d70df5707038c08f",
+      "note": "R005 is offline HMAC MAC (outer mac, issuer_kid, issuer_epoch, signed event auth_version/session_version); NOT approved production signer"
+    },
+    {
+      "owner": "AI-1",
+      "path": "modules/starry-id-v1/src/wave1-round004-event-session-fence.ts",
+      "blob": "c521d139469eeea290720bbf3c4bd6262d4ecc15",
+      "note": "R004 distinguishes active notification vs state=revoked/deleted; still rechecks source/binding/current owner, REVIEW_ONLY"
+    },
+    {
+      "owner": "AI-3",
+      "path": "packages/rebuild-ai3/docs/W1-D87-D06-AUTH-INBOX-ACK-CONTRACT.v1.json",
+      "blob": "c67e2009db08ddb7e1fa00e30d1b0f49247a0f63",
+      "note": "AI-3 W1 proposed envelope issuer_ref/integrity_signature/current_session_version; all live=false"
+    },
+    {
+      "owner": "AI-3",
+      "path": "packages/rebuild-ai3/src/auth-deletion-battery-bridge.ts",
+      "blob": "62e6035c4d944e30412bf6fc150fb3c274452e47",
+      "note": "AI1 raw four-field account_deleted source outbox re-read from Auth, no user active-session requirement after deletion; legal policy guard"
+    },
+    {
+      "owner": "AI-3",
+      "path": "packages/rebuild-ai3/src/auth-deletion-battery-consumer.ts",
+      "blob": "7d9c8d9436f2bbf5c3739a9184f7950897ac9dd3",
+      "note": "local Battery deletion receipt only, may_ack_queue=false"
+    },
+    {
+      "owner": "AI-3",
+      "path": "packages/rebuild-ai3/src/queue-consumer.ts",
+      "blob": "291d8758b5cad03dca32a08a0ae5ec7b50e404b8",
+      "note": "current candidate Billing event-only, not an Auth revoke consumer; ack_safe is abstract output"
+    },
+    {
+      "owner": "AI-0",
+      "path": "docs/adr/AI0-D06-P05-LAYERED-EVENT-SECURITY-OWNER-DECISION-20261029.md",
+      "blob": "d32bed5575bfab0169bb173bf22e18ee58705090",
+      "note": "D06 11-core+conditional idempotency and separate private envelope approved as direction, not final 13-field schema"
+    }
+  ],
+  "field_reconciliation": [
+    {
+      "ai1": "issuer",
+      "ai3": "issuer_ref",
+      "source": "AI1 W1 names issuer as untyped server-origin identity proposal; AI3 W1 uses issuer_ref as opaque provenance lookup/reference. Neither has a final value type or binding schema.",
+      "authority": "AI-0 G06 chooses issuer trust model; trusted server origin/AI-1 current Auth authority, never public client",
+      "proposed": "verified_issuer_identity + issuer_registry_ref (two separate concepts)",
+      "mapping": "NO_ALIAS",
+      "condition": "Only after an approved issuer registry attests identity→opaque ref within same app/env/epoch",
+      "version": "Registry identity & issuer epoch not automatically equal an opaque identifier; no carry-through",
+      "signature_coverage": "Issuer identity/ref must each be explicitly bound if used; neither proves signature on its own",
+      "sensitivity": "PRIVATE_SERVER_ONLY",
+      "approval": "UNAPPROVED"
+    },
+    {
+      "ai1": "signature",
+      "ai3": "integrity_signature",
+      "source": "Both W1 candidate words are untyped. AI1 R005 actual offline outer field is mac (HMAC-SHA256 hex), which is neither the W1 signature wire field nor a production issuer.",
+      "authority": "AI-0 approved signer/key custody and AI-1/AI-4 trusted verifier after Gate",
+      "proposed": "integrity_proof {kind, algorithm_id, encoding, value} (typed review candidate, NOT signed bytes)",
+      "mapping": "NO_ALIAS",
+      "condition": "Never rename without proof type, algorithm, canonical signed bytes, key, signature/MAC differentiation and verification result",
+      "version": "Proof algorithm/canonicalization/key epoch are independently versioned; MAC cannot be relabeled asymmetric signature",
+      "signature_coverage": "Full authenticated scope, business_core digest, envelope version, issuer identity, time, nonce and event binding must be specified and verified by final G06",
+      "sensitivity": "PRIVATE_PROOF_NEVER_PUBLIC_CORE",
+      "approval": "UNAPPROVED"
+    },
+    {
+      "ai1": "session_version",
+      "ai3": "current_session_version",
+      "source": "AI1 W1/R005 session_version is an event/signed issuer-bound snapshot; AI3 W1 current_session_version describes a later authoritative read/fence and was not defined as the same snapshot.",
+      "authority": "AI-1 sole Session writer and authoritative server-side reread, not incoming user-supplied value",
+      "proposed": "source_session_version + observed_session_version (two separate moments)",
+      "mapping": "NO_ALIAS",
+      "condition": "Correlate with a monotonicity/fence check and snapshot provenance; equality is event-class-specific, never an unconditional renaming",
+      "version": "Source signed at origin; observed is current time-of-consumption. Revocation may advance version; do not require revoked session ACTIVE",
+      "signature_coverage": "Source snapshot if signed; observed version is not automatically covered by old source signature and must be authenticated separately",
+      "sensitivity": "PRIVATE_AUTH_FENCE",
+      "approval": "UNAPPROVED"
+    },
+    {
+      "ai1": "auth_version",
+      "ai3": "current_auth_version",
+      "source": "AI1 event-level auth_version is an emitted snapshot, AI3 current_auth_version is consumer-time current Auth read and may advance on revoke/delete.",
+      "authority": "AI-1 sole Auth/member writer; independently re-read trusted authority",
+      "proposed": "source_auth_version + observed_auth_version",
+      "mapping": "NO_ALIAS",
+      "condition": "Require source commit+monotonic fence and checked transition; never equality check just because same name suffix",
+      "version": "May increase as revocation completes; compare according to event transition status instead of rejecting authoritative revoked event",
+      "signature_coverage": "Original source version may be signed; observed live version needs its own authenticated DB evidence",
+      "sensitivity": "PRIVATE_AUTH_FENCE",
+      "approval": "UNAPPROVED"
+    },
+    {
+      "ai1": "kid",
+      "ai3": "kid",
+      "source": "AI1 W1 and AI3 W1 both propose kid; AI1 R005 actually uses issuer_kid. Bare name equality is not shared key registry or issuer ownership.",
+      "authority": "AI-0/AI-1 approved trust/key registry, not caller-provided header",
+      "proposed": "verification_key_id",
+      "mapping": "CONDITIONAL_NOT_AUTOMATIC",
+      "condition": "Issuer-bound registry lookup with exact key ID namespace, algorithm, key generation, epoch and environment approval",
+      "version": "KID and issuer_epoch/key rotation must be independently checked; no new key generated",
+      "signature_coverage": "Key ID must be authenticated as part of proof context",
+      "sensitivity": "PRIVATE_KEY_REFERENCE_NOT_SECRET_MATERIAL",
+      "approval": "UNAPPROVED"
+    },
+    {
+      "ai1": "issued_at",
+      "ai3": "issued_at",
+      "source": "Both W1 proposals use issued_at, but not necessarily equal business occurred_at. AI1 R005 uses numeric issued_at and original source event schema owns occurred_at separately.",
+      "authority": "Trusted issuer clock and canonicalization, not HTTP client",
+      "proposed": "proof_issued_at",
+      "mapping": "CONDITIONAL_NOT_AUTOMATIC",
+      "condition": "Only if approved time unit/clock-skew/expiry rule matches trusted source",
+      "version": "Independent security envelope timestamp; never derive from event occurred_at or deletion outbox occurred_at",
+      "signature_coverage": "Source proof timestamp may be covered after approved serialization",
+      "sensitivity": "PRIVATE_PROOF_METADATA",
+      "approval": "UNAPPROVED"
+    },
+    {
+      "ai1": "nonce",
+      "ai3": "nonce",
+      "source": "Both W1 candidate lists use nonce; AI1 R005 offline HMAC nonce is not a durable, independently fenced production replay receipt.",
+      "authority": "Approved trusted issuer creates; independent receiver durable nonce fence pending",
+      "proposed": "proof_nonce",
+      "mapping": "CONDITIONAL_NOT_AUTOMATIC",
+      "condition": "Accepted only with issuer+key epoch+app/env+event binding and durable uniqueness/restore defense",
+      "version": "Scope/version-specific replay protection; allow duplicate same event/digest only if persisted receipt is verified",
+      "signature_coverage": "Nonce must be in canonical signed bytes if used",
+      "sensitivity": "PRIVATE_REPLAY_METADATA",
+      "approval": "UNAPPROVED"
+    },
+    {
+      "ai1": "session_ref_hash",
+      "ai3": "trusted_actor_ref",
+      "source": "AI1 proposes irreversible session identifier hash, AI3 trusted_actor_ref is a trusted actor reference. These represent different entity domains, not aliases.",
+      "authority": "AI-1 authoritative server-side actor/session resolver",
+      "proposed": "source_session_pseudonym + server_actor_reference (distinct)",
+      "mapping": "NO_ALIAS",
+      "condition": "Any optional link requires a server-side scoped binding audit; never public/convertible from user PII",
+      "version": "Identifier binding revision must be tracked independently",
+      "signature_coverage": "Proof must say which reference (if any) is covered by the signed bytes",
+      "sensitivity": "PRIVATE_PSEUDONYM_OR_ACTOR_REFERENCE",
+      "approval": "UNAPPROVED"
+    },
+    {
+      "ai1": "actor_ref_hash",
+      "ai3": "trusted_member_ref",
+      "source": "AI1 hashed actor ref does not prove that AI3's trusted_member_ref targets the same member; account and actor may differ.",
+      "authority": "AI-1 server principal→member mapping; identity must remain private",
+      "proposed": "source_actor_pseudonym + server_member_reference (distinct)",
+      "mapping": "NO_ALIAS",
+      "condition": "Require server-only authenticated binding or no mapping; do not leak s_user_id/provider-sub/email",
+      "version": "Separate member/account lifecycle and actor credential revision",
+      "signature_coverage": "Approved binding must be explicit, never inferred from same string",
+      "sensitivity": "PRIVATE_PSEUDONYM_OR_MEMBER_REFERENCE",
+      "approval": "UNAPPROVED"
+    },
+    {
+      "ai1": "issuer_kid",
+      "ai3": "issuer_ref",
+      "source": "AI1 R005 issuer_kid is signing-key identifier; AI3 W1 issuer_ref is origin/registry reference; key identity != origin identity.",
+      "authority": "Issuer authority for issuer; key registry for kid",
+      "proposed": "verification_key_id + issuer_registry_ref (distinct)",
+      "mapping": "NO_ALIAS",
+      "condition": "Only a separately authenticated registry relation can link these values",
+      "version": "Key rotation and issuer lineage independently versioned",
+      "signature_coverage": "Both associations must be covered/verified under final scheme",
+      "sensitivity": "PRIVATE_ORIGIN_AND_KEY_METADATA",
+      "approval": "UNAPPROVED"
+    },
+    {
+      "ai1": "mac",
+      "ai3": "event_digest",
+      "source": "R005 outer mac verifies HMAC on R005 synthetic envelope bytes; AI3 event_digest is digest for dedup/body identity; neither guarantees the other.",
+      "authority": "Verified issuer algorithm/key authority vs AI3 digest/committed-source reviewer",
+      "proposed": "integrity_proof.value + business_core_digest (distinct)",
+      "mapping": "NO_ALIAS",
+      "condition": "Never derive a signature proof from sha256 digest or use MAC string as a dedup digest without approved domain definition",
+      "version": "Independent algorithm and canonicalization versions",
+      "signature_coverage": "A digest may be a covered input but not itself verification",
+      "sensitivity": "PRIVATE_PROOF_VS_DIGEST",
+      "approval": "UNAPPROVED"
+    },
+    {
+      "ai1": "schema_version",
+      "ai3": "envelope_version",
+      "source": "AI1 public core field schema_version and AI3 W1 envelope_version belong to separate layers in D06",
+      "authority": "AI-0 core/schema authority and separately approved private envelope authority",
+      "proposed": "business_core_schema_version + security_envelope_schema_version",
+      "mapping": "NO_ALIAS",
+      "condition": "Explicit supported version-pair registry and independent migration review; no guessing G06 13th field",
+      "version": "Independent version dimensions with reject-unknown; never map occurred_at to issued_at",
+      "signature_coverage": "Signed object must bind BOTH versions before any actual trust",
+      "sensitivity": "CORE_PUBLIC_VERSION_AND_PRIVATE_SECURITY_VERSION",
+      "approval": "UNAPPROVED"
+    }
+  ],
+  "delivery_modes": [
+    {
+      "name": "SERVER_COMMITTED_REVOCATION_OR_DELETION",
+      "event_types": [
+        "identity.session.revoked",
+        "identity.member.deleted"
+      ],
+      "trusted_source": "AI-1 Auth unique writer verified source transaction, committed revoke/delete record, durable original outbox and server-level issuer provenance (all require future approval)",
+      "member_session_requirement": "DO_NOT_REQUIRE_ACTIVE_MEMBER_SESSION_AFTER_REVOKE",
+      "post_transition_fence": "Verify Auth-version/session-version monotonic transition and current revoked/deleted state + exact source event; stale current state/restore floor unknown block effects but preserve audit/recovery route for evidence review",
+      "recipient_or_preference_check": "NOT_A_NOTIFICATION_AND_MUST_NOT_REQUIRE_RECIPIENT_ACTIVE_LOGIN_OR_OPT_IN",
+      "policy": "Q104/Q119 legal hold and retention/erasure impact remain unapproved, therefore no real erasure/replay",
+      "delivery": "Server-origin transition may remain eligible for future reliable audit routing even though member is revoked/deleted. This is a DESIGN route, NOT live send/ACK now.",
+      "status": "REVIEW_ONLY",
+      "may_send": false,
+      "may_ack": false,
+      "may_erase": false,
+      "may_restore": false
+    },
+    {
+      "name": "USER_NOTIFICATION_DELIVERY",
+      "event_types": [
+        "notification.delivery.queued"
+      ],
+      "trusted_source": "approved signed source + scope; separate from Auth member revoke provenance",
+      "member_session_requirement": "REQUIRE_CURRENT_ACTIVE_AUTH_SESSION_WHEN_POLICY_APPLICABLE",
+      "post_transition_fence": "Current member active, not revoked/deleted, session not expired, consent/preferences, recipient minimization, ordered message and legal policy must all pass at delivery",
+      "recipient_or_preference_check": "REQUIRED_AT_SEND_TIME",
+      "policy": "unknown/withdrawn consent or revoked member -> fail closed, quarantine/deny notification, not source revoke audit",
+      "delivery": "No user notification after account deletion or revoked/expired session without separately approved lawful exception and signed server-only basis.",
+      "status": "REVIEW_ONLY",
+      "may_send": false,
+      "may_ack": false,
+      "may_erase": false,
+      "may_restore": false
+    }
+  ],
+  "critical_distinctions": {
+    "no_automatic_aliases": [
+      [
+        "issuer",
+        "issuer_ref"
+      ],
+      [
+        "signature",
+        "integrity_signature"
+      ],
+      [
+        "session_version",
+        "current_session_version"
+      ],
+      [
+        "auth_version",
+        "current_auth_version"
+      ],
+      [
+        "issuer_kid",
+        "issuer_ref"
+      ],
+      [
+        "mac",
+        "event_digest"
+      ],
+      [
+        "schema_version",
+        "envelope_version"
+      ],
+      [
+        "session_ref_hash",
+        "trusted_actor_ref"
+      ],
+      [
+        "actor_ref_hash",
+        "trusted_member_ref"
+      ]
+    ],
+    "auth_source_event": "AI1 old account_deleted outbox is four fields; cannot infer Layer1 11 fields or private proof, but can be independently reread for existing R15 offline deleted-state review",
+    "owner_writer": "AI1 Auth sole writer and committed source outbox; AI3 recipient local inbox+masked audit sole writer; no cross-D1 ACID",
+    "current_r004_fence": "AI1 R004 source distinguishes notification active session vs revoked/deleted state; still OFFLINE review-only and must not be treated as signed production proof",
+    "private_layer": "never expose private source issuer or session data in core resource_id/correlation_id/idempotency_key or public API",
+    "no_automatic_ack": "AI3 W1 abstract ack_safe and old R14 receipt_only cannot authorize real Queue ACK"
+  },
+  "release": {
+    "G00": "blocked",
+    "G06": "blocked",
+    "G07": "blocked",
+    "gates_blocked": 11,
+    "p05_publishable": false,
+    "authorization_granted": false,
+    "independent_witness_verified": false,
+    "legal_q104_q119_approved": false,
+    "battery_free": true,
+    "ads_enabled": false,
+    "may_ack": false,
+    "may_send": false,
+    "may_sign": false,
+    "may_erase": false,
+    "may_restore": false,
+    "may_deploy": false,
+    "may_change_shared_schema": false
+  },
+  "staging": "No real D1/Queue/Secrets/OIDC/Store/EAS; no Preview/staging/production deploy/paid; no main; no H-Global/Echo"
+}

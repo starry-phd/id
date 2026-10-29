@@ -1,0 +1,191 @@
+{
+  "schema": "starry.ai2.w1.d87.receipt-identity-scope-amendment.v1-design-only",
+  "status": "REVIEW_CANDIDATE_ONLY_NOT_IMPLEMENTED",
+  "work_order": {
+    "issue": 3,
+    "comment_id": 6489094776,
+    "source_pr": 250,
+    "source_commit": "7316ee0f014a01649eea87a62b3ad6cdb6b1febd",
+    "source_paths": {
+      "interface_json": "packages/rebuild-billing/docs/AI2-W1-D87-A-BILLING-AUTHORITY-INTERFACES.v0.json",
+      "interface_blob": "ced186d571a49c23f68f6b9e41822034b17a36db",
+      "adr": "packages/rebuild-billing/docs/AI2-W1-D87-A-BILLING-SINGLE-AUTHORITY-ADR.md",
+      "adr_blob": "84122261d24df18b15ba4db39c606f16cb9a3e0c"
+    },
+    "changes_to_originals": false
+  },
+  "correction": {
+    "finding": "identity_keys.transaction_unique_key in immutable #249 interface includes brand_id/app_id/environment while billing_verified_receipt.unique[0] and ADR list only provider/store_namespace/store_transaction_ref.",
+    "resolution": "Use the compact provider + canonical store_namespace + officially verified store_transaction_ref as the SINGLE proposed durable receipt uniqueness constraint. Retain brand_id/app_id/environment as separately checked, immutable scope columns and as an expanded logical lookup/provenance projection, NOT an alternative unique index.",
+    "old_transaction_unique_key_semantics": "LEGACY_EXPANDED_SCOPE_GUARDED_LOOKUP_PROJECTION_NOT_PHYSICAL_UNIQUE_CONSTRAINT",
+    "legacy_expanded_scope_lookup_fields": [
+      "brand_id",
+      "app_id",
+      "environment",
+      "provider",
+      "store_namespace",
+      "store_transaction_ref"
+    ],
+    "authoritative_receipt_unique_fields": [
+      "provider",
+      "store_namespace",
+      "store_transaction_ref"
+    ],
+    "proposed_table": "billing_verified_receipt",
+    "authoritative_receipt_writers": [
+      "AI-2 protected BillingAuthorityWriterPort"
+    ],
+    "fallback_when_scope_or_namespace_missing": "DENY_NO_WRITE_AND_NO_ENTITLEMENT",
+    "no_runtime_or_migration_approved": true
+  },
+  "canonical_store_namespace": {
+    "nature": "OPAQUE_VERSIONED_SERVER_DERIVED_CANONICAL_NAMESPACE_CANDIDATE",
+    "necessary_verified_dimensions": [
+      "brand_id",
+      "app_id",
+      "environment",
+      "provider_store_application_identity",
+      "store_verification_environment",
+      "provider_authority_or_account_namespace"
+    ],
+    "verified_meanings": {
+      "brand_id": "The trusted registry's Starry brand; not from a client-supplied brand flag.",
+      "app_id": "The canonical central App Registry app identity that is bound to the verified Store application identity, not a free-form request app switch.",
+      "environment": "The trusted Starry app execution environment, checked separately from the Store's Sandbox/Production verification environment.",
+      "provider_store_application_identity": "An authenticated Store application identity such as its verified application/package binding, with actual identifier undecided; NO hard-coded bundle/package.",
+      "store_verification_environment": "Provider-verified Sandbox vs Production provenance; a test purchase cannot be reinterpreted as production.",
+      "provider_authority_or_account_namespace": "The independently verified Store issuer/tenant/account trust namespace IF needed to guarantee collision isolation; actual provider accounts and credentials are NOT selected. Without a uniquely binding official issuer namespace, refuse authority."
+    },
+    "provider_field_rule": "Receipt provider is the independently verified authoritative Store (Apple or Google, as future approved), NOT RevenueCat client status. RC-only webhook/CustomerInfo may be supplemental but never independently creates an authoritative Store receipt.",
+    "derive_policy": "Only a protected server-side approved immutable App Registry mapping and independently official verified Store evidence can derive the tuple. User inputs, app-selected product keys, untrusted RC identity, R007/R008 review_only labels, environment headers, query params and offline HMAC are NEVER namespace authority.",
+    "immutability": "A verified original transaction's namespace tuple is immutable after first claim. Change of app/brand/environment/Store app/provider trust domain never rewrites or relocates ownership; cross-scope reuse DENY unless separately owner-approved lineage transfer procedure exists (not approved).",
+    "canonical_encoding": "If later implemented, a reviewed collision-free, domain-separated, versioned canonical tuple encoding with explicit component boundaries and registry consistency check is required. Concatenation without length boundaries, user-supplied opaque strings, case-folding guesses or hashing without approved collision/migration policy are forbidden.",
+    "required_scope_checks": [
+      "The trusted request brand_id/app_id/environment equals canonical namespace binding and the persisted receipt's immutable brand_id/app_id/environment.",
+      "The official Store verification environment and application identity match the approved registry entry and the namespace; no staging/development claim reclassifies a production purchase or vice versa.",
+      "Receipt lookups and first-claim attempts reject cross-brand, cross-app, cross-environment or foreign provider-store application tuples BEFORE insert and again at authoritative CAS boundary.",
+      "A second s_user_id using the same original transaction within its independently verified namespace is a CONFLICT; membership never participates in lineage unique key.",
+      "Two different canonical namespaces may contain equal-looking opaque provider transaction strings only with separately official evidence that they are different Store authority/application/verification domains; unsupported namespace mapping is always DENY."
+    ],
+    "physical_layout_approved": false,
+    "actual_store_app_ids_provided": false,
+    "provider_accounts_approved": false
+  },
+  "related_identities": {
+    "first_claim_lineage": {
+      "table": "billing_original_lineage",
+      "authoritative_unique_fields": [
+        "provider",
+        "store_namespace",
+        "original_transaction_ref"
+      ],
+      "forbidden_unique_discriminators": [
+        "s_user_id",
+        "member_id",
+        "member_digest",
+        "session_id"
+      ],
+      "semantics": "One originally verified purchase lineage can be claimed once by one member for its canonical issuer/Store namespace; no member-scoped alias can grant another first claim. Identity/scope must be preverified and persisted immutable."
+    },
+    "receipt": {
+      "table": "billing_verified_receipt",
+      "authoritative_unique_fields": [
+        "provider",
+        "store_namespace",
+        "store_transaction_ref"
+      ],
+      "semantics": "Store transaction/receipt has one authoritative key; multiple lifecycle changes can refer to it. Persist scope guard fields but do not expand physical unique to alternative client-controlled scope."
+    },
+    "provider_lifecycle_event": {
+      "table": "billing_source_event",
+      "authoritative_unique_fields": [
+        "provider",
+        "store_namespace",
+        "provider_event_ref"
+      ],
+      "semantics": "Distinct officially accepted purchase, renewal, refund, revoke, grace, expire events can reference one receipt/transaction; duplicate event ref is replay/idempotent no-op; don't use transaction ID as event uniqueness.",
+      "relation_to_receipt": "Event references verified receipt by canonical receipt key and original lineage; no unverified event can update receipt/entitlement.",
+      "rc_semantics": "RevenueCat event IDs and source versions occupy a separate supplemental provider/source namespace. They cannot be compared to Apple/Google versions to prove precedence or create a second receipt authority."
+    },
+    "entitlement": {
+      "authoritative_unique_fields": [
+        "brand_id",
+        "app_id",
+        "environment",
+        "s_user_id",
+        "entitlement_key"
+      ],
+      "semantics": "Entitlement scoped per approved member/app/env via current Auth and verified provider rights; not a substitute for original purchase lineage uniqueness."
+    }
+  },
+  "static_review_cases": [
+    {
+      "case": "one canonical namespace, same verified transaction ref, same member retry",
+      "receipt": "SAME_RECEIPT_DEDUP",
+      "event": "NO_SECOND_BUSINESS_GRANT"
+    },
+    {
+      "case": "one canonical namespace, same original purchase, different member",
+      "first_claim": "UNIQUE_CONFLICT_DENY",
+      "forbid_member_in_key": true
+    },
+    {
+      "case": "request claims new app or env for existing verified original transaction",
+      "scope": "DENY_BEFORE_INSERT_AND_AT_CAS",
+      "namespace_must_not_be_rederived_from_request": true
+    },
+    {
+      "case": "same Store receipt, two distinct officially verified lifecycle event refs (purchase then refund)",
+      "receipt": "SAME_RECEIPT",
+      "event": "DISTINCT_EVENTS_ALLOWED",
+      "grant": "REFUND_REVOKES_BY_VERIFIED_AUTHORITY"
+    },
+    {
+      "case": "same canonical namespace and provider event ref redelivered",
+      "event": "REPLAY_NO_NEW_EVENT_NO_DUPLICATE_OUTBOX"
+    },
+    {
+      "case": "RevenueCat event with same apparent Store transaction",
+      "receipt": "NO_NEW_OFFICIAL_RECEIPT_BY_RC_ONLY",
+      "ordering": "NO_CROSS_PROVIDER_VERSION_COMPARISON"
+    },
+    {
+      "case": "same-looking opaque transaction ref under different verified issuer/store app domains",
+      "identity": "DISTINCT_ONLY_AFTER_OFFICIAL_NAMESPACE_PROOF_ELSE_DENY"
+    },
+    {
+      "case": "Store Sandbox proof replayed as Production or stage header changes scope",
+      "scope": "DENY_NO_RECLASSIFICATION"
+    }
+  ],
+  "unchanged_gates": {
+    "G04_STORE": "blocked",
+    "G05_BILLING_D1": "blocked",
+    "G06_P05": "blocked",
+    "G07_AUDIT_QUEUE": "blocked",
+    "all_release_gates": "G00-G10_11_OF_11_BLOCKED",
+    "P05_publishable": false,
+    "release_authorization_granted": false
+  },
+  "prohibitions": {
+    "no_main_merge": true,
+    "no_deploy": true,
+    "no_preview_reenable": true,
+    "no_real_store_or_rc": true,
+    "no_real_d1_or_queues": true,
+    "no_secrets": true,
+    "no_paid_services": true,
+    "no_product_sku_policy": true,
+    "no_new_migration": true,
+    "no_hglobal_or_echo": true,
+    "no_release_gate_unlock": true,
+    "original_w1_files_immutable": true,
+    "no_new_r008_or_approval_checklists": true
+  },
+  "remaining_review_dependencies": [
+    "AI-0 and AI-4 must approve exact protected App Registry to Store application identity mapping and domain separation before any writer implementation.",
+    "Official Apple/Google evidence verifier, issuer/account namespace and Store test authority require separate owner approval.",
+    "AI-1 current Auth Session fence, AI-3 outbox/inbox/anti-PITR and D06 final schema remain independent unresolved requirements.",
+    "Physical D1 identity, migration constraints, storage transaction semantics, rollback, SKU policies, Q104/Q119 retention and budget remain unapproved."
+  ]
+}

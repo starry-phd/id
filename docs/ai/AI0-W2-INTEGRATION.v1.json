@@ -1,0 +1,100 @@
+{
+  "schema": "starry.ai0.w2.integration.v1",
+  "base": {
+    "pr": 250,
+    "sha": "7316ee0f014a01649eea87a62b3ad6cdb6b1febd"
+  },
+  "owners": [
+    {
+      "owner": "AI-1",
+      "pr": 253,
+      "head": "f9d86a836d528603e4fca99a0ecfc30f708c2d5f",
+      "files": [
+        {
+          "path": "modules/starry-id-v1/W2-R23-TYPED-AUTH-OUTCOME-ADR.md",
+          "blob": "e6ed7f1f7c669afd49bbe67cc8b333cf924a9b9f"
+        },
+        {
+          "path": "modules/starry-id-v1/src/w2-r23-auth-outcome-adapter.ts",
+          "blob": "e7e9988d5bac7233d6e3afe6efc6e40a9079dab1"
+        },
+        {
+          "path": "modules/starry-id-v1/test/w2-r23-auth-outcome-adapter.test.mjs",
+          "blob": "88abe0e9fef92db794662ea67060c3c0fa721b9f"
+        }
+      ]
+    },
+    {
+      "owner": "AI-2",
+      "pr": 251,
+      "head": "33f719db40d9edfd76dd3fefc06110b9d374816d",
+      "files": [
+        {
+          "path": "packages/rebuild-billing/docs/AI2-W1-D87-RECEIPT-IDENTITY-SCOPE-AMENDMENT.md",
+          "blob": "d52ca39b8a4f9da8e0c6dff8b4af569134fa6d3c"
+        },
+        {
+          "path": "packages/rebuild-billing/docs/AI2-W1-D87-RECEIPT-IDENTITY-SCOPE-AMENDMENT.v1.json",
+          "blob": "baef3290f6212856358afd005ab6ad0c5d27c881"
+        }
+      ]
+    },
+    {
+      "owner": "AI-3",
+      "pr": 254,
+      "head": "f97dfd6422b43eb517552e12c9cdf3015217cfc5",
+      "files": [
+        {
+          "path": "packages/rebuild-ai3/docs/W2-D06-PRIVATE-ENVELOPE-VOCAB-AMENDMENT.md",
+          "blob": "c23d3803821b7bc933004d716fd96ade6a56ebb4"
+        },
+        {
+          "path": "packages/rebuild-ai3/docs/W2-D06-PRIVATE-ENVELOPE-VOCAB-AMENDMENT.v1.json",
+          "blob": "5f4a05a1c320018f64bb89143869a209dc5bc833"
+        },
+        {
+          "path": "packages/rebuild-ai3/test/w2-d06-private-envelope-provenance.test.mjs",
+          "blob": "6e4ea6dbf406ac3d1d33c4a165a712ff4376fdd1"
+        }
+      ]
+    },
+    {
+      "owner": "AI-4",
+      "pr": 252,
+      "head": "a2ce93b9ed3011c52efd69a7849be7a5d73835d5",
+      "files": [
+        {
+          "path": "apps/api/test-support/ai4-w2-local-worker-composition.ts",
+          "blob": "0ac95f75cfac6d5fe71fc46606ac96aad5f1fb61"
+        },
+        {
+          "path": "apps/api/test/ai4-w2-local-worker-composition.test.mjs",
+          "blob": "e46e16330efd9d3ab2cb3c9585cd8d3090c81eb1"
+        }
+      ]
+    }
+  ],
+  "operational_authorization": {
+    "source": "owner direct ChatGPT instruction 2026-10-29",
+    "github_record": "https://github.com/starry-phd/id/issues/1#issuecomment-6489238005",
+    "ai0_may_merge_after_checks": true,
+    "ai0_may_deploy_after_checks": true,
+    "may_open_replacement_chats_with_github_handoff": true,
+    "new_paid_services_authorized": false,
+    "new_real_resources_authorized": false
+  },
+  "review": {
+    "billing_key_discrepancy": "AMENDMENT_RECONCILED_DESIGN_ONLY",
+    "auth_outcome": "REQUEST_LOCAL_TYPED_DENIED_UNAVAILABLE_VERIFIED_LOCAL_ONLY",
+    "private_envelope": "12_PAIR_NO_ALIAS_REVIEW_NOT_FINAL_SCHEMA",
+    "local_worker_composition": "TEST_SUPPORT_ONLY_NOT_REGISTERED",
+    "public_worker_registered": false,
+    "live_gates_verified": false
+  },
+  "release": {
+    "gates_blocked": 11,
+    "evidence_fabricated": false,
+    "p05_publishable": false,
+    "release_granted": false
+  }
+}
