@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import {URL} from 'node:url';
+import {webcrypto as crypto} from 'node:crypto';
 import {signServerSession} from '../../../modules/starry-id-v1/src/session-crypto.ts';
 import {createIsolatedSelfProfileHandler, SELF_PROFILE_PATH, SELF_PROFILE_LIVE_ENABLED}
   from '../../../packages/integration/src/ai0-w1-isolated-self-profile.ts';
