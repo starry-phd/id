@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "jsx": "react-jsx",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "types": [
+      "node"
+    ],
+    "allowImportingTsExtensions": true
+  },
+  "include": [
+    "apps/api/src/**/*.ts",
+    "apps/mobile/**/*.ts",
+    "apps/mobile/**/*.tsx",
+    "packages/sdk/src/**/*.ts",
+    "apps/api/test-support/**/*.ts",
+    "packages/sdk/test-support/**/*.ts",
+    "packages/integration/src/**/*.ts"
+  ]
+}

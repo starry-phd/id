@@ -1,0 +1,205 @@
+{
+  "schema_version": "0.1.0",
+  "date": "2026-10-26",
+  "system": "Starry (Starry ID + approved app scope only; H-Global excluded)",
+  "purpose": "manual_release_preflight_not_a_deployment_permission",
+  "baseline": {
+    "ref": "AI-0 draft PR #46",
+    "sha": "bacc0166bf4e1070a4696c7bc109197b4c642f9f",
+    "url": "https://github.com/starry-phd/id/pull/46",
+    "offline_ci": {
+      "run_url": "https://github.com/starry-phd/id/actions/runs/40295977050",
+      "node_passed": 209,
+      "sqlite_memory_passed": 69,
+      "workflow_success": 12,
+      "level": "offline_synthetic_only"
+    }
+  },
+  "requirements": {
+    "new_registry": "seed_only",
+    "original_heading_index_count": 128,
+    "source_groups": {
+      "original": 108,
+      "admin_preparations": 10,
+      "new_architecture": 10
+    },
+    "reconciliation_complete": false
+  },
+  "eas_cost_policy": {
+    "source": "https://docs.google.com/document/d/1dsMcGBT5PO43aQVMhZOBO5uyNTE8QHYSnBmC4y2rMSI/edit",
+    "free_default": true,
+    "ci_on_every_pr": true,
+    "automatic_native_build_on_every_pr": false,
+    "requires_owner_approval_for_paid": true,
+    "native_testing_still_required": true
+  },
+  "gates": [
+    {
+      "id": "G00-SSOT",
+      "owner": "AI-0",
+      "title": "核准 MVP 範圍和需求溯源",
+      "status": "blocked",
+      "required_evidence": [
+        "逐項核准的 Starry MVP 規格/狀態/業主決議及 source ID 映射",
+        "舊清單 108 + P10 + N10 的保留、取代與暫緩均有結論"
+      ],
+      "evidence": [],
+      "verified_by": null,
+      "approval_record_url": null,
+      "notes": "第四輪同 checkout 模擬通過不等於真實上線驗收；保留待查證狀態。"
+    },
+    {
+      "id": "G01-ISOLATION",
+      "owner": "AI-0",
+      "title": "雙品牌資源及帳號隔離",
+      "status": "blocked",
+      "required_evidence": [
+        "Starry 與 H-Global 的獨立 Cloudflare/Auth/會員 D1/Secrets/付款金流映射",
+        "跨品牌無預設帳號合併或資料同步的動態否定測試"
+      ],
+      "evidence": [],
+      "verified_by": null,
+      "approval_record_url": null,
+      "notes": "第四輪同 checkout 模擬通過不等於真實上線驗收；保留待查證狀態。"
+    },
+    {
+      "id": "G02-OIDC",
+      "owner": "AI-1",
+      "title": "Apple/Google 真實登入與憑證",
+      "status": "blocked",
+      "required_evidence": [
+        "官方 JWKS 安全取得/金鑰輪換、OIDC callback、PKCE/state/nonce 驗證",
+        "真實 Sandbox 測試或經核准的 staging 受控證據"
+      ],
+      "evidence": [],
+      "verified_by": null,
+      "approval_record_url": null,
+      "notes": "第四輪同 checkout 模擬通過不等於真實上線驗收；保留待查證狀態。"
+    },
+    {
+      "id": "G03-SESSION-D1",
+      "owner": "AI-1",
+      "title": "Session/會員 D1 持久化與撤權",
+      "status": "blocked",
+      "required_evidence": [
+        "實際 D1 session revoke/auth_version/profile CAS，以及安全遷移、回滾",
+        "高權限身分與負向授權、跨 App/brand、撤權時效測試"
+      ],
+      "evidence": [],
+      "verified_by": null,
+      "approval_record_url": null,
+      "notes": "第四輪同 checkout 模擬通過不等於真實上線驗收；保留待查證狀態。"
+    },
+    {
+      "id": "G04-STORE",
+      "owner": "AI-2",
+      "title": "Apple/Google 商店權威驗證",
+      "status": "blocked",
+      "required_evidence": [
+        "Apple 官方 x5c PKI 信任鏈/核銷及 Google Play API/RTDN 驗簽/查詢",
+        "真實 sandbox 收據、退款、換綁、重播、原始交易所有權驗收"
+      ],
+      "evidence": [],
+      "verified_by": null,
+      "approval_record_url": null,
+      "notes": "第四輪同 checkout 模擬通過不等於真實上線驗收；保留待查證狀態。"
+    },
+    {
+      "id": "G05-BILLING-D1",
+      "owner": "AI-2",
+      "title": "Billing D1 原子交易及權益",
+      "status": "blocked",
+      "required_evidence": [
+        "真 D1 原子性、併發 first claim/entitlement CAS/outbox/read-after-commit",
+        "退款/延遲事件/重播安全與業主已核准商品/權益規則"
+      ],
+      "evidence": [],
+      "verified_by": null,
+      "approval_record_url": null,
+      "notes": "第四輪同 checkout 模擬通過不等於真實上線驗收；保留待查證狀態。"
+    },
+    {
+      "id": "G06-P05",
+      "owner": "AI-0",
+      "title": "單一正式 P05 事件契約",
+      "status": "blocked",
+      "required_evidence": [
+        "業主核准的 P05 正式版本、權威來源、13 欄/其他事件適用範圍",
+        "AI-2 committed outbox→AI-3 validator/inbox 的跨服務負向與版本兼容測試"
+      ],
+      "evidence": [],
+      "verified_by": null,
+      "approval_record_url": null,
+      "notes": "第四輪同 checkout 模擬通過不等於真實上線驗收；保留待查證狀態。"
+    },
+    {
+      "id": "G07-AUDIT-QUEUE",
+      "owner": "AI-3",
+      "title": "稽核 D1、Queues 與 DLQ 回復",
+      "status": "blocked",
+      "required_evidence": [
+        "真 Cloudflare Queue/D1/DLQ retry、ACK-after-commit、持久隔離、災難恢復",
+        "多 Worker 原子性、失敗重送、私隱遮罩/保存/人工重播核准"
+      ],
+      "evidence": [],
+      "verified_by": null,
+      "approval_record_url": null,
+      "notes": "第四輪同 checkout 模擬通過不等於真實上線驗收；保留待查證狀態。"
+    },
+    {
+      "id": "G08-WORKER-SDK",
+      "owner": "AI-4",
+      "title": "正式 Worker/SDK/Expo 路由",
+      "status": "blocked",
+      "required_evidence": [
+        "安全 API／Client SDK 的完整授權與真實 staging 回呼測試",
+        "保護路由只有完成全部前置 Gate 才啟用、部署回滾可驗證"
+      ],
+      "evidence": [],
+      "verified_by": null,
+      "approval_record_url": null,
+      "notes": "第四輪同 checkout 模擬通過不等於真實上線驗收；保留待查證狀態。"
+    },
+    {
+      "id": "G09-DEVICES",
+      "owner": "AI-4",
+      "title": "iOS/Android/Web 原生商店驗收",
+      "status": "blocked",
+      "required_evidence": [
+        "iOS TestFlight、Android Play Internal、Web E2E 與真實登入/內購/推播驗證",
+        "Expo/EAS Build、Update、Workflows 額度、版本/runtime、實際費用追溯"
+      ],
+      "evidence": [],
+      "verified_by": null,
+      "approval_record_url": null,
+      "notes": "第四輪同 checkout 模擬通過不等於真實上線驗收；保留待查證狀態。"
+    },
+    {
+      "id": "G10-OPS",
+      "owner": "AI-0",
+      "title": "營運、資料復原及稽核管理",
+      "status": "blocked",
+      "required_evidence": [
+        "成本上限、權限/Secrets、監控、稽核、隱私/刪除與申訴驗收",
+        "備份/復原演練、事故應變、上線與回滾手冊"
+      ],
+      "evidence": [],
+      "verified_by": null,
+      "approval_record_url": null,
+      "notes": "第四輪同 checkout 模擬通過不等於真實上線驗收；保留待查證狀態。"
+    }
+  ],
+  "release_authorization": {
+    "granted": false,
+    "owner_approval_record_url": null,
+    "verified_approver": null
+  },
+  "deployment_automation": {
+    "enabled": false,
+    "can_auto_deploy": false
+  },
+  "limitations": [
+    "本檔的證據欄位只能用來預檢，不驗證 GitHub 連結真偽或支付憑證；最終業主身分/批准必須從獨立授權來源檢查。",
+    "CI 綠燈表示此 Gate 資料格式有效且部署維持封鎖，不代表 App 可發布。"
+  ]
+}

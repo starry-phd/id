@@ -1,0 +1,5107 @@
+{
+  "record": "AI4_MAIN_PROMOTION_RECURSIVE_SHA_PROVENANCE_NOT_SOURCE_CODE_AUDIT",
+  "date": "2026-10-29",
+  "main": {
+    "commit": "8be31efb3dfba66755f297b315593e33cdacfe39",
+    "git_tree_sha": "148dae3aafd548a8690ebf46b7fc6ec557baf7b6",
+    "blobs": 18,
+    "recursive_truncated": false
+  },
+  "w2": {
+    "pr": 255,
+    "commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79",
+    "git_tree_sha": "6f0550d0201b6e9871756a7ca47ec64476745ce4",
+    "blobs": 846,
+    "recursive_truncated": false
+  },
+  "exact_diff": {
+    "added": 828,
+    "modified": 0,
+    "deleted": 0,
+    "unchanged_original_blobs": 18,
+    "mode_of_all_added": "100644"
+  },
+  "workflow_review": {
+    "added_workflows": 24,
+    "promoted_from_24": 0,
+    "existing_ci_and_production_workflows_modified_to_block_deploy": true
+  },
+  "curated": {
+    "source_blobs_selected": [
+      "eslint.config.mjs",
+      "package-lock.json",
+      "package.json",
+      "tsconfig.json",
+      "apps/api/openapi.yaml",
+      "apps/api/package.json",
+      "apps/api/src/index.ts",
+      "apps/api/test/health.test.mjs",
+      "apps/api/test/openapi-parity.test.mjs",
+      "apps/api/wrangler.toml",
+      "apps/mobile/app.json",
+      "apps/mobile/app/_layout.tsx",
+      "apps/mobile/app/about.tsx",
+      "apps/mobile/app/index.tsx",
+      "apps/mobile/expo-env.d.ts",
+      "apps/mobile/package.json",
+      "apps/mobile/tsconfig.json",
+      "packages/sdk/package.json",
+      "packages/sdk/src/index.ts",
+      "packages/sdk/test/health.test.mjs",
+      "docs/release-readiness/check-release-readiness.mjs",
+      "docs/release-readiness/release-readiness.v0.json"
+    ],
+    "new_or_changed_own_paths": [
+      "apps/mobile/test/promotion-dev-harness.test.mjs",
+      "scripts/promotion/verify-curated-release.mjs",
+      "scripts/promotion/verify-curated-release.test.mjs",
+      "docs/operations/AI4-MAIN-PROMOTION-CURATED-HEALTH-RELEASE.md",
+      "docs/operations/AI4-MAIN-PROMOTION-RECURSIVE-TREE-DIFF.v1.json"
+    ],
+    "unpromoted_w2_paths": 806
+  },
+  "main_unmodified_original_blobs": [
+    {
+      "path": ".github/agents/ai-0-coordinator.agent.md",
+      "sha": "f59581842b174a1551c375fcdd57d0fedaf6c599"
+    },
+    {
+      "path": ".github/agents/ai-1-auth-member.agent.md",
+      "sha": "89722292b90dbf8758c2acc5ee474de1e5671131"
+    },
+    {
+      "path": ".github/agents/ai-2-billing-iap.agent.md",
+      "sha": "2ed49325f3d70315083634ccb7bb9488e921ec7f"
+    },
+    {
+      "path": ".github/agents/ai-3-battery-trust.agent.md",
+      "sha": "b32a3bf906263c41b6adadf9bdc107723a01881b"
+    },
+    {
+      "path": ".github/agents/ai-4-expo-workers.agent.md",
+      "sha": "3f33ea8a97ff40e51bd7e82ad26100d34c2a0a6b"
+    },
+    {
+      "path": ".github/CODEOWNERS",
+      "sha": "7292b3ff1863ca050ff21ba84e696e7024aa3517"
+    },
+    {
+      "path": ".github/dependabot.yml",
+      "sha": "ebfe2e7bcaff6d55e09fb6b2bd6ab4b1e41f7ecd"
+    },
+    {
+      "path": ".github/pull_request_template.md",
+      "sha": "8349ab1f7f802b9261ace4a20ada64f9ab3d3cea"
+    },
+    {
+      "path": ".github/workflows/starry-ci.yml",
+      "sha": "d52c5f5ef8a6bff4b84fb5a3631e7e99f7dd8f4e"
+    },
+    {
+      "path": ".github/workflows/starry-production.yml",
+      "sha": "f555ea7257e383458bb9b2e0bb1cd4abcf962d62"
+    },
+    {
+      "path": ".gitignore",
+      "sha": "63f28238e45bca4621be6136117f5ec5d9b7ddf5"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha": "6fdbd6b6632de4676a8df4c7c73bf427a4416465"
+    },
+    {
+      "path": "docs/ai/HANDOFF-PROTOCOL.md",
+      "sha": "1bc1443c395ac17df65815abf1e624cb6d582f94"
+    },
+    {
+      "path": "docs/ai/OFFICIAL-DEVELOPMENT-KICKOFF-2026-10-26.md",
+      "sha": "627ad37cc4f83dac850d3ae914f7690382972f16"
+    },
+    {
+      "path": "docs/contracts/FUTURE-HGLOBAL-MEMBER-API.md",
+      "sha": "07aa77c9ed4f81ee69268b3936774a2858cb7408"
+    },
+    {
+      "path": "docs/contracts/FUTURE-STARRY-ADMIN-API.md",
+      "sha": "3b859441ce778cabb3e1000c0096a604f4ded81e"
+    },
+    {
+      "path": "docs/operations/GITHUB-TEAM-COPILOT-READINESS.md",
+      "sha": "f647b3382556f0c134e116ecf6d953efd88d6c6d"
+    },
+    {
+      "path": "scripts/ci/validate_repository.py",
+      "sha": "a683574aa439887543d82c81d1230d13f7b7d35a"
+    }
+  ],
+  "all_828_added_source_blobs": [
+    {
+      "path": ".github/workflows/ai0-api-handoff.yml",
+      "sha": "9319f85957faf2e4f874df4b6f3f807a0612dc20",
+      "bytes": 806,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/ai0-current-offline-gate.yml",
+      "sha": "ba43a9b1424e621b74d0d7a05e555d61d3be1802",
+      "bytes": 3222,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/ai0-p05-candidate.yml",
+      "sha": "b405d644f20ec469ac7dbe1831beff98e6bbe392",
+      "bytes": 734,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/ai0-r8-source-trace.yml",
+      "sha": "a84e84fac3e6a90a37225f5dddb9766dcbcc2c5a",
+      "bytes": 1216,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/ai0-rebuild-composition.yml",
+      "sha": "9ceacd0ecbd5453681df77e1fa28b4c3bfa108aa",
+      "bytes": 1619,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/ai0-rebuild-round2-union.yml",
+      "sha": "a746bc9c1078d4802c668934572b1d2db400fad2",
+      "bytes": 1829,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/ai0-rebuild-round3-union.yml",
+      "sha": "b0d42696861246e2c6d3e125ae91c92b52ffb23f",
+      "bytes": 1911,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/ai0-release-readiness.yml",
+      "sha": "0c58cc361b6b993d46ab3363aa1ef9f53fb6bf5c",
+      "bytes": 869,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/ai0-round4-union.yml",
+      "sha": "8d51eb4f0adf32f35360869fb4772233018277ac",
+      "bytes": 2470,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/ai0-round5-union.yml",
+      "sha": "3e53ab1b27f116a578dda5e522aada58befe3aec",
+      "bytes": 2967,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/ai0-round6-four-owner.yml",
+      "sha": "91775b125446b181bdcc79f8a2efe69e08a882d0",
+      "bytes": 2702,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/ai0-round6-union.yml",
+      "sha": "6b633ea80e576eeb5942bc4e34323d4ad138632f",
+      "bytes": 2466,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/ai0-round7-four-owner.yml",
+      "sha": "5ca29bddd9b6050a18eee7a6586cc05f97919791",
+      "bytes": 2952,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/ai0-source-inventory.yml",
+      "sha": "b49d7792a7af22da6769b9a21f425682b3091714",
+      "bytes": 717,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/ai1-rebuild-id.yml",
+      "sha": "47128279a8fd8c4f413e0d0369d5506e5f5768dc",
+      "bytes": 972,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/ai4-rebuild-foundation.yml",
+      "sha": "756c280b6c7d899537cec13eaf01c81586befcad",
+      "bytes": 1088,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/ai4-rebuild-round2.yml",
+      "sha": "e04d1deaee4fc60fb9b1ec5962a359ab47625906",
+      "bytes": 1946,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/ai4-rebuild-round3.yml",
+      "sha": "4d4da436daebc9f86dfff230db7eeb8ef8183665",
+      "bytes": 1865,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/ai4-rebuild-round4.yml",
+      "sha": "cf19e8dbd9fc3802e69a4d00c46079d19983c2d0",
+      "bytes": 1909,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/ai4-rebuild-round5.yml",
+      "sha": "7ca64d33a169f57e80f5d81d54e3293d5a043ef6",
+      "bytes": 1932,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/ai4-rebuild-round6.yml",
+      "sha": "12395bc110586c58b4430fa6601c73f97ac2675c",
+      "bytes": 2087,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/rebuild-ai3.yml",
+      "sha": "804a5ba509138827d5056ffe8245fefd30f782c7",
+      "bytes": 2604,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/rebuild-billing.yml",
+      "sha": "672173c85c58ccff242c849cc1591254a65970af",
+      "bytes": 1150,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": ".github/workflows/rebuild-requirements.yml",
+      "sha": "f3897338352d01fb014c8294668526eddf084ea8",
+      "bytes": 602,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/contracts/account-deleted-relay.v0.DRAFT.json",
+      "sha": "a8f18133b5712dd1c5298d14ad0c7976e6e3eaf1",
+      "bytes": 1660,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/contracts/deletion-delivery.v0.DRAFT.json",
+      "sha": "7fa18fc8f67a80823f103b50f41439797d8f7d43",
+      "bytes": 1380,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/contracts/round6-release-guard.json",
+      "sha": "543a968da2f779db92a555024896b46a55fa1dda",
+      "bytes": 1390,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/contracts/signed-task-proof.v1.DRAFT.json",
+      "sha": "cfdb33490262ff45e0bdfeb94d773d1f11e113f4",
+      "bytes": 1030,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/contracts/staged-rollout.v0.DRAFT.json",
+      "sha": "71269539394d0e5d18c9e766781e26dc6503c30b",
+      "bytes": 1184,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/contracts/task-commit-outbox.v0.DRAFT.sql",
+      "sha": "7e74efbccb74039351edee9ce9749788d0ed23a2",
+      "bytes": 2353,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/contracts/task-delivery.v0.DRAFT.json",
+      "sha": "eea4f46592b80b9311f76e331e0d3301d42b607f",
+      "bytes": 994,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/contracts/task-dual-signed-head.v1.DRAFT.json",
+      "sha": "5637fd37f87e1a87cc28576b44223f3354f62eae",
+      "bytes": 1198,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/contracts/task-proof.v0.DRAFT.json",
+      "sha": "71fb2d1c2cf352310c8234b951e4b758f61847dc",
+      "bytes": 1660,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/contracts/task-recovery.v0.DRAFT.json",
+      "sha": "db6403a8a0aec2714e3be2b0f3c20d25ed3b4ab6",
+      "bytes": 1769,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/contracts/task-settlement.v0.DRAFT.json",
+      "sha": "57fb9286c354946fa35d0b22ef8de07d15daf5f5",
+      "bytes": 1445,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/openapi.member.DRAFT.yaml",
+      "sha": "24616d90a8b5f56f2837c30dee5551b2902e0b77",
+      "bytes": 1486,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/openapi.yaml",
+      "sha": "2d7d42d8ed9529db5b4e92f895bd83a71702da77",
+      "bytes": 1292,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "apps/api/package.json",
+      "sha": "54f7b12d3151a8acbc616672904299fd8e5a1735",
+      "bytes": 245,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "apps/api/src/index.ts",
+      "sha": "a9addff8a16c351ee8cbf3900c8aee52e7fb012b",
+      "bytes": 1156,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "apps/api/src/member-contract.ts",
+      "sha": "952a4efecc08308290fdf235f953cf3c9d44f73c",
+      "bytes": 2664,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/r23-cloudflare-preview-preflight.ts",
+      "sha": "0c29fd68c457c428cb7466d506d722f516962f41",
+      "bytes": 7186,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/r24-offline-staging-auth-http-smoke.ts",
+      "sha": "a790be14b81af76edb2464d246f571c26664e776",
+      "bytes": 4481,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/round12-signed-task-proof.ts",
+      "sha": "b4db9d0ee39ca82635deeb9f7158354be8b8e7db",
+      "bytes": 7370,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/round13-dual-signed-task-head.ts",
+      "sha": "670ed9edd14c66b0211100b54ed9798c59ad8cfd",
+      "bytes": 7487,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/round14-task-transactional-outbox.ts",
+      "sha": "97d1742b43a025f4aed163afc7087b8175966aa1",
+      "bytes": 5785,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/round15-deletion-event-relay.ts",
+      "sha": "fd7e8190d588319c5a970ad3d94f3a7c1c3183d8",
+      "bytes": 7083,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/round16-single-publisher-deletion-sync.ts",
+      "sha": "082b52a2a54bc4b14f020df7d0534a0a10ffc75e",
+      "bytes": 11402,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/round17-offline-deletion-fanout-review.ts",
+      "sha": "9748013a9825097f3e8603c7780e0ab15a992a80",
+      "bytes": 7623,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/round18-offline-outbox-saga-transport.ts",
+      "sha": "5a85a59fe8408f65fa4bc581d49392c5e5efce5e",
+      "bytes": 13486,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/round19-offline-four-domain-wiring.ts",
+      "sha": "cda876d9c277095e379cafe66c96a3c3f06e87b8",
+      "bytes": 8955,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/round20-private-r19-owner-interop.ts",
+      "sha": "46061d88de73ef4d7df13f89ac1f0240d11494fd",
+      "bytes": 11803,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/round21-candidate-consumer-ui-state-resolver.ts",
+      "sha": "8758c34977955cd89cf41d3b4b04d82d23f1401e",
+      "bytes": 14787,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/sbase-20261028-app-manifest-factory.ts",
+      "sha": "7bfbddd2ac824558e169e4d6f3ab6e0656e56b57",
+      "bytes": 11482,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/staged-policy.ts",
+      "sha": "52f1266c3e7a4246c31294b4ccb6aea7e94c3394",
+      "bytes": 4733,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/task-atomic-settlement.ts",
+      "sha": "a0e24299dafc0eb6e0f03206d78880a37ee2c2f1",
+      "bytes": 8588,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/task-commit-ack.ts",
+      "sha": "2f04e280de0918519d9d51e5ade45dde1d93e4ee",
+      "bytes": 8293,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/task-evidence.ts",
+      "sha": "b34fc996e777559f7f6972597b7f9f644b425fb4",
+      "bytes": 8768,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/task-recovery-integrity.ts",
+      "sha": "4fd48bd5967a314e80e6c7c2051c196cc4d8bea9",
+      "bytes": 8133,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/wave1-r002-protected-route-proposal.ts",
+      "sha": "3855b78c6ee855a4cab004277bb0cd2a47536efd",
+      "bytes": 6755,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/wave1-r003-protected-interop.ts",
+      "sha": "b37d80b815ce0fb7174b4d48662e0bd5306b31be",
+      "bytes": 8972,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/wave1-r004-admob-offline-gate.ts",
+      "sha": "e5902adb43453fdbadca71b0832f11b6a780555f",
+      "bytes": 4609,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/wave1-r005-admob-native-consent-gate.ts",
+      "sha": "f811c65b2c0da35f937c34201a3636db6927777e",
+      "bytes": 7828,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/wave1-r006-p05-vnext-error-only.ts",
+      "sha": "fb0df10d3018ef83381c1c445b3137abf6eda3ea",
+      "bytes": 8427,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/wave1-r007-worker-protected-denial.ts",
+      "sha": "94ff3e1cc6aedc58aaf40f4924cd26e53ab0d98a",
+      "bytes": 1718,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/wave1-r008-preview-isolation-preflight.ts",
+      "sha": "ee3761bd095319e050f19e0fb2539fa08c4bc122",
+      "bytes": 4875,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/src/wave1-worker-openapi-parity.ts",
+      "sha": "640dcc829fe8d0c12c023b4397725f246f09e955",
+      "bytes": 5046,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test-support/ai4-w2-local-worker-composition.ts",
+      "sha": "0ac95f75cfac6d5fe71fc46606ac96aad5f1fb61",
+      "bytes": 4308,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test-support/round4-member-worker.ts",
+      "sha": "b96d643ba5a403ffb827f3e7f6c857737a7deb09",
+      "bytes": 1818,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test-support/round4-queue-runner.ts",
+      "sha": "8462e1028d0f4e8b1bbb9f5ed1cfbaa8473b4115",
+      "bytes": 2497,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test-support/round5-vertical.ts",
+      "sha": "72808df7d0d504f9d4a3db82a43fff3d84e675e6",
+      "bytes": 6362,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test-support/round6-governance.mjs",
+      "sha": "6cd0fa144a36261d1d5e45c0b830d4e311a99b00",
+      "bytes": 3054,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test-support/secure-contract-worker.ts",
+      "sha": "b0cfe1b403155bbf06c8e9575a869e0ce13cd9d9",
+      "bytes": 3060,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test-support/session-hmac.ts",
+      "sha": "71f2485a89f001b7302705f5e025725ea5dab346",
+      "bytes": 2803,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/ai0-post-r008-four-owner-evidence-integrity.test.mjs",
+      "sha": "2bfcebb698b1da9f540e21038ce5b89c437dba7d",
+      "bytes": 4158,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/ai0-w1-four-owner-integration.test.mjs",
+      "sha": "83df77a1a71011e648c2f2d3fcb08036e4096788",
+      "bytes": 3784,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/ai0-w1-isolated-self-profile.test.mjs",
+      "sha": "9e45cdd636844443df31a99704c07697ce5118e2",
+      "bytes": 7770,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/ai0-w1-review-queue.test.mjs",
+      "sha": "434d2de3c6ce24b06228bcd03f32f2631e0cb19c",
+      "bytes": 3829,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/ai0-w1-self-profile-roundtrip.test.mjs",
+      "sha": "df8b03e0e0e5f247ba7daca09ec8797a18637200",
+      "bytes": 8835,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/ai0-w2-four-owner-integration.test.mjs",
+      "sha": "20d3ea1e89cab4fbada92c7635290b5c0dedf89f",
+      "bytes": 3940,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/ai4-g08-g09-evidence-gap-integrity.test.mjs",
+      "sha": "f6189d1420a45bb8528507376a1a0674843a4720",
+      "bytes": 7281,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/ai4-w2-local-worker-composition.test.mjs",
+      "sha": "e46e16330efd9d3ab2cb3c9585cd8d3090c81eb1",
+      "bytes": 12525,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/health.test.mjs",
+      "sha": "ba4d4390a9c1b4179ed1bff5a306e27e7de81321",
+      "bytes": 1594,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "apps/api/test/member-contract.test.mjs",
+      "sha": "4b75d05bbd4abf1da727d4ff594841e111c7214d",
+      "bytes": 7911,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/openapi-parity.test.mjs",
+      "sha": "7a166898d25c47741d5d551e34ef49376eeb81e7",
+      "bytes": 982,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "apps/api/test/r23-cloudflare-preview-preflight.test.mjs",
+      "sha": "21a1d7fbefdf25a08fb4fe61861d69fa158c6460",
+      "bytes": 9295,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/r24-offline-staging-auth-http-smoke.test.mjs",
+      "sha": "9cffb2a087f3058280c416d2b6e1795fbe0cb99b",
+      "bytes": 9858,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/round10-task-recovery-integrity.test.mjs",
+      "sha": "991955b21343649d1a0b3527e34c653382a13637",
+      "bytes": 6987,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/round11-task-commit-ack.test.mjs",
+      "sha": "2790e9cce81c9acbd62005a680953ef2cdbf7d71",
+      "bytes": 7009,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/round12-signed-task-proof.test.mjs",
+      "sha": "3c1b0aebe64ad3a56277de5ec30b9240e190cdcd",
+      "bytes": 7697,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/round13-dual-signed-task-head.test.mjs",
+      "sha": "cf050f4fc07bc8112ff2e10f3deb8a3d821cac9d",
+      "bytes": 7995,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/round14-task-durable-outbox.test.mjs",
+      "sha": "0aaa641a8c0723ea84e2da0de64f443fa33e974c",
+      "bytes": 10369,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/round15-deletion-event-relay.test.mjs",
+      "sha": "e5f5f3a8b91ecdb62d8398976e71177f16f37ac6",
+      "bytes": 10539,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/round16-single-publisher-deletion-sync.test.mjs",
+      "sha": "b53e6b7621ce3038d4853e2f967f85b45b3c8119",
+      "bytes": 11784,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/round17-offline-deletion-fanout-review.test.mjs",
+      "sha": "46333c7089083660622b36d447c6f03a8adfd757",
+      "bytes": 7999,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/round18-offline-outbox-saga-transport.test.mjs",
+      "sha": "4dfaed024633b647e93afab2c4358a4688741247",
+      "bytes": 13442,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/round19-offline-four-domain-wiring.test.mjs",
+      "sha": "9b1b8a4f408cdef3c9b8a543934d3965e469c0b6",
+      "bytes": 14875,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/round19-real-owner-adapters.test.mjs",
+      "sha": "4d524a40791b50b875d82c5f57a2183964486f41",
+      "bytes": 7178,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/round20-private-r19-owner-interop.test.mjs",
+      "sha": "f9f5bc47cb42cebd75e5fb42c8ae6e660cabbfd4",
+      "bytes": 16588,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/round21-candidate-consumer-ui-state-resolver.test.mjs",
+      "sha": "d61492bdca58640ddbb8e1bf9779e5b6e6704174",
+      "bytes": 17738,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/round4-member-worker.test.mjs",
+      "sha": "4a783c709b938b8b0561d3c3173715d07b50cc59",
+      "bytes": 4932,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/round4-queue-runner.test.mjs",
+      "sha": "5367ffc2539fa745ec22645a61efd4483d65af7f",
+      "bytes": 4947,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/round5-vertical.test.mjs",
+      "sha": "7f36ffb35d41120de18ebc1608e8287c1fae9071",
+      "bytes": 13728,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/round6-governance.test.mjs",
+      "sha": "1b09c6cc2697c4769d1f97835d78cd250765bae9",
+      "bytes": 2447,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/round8-task-evidence.test.mjs",
+      "sha": "1f3f90acdf4ea0ac2774f4050a8085d780d30640",
+      "bytes": 8858,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/round9-atomic-task-settlement.test.mjs",
+      "sha": "1d924659671bfbcea8a29633ef7ceb2942a69cd9",
+      "bytes": 8051,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/sbase-20261028-app-manifest-factory.test.mjs",
+      "sha": "859a2369bac45c52e34686bc6fac1e7f3cad96f1",
+      "bytes": 9131,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/secure-contract.test.mjs",
+      "sha": "3fde3356d57bf56a33db5fde30e930e12b912f2a",
+      "bytes": 10881,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/staged-policy.test.mjs",
+      "sha": "605152cb2e0ace5965d1f605db72634a92becc66",
+      "bytes": 3695,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/wave1-r002-protected-route-proposal.test.mjs",
+      "sha": "5a90fdc88691bdc5479a7965db0db761ea3f0f2a",
+      "bytes": 8029,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/wave1-r003-protected-interop.test.mjs",
+      "sha": "77e5c5c27e6acb8e35929d6db9eec728c8f5b870",
+      "bytes": 7740,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/wave1-r004-admob-offline-gate.test.mjs",
+      "sha": "b68d1ae7a510b8b76c59297a0ea1b98b86e02e56",
+      "bytes": 5573,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/wave1-r005-admob-native-consent-gate.test.mjs",
+      "sha": "3625755247173d69d8b5a5e32f5c63643dabbe33",
+      "bytes": 8030,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/wave1-r006-p05-vnext-error-only.test.mjs",
+      "sha": "eb2fa38fbdb11ad61387da74ef215c6792c88043",
+      "bytes": 11481,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/wave1-r007-worker-protected-denial.test.mjs",
+      "sha": "6ef18c6f1dca742dea7d0aca9ed42c384d6f7c5a",
+      "bytes": 8643,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/wave1-r008-preview-isolation-preflight.test.mjs",
+      "sha": "1aadab2f1cdd427391c74f36f6845a1d14fd7011",
+      "bytes": 8980,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/test/wave1-worker-openapi-parity.test.mjs",
+      "sha": "fbecbc8835f6f0f6adb57d3ae176247d9b435498",
+      "bytes": 5743,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/api/wrangler.toml",
+      "sha": "55f53e1e63349b2ab275d92479d10258af47b6b4",
+      "bytes": 391,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "apps/mobile/app.json",
+      "sha": "4bf6d502a95038d088f1d2e11f6d050397a1ed41",
+      "bytes": 528,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "apps/mobile/app/_layout.tsx",
+      "sha": "607453975b1aa45bd5e56d1ffca56f920e17b9c9",
+      "bytes": 148,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "apps/mobile/app/about.tsx",
+      "sha": "26e6a4dbf6d8f493bb5e1e4649c402984cfb2e92",
+      "bytes": 212,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "apps/mobile/app/index.tsx",
+      "sha": "badbe3e806b00d087721b9c2e368f00301e2390a",
+      "bytes": 622,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "apps/mobile/app/member/index.tsx",
+      "sha": "6cef1c297f615f961afb8da3bfac0a1f91614ffa",
+      "bytes": 855,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/mobile/app/member/profile.tsx",
+      "sha": "5112562715aea8264e75254f09e0c9acc38df559",
+      "bytes": 490,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/mobile/app/member/session.tsx",
+      "sha": "5eeefa4338cd935b0611f913321c4b761a14422c",
+      "bytes": 307,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/mobile/app/member/sign-in.tsx",
+      "sha": "e9dd6c1ad4bc27401cb98a5ced8a07bb79794c8d",
+      "bytes": 308,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/mobile/expo-env.d.ts",
+      "sha": "e6394b247e71f08454a02a1ef1f42bbd0d945d35",
+      "bytes": 37,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "apps/mobile/package.json",
+      "sha": "64f0f38f215dc68b9d49ce520a38bc552764f5a2",
+      "bytes": 598,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "apps/mobile/src/brand-registry.ts",
+      "sha": "d1687d2dc8ddf9b25c2298ad41d76a931797bb02",
+      "bytes": 1828,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/mobile/src/eas-cost-policy.ts",
+      "sha": "134f172fe2c456cc85217345f9db7a3aa95ae857",
+      "bytes": 2770,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/mobile/src/member-service.ts",
+      "sha": "6472666e5e5a2be24139932265e3e55e25a57e5e",
+      "bytes": 1038,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/mobile/src/onboarding-preview.ts",
+      "sha": "c91ad902cf33e6399d4a5c0c9897b2633f41572a",
+      "bytes": 2072,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/mobile/test/brand-registry.test.mjs",
+      "sha": "82eac7aee94b1726b5f33f58fc6dd406b185d3fc",
+      "bytes": 1309,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/mobile/test/eas-cost-policy.test.mjs",
+      "sha": "043f1b7d17f644e1f5e3f74dde92ef7f75c5f337",
+      "bytes": 1380,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/mobile/test/member-service.test.mjs",
+      "sha": "4f502c011870fd5f2a507ddeeaf14037aea9528a",
+      "bytes": 543,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/mobile/test/no-standalone-store-app.test.mjs",
+      "sha": "fb3b0d3f23ade6a909f9e00f43531c0459d653fa",
+      "bytes": 1184,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/mobile/test/onboarding-preview.test.mjs",
+      "sha": "66c2ef41b81dbd4fc7ecf20f5c65a7689383fc59",
+      "bytes": 1660,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "apps/mobile/tsconfig.json",
+      "sha": "868d1a146d061202706b8fb55b895c8b9da5aa08",
+      "bytes": 300,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "docs/adr/0001-rebuild-foundation.md",
+      "sha": "189fe3bf555c189193bb3b4d4a4e7e5e65b99f9a",
+      "bytes": 2930,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/adr/0002-starry-iap-strategy.DRAFT.md",
+      "sha": "6cdd303099924c0c686eb952462b65470146ee32",
+      "bytes": 9315,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/adr/ADR-AI4-0002-API-POC-20261026.md",
+      "sha": "ca96280e3d05189ee31ebd3d00f9dca422322464",
+      "bytes": 2066,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/adr/AI0-D00-STARRY-PHASED-ACCEPTANCE-OWNER-DECISION-20261029.md",
+      "sha": "95b54b55c1563492316453578df7ae5ee2c995a6",
+      "bytes": 6753,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/adr/AI0-D01-EXPO58-NATIVE-COMPATIBILITY-RESEARCH-POC-PLAN-20261028-DRAFT.md",
+      "sha": "fc5176621ceebb3870bf7362972401baef595bc5",
+      "bytes": 9609,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/adr/AI0-D02-OWNER-APPROVED-PRIVATE-APP-MONOREPO-20261028.md",
+      "sha": "bdaa8270650eb5e339fb91e31cc73522ce8d48e7",
+      "bytes": 7581,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/adr/AI0-D03-OWNER-APPROVED-REVENUECAT-BILLINGCLIENT-20261028.md",
+      "sha": "362bcc6533971b2dc55ff25f93b3a4c634741a6b",
+      "bytes": 7344,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/adr/AI0-D04-OWNER-APPROVED-ADS-COMPARISON-20261028.md",
+      "sha": "2e3c13302e6eeea0d1c18627fc88781798ba9080",
+      "bytes": 7617,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/adr/AI0-D05-OWNER-APPROVED-OPTIONAL-APP-WEB-ADMIN-SEPARATE-20261028.md",
+      "sha": "722be5c809f812e4c501bbf88a4bbfc4299272a8",
+      "bytes": 7400,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/adr/AI0-D06-OWNER-APPROVED-FREE-FIRST-INDIVIDUAL-SPEND-APPROVAL-20261028.md",
+      "sha": "7e700aea068f13f71947d02dbe0cf8bcd3412b86",
+      "bytes": 8191,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/adr/AI0-D06-P05-LAYERED-EVENT-SECURITY-OWNER-DECISION-20261029.md",
+      "sha": "d32bed5575bfab0169bb173bf22e18ee58705090",
+      "bytes": 5813,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/adr/AI0-D07-OWNER-APPROVED-PER-APP-PAID-ENTITLEMENT-ISOLATION-20261028.md",
+      "sha": "4d285fd01bf16a480f877593b8502ddea9ee9a11",
+      "bytes": 8150,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/adr/AI0-D08-OWNER-APPROVED-STYLESHEET-DESIGN-TOKENS-UI-LIBRARY-20261028.md",
+      "sha": "1253861aec4e3a5f30d16fbb71bebb45df39d22b",
+      "bytes": 8821,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/adr/AI0-D87-STARRY-SINGLE-TRANSACTION-AUTHORITY-OWNER-DECISION-20261029.md",
+      "sha": "92016ff39587f4418a6a8b54f9f0bbfd3e6275a2",
+      "bytes": 4244,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/adr/AI0-OWNER-MERGE-DEPLOY-CHAT-AUTHORIZATION-20261029.md",
+      "sha": "5a55408c227f5a3e1ccc4803ddf8c286ca41d960",
+      "bytes": 1250,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/adr/AI0-R11-CROSS-D1-CONSISTENCY-20261027.md",
+      "sha": "f5f89507344bc23dfba82f5f7c66f30fab0b8cf7",
+      "bytes": 3893,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/adr/AI0-R18-CROSS-D1-DECISION-PREFLIGHT-20261027.md",
+      "sha": "efd6aa4d5539a12f1d14ede290075462c7b7cd56",
+      "bytes": 5474,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-GATE2-UNION-20261026.md",
+      "sha": "4036ca917af93e662e73c925ba0b50e22921e038",
+      "bytes": 2286,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-NEW-CHAT-HANDOFF-2026-10-29-R008.md",
+      "sha": "215b755ded76e28763c863f529bb8505b54d3b69",
+      "bytes": 12381,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-NEW-CHAT-HANDOFF-2026-10-29-R008.v1.json",
+      "sha": "051a66d8de445eb3cac47bbb63d1c8bebf85c6e4",
+      "bytes": 2929,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-POST-R008-FOUR-OWNER-GATE-EVIDENCE-MANIFEST.v1.json",
+      "sha": "52180675b4d9a984887021492298f8f197baf86f",
+      "bytes": 12752,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-POST-R008-FOUR-OWNER-GATE-EVIDENCE-REVIEW.md",
+      "sha": "001a8a09ca43edfddc3391679af438435fcfb38a",
+      "bytes": 9165,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-REBUILD-COMPOSITION-GATE-20261026.md",
+      "sha": "64ab1192976d58792740e3eff2d37f11635db342",
+      "bytes": 2668,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-ROUND10-FOUR-OWNER-OPTIMIZED-GATE-20261027.md",
+      "sha": "b314f9827d51aa5b82efe5d679d95cf9b23af816",
+      "bytes": 4443,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-ROUND11-FOUR-OWNER-OPTIMIZED-GATE-20261027.md",
+      "sha": "c4bfaef26d67f48f19a0216c139ee9eed2f87c90",
+      "bytes": 4764,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-ROUND12-FOUR-OWNER-OPTIMIZED-GATE-20261027.md",
+      "sha": "dc095ad0a6ce3d4d607803e979bc24b691727ea5",
+      "bytes": 4206,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-ROUND13-FOUR-OWNER-OPTIMIZED-GATE-20261027.md",
+      "sha": "e3a623fc2a619a54a31bf1fa325a69473266d11f",
+      "bytes": 4280,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-ROUND14-FOUR-OWNER-OPTIMIZED-GATE-20261027.md",
+      "sha": "ee8457d06f8363facce1170947a127b748bc3f87",
+      "bytes": 5457,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-ROUND15-FOUR-OWNER-OPTIMIZED-GATE-20261027.md",
+      "sha": "9c024d17331d4824713a5ab7c2209b2b014b0918",
+      "bytes": 5030,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-ROUND3-UNION-20261026.md",
+      "sha": "56d42ef6555f3d33e3af4ceffb0766cccb6b42e1",
+      "bytes": 2661,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-ROUND4-UNION-20261026.md",
+      "sha": "af20bb49990b850a266b2bc25ac1c368f669dc76",
+      "bytes": 2069,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-ROUND5-UNION-20261026.md",
+      "sha": "cebf652a80be29971de54b26dc6df40a346c05ec",
+      "bytes": 1945,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-ROUND6-FOUR-OWNER-GATE-20261026.md",
+      "sha": "f68b518456dd66e9ecb87ca80b33321c6304e634",
+      "bytes": 4641,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-ROUND6-UNION-20261026.md",
+      "sha": "47c2b8323c19950c6b1d3065c01d18b518e4854f",
+      "bytes": 3299,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-ROUND7-FOUR-OWNER-GATE-20261027.md",
+      "sha": "6e59cd24132bd8539410a2ac0c9ebe1c9255d2cc",
+      "bytes": 5165,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-ROUND8-FOUR-OWNER-OPTIMIZED-GATE-20261027.md",
+      "sha": "7adcfe490f60c57d765fbc114dda880ca688c49c",
+      "bytes": 3783,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-ROUND9-FOUR-OWNER-OPTIMIZED-GATE-20261027.md",
+      "sha": "4ed44063976657f3f1b766c0e6f750dfe4ffa85e",
+      "bytes": 4071,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-W1-FOUR-OWNER-INTEGRATION-REVIEW.md",
+      "sha": "1d74670707d06d8d8c2ca912dd56e3f564ed855d",
+      "bytes": 4004,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-W1-FOUR-OWNER-INTEGRATION.v1.json",
+      "sha": "3474c7679746ef0dab086b90581d179cf5965943",
+      "bytes": 4777,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-W2-INTEGRATION-REVIEW.md",
+      "sha": "31a78605fefa7e54a9b40cd05e1055a0de06b708",
+      "bytes": 3499,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-W2-INTEGRATION.v1.json",
+      "sha": "e5cc2b3c7baaa08b1b2f2643a08835987c519b5d",
+      "bytes": 3308,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-WAVE1-EXECUTION-HANDOFF-20261028.md",
+      "sha": "7b95e0393116d30b845d445e245f41a8d7b51303",
+      "bytes": 7557,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-WAVE1-FOUR-OWNER-GATE-REVIEW-20261028.md",
+      "sha": "260ce811a6e474ad6ebd3e680453846442c31555",
+      "bytes": 5844,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-WAVE1-ROUND002-FOUR-OWNER-GATE-REVIEW-20261028.md",
+      "sha": "21591a7e4c4c81694ebd31501941e6d55444420f",
+      "bytes": 6085,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-WAVE1-ROUND003-GATE-REVIEW-20261028.md",
+      "sha": "987cba8957433e44db0c1c5623cf1ba11518c90e",
+      "bytes": 4370,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-WAVE1-ROUND004-GATE-REVIEW-20261028.md",
+      "sha": "8c744cbe442ab9d24c5487e54daef674a1bdbe7a",
+      "bytes": 4734,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI0-WAVE1-ROUND005-GATE-REVIEW-20261028.md",
+      "sha": "b2639dff9ad2f6c974dfc940da6826e0ebde4ee1",
+      "bytes": 2691,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-REBUILD-PHASE0-20261026.md",
+      "sha": "b34a17df0146fa6882bbbbbb157081d44eee1219",
+      "bytes": 3417,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-REBUILD-ROUND2-20261026.md",
+      "sha": "a5b77fdab10a78adc1c72d40e7c07ef8ac31bd73",
+      "bytes": 2847,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-REBUILD-ROUND3-20261026.md",
+      "sha": "2efe3daaee4e76ac404e24a5a477eb39402dcbd7",
+      "bytes": 1837,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-REBUILD-ROUND4-GATE-20261026.md",
+      "sha": "5a3ab45ded60e8526f9e79993c6a2d3c2ebb9080",
+      "bytes": 4299,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-REBUILD-ROUND5-20261026.md",
+      "sha": "ccecf5f8298ab34d39ed31f3311d21ea6148f5b0",
+      "bytes": 3816,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-ROUND10-TASK-RECOVERY-INTEGRITY.md",
+      "sha": "7a98bc4bc969f361485cfbccbb0b16d989179339",
+      "bytes": 2779,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-ROUND11-TASK-ACK-HANDOFF.md",
+      "sha": "b9897ecbd2ad5f8cc597bd6067298518dbbdb953",
+      "bytes": 2646,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-ROUND12-SIGNED-TASK-PROOF.md",
+      "sha": "8c4fc6460f50db7a648cc6c1192f68db8af6b8f8",
+      "bytes": 2329,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-ROUND13-DUAL-SIGNED-TASK-HEAD.md",
+      "sha": "7551947843a602b7d615cc4e0be66e58306a29f5",
+      "bytes": 2402,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-ROUND14-TASK-TRANSACTIONAL-OUTBOX.md",
+      "sha": "4e15d5b00e20b3f6c5dbdd9477b12c62cac674c0",
+      "bytes": 2859,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-ROUND15-AUTH-DELETION-RELAY.md",
+      "sha": "ae580032f4d2b9a63515bd5baef648f1b742622f",
+      "bytes": 3246,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-ROUND16-SINGLE-PUBLISHER-DELETION.md",
+      "sha": "8bc8e42621620638f200fbd5a123fd7500d4b2ef",
+      "bytes": 3270,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-ROUND17-FANOUT-REVIEW.md",
+      "sha": "79c1fd93be2ed4227b11d8c600efc0205964c14b",
+      "bytes": 3547,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-ROUND18-OUTBOX-SAGA-TRANSPORT.md",
+      "sha": "1608a8fab3d357cbe40ba6cd181dac2994fa4b15",
+      "bytes": 4668,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-ROUND19-FOUR-DOMAIN-WIRING.md",
+      "sha": "1d4278131c0ab66e850aec83ef79a481d44e8502",
+      "bytes": 5111,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-ROUND20-OWNER-R19-ADAPTER-MAPPING.md",
+      "sha": "ba4bb08cc49e2c7f56a8da456436e3f380c97b1a",
+      "bytes": 4593,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-ROUND21-CANDIDATE-UI-STATUS-CONTRACT.md",
+      "sha": "63d3669a338c8cfeaaf01e935fa0a1943f32fa0f",
+      "bytes": 6202,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-ROUND6-RELEASE-GATES.md",
+      "sha": "c5f16729f1baa13c9d76dbac310ed64950413635",
+      "bytes": 3385,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-ROUND7-ROLLOUT-HANDOFF.md",
+      "sha": "9ae0184a1426f6cb911fe22804f27b0642247205",
+      "bytes": 2670,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-ROUND8-TASK-EVIDENCE-HANDOFF.md",
+      "sha": "e2c498a8489f2bbb42e5fb6dcc123062ca83acca",
+      "bytes": 2695,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-ROUND9-ATOMIC-SETTLEMENT.md",
+      "sha": "6eac1bf7e6b6b47055410f0d0c8b4faedb9bd4ba",
+      "bytes": 2814,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-SBASE-20261028-PLATFORM-POC-HANDOFF.md",
+      "sha": "0539aa1363dd6259b73322acc0817c3ace46ea60",
+      "bytes": 9034,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-WAVE1-ROUND001-OPENAPI-CLOUDFLARE-ADS-READONLY-HANDOFF.md",
+      "sha": "d4b2c6bf592a19976e420139dfacffa6229609f7",
+      "bytes": 10867,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-WAVE1-ROUND002-PROTECTED-OPENAPI-P05-CLOUDFLARE-PROPOSAL.md",
+      "sha": "948401c121d6cef532cf5704935d9ca27a0d9063",
+      "bytes": 9346,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-WAVE1-ROUND003-PROTECTED-INTEROP-P05-QUEUE-HANDOFF.md",
+      "sha": "081bfc115be66065da73b71e424846b102087035",
+      "bytes": 8035,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-WAVE1-ROUND004-ADMOB-OFFLINE-CONTRACT-HANDOFF.md",
+      "sha": "663cab46274f03d4961e24aa0a87f8d23a1f717b",
+      "bytes": 4376,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-WAVE1-ROUND005-ADMOB-NATIVE-PROTECTED-CLOUDFLARE-HANDOFF.md",
+      "sha": "2ab73ad8a162eb41757c7b222116639813d33799",
+      "bytes": 6062,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/ai/AI4-WAVE1-ROUND006-P05-VNEXT-ADMOB-CLOUDFLARE-RCA-HANDOFF.md",
+      "sha": "a32ba0afbf7f93394199c568162dc8ec257b7ca5",
+      "bytes": 8287,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/api-handoff/api-surface.v0.json",
+      "sha": "b4d15f97cfcfc96d48ee616d2d99bdc5a7027c67",
+      "bytes": 3180,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/api-handoff/README.md",
+      "sha": "144760e69f7d47a29a587012d9184877df445129",
+      "bytes": 3111,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/api-handoff/test/api-surface.test.mjs",
+      "sha": "7247bc2d57914fbac356822f3c1be7d80ea56eba",
+      "bytes": 1906,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/api-handoff/verify-api-surface.mjs",
+      "sha": "4622152eab4c7aee37f7de51cce7e7cfb9eae3be",
+      "bytes": 4033,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/architecture/SBASE-20261028-AI0-COMPATIBILITY-ADR-DRAFT.md",
+      "sha": "8b94ea065c3e2d8588873c0950bbbcab899b6e76",
+      "bytes": 4262,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/architecture/sbase-20261028-candidate-baseline.v0.json",
+      "sha": "675a349e8093f53d12677dd525d273f66f844569",
+      "bytes": 5462,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/contracts/AI0-W1-ISOLATED-SELF-PROFILE.openapi.json",
+      "sha": "638d242f3b799a894f8a3587ee3ca48737236cee",
+      "bytes": 2961,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/contracts/AI4-REBUILD-P05-EVENT-CANDIDATE.md",
+      "sha": "85f3f920a1ce5a49182ffae1b54d64c1ff711ff5",
+      "bytes": 1495,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/handoffs/STARRY-ARCHITECTURE-AI0-CHAT-HANDOFF-20261028.md",
+      "sha": "7fb2377ba6aa72100bcf349e5d93c50ee2822d8d",
+      "bytes": 8672,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI-DEVELOPMENT-SOP-20261027.md",
+      "sha": "69a14272824ee2c3416c671aee6cb3992d8db77a",
+      "bytes": 10056,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-d01-expo58-readonly-compatibility-research.v1.json",
+      "sha": "ed16e687b971bac6534be14a587ad42e810b2b7b",
+      "bytes": 5805,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-d02-owner-approved-choice-a.v1.json",
+      "sha": "1102393cc6fb922918a9df94bf4cb3e9a584db44",
+      "bytes": 3318,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-d03-owner-approved-choice-a.v1.json",
+      "sha": "358c5acda5816eff52917bbe8cfc79c53cd0e489",
+      "bytes": 4221,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-d04-owner-approved-option-c.v1.json",
+      "sha": "68bbb6ba7e9c244d70d78a4621359fa1b1e24db1",
+      "bytes": 4452,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-d05-owner-approved-optional-web.v1.json",
+      "sha": "5819a18192ad5f2ec0e38acc6a2caa623e882b2d",
+      "bytes": 4412,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-d06-owner-approved-free-first-spend-gate.v1.json",
+      "sha": "1a29f2b290220dac7cb3a45f3c831ad52cf44fa5",
+      "bytes": 4304,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-d07-owner-approved-per-app-entitlements.v1.json",
+      "sha": "48aed281be5d5c32b8d0e1e9835bdef613afde44",
+      "bytes": 4991,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-d08-owner-approved-style-tokens-shared-ui.v1.json",
+      "sha": "1a4de951ec2b77463abb927b29a7761a4df30f65",
+      "bytes": 5756,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-FUTURE-STARRY-APP-PORTFOLIO-ROADMAP-20261027.md",
+      "sha": "51801a44bdf140fea15dbb931d76766e7757c307",
+      "bytes": 12393,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-owner-approved-wave1-decisions.v1.json",
+      "sha": "e5726ac134a6cc40b243428686bd3053e8b117fa",
+      "bytes": 4979,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-pr-stack-snapshot-r11.json",
+      "sha": "b7e15340b5b477d361db0b61b8a40ac48440fb34",
+      "bytes": 4104,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-q4-admob-owner-approved.v1.json",
+      "sha": "e47af14c8fd8ce8dbbee2e050d5d6508ae12688a",
+      "bytes": 1698,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R006-CLOUDFLARE-EXTERNAL-BUILD-RCA-20261028.md",
+      "sha": "6034e35b8fdfa24389854e3e47c0f17e84775d86",
+      "bytes": 3714,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R007-P05-INFLIGHT-REPLAY-OFFLINE-REVIEW.md",
+      "sha": "0e012b4a2e40b41b91913fed090f9167fc7b6612",
+      "bytes": 2817,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-r008-cloudflare-builds-disabled-audit.v1.json",
+      "sha": "e2930327a44f2100e51bb4824ca54227d2ffebb5",
+      "bytes": 2359,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R008-CLOUDFLARE-REAL-READINESS-G00-G10-AUDIT.md",
+      "sha": "9f579c8d8d09185256a538af3ad595b86332c4e9",
+      "bytes": 7422,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R008-CLOUDFLARE-SAFE-OFFLINE-BUILDS-PLAN.md",
+      "sha": "56491f8c888ac1ddc36b28d3a549750f9f421291",
+      "bytes": 5539,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R008-FOUR-DOMAIN-LEGACY-BRIDGE-DENIAL.md",
+      "sha": "ecb69ad563a60233ac543e50f6a0d15eba30d032",
+      "bytes": 2464,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R008-P05-13-VS-17-SCHEMA-DECISION-RECONCILIATION.md",
+      "sha": "755e60776b222ceb77d8dfaa375ab09c902db3c6",
+      "bytes": 5021,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-r008-p05-source-field-reconciliation.v1.json",
+      "sha": "a106ccc668331bee1f29b569d2a59ef539f871e4",
+      "bytes": 3347,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-r008-real-resource-observation-20261029.v1.json",
+      "sha": "8959a2b317b4e4cb831b389d7a0d3203ea2091ac",
+      "bytes": 2999,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R10-PARALLEL-ROADMAP-20261027.md",
+      "sha": "296e3347e1d833cd3da3b2e1371f04ebc5708d12",
+      "bytes": 8163,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R11-STAGING-READINESS-20261027.md",
+      "sha": "7509a43f0c8e65d32f32df6241089ea6db890d37",
+      "bytes": 3974,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R12-PR-STACK-AUDIT-20261027.md",
+      "sha": "3f15b4966f334472c2d8ca40f3703c10d6a04317",
+      "bytes": 5795,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R13-TRUST-ROOTS-PREFLIGHT-20261027.md",
+      "sha": "60409b5e78b9a120334019d509ffb4792881b87c",
+      "bytes": 6064,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R14-ADMIN-PREP-ACCEPTANCE-20261027.md",
+      "sha": "b51aa1baf6e17ed146de137c1386f23ff815503c",
+      "bytes": 5535,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R15-SQL-MIGRATION-READINESS-20261027.md",
+      "sha": "b1d1be818f8dc39469a7aa9e237cbbcac4a9d511",
+      "bytes": 4809,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R16-RELEASE-CRITICAL-PATH-20261027.md",
+      "sha": "31018a58a232df1a69a64b8cea6c9d340ef9eb3a",
+      "bytes": 6992,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R18-FOUR-OWNER-INTEGRATION-20261027.md",
+      "sha": "692eac50cbaafcfd397d69b1d0a779e0ff36ed6c",
+      "bytes": 3883,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R19-FOUR-OWNER-INTEGRATION-20261028.md",
+      "sha": "36ae0521a2e2f9b41513e508b820e1d73c6d7dd1",
+      "bytes": 4281,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R20-FOUR-OWNER-SAME-CHECKOUT-20261028.md",
+      "sha": "cef62c0840692b97f6c9b594b49338ec03875ee0",
+      "bytes": 2803,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R21-FOUR-OWNER-INTEGRATION-20261028.md",
+      "sha": "ec942498cbe17e0801b3f02a4d1eb1859b5da862",
+      "bytes": 4135,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R23-CLOUDFLARE-PREVIEW-FAILURE-LIVE-EVIDENCE-20261028.md",
+      "sha": "d2180b33f42a3b7c4cda540aff3d2fa01df208ad",
+      "bytes": 8766,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R23-FOUR-OWNER-SAME-CHECKOUT-GATE-REVIEW-20261028.md",
+      "sha": "1bd40a57b00872dc455b6c8f3a96e66245ec36ad",
+      "bytes": 8457,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R24-FOUR-OWNER-PORTFOLIO-INTEGRATION-REVIEW-20261028.md",
+      "sha": "436abf9d92f908c59022289ac290546f0cc1eeed",
+      "bytes": 7456,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-R25-CLOUDFLARE-REAL-INVENTORY-STAGING-AUTHORIZATION-20261028.md",
+      "sha": "79f9b742ed7b58528396b3c87c1b4063995abd80",
+      "bytes": 7641,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-SBASE-20261028-FOUR-OWNER-SAME-CHECKOUT-REVIEW.md",
+      "sha": "ca4c5eedc85444c65ab9e7950e51ac3a6a5e019c",
+      "bytes": 4206,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-SBASE-D02-MULTI-APP-REPO-TOPOLOGY-ADR-20261028-DRAFT.md",
+      "sha": "38b3f1b553d2111cda978a89cd7e13da0dbb02f9",
+      "bytes": 6914,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-W1-ISOLATED-SELF-PROFILE-HTTP.md",
+      "sha": "848f1d021f847be5303f736dd264288e0405c855",
+      "bytes": 4812,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-W1-SELF-PROFILE-ROUNDTRIP.md",
+      "sha": "0f7464aea3f7ba0ad96f54edfc118cb7a134ab93",
+      "bytes": 3631,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-wave1-four-owner-original-blob-integration.v1.json",
+      "sha": "1272a403f356173223a6b8e8772edc92b7fe9466",
+      "bytes": 4750,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-wave1-r001-verified-ci-observation.v1.json",
+      "sha": "e846c2fedc3f621d84f658c4d80ea6f307d1fd7b",
+      "bytes": 2097,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-wave1-r002-owner-blobs.v1.json",
+      "sha": "c28f245f9431a70b16bcd8e9d3be0010728d3468",
+      "bytes": 4575,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-wave1-r003-owner-blobs.v1.json",
+      "sha": "0ce3232640aeaba9ed99b728229e8ec4b577db08",
+      "bytes": 5089,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-wave1-r004-owner-blobs.v1.json",
+      "sha": "abb40a515a2c43432dc2e09be5cb4c4a6e4e1313",
+      "bytes": 5301,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-wave1-r005-owner-blobs.v1.json",
+      "sha": "db61812dc59e900630ae8d95b20d6d9da2f2fbbc",
+      "bytes": 4481,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-wave1-r006-owner-blobs.v1.json",
+      "sha": "bce33b8627e083772bdc7cf6573d57fed6fcde0a",
+      "bytes": 4469,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-WAVE1-R007-FOUR-OWNER-INTEGRATION-REVIEW.md",
+      "sha": "a127cc3c52e394bf42e7eaaad5531962f162a4a5",
+      "bytes": 2489,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-wave1-r007-owner-blobs.v1.json",
+      "sha": "44d1933481403cbfac05829ffed926bde4cad2af",
+      "bytes": 5078,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-wave1-r008-2owner-immutable-staging.v1.json",
+      "sha": "2b215d316d0cdcb88e7a2525aa164efa0cbed13b",
+      "bytes": 2578,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-WAVE1-R008-2OWNER-PARTIAL-STAGING-REVIEW.md",
+      "sha": "ee553636376f947ae7901eeab9d6990b14bd14ee",
+      "bytes": 2318,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI0-WAVE1-R008-FOUR-OWNER-INTEGRATION-REVIEW.md",
+      "sha": "b7c3d1fb3b7f5674eb5ca1375b0163a306c71651",
+      "bytes": 3410,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai0-wave1-r008-four-owner-source.v1.json",
+      "sha": "4ec1069579f32ba896b81d478ccf56b6f8766d12",
+      "bytes": 2850,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai4-post-r008-g08-g09-evidence-provenance.v1.json",
+      "sha": "56bd49dc0dd9b4f8ef66bc4a55a0e072912c0aab",
+      "bytes": 6884,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI4-POST-R008-G08-G09-SOURCE-LINKED-RELEASE-EVIDENCE.md",
+      "sha": "fbfc49808f6d00e0b858fe0e07af79c1817e95ad",
+      "bytes": 7958,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI4-R23-CLOUDFLARE-PREVIEW-PREFLIGHT-ADR-20261028.md",
+      "sha": "08b248fe62e6de64dbe833d612e49ef473a1e27d",
+      "bytes": 8234,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI4-R24-G08-G09-SIGNED-AUTH-STAGING-EVIDENCE-PLAN.md",
+      "sha": "39d27b3eddcdccc05063bbe585d98bd62cf0059a",
+      "bytes": 8096,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/ai4-w1-shared-self-profile-contract-diff.v1.json",
+      "sha": "9834a37be4e8b0a28e58db5d2e5df848de93ea03",
+      "bytes": 7542,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI4-W1-STARRY-SELF-PROFILE-SHARED-WIRING-REVIEW.md",
+      "sha": "5257da2b94c118b7f9addc6b860fae933645a355",
+      "bytes": 15584,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI4-WAVE1-R007-CLOUDFLARE-ABC-WORKER-DENIAL-HANDOFF.md",
+      "sha": "99f97ae459d2fae816b5b8bb772d2d1a12357397",
+      "bytes": 6962,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/AI4-WAVE1-R008-CLOUDFLARE-STAGE2-ISOLATION-PREFLIGHT.md",
+      "sha": "d385d4f70bb716cc23880589805ade43687c9bc1",
+      "bytes": 7539,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/audit-ai0-pr-stack.mjs",
+      "sha": "dfe62a44c9c58abf99febeeb9018b9caf33fc64f",
+      "bytes": 4163,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/CI-CONSOLIDATION-20261027.md",
+      "sha": "7a0aba965b4ba61740f055757962ccc6b3e6bd6d",
+      "bytes": 2968,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/future-starry-app-portfolio.v0.json",
+      "sha": "5f2f2440ff2a62fc46e38ce3287062f9b62afccd",
+      "bytes": 9304,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/r11-cross-domain-risks.v0.json",
+      "sha": "bd07f9c7e91394b81acd688a2f42f94d43b4ba34",
+      "bytes": 2733,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/r13-trust-roots.v0.json",
+      "sha": "9db38fb68e07890bbaeb59e51dd08a83f79d4258",
+      "bytes": 4182,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/r14-admin-prep-evidence.v0.json",
+      "sha": "b1e5be38bef34f4393c17239085711c2c8056a91",
+      "bytes": 8069,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/r15-sql-additions.v0.json",
+      "sha": "9229d466ffc79453082d5a7212c31ed4422db774",
+      "bytes": 1075,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/r15-sql-migration-inventory.v0.json",
+      "sha": "b135ae47c4d63f481105ba89302dd6379d6277f4",
+      "bytes": 13504,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/r18-cross-d1-assignments.v0.json",
+      "sha": "56e9c75bb1b3ccc27d1311f2618a20401721826e",
+      "bytes": 7138,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/r18-exact-owner-blob-integration.v0.json",
+      "sha": "37621434a83bdf80a2a411a2819689bf86a2685d",
+      "bytes": 4422,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/r19-owner-original-blob-manifest.v0.json",
+      "sha": "4aa502f6ba95557ffa8d2365574d30426747e72a",
+      "bytes": 4530,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/r20-four-owner-original-sources.v0.json",
+      "sha": "5dfb4813e186eba281ef93dfa7e154e4dc246735",
+      "bytes": 4128,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/r21-four-owner-original-sources.v0.json",
+      "sha": "d9f44c46b36c9be8f3e496660b08ccb9ed1aa309",
+      "bytes": 4492,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/r23-20261028-four-owner-source-integration.v1.json",
+      "sha": "26f8d925b06b0124f6e7e40f749369774c98dd4d",
+      "bytes": 5669,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/r24-20261028-all-owner-original-blob-integration.v1.json",
+      "sha": "668d485726cc69e8ca0b87999aa1e7bc398dd6bc",
+      "bytes": 5095,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/r25-20261028-starry-cloudflare-readonly-inventory.v1.json",
+      "sha": "d816ab1dba356f1f90cbc04541b1722df70af776",
+      "bytes": 3880,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/sbase-20261028-original-source-integration.v0.json",
+      "sha": "0f7bf805732ac61ceaea5227d62fe7f137c49b47",
+      "bytes": 5164,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/verify-ai0-critical-tests.mjs",
+      "sha": "0cfd8fd37e0bba91b778048598652dd6ed06b3ee",
+      "bytes": 3390,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/verify-ci-consolidation.mjs",
+      "sha": "483b8e0ce2bc24504daede114f8420387df14185",
+      "bytes": 2324,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/verify-future-starry-app-portfolio.mjs",
+      "sha": "fddc035456f7aeb699a7b0839984609e24f24e20",
+      "bytes": 7599,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/verify-r13-trust-roots.mjs",
+      "sha": "85c528b8ef0556e5fc7835d7d07914b3f2c35c19",
+      "bytes": 3950,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/verify-r14-admin-prep.mjs",
+      "sha": "141de1840be33113d0eb920b1ce8bb5eae7cfe45",
+      "bytes": 4198,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/verify-r15-sql-inventory.mjs",
+      "sha": "1f994d97324cab966b6d806729378c7586c107f5",
+      "bytes": 7017,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/verify-r18-cross-d1-preflight.mjs",
+      "sha": "0ff7d0f5fcdd9cd9e16fcda32e42cc7d22b5186a",
+      "bytes": 5660,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/verify-r18-owner-blob-integration.mjs",
+      "sha": "4d2f7639ae31e5d8a7ffba7410bb28224a39c32f",
+      "bytes": 5120,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/verify-r19-owner-blob-integration.mjs",
+      "sha": "898fc1b9001dd416e6d56262fc166886ef55e33f",
+      "bytes": 8122,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/verify-r20-original-sources.mjs",
+      "sha": "a2270c8917ed8e7ec654e65b21c03bf6f223a3b2",
+      "bytes": 6354,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/operations/verify-r21-original-sources.mjs",
+      "sha": "7497d9831a2f18f19cef99723bdaabb2dcdd2ca6",
+      "bytes": 6944,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/portfolio/ai0-app-intake-cli.mjs",
+      "sha": "3a56a024f87f2a7915782d998c4e1135f3c49686",
+      "bytes": 2210,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/portfolio/ai0-app-intake-evidence-gate.mjs",
+      "sha": "99d882c6c7cfb33615dfe174d9e07b1c868921a6",
+      "bytes": 6990,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/portfolio/AI0-APP-INTAKE-EVIDENCE-REVIEW-AND-ANTI-CLONE-20261028.md",
+      "sha": "d59bc9e718b91c5466592b63e914320bfda38d7b",
+      "bytes": 7992,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/portfolio/ai0-app-intake-example-H01-unapproved.json",
+      "sha": "6f22068819a7ad68157d95676ebb6a995e1b9f7f",
+      "bytes": 1832,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/portfolio/starry-app-p0-governance.v0.json",
+      "sha": "db5b6c6c4a01e3fdf4f0e79fdd8408a477d35f07",
+      "bytes": 8286,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/portfolio/starry-app-portfolio-candidates.v0.json",
+      "sha": "bae5ff44ce892e5b93d33bc29912706cca47a43d",
+      "bytes": 8059,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/portfolio/STARRY-APP-PORTFOLIO-ROADMAP-20261028-DRAFT.md",
+      "sha": "98361208a49aa5c25cd88677838b2604858461b4",
+      "bytes": 6948,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/portfolio/STARRY-NEW-APP-INTAKE-CARD-v0.md",
+      "sha": "5373ab3d2cf16eba86d1d5184b9a3e72b7d7e890",
+      "bytes": 1986,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/portfolio/STARRY-P0-APP-TEST-COHORT-AND-PORTFOLIO-DECISIONS-20261028-DRAFT.md",
+      "sha": "2692f274dc7fb51abe20fd6b6cbfedde4a87a37d",
+      "bytes": 11693,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/product/starry-app-f0-decision-evidence.v0.json",
+      "sha": "dbbfdce3ba5338dbdc479f8dd245ec18110eb84a",
+      "bytes": 9912,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/product/STARRY-CONSUMER-A-CANDIDATE-UX-FLOWS-20261027.md",
+      "sha": "3b15199b319b678692b06bd8b48dd3719337f970",
+      "bytes": 10344,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/product/starry-consumer-a-candidate.v0.json",
+      "sha": "a4053d5b6c4b67655274928280a93ef81d3b33cb",
+      "bytes": 13139,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/product/STARRY-FIRST-APP-F0-DECISION-RESEARCH-20261028.md",
+      "sha": "f4512a4d2e5a342d13bcd4dc13802f6e707069cf",
+      "bytes": 8509,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/product/verify-consumer-a-candidate.mjs",
+      "sha": "f0eeeba3bec1f2be3212a4d798e98d5f2cf469a1",
+      "bytes": 8384,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/product/verify-starry-app-f0-decision-evidence.mjs",
+      "sha": "02dbbcd17604189c549a12137c092b16eca50732",
+      "bytes": 9145,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/release-readiness/AI0-R10-EVIDENCE-AND-DECISIONS-20261027.md",
+      "sha": "5cc5d3519b5936e0f8a3f8b125f6f830d243d1a1",
+      "bytes": 6912,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/release-readiness/check-release-readiness.mjs",
+      "sha": "2e00932950bf97e6bb8fe5503e90752c1bc3108f",
+      "bytes": 3976,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "docs/release-readiness/r16-critical-path.v0.json",
+      "sha": "8648505cfce6d44023cdeb60ab4a24d914d7aac1",
+      "bytes": 8860,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/release-readiness/README.md",
+      "sha": "c4480a623f92524c58600884f996139dceeec026",
+      "bytes": 3817,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/release-readiness/release-readiness.v0.json",
+      "sha": "0ea2e40692fb2e9f7e0c282ac1ece91ad2c740ba",
+      "bytes": 7630,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "docs/release-readiness/test/r16-critical-path.test.mjs",
+      "sha": "9018eaadec64395c1ca19a8f08c9fb351e71924c",
+      "bytes": 3355,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/release-readiness/test/readiness.test.mjs",
+      "sha": "612d6be56d6a59006a324e172cbad0b6b0bbb278",
+      "bytes": 1573,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/release-readiness/verify-r16-critical-path.mjs",
+      "sha": "fe1ae892a60973779f79d1b2631c820818591d88",
+      "bytes": 5792,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/requirements/AI0-R8-128-TRACE-REVIEW-20261027.md",
+      "sha": "8eb311933a8d45e597602b5d208a51579d80905b",
+      "bytes": 6690,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/requirements/AI0-R8-HIGH-PRIORITY-CONFLICTS-20261027.md",
+      "sha": "4e5622fdcc86f80c2e254abe7e55143a06a07113",
+      "bytes": 5004,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/requirements/AI0-W1-CENTRAL-ID-REVIEW-QUEUE.md",
+      "sha": "bf8c7c6f8f8858abdd02f52d011dfc5d0be7abbc",
+      "bytes": 3798,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/requirements/ai0-w1-review-queue.mjs",
+      "sha": "7c6dae069af1e391357d76b339d544a4b41f026f",
+      "bytes": 4523,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/requirements/DEV-SOURCE-HEADING-CROSSCHECK-20261026.md",
+      "sha": "8d3b6a0a1befd86a859ac268594e094858c8f9b7",
+      "bytes": 3212,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/requirements/original-inventory.v0.json",
+      "sha": "7a3131bc1a92d73145091a8bae51cb4aa135780c",
+      "bytes": 61751,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/requirements/README.md",
+      "sha": "9f5142b1b0397ff7052799f2e4b83c6c47d77ca8",
+      "bytes": 1864,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/requirements/registry.v0.json",
+      "sha": "612e2fc9ed2282dce052fae4a01e5c04301f4c87",
+      "bytes": 11042,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/requirements/SOURCE-AUDIT-20261026.md",
+      "sha": "daa541d7ecc0dbc13ae268934f673c25b7ecb528",
+      "bytes": 2353,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/requirements/source-reconciliation-r8.v0.json",
+      "sha": "13f386a9c1defd2ac945e2235f5e237bafa07057",
+      "bytes": 213503,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/requirements/validate.mjs",
+      "sha": "0c6e1b7dfe73ce13869fd8d9281c01e543b33ed2",
+      "bytes": 1887,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/requirements/verify-original-inventory.mjs",
+      "sha": "4be58ca0d40b175dab983e0e6dc8be4b361b70ed",
+      "bytes": 1505,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "docs/requirements/verify-source-reconciliation-r8.mjs",
+      "sha": "da950e3d4e84c952a388af9027e06a8eb6e9d6bf",
+      "bytes": 3855,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "eslint.config.mjs",
+      "sha": "dfd28bd90c42cfe523553d823966884f642895f3",
+      "bytes": 747,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-R23-AUTH-G02-G03-ISOLATED-LIVE-PLAN.md",
+      "sha": "588b469bd81fb7c5903ff238f8950fe1dacb4980",
+      "bytes": 5548,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-R23-SIGNED-SESSION-D1-REQUEST-BOUNDARY.md",
+      "sha": "cb16fad76e9da065ec8b8d690a15380ad21c422c",
+      "bytes": 3929,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-REBUILD-001.md",
+      "sha": "5eaefc6162a7ec49fd8be79e153756b015ba15de",
+      "bytes": 5405,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-ROUND10-AUTH-ANTI-RESURRECTION-FENCES.md",
+      "sha": "e53d6d64af02eff7391d495a242984d85b8b3b3f",
+      "bytes": 3535,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-ROUND11-SIGNED-INDEPENDENT-RECOVERY-WITNESS.md",
+      "sha": "296f1f57510005a037ab5d5d9954718e0c850ff1",
+      "bytes": 3725,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-ROUND12-DUAL-SIGNED-INDEPENDENT-HEAD.md",
+      "sha": "c03732d50a6d71feda5e000c70d6c61f4ad1cc19",
+      "bytes": 3007,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-ROUND13-ONE-USE-ACCOUNT-DELETION.md",
+      "sha": "d62cf1e1a732336cc31b35b710d72ddd123e8793",
+      "bytes": 4258,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-ROUND14-STEPUP-CHALLENGE-ISSUANCE.md",
+      "sha": "8ed7211a9f31d5696eec2bec6a04a51751e2c1b5",
+      "bytes": 3234,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-ROUND15-AUTH-DELETION-SOURCE-CONTRACT.md",
+      "sha": "3110b62b3d71383142a1b19c180d03bd47348f61",
+      "bytes": 4033,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-ROUND16-CANONICAL-AUTH-DELETION-PUBLISHER.md",
+      "sha": "7b1c41d2fc66f7dc25af34a127eb905087389644",
+      "bytes": 4123,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-ROUND17-AUTH-LEASE-REVALIDATION.md",
+      "sha": "9e88f581ba15c75763cd9a2c71b0a8c5fc2f7444",
+      "bytes": 1779,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-ROUND18-AUTH-COMMITTED-LEGAL-SAGA-GATE.md",
+      "sha": "fb3f0039213634525cdc7939ac4c51ce0977a3b3",
+      "bytes": 3417,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-ROUND19-AUTH-CROSS-DOMAIN-DTO.md",
+      "sha": "978aa6d9c9ad2e3791b68036acc9e6cc2f0dfee6",
+      "bytes": 2950,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-ROUND20-AUTH-IDENTITY-BOUNDARY.md",
+      "sha": "a612d187caac099bb090876edfe867576ea3e85e",
+      "bytes": 3196,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-ROUND21-CANDIDATE-UI-AUTH-STATE.md",
+      "sha": "29e1e0415161a3f363f569eff1dff65e99fb2110",
+      "bytes": 3518,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-ROUND3-REAL-CRYPTO-D1.md",
+      "sha": "b8a0a6db34a92559d310f4a7ea9d6e28b8c3a482",
+      "bytes": 4579,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-ROUND4-JWKS-SESSION-D1.md",
+      "sha": "3262816a34014a03821b6beb29164d0123c47e5a",
+      "bytes": 3349,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-ROUND5-TRUSTED-OIDC-CALLBACK-D1.md",
+      "sha": "633a863bf9d038cd86dc8847738e1bde705b25ff",
+      "bytes": 3223,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-ROUND6-OFFICIAL-PROVIDER-D1-GATE.md",
+      "sha": "8a79bd968828e9a90fbc9cf99870978b159d7d31",
+      "bytes": 4234,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-ROUND8-FIRST-GIFT-PRIVACY-GATE.md",
+      "sha": "79781cb46575de571b63eacb8b11ebdd2b7bd321",
+      "bytes": 3275,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-ROUND9-PRIVACY-APPEAL-REVIEW.md",
+      "sha": "b19f513b9dfa73113062b574309c4dd43e3ebd43",
+      "bytes": 3922,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-SBASE-AUTH-CLIENT.md",
+      "sha": "78acbd3ea598c03ee90ad5aeb819b55813680c1c",
+      "bytes": 4224,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-WAVE1-ROUND001-Q2-PRE-PURCHASE-AUTH.md",
+      "sha": "c0799ac3f10cd807977b1b63c19ae61a4e700993",
+      "bytes": 6090,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-WAVE1-ROUND002-SIGNED-AUTH-TO-BILLING-IDENTITY.md",
+      "sha": "db8877d5c9d410635147cb3cef523694a7125859",
+      "bytes": 3256,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-WAVE1-ROUND003-IDENTITY-AUTHORITY-PORT.md",
+      "sha": "3678b491658532ae54a631da4b76f648a774bf4a",
+      "bytes": 5945,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-WAVE1-ROUND004-EVENT-BOUND-SESSION-FENCE.md",
+      "sha": "b174d6ad2cadb88802fbbbd0d70c0c69d83f3783",
+      "bytes": 5209,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-WAVE1-ROUND005-SEALED-EVENT-SESSION-AUTHORITY.md",
+      "sha": "6e23c0e949282975b486930e12e4dee3203d49b9",
+      "bytes": 4401,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-WAVE1-ROUND006-P05-VNEXT-AUTH-ADAPTER.md",
+      "sha": "468d97daa76903987c6e913d0259dd5e2381cb28",
+      "bytes": 6102,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-WAVE1-ROUND007-P05-AUTH-MONOTONIC-OFFLINE.md",
+      "sha": "8d8e2c5c1fb8cfb9751d72988df67987f4c9c5d2",
+      "bytes": 3209,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/ADR-WAVE1-ROUND008-AUTH-MONOTONIC-CAS.md",
+      "sha": "f559a91df27834826ed9d244071555031816fec7",
+      "bytes": 3268,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/AI1-POST-R008-G02-G03-REAL-EVIDENCE-APPROVAL.md",
+      "sha": "e499cd2fac477046b3c3669a43e58dd8d6fbac4e",
+      "bytes": 7813,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/G02-G03-REAL-EVIDENCE-APPROVALS.v1.json",
+      "sha": "6aedbf4fbca8c87681ea9bfadbccf5aee3fdaa59",
+      "bytes": 7120,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/openapi.DRAFT.yaml",
+      "sha": "f5136f31bcdc88a034f26ab431d511867a9ab4fe",
+      "bytes": 2712,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/README-BILLING-BRIDGE.md",
+      "sha": "fc2beb3757789abbb83778911bf79921b35b189d",
+      "bytes": 4377,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/README.md",
+      "sha": "1896b311ff525b1b81c9a53c947d749d0583893f",
+      "bytes": 1528,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/001_starry_identity.DRAFT.sql",
+      "sha": "456cc94b754ccf34070c21eb0e99b825519fbaa6",
+      "bytes": 2694,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/002_starry_store_bindings.DRAFT.sql",
+      "sha": "8c489486d14886a92c32d093bad6c19639badbb2",
+      "bytes": 1478,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/003_starry_oauth_round3.DRAFT.sql",
+      "sha": "4cced6427bd4ebe956961afd33b3cbaba350a65a",
+      "bytes": 1156,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/004_starry_session_round4.DRAFT.sql",
+      "sha": "304f1608e85bafe521e55c4808e22f5088472104",
+      "bytes": 865,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/005_starry_oidc_indexes.DOWN.DRAFT.sql",
+      "sha": "827fd860e193a6b3c26c8658a495d7140a127925",
+      "bytes": 289,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/005_starry_oidc_indexes.UP.DRAFT.sql",
+      "sha": "cba4a63e24265276b395a569ae1f02f4e5e928cf",
+      "bytes": 652,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/006_starry_auth_guard.DOWN.DRAFT.sql",
+      "sha": "61fdcd4c3c0db486f7364ba056dc25f75ade23e9",
+      "bytes": 326,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/006_starry_auth_guard.UP.DRAFT.sql",
+      "sha": "5e4cfe12bef91840b1f9b0dfd876b35e4010eaad",
+      "bytes": 665,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/007_starry_age_deletion_admin.DOWN.DRAFT.sql",
+      "sha": "6254840b4c30f00f529a132ade9cc0b1db874ec1",
+      "bytes": 300,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/007_starry_age_deletion_admin.UP.DRAFT.sql",
+      "sha": "a6eafcf94540f1ae69a91549dcb7dac82348850b",
+      "bytes": 1347,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/008_starry_first_gift_privacy.DOWN.DRAFT.sql",
+      "sha": "9015a927dedafd35042fd4d6a54ca06f214cf32a",
+      "bytes": 266,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/008_starry_first_gift_privacy.UP.DRAFT.sql",
+      "sha": "fd4c1faa8795689adc5380a879281ffcba8a45d8",
+      "bytes": 664,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/009_starry_privacy_review_grants.DOWN.DRAFT.sql",
+      "sha": "dfdd6689bf50e16dddc10f4ea3e215a8a21327d2",
+      "bytes": 204,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/009_starry_privacy_review_grants.UP.DRAFT.sql",
+      "sha": "0566037496eb323384ea8937bec5bdca87b63ea3",
+      "bytes": 981,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/010_starry_recovery_auth_fences.DOWN.DRAFT.sql",
+      "sha": "05f3cd76ea42396d87fe0ede7a70f28e70cc7432",
+      "bytes": 442,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/010_starry_recovery_auth_fences.UP.DRAFT.sql",
+      "sha": "378808c6bc2668d1d35db80c1985f89eda5f1f19",
+      "bytes": 2276,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/011_starry_one_use_deletion.DOWN.DRAFT.sql",
+      "sha": "e6e9a23c009378412b2ee56b4251c0586a0c9eb7",
+      "bytes": 443,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/011_starry_one_use_deletion.UP.DRAFT.sql",
+      "sha": "4ab58a8ba8f8126d77db6aebee5e7878277e33f7",
+      "bytes": 3318,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/012_starry_stepup_challenge_scope.DOWN.DRAFT.sql",
+      "sha": "7e018bfaec13724fa4de892e0bdd1cadddb561d9",
+      "bytes": 391,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/012_starry_stepup_challenge_scope.UP.DRAFT.sql",
+      "sha": "03aa64c97784decca6820b9684674b4c67181cad",
+      "bytes": 3669,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/013_starry_deletion_source_immutability.DOWN.DRAFT.sql",
+      "sha": "04749d6ef573e8bcc04e9c108527ffe1b2c75b9d",
+      "bytes": 320,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/schema/013_starry_deletion_source_immutability.UP.DRAFT.sql",
+      "sha": "5a6a3b2826b9e22a7609c04dcadc93b999aaf783",
+      "bytes": 1134,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/scripts/r23-auth-preflight.mjs",
+      "sha": "8ee52b68e6edb08623ef3bb1871c5088f3775d91",
+      "bytes": 1377,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/billing-bridge.ts",
+      "sha": "11fe9f5be83c7cfa93c60fc2a83c043b893520fb",
+      "bytes": 7097,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/cookie-safety.ts",
+      "sha": "2a94055deef3f425beac662af62091fabc8e6bad",
+      "bytes": 1766,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/d1-ports.ts",
+      "sha": "7301c39e4b9f9e4ecced3301d5f28249d3756cb6",
+      "bytes": 8761,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/index.ts",
+      "sha": "714bb530ce5ce4880f9675944d1a5ddafc8de645",
+      "bytes": 12527,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/jwks-cache.ts",
+      "sha": "dd8b9f1a012cf932483bb4c6b908a19a65abc44d",
+      "bytes": 4471,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/oidc-crypto.ts",
+      "sha": "8a277c20a12616b9f8e57e2528295398823c09de",
+      "bytes": 7505,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/r23-auth-g02-g03-live-preflight.ts",
+      "sha": "83092b48916ef39c5ac321c22d54e5f98a180216",
+      "bytes": 8818,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/r23-signed-session-d1-request-boundary.ts",
+      "sha": "95f89cae3a436811f9a07fff25a9d4bffc174585",
+      "bytes": 3570,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/round10-recovery-fences.ts",
+      "sha": "cac108cbfc6804b8c4a662b9a2bb8fd0155e65ad",
+      "bytes": 4592,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/round11-signed-recovery-witness.ts",
+      "sha": "58964e7c1a10d5d297edb0db0168d4a08b5a853d",
+      "bytes": 7636,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/round12-signed-head.ts",
+      "sha": "3346b46bdce22a934ef3d38e0339132cac7be707",
+      "bytes": 5988,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/round13-one-use-deletion.ts",
+      "sha": "7334bcc5f9d45d15d7331aa9250155a2b958a16a",
+      "bytes": 3291,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/round14-stepup-issuance.ts",
+      "sha": "509fa4e7b93ee41e837cc6b18e325e731c6fdd9d",
+      "bytes": 4553,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/round15-deletion-source-contract.ts",
+      "sha": "b4f862b9cea3fef4c42a617e2e489213771869e2",
+      "bytes": 6893,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/round16-canonical-deletion-publisher.ts",
+      "sha": "d876e1f373afffd2c89d82d8ee3b4919118618e8",
+      "bytes": 7062,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/round17-auth-lease-fence.ts",
+      "sha": "92bb2044ed118f0ba6bca7df0bba9fff79c0d99f",
+      "bytes": 5938,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/round18-auth-committed-saga-preflight.ts",
+      "sha": "6dd182ff0c7061bca3eb86b7ee005408fbbab2d7",
+      "bytes": 7115,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/round19-auth-cross-domain-dto.ts",
+      "sha": "fb071042e24bea93a824247fc0d0f7e493501b43",
+      "bytes": 6728,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/round20-auth-identity-boundary.ts",
+      "sha": "cea537c2d2e6d0058857e6f31e6c9bb3bdd4e4a8",
+      "bytes": 8349,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/round21-candidate-ui-auth-state.ts",
+      "sha": "3bfbda4210accfb34a17218ff50b3c054986483d",
+      "bytes": 10853,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/round5-oidc-gate.ts",
+      "sha": "0d8f3fe9a64b89bfc7663b33643142063e4c74ff",
+      "bytes": 6890,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/round6-auth-d1-authority.ts",
+      "sha": "1b694176cd45248548e28ac668afb50cbe138779",
+      "bytes": 4771,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/round6-provider-authority.ts",
+      "sha": "4ad08e0877b8b02ad427a36516638eb4d8f5d558",
+      "bytes": 5834,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/round7-admin.ts",
+      "sha": "7eda0e2b59c752f10fbb1df6709c8a3bce1c2975",
+      "bytes": 3139,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/round7-adult-registration.ts",
+      "sha": "8c95f1d40773b9e15f5b94b023869e7fd83b9b28",
+      "bytes": 3923,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/round7-deletion.ts",
+      "sha": "f5dcbca842c0459ee4f772291063412e5264dd16",
+      "bytes": 3864,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/round8-first-gift-guard.ts",
+      "sha": "016cd87ccdf03b8b61d27a301ee65eb18b2f2863",
+      "bytes": 5243,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/round9-appeal-reviewer.ts",
+      "sha": "0d6d455c29c203eb3420caa8398cb76e62964bc8",
+      "bytes": 6297,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/sbase-auth-client.ts",
+      "sha": "ce32f1924c818ff9d0c5d6b7d7a73f1272412ec1",
+      "bytes": 9367,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/session-crypto.ts",
+      "sha": "a4c620d79d19ac1b2252b60a9808d6296efa3e87",
+      "bytes": 4157,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/session-keyring.ts",
+      "sha": "9ec18910edb5e6914aabf7f520c82037d6207178",
+      "bytes": 2221,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/session-persistence.ts",
+      "sha": "5d691e0f451de8a3a7b1af45f94d201ccbce83cc",
+      "bytes": 4842,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/w1-auth-boundary-contract.ts",
+      "sha": "77001de2d89e481c5c00aa4696d6781a54188222",
+      "bytes": 3906,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/w2-r23-auth-outcome-adapter.ts",
+      "sha": "e7e9988d5bac7233d6e3afe6efc6e40a9079dab1",
+      "bytes": 6207,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/wave1-purchase-entry-auth-gate.ts",
+      "sha": "66fb428d98fea6486a7c1304d90fd1c3fe273b15",
+      "bytes": 8055,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/wave1-round002-auth-billing-bridge.ts",
+      "sha": "af399af6e324af24fbb8461307d90077111a253c",
+      "bytes": 7249,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/wave1-round003-identity-authority-port.ts",
+      "sha": "b1186182ee883edac566b5b02167abb1f96280c2",
+      "bytes": 9891,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/wave1-round004-event-session-fence.ts",
+      "sha": "c521d139469eeea290720bbf3c4bd6262d4ecc15",
+      "bytes": 10437,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/wave1-round005-sealed-event-session-authority.ts",
+      "sha": "cc5e047805909317fb1cb6d2d70df5707038c08f",
+      "bytes": 12582,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/wave1-round006-p05-vnext-auth-adapter.ts",
+      "sha": "6e56b8f5957a326001c78a289dc82c09f26d951e",
+      "bytes": 12475,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/wave1-round007-p05-current-auth-monotonic-review.ts",
+      "sha": "3ec35a3a6959502eb24efc70e8593d3cdf212936",
+      "bytes": 7707,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/src/wave1-round008-auth-session-monotonic-cas.ts",
+      "sha": "3756588340581aec7ec1ea496a5746f0fbe19f03",
+      "bytes": 7566,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/billing-bridge.test.mjs",
+      "sha": "e847a884e5ec106cdabfbcdaf465e0c1c53ddde5",
+      "bytes": 7549,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/d1-ports.test.mjs",
+      "sha": "2ccdf9505650079f033830a17c421f1770b7e70a",
+      "bytes": 4933,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/fixtures/round16_auth_dispatch_lease.DRAFT.sql",
+      "sha": "ff797210d68a2b688498a64a8e8222fca9438039",
+      "bytes": 1228,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/identity.test.mjs",
+      "sha": "bb6ff8071099a9da047942fbd0cb0b7203055bb3",
+      "bytes": 7726,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/jwks-cache.test.mjs",
+      "sha": "b7c57328da205edc0a1a4e7b389e54488c4c1902",
+      "bytes": 3613,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/oidc-crypto.test.mjs",
+      "sha": "eefc0778cb0cce1b36152f7b76e6278c491cfbde",
+      "bytes": 5683,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/r23-auth-g02-g03-live-preflight.test.mjs",
+      "sha": "eeecc65052b6ca0e6a9f386a3d0b56e12b3efd84",
+      "bytes": 7363,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/r23-signed-session-d1-request-boundary.test.mjs",
+      "sha": "54fb16eeb5784dc7738f0edb367b966a67248b41",
+      "bytes": 7788,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/round10-recovery-fences.test.mjs",
+      "sha": "22be89e2359e06ff3d3cc0a612dc60514e173108",
+      "bytes": 4391,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/round11-signed-recovery-witness.test.mjs",
+      "sha": "8634ba3d1e4a9caa8f1b466a26a2eceb5fd9c11b",
+      "bytes": 7000,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/round12-signed-head.test.mjs",
+      "sha": "f91da7a2416459a162d9bb71c816b73222b6d9e3",
+      "bytes": 7438,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/round13-one-use-deletion.test.mjs",
+      "sha": "cd68cc6b1a2dd170e208ba8f35d032b9751c414d",
+      "bytes": 5613,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/round14-stepup-issuance.test.mjs",
+      "sha": "baa89f51a247f2b0b919da2d962546e20c01a862",
+      "bytes": 5221,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/round15-deletion-source-contract.test.mjs",
+      "sha": "d658ddb4ea1cd8da3ec273bf898c7d6d62c867b9",
+      "bytes": 5668,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/round16-canonical-deletion-publisher.test.mjs",
+      "sha": "829883edc72e9a75fe4814fef3b2533a0ffa3278",
+      "bytes": 4225,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/round17-auth-lease-fence.test.mjs",
+      "sha": "c9b6de9aaf1928acec5ec1f87efab45a5e80992e",
+      "bytes": 6422,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/round18-auth-committed-saga-preflight.test.mjs",
+      "sha": "506bf16b1babc2073682eca2cf65655faa752498",
+      "bytes": 9417,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/round19-auth-cross-domain-dto.test.mjs",
+      "sha": "68ee474f08713fde2405742ff9d2b0b4b9c04da8",
+      "bytes": 10154,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/round20-auth-identity-boundary.test.mjs",
+      "sha": "3f379f70330585e4abe19489fb8dc2d1a82d9316",
+      "bytes": 10400,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/round21-candidate-ui-auth-state.test.mjs",
+      "sha": "2d75e685c9b45bd009ae45967cf670a43bbc130b",
+      "bytes": 9921,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/round5-oidc-gate.test.mjs",
+      "sha": "f39a0392c44ac42f5cb94edc2be87a6f69275783",
+      "bytes": 6118,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/round6-auth-d1-authority.test.mjs",
+      "sha": "0dc9d5bc4507f2eb061581cb7ff8e40c75d14744",
+      "bytes": 7721,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/round6-provider-authority.test.mjs",
+      "sha": "e14a9e138dece4ccbbcabb81f9f94d06c58e59c2",
+      "bytes": 5978,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/round7-adult-registration.test.mjs",
+      "sha": "5c91b54cedf0acf90916778b2292e5c64d1af2eb",
+      "bytes": 3283,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/round7-member-admin-deletion.test.mjs",
+      "sha": "f492e677fd1a1f67bdb153a276077a66a6a32a91",
+      "bytes": 6816,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/round8-first-gift-guard.test.mjs",
+      "sha": "ac5b1723c3d7b4c636c8a575702591c023864ace",
+      "bytes": 6696,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/round9-appeal-reviewer.test.mjs",
+      "sha": "84d2b7109fb5248fa2491bcf9ffb3ea2b83ffc85",
+      "bytes": 7254,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/sbase-auth-client.test.mjs",
+      "sha": "142f9736516d1a1e29421f04f55585477b29f040",
+      "bytes": 9680,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/session-crypto.test.mjs",
+      "sha": "9fe8458f3e0a78264b9efdcce212894f60b7b713",
+      "bytes": 3437,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/session-keyring.test.mjs",
+      "sha": "bb7654888fa63da51df5652c358afae73d1d015c",
+      "bytes": 3180,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/session-persistence.test.mjs",
+      "sha": "f847b9cf870bca7f72958f0dc5e6601f92e3487a",
+      "bytes": 5086,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/test_billing_bridge_schema.py",
+      "sha": "c644048d1f87837947cf4f48c8beeedb395cdbd0",
+      "bytes": 2352,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/test_oauth_round3.py",
+      "sha": "5661df164137f2be39e443acd5c144d6c488881d",
+      "bytes": 2231,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/test_round10_recovery_fences.py",
+      "sha": "259d92143e2c32722fa359bff96996656776bc41",
+      "bytes": 4700,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/test_round11_independent_witness.py",
+      "sha": "e660be8058008cea4ce80cfc7758323cc56d11d4",
+      "bytes": 3033,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/test_round13_one_use_deletion.py",
+      "sha": "b1b85e624850001074dd5f31da13c9e070228de8",
+      "bytes": 5780,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/test_round14_stepup_issuance.py",
+      "sha": "49ae6fada09b344fe787da2d5b3620b1cef2702e",
+      "bytes": 6611,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/test_round15_deletion_source_contract.py",
+      "sha": "53c889e40b5d69accfe12f9819a7e7247a01484a",
+      "bytes": 4755,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/test_round16_canonical_publisher.py",
+      "sha": "39792048375081aa26cda8114d4dcdb8b78483ae",
+      "bytes": 7026,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/test_round18_auth_source_timeline.py",
+      "sha": "5df49f491369d37424e814a077fff6397183c761",
+      "bytes": 4634,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/test_round4_session.py",
+      "sha": "9b7c0894870c0bf0e68959bea473961081cc8b37",
+      "bytes": 3319,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/test_round5_oidc_migration.py",
+      "sha": "5ec51abee207a4073232c919d8d1a8c7e1f577c3",
+      "bytes": 4255,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/test_round6_auth_guard.py",
+      "sha": "7797163fb7a1aa591f7f03978709adc439eb57ae",
+      "bytes": 6205,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/test_round7_deletion_admin.py",
+      "sha": "6816799d49811ec042d422a8e7ea9150c5b9349c",
+      "bytes": 5420,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/test_round8_first_gift_privacy.py",
+      "sha": "7c9116e833682a54a4ca46d3bb071281c5e65142",
+      "bytes": 4355,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/test_round9_privacy_reviewer.py",
+      "sha": "1cbfec58db8511bb0ce5fa4b36c9905ce67eed8e",
+      "bytes": 4025,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/test_schema.py",
+      "sha": "0e24d00dd8eaeaeb02aac9f138592ee620cc317b",
+      "bytes": 3260,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/w1-auth-boundary-contract.test.mjs",
+      "sha": "b85edbebc20fb65d1cca898d5ab28ec9d4558675",
+      "bytes": 5871,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/w2-r23-auth-outcome-adapter.test.mjs",
+      "sha": "88abe0e9fef92db794662ea67060c3c0fa721b9f",
+      "bytes": 11566,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/wave1-purchase-entry-auth-gate.test.mjs",
+      "sha": "82c177cbf8b7b49e07d55f98a1080ee152d3ebcf",
+      "bytes": 10982,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/wave1-round002-auth-billing-bridge.test.mjs",
+      "sha": "2c5d171519eb48a43c4032618c7eddb7245e7bae",
+      "bytes": 11150,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/wave1-round003-identity-authority-port.test.mjs",
+      "sha": "915b98bb9d69e62201dfb3f055aa363a72f386f3",
+      "bytes": 10880,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/wave1-round004-event-session-fence.test.mjs",
+      "sha": "0495f292775b024d20e11639d42a3d3108464c1c",
+      "bytes": 11343,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/wave1-round005-sealed-event-session-authority.test.mjs",
+      "sha": "289bf3f374fd6ac46ded8db0eff5b0a3d786f353",
+      "bytes": 13638,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/wave1-round006-p05-vnext-auth-adapter.test.mjs",
+      "sha": "ef378de87e72365c62d6816577a03dbb3abbe416",
+      "bytes": 14977,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/wave1-round007-p05-current-auth-monotonic-review.test.mjs",
+      "sha": "553718ee5ed8fe389cdd9e3d6e9aa5ffdc29590c",
+      "bytes": 6758,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/test/wave1-round008-auth-session-monotonic-cas.test.mjs",
+      "sha": "3a2b3b43c869c5bcfc9e273f73b6ef007b74e448",
+      "bytes": 12789,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/tsconfig.json",
+      "sha": "d3dda802ecbfdf4312a8422b1ebff2f9d607c2a1",
+      "bytes": 305,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/W1-AUTH-SOURCE-AND-SELF-REVIEW.md",
+      "sha": "524e5ff1e266b1abff6fea034faa2ca10a5ddfea",
+      "bytes": 15060,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/W1-AUTH-SOURCE-MAP.v1.json",
+      "sha": "2755bafc88efdd45b5efb75e83f2a7a0ab0698f3",
+      "bytes": 8165,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "modules/starry-id-v1/W2-R23-TYPED-AUTH-OUTCOME-ADR.md",
+      "sha": "e6ed7f1f7c669afd49bbe67cc8b333cf924a9b9f",
+      "bytes": 4247,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "package-lock.json",
+      "sha": "3319b4ccee87a67b4002c307a410bd5e3df98b52",
+      "bytes": 447153,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "package.json",
+      "sha": "423a539dfb6cac56c6290bf27bf3d6688d40c11a",
+      "bytes": 1127,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "packages/ai0-contracts/README.md",
+      "sha": "300e1932f8d7e072896f3e34348f5ee18664af29",
+      "bytes": 3068,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/ai0-contracts/src/p05-candidate.mjs",
+      "sha": "ba4711880ea2ba7aeb1c8860e29a5eeb09d4e434",
+      "bytes": 2515,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/ai0-contracts/test/p05-candidate.test.mjs",
+      "sha": "b9d54b3fad0201832d04708ca615a1196c00a24e",
+      "bytes": 3681,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/src/ai0-r005-p05-canonical-offline-verifier.ts",
+      "sha": "58ee6d90707d04835d689a05007dac5d75e4ccb1",
+      "bytes": 6772,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/src/ai0-r006-p05-canonical-proposal.ts",
+      "sha": "a17381b403e174990a54628eceff303f9d7c344f",
+      "bytes": 8285,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/src/ai0-w1-isolated-self-profile-client.ts",
+      "sha": "f60b4063277b36c180fcece85a47db0482eda641",
+      "bytes": 5141,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/src/ai0-w1-isolated-self-profile.ts",
+      "sha": "3acd105e0942514cbc24dd8032c3166b484bb5c2",
+      "bytes": 6563,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/src/ai0-wave1-ci-evidence-gate.ts",
+      "sha": "53483a73ab28ffd5c13359f61b29a2f69d332c43",
+      "bytes": 5104,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/src/rebuild-bridge.ts",
+      "sha": "f97b34ca0886e9a91269a6a374dd67fa1a19fa54",
+      "bytes": 3878,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/ai0-app-intake-evidence-gate.test.mjs",
+      "sha": "d6947ceb50a29854e4d4690f71858d405706d7c1",
+      "bytes": 7307,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/ai0-latest-billing-audit.test.mjs",
+      "sha": "242c72b133a35af55b96ac48d497ca749f60f9d9",
+      "bytes": 6547,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/ai0-owner-approved-wave1-decisions.test.mjs",
+      "sha": "ea5010fdbcb8631d924797ff7904ddcefcb77da5",
+      "bytes": 3465,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/ai0-pr-stack-audit.test.mjs",
+      "sha": "c0d87936857e45ee2695272373b435b7cd7951d3",
+      "bytes": 1955,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/ai0-q4-admob-selection-ads-off.test.mjs",
+      "sha": "88ddee9070b30c1fe1cdd0c632bbfe8aa50cab47",
+      "bytes": 1719,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/ai0-r005-p05-canonical-offline-verifier.test.mjs",
+      "sha": "2bb123e69fa7d4b7c79634d1fc3b694af3c8eaf5",
+      "bytes": 4995,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/ai0-r006-p05-canonical-proposal.test.mjs",
+      "sha": "c7355613a7f871ed3313edceef4d9c650f6cb3a6",
+      "bytes": 6220,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/ai0-r007-p05-concurrent-replay-failclosed.test.mjs",
+      "sha": "91fd6b26fa326fe3df2b6e047e3fb7a031bea92a",
+      "bytes": 4086,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/ai0-r008-cloudflare-preview-disabled-offline-gate.test.mjs",
+      "sha": "2f5362b62ecc7cf0ea929139d81d6ebd2fc477ca",
+      "bytes": 5137,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/ai0-r008-cross-domain-legacy-bridge-denial.test.mjs",
+      "sha": "b5a3a18476012c9d887f913ff741f17b566555ad",
+      "bytes": 4361,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/ai0-r008-four-owner-full-cross-checkout-gate.test.mjs",
+      "sha": "d256725b0cb1af1cb2e527f4254cef886174e760",
+      "bytes": 6965,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/ai0-r008-two-owner-partial-cross-checkout-gate.test.mjs",
+      "sha": "8e422cfd6f44aafc6aa1f62c40ec8d34462bc987",
+      "bytes": 6713,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/ai0-wave1-ci-evidence-gate.test.mjs",
+      "sha": "14c6076987bc363d2385dc89d0e62ba09b2d718c",
+      "bytes": 4328,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/ai0-wave1-four-owner-gate.test.mjs",
+      "sha": "34b4ce9ea89e91df27ea35b5b7e4425ae2d541e1",
+      "bytes": 4198,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/ai0-wave1-r002-original-owner-blob-gate.test.mjs",
+      "sha": "bae1f19b7fb9ddd2e419fdb4cca64300bc11ac31",
+      "bytes": 3235,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/ai0-wave1-r003-cross-owner-gate.test.mjs",
+      "sha": "fc1fb075aa96d5bfc2aa1e10a5827489f8e982a8",
+      "bytes": 6127,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/ai0-wave1-r004-cross-owner-gate.test.mjs",
+      "sha": "cb657c9e466d38b2c63f681884d4685bce144318",
+      "bytes": 6793,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/ai0-wave1-r005-cross-owner-gate.test.mjs",
+      "sha": "06953a4abedd78a0ebfcfc824c198bd89d14963a",
+      "bytes": 6068,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/ai0-wave1-r006-four-owner-cross-checkout-gate.test.mjs",
+      "sha": "cdd0657c32e33affaeb908c7f69f3b5a138f9315",
+      "bytes": 8520,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/ai0-wave1-r007-four-owner-cross-checkout-gate.test.mjs",
+      "sha": "b15518eadc766f1ee0c1243444eae6a5e18e008f",
+      "bytes": 7820,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/consumer-a-candidate-product.test.mjs",
+      "sha": "3fe9ae33b7e8c66a9c74279a82302218d74e8677",
+      "bytes": 3572,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/future-starry-app-portfolio.test.mjs",
+      "sha": "8a55847ffdcfdee59ab7d10631f8ca15dcfe2b2c",
+      "bytes": 3412,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/r11-preflight-risks.test.mjs",
+      "sha": "80b6ee2ed78dbe151037b0aa604e39b9bbe86e3e",
+      "bytes": 1470,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/r13-trust-roots.test.mjs",
+      "sha": "e3cf35d6a1c19c0bc3d18898df083b3946099014",
+      "bytes": 2607,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/r14-admin-prep-evidence.test.mjs",
+      "sha": "95ef49d830045d14c64a393157f32d380378961b",
+      "bytes": 2186,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/r15-sql-inventory.test.mjs",
+      "sha": "cd71259e21a1ef0899678f683d8c4ca4fc4255d7",
+      "bytes": 3500,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/r18-cross-d1-preflight.test.mjs",
+      "sha": "55c36331f94062c437c38e0be56a19076577faeb",
+      "bytes": 2797,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/r18-owner-blob-integration.test.mjs",
+      "sha": "4d8747198181ecd89c80d366ebabf7e5fb3b2eba",
+      "bytes": 2877,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/r19-owner-exact-blobs.test.mjs",
+      "sha": "5d60513dd4ea30f0084f8d2663309b76fd8b9910",
+      "bytes": 2757,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/r20-original-owner-blobs.test.mjs",
+      "sha": "fb8e15c6993acf21df47f9c58a86b88d848cd13e",
+      "bytes": 1903,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/r21-four-owner-source-integrity.test.mjs",
+      "sha": "556beb56e9cc8d48a5f03b98983faf4491c6bf5b",
+      "bytes": 2203,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/r23-source-blob-and-release-failclosed.test.mjs",
+      "sha": "e0a5cd206dbf88fed7913a3f47d3efd27460df3d",
+      "bytes": 3806,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/r24-exact-owner-blob-and-release-boundary.test.mjs",
+      "sha": "4948fb19d0c7be05af6826481c6876ebe2589cfa",
+      "bytes": 3721,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/r25-cloudflare-real-inventory-approval-failclosed.test.mjs",
+      "sha": "1b400c882c0b044fcdb90de27709f531415d0d6d",
+      "bytes": 2275,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/r26-d02-owner-approved-monorepo-decision.test.mjs",
+      "sha": "3b3adf34a537d9e73ea57cf73a1c3b4f85c34bcd",
+      "bytes": 3379,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/r27-d03-revenuecat-owner-decision.test.mjs",
+      "sha": "bb8714d4e422f33b60e318240f15a63cb4b88667",
+      "bytes": 3712,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/r28-d04-ads-comparison-only-decision.test.mjs",
+      "sha": "039e7d01b91f3547bacab2ce033343fc6a580398",
+      "bytes": 3736,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/r29-d05-optional-web-admin-separate-decision.test.mjs",
+      "sha": "5eda3b4fb0446b3acec1df60c7158d8d3cdfc3c1",
+      "bytes": 4759,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/r30-d06-free-first-owner-explicit-spend-gate.test.mjs",
+      "sha": "6ee7e0763d0bf53c20398d80b6bd274f376081d6",
+      "bytes": 4648,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/r31-d07-per-app-entitlements-and-cross-platform-policy.test.mjs",
+      "sha": "aa1bf1f7f3119cb0bccd2f605e23f209df73246d",
+      "bytes": 4876,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/r32-d08-style-tokens-owner-decision-register.test.mjs",
+      "sha": "396221db25d31ae5f4c562bc636327e7479696ef",
+      "bytes": 6023,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/r33-d01-readonly-native-poc-plan.test.mjs",
+      "sha": "85e9eaf5362ec8be8f250aab0b53ea0c561dbbcb",
+      "bytes": 4565,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/round10-all-owners-gate.test.mjs",
+      "sha": "ad2d927e405d89c4b1ebf302932bc8fc29ebe2e6",
+      "bytes": 2076,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/round11-all-owners-gate.test.mjs",
+      "sha": "4b1e33d85624df8e12c95122e17b656be4603e2b",
+      "bytes": 2151,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/round12-all-owners-gate.test.mjs",
+      "sha": "160219ccd21f957815149972c9ae8470325230a1",
+      "bytes": 2267,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/round13-all-owners-gate.test.mjs",
+      "sha": "99ebff2b958e12e78455e444c14b1e7a04b21d5e",
+      "bytes": 2446,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/round14-all-owners-gate.test.mjs",
+      "sha": "1ff2edd12fa058cc974079b45777c2783da1a2aa",
+      "bytes": 3036,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/round15-all-owners-gate.test.mjs",
+      "sha": "cd5106035836bc11144bb75e60b0dba867079163",
+      "bytes": 3576,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/round7-all-owners-gate.test.mjs",
+      "sha": "df5d8f17153be0283d0688d350391e20ca081727",
+      "bytes": 3965,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/round8-all-owners-gate.test.mjs",
+      "sha": "38d79981fa9ed30e6ffeb29f9571613b647625e3",
+      "bytes": 1858,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/round9-all-owners-gate.test.mjs",
+      "sha": "d37f26f07081916f09cde4c32b6bf882ca2a7170",
+      "bytes": 2251,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/sbase-four-owner-interop.test.mjs",
+      "sha": "243b5bea6da45c4d81a4462ed421b477d095a8f1",
+      "bytes": 6714,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/integration/test/starry-app-f0-evidence.test.mjs",
+      "sha": "53adbc5a5a1c20b5c8fdc18be13b6add1a151cad",
+      "bytes": 3956,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/BATTERY-DO-ADR-CANDIDATE.md",
+      "sha": "331bd632c890fa77a8713cc3f013cade88a59355",
+      "bytes": 1772,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/G07-R008-REAL-EVIDENCE-APPROVAL-MATRIX.md",
+      "sha": "f48b26be6c03f79206d36a28e79a7de07e194e00",
+      "bytes": 8851,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/G07-R008-REAL-EVIDENCE-APPROVAL-MATRIX.v1.json",
+      "sha": "fe78363727a57fa7e3619bb2fcf86b66c4bac1b8",
+      "bytes": 9481,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/R23-G07-PHYSICAL-READINESS-PREFLIGHT-20261028.md",
+      "sha": "95516e4c0f554acfc3af7ced751af0b3bad7bcf0",
+      "bytes": 4146,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/R24-G07-AUTHORIZED-STAGING-CHAOS-TEST-PLAN-20261028.md",
+      "sha": "b7e76b04839501c7da4287a3a7c46bf6e9cc2119",
+      "bytes": 7344,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/ROUND10-BATTERY-D1-CAS-GATE.md",
+      "sha": "7e63ed855ea5dac06a12d8d6a8412a5d07738f99",
+      "bytes": 2415,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/ROUND11-BATTERY-DEEP-RECOVERY-GATE.md",
+      "sha": "242dec1596def534b8d759a0d5fef6c11e3ae101",
+      "bytes": 2678,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/ROUND12-SIGNED-AUDIT-RECOVERY-GATE.md",
+      "sha": "82aa82cb97de00954f77cbe7bd9396e74654fe87",
+      "bytes": 2295,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/ROUND13-DUAL-SIGNED-AUDIT-HEAD-GATE.md",
+      "sha": "d7289a564f7b29d06c25432c6ff1266d90df2e55",
+      "bytes": 2261,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/ROUND14-AUTH-DELETION-BATTERY-INBOX-GATE.md",
+      "sha": "794127f0289065b88a600fdf7f95fe8178690426",
+      "bytes": 3671,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/ROUND15-AUTH-OUTBOX-BATTERY-CONTRACT-GATE.md",
+      "sha": "0a67e156791c4cc8ff387027cff9508f58809e81",
+      "bytes": 3218,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/ROUND16-PUBLISHER-REPLAY-RECEIPT-GATE.md",
+      "sha": "633c4d7493dfa8eda471f65046509776a5c0eb34",
+      "bytes": 3364,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/ROUND17-LAWFUL-POLICY-RECEIPT-GATE.md",
+      "sha": "59a1f26708cb6613da23f4ea1b52023bcb050172",
+      "bytes": 2646,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/ROUND18-CROSS-D1-BATTERY-RECOVERY-GATE.md",
+      "sha": "47c8155f5f78ec34c1924b42f7f523073d6c77c6",
+      "bytes": 4362,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/ROUND19-TASK-WALLET-CROSS-D1-RECEIPT-GATE.md",
+      "sha": "4790fd58a719cb429bdc565cbea6afb294a2da74",
+      "bytes": 3622,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/ROUND20-SOURCE-TASK-WALLET-MAPPING-GATE.md",
+      "sha": "352cf1e7cc77971723690fd8afaa5f07e6b5099c",
+      "bytes": 3727,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/ROUND21-CANDIDATE-UI-TASK-BATTERY-STATUS.md",
+      "sha": "187ed01e68c316b11b98063a314138d2ffb1ff96",
+      "bytes": 5110,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/ROUND3-P05-QUEUE-RECOVERY.md",
+      "sha": "e6a3827995ab8319fad259a2fab02ad6d46ddca7",
+      "bytes": 2377,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/ROUND4-D1-QUEUES-MIGRATION-GATE.md",
+      "sha": "0a11394c955f72f475fcafde46882708a886c30f",
+      "bytes": 4347,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/ROUND5-BILLING-AUDIT-D1-QUEUES-GATE.md",
+      "sha": "05152156856a206a08d60b3471fc62c0140da68d",
+      "bytes": 4553,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/ROUND6-QUEUE-D1-REAL-GATE.md",
+      "sha": "70b4dc411234fc1df73e06c5ee284a39b050aec4",
+      "bytes": 3434,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/ROUND7-FREE-BATTERY-APPROVED-DECISIONS.md",
+      "sha": "f0985323c6ebc1d040461645dea1c5d719f85fc3",
+      "bytes": 2415,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/ROUND8-APPEALS-RETENTION-GATE.md",
+      "sha": "a50b643ad6a5866ce2e1f472a5deede426b25613",
+      "bytes": 1918,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/ROUND9-RECOVERY-ISOLATION-GATE.md",
+      "sha": "c0836a6908ad677665c9e7a4b9d6a815cdb58452",
+      "bytes": 3205,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/SBASE-20261028-BATTERY-AUDIT-SDK-GATE.md",
+      "sha": "dd98f5eb6904f6def3ea6dc0df0dafd46df61cd1",
+      "bytes": 5014,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/W1-D87-D06-AUTH-INBOX-ACK-CONTRACT.md",
+      "sha": "53e7f62a2214b7616189876014527181e69f06d3",
+      "bytes": 15551,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/W1-D87-D06-AUTH-INBOX-ACK-CONTRACT.v1.json",
+      "sha": "c67e2009db08ddb7e1fa00e30d1b0f49247a0f63",
+      "bytes": 16690,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/W2-D06-PRIVATE-ENVELOPE-VOCAB-AMENDMENT.md",
+      "sha": "c23d3803821b7bc933004d716fd96ade6a56ebb4",
+      "bytes": 22637,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/W2-D06-PRIVATE-ENVELOPE-VOCAB-AMENDMENT.v1.json",
+      "sha": "5f4a05a1c320018f64bb89143869a209dc5bc833",
+      "bytes": 20866,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/WAVE1-ROUND001-SECURITY-NOTIFICATION-FENCE.md",
+      "sha": "e607b8c627f8cebe3748cb4a0e872596945057ca",
+      "bytes": 5588,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/WAVE1-ROUND002-P05-AUDIT-RECEIPT-CONTRACT.md",
+      "sha": "229ecfbb32e33a35761903898722b3f1f227b8d3",
+      "bytes": 2948,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/WAVE1-ROUND003-P05-COMMIT-BEFORE-ACK-CONTRACT.md",
+      "sha": "70bab9914a80b67604779ba4deebdf029636c6c5",
+      "bytes": 4491,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/WAVE1-ROUND004-P05-CANONICAL-CLAIM-HANDSHAKE.md",
+      "sha": "af48e97fdc22a212f919a7b90a35acf42c95bf9c",
+      "bytes": 7054,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/WAVE1-ROUND005-P05-SQLITE-CAS-ANTI-PITR-OFFLINE.md",
+      "sha": "afaa7b3062d91fd695b2acbfecb23bc095ee8dc7",
+      "bytes": 6590,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/WAVE1-ROUND006-P05-VNEXT-SQLITE-REVIEW.md",
+      "sha": "227f172c7cf8af855ba0bc59cfbcd3607344a639",
+      "bytes": 8527,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/WAVE1-ROUND007-CROSS-D1-LEGAL-RECOVERY-MATRIX.md",
+      "sha": "60c6fb57e62545819bc52134670d2dacbe3566f9",
+      "bytes": 3970,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/docs/WAVE1-ROUND008-P05-P06-ERASURE-FAILURE-ORDER.md",
+      "sha": "ebd13c03a032aea314f8def5eefdfaf6699aac80",
+      "bytes": 4528,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/integration/ai0-p05-contract.test.mjs",
+      "sha": "e054666e5ad2443eb83abc81d7dd854f31a0e67a",
+      "bytes": 3655,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/integration/pinned-ai2-contract.test.mjs",
+      "sha": "353f80d0c55715e62ccbbdd7b06b9fa7f237124f",
+      "bytes": 4975,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/integration/round5-billing-committed.test.mjs",
+      "sha": "32692e1f76e46b3cfda642defccbd6e1e8b00d64",
+      "bytes": 15554,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/README.md",
+      "sha": "bb4e704c33fd362bb23a445ce2ff8cbb8f24c266",
+      "bytes": 6147,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0001_audit_DRAFT.sql",
+      "sha": "1d6ac8f4dfd5b33c47bb67aff5b49be1cfc343b5",
+      "bytes": 2164,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0002_billing_audit_DRAFT.sql",
+      "sha": "d836fd81975405f766d9e0675375afc35b69b6b0",
+      "bytes": 1333,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0003_queue_atomic_DRAFT.sql",
+      "sha": "0234dbf5dd49f8890c4e3a2a81be6be0920d33f7",
+      "bytes": 1905,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0004_d1_atomic_DRAFT.sql",
+      "sha": "b469b1846df6f29f83ff305970a83c785ac0aaa0",
+      "bytes": 2481,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0005_free_battery_DRAFT.sql",
+      "sha": "e888a9ca0d3fd489a62bff837e9a64eb406b8bdc",
+      "bytes": 2631,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0006_anonymous_appeal_DRAFT.sql",
+      "sha": "a721dfe37a391975e8631f5ffa540183e0ea3884",
+      "bytes": 2147,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0007_recovery_gate_DRAFT.sql",
+      "sha": "d4743b6d9bbac8f5a6b67e091d6622668d151431",
+      "bytes": 1661,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0008_battery_settlement_CAS_DRAFT.sql",
+      "sha": "52ddd61da13d928be1dee23519bddc634a09fd0c",
+      "bytes": 605,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0009_signed_audit_recovery_DRAFT.sql",
+      "sha": "f961482257fc0ddc0ec04d7b6f0dc1f75ac96d9f",
+      "bytes": 1537,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/schema/0010_auth_delete_battery_inbox_DRAFT.sql",
+      "sha": "f50ded1a25b0064131c4f4368f31c879b9135204",
+      "bytes": 5044,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/anonymous-appeals.ts",
+      "sha": "de93cb78e659f17f07fbfbc9352a7b6f3a0d719e",
+      "bytes": 7742,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/audit-retention.ts",
+      "sha": "11cc434a136cbbcde0ed6eb7b789e3010f5586cf",
+      "bytes": 3293,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/auth-deletion-battery-bridge.ts",
+      "sha": "62e6035c4d944e30412bf6fc150fb3c274452e47",
+      "bytes": 7462,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/auth-deletion-battery-consumer.ts",
+      "sha": "7d9c8d9436f2bbf5c3739a9184f7950897ac9dd3",
+      "bytes": 7278,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/battery-recovery-integrity.ts",
+      "sha": "25aa07e5dee8aa04b9ad44e29f43ab66e0d741b2",
+      "bytes": 12238,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/battery-settlement-d1.ts",
+      "sha": "1b94988c7d014795a98faded9603904c664fe978",
+      "bytes": 7910,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/d1-audit-adapter.ts",
+      "sha": "b1c7b56f05c9fb4a37500c271b906fb9e2fea533",
+      "bytes": 6008,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/free-battery.ts",
+      "sha": "fd75a550f43ab8c1c56b4b6a742c845b226fc37e",
+      "bytes": 10489,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/index.ts",
+      "sha": "20a12af5cfb07940a041bd4fa633192dcad3f27f",
+      "bytes": 16060,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/queue-consumer.ts",
+      "sha": "291d8758b5cad03dca32a08a0ae5ec7b50e404b8",
+      "bytes": 8745,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/queue-transport.ts",
+      "sha": "f75d3d4928874012eac88f460d6ca6435540d3c0",
+      "bytes": 3314,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/r16-battery-publisher-receipt.ts",
+      "sha": "3a4bc7e501770844c38a90d6eef9e79fd59ed179",
+      "bytes": 11890,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/r18-cross-d1-recovery-review.ts",
+      "sha": "85add52d0c2581f7a992e6fea181682307251ab5",
+      "bytes": 12386,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/r19-task-wallet-receipt-gate.ts",
+      "sha": "06e2e1b35de3542c91f992cc5a8c8b4a9b44ccd6",
+      "bytes": 11189,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/r20-task-wallet-source-binding.ts",
+      "sha": "59fc09daca6fdc8301f29b57ee5519be320ef91f",
+      "bytes": 8086,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/r21-candidate-ui-task-battery-status.ts",
+      "sha": "13b5069293032787f02dbcdb4326386c4a5a1a5a",
+      "bytes": 10360,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/recovery-guard.ts",
+      "sha": "8f840294919ff134ada79eebc20d7af46a60b463",
+      "bytes": 6832,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/replay-review.ts",
+      "sha": "cf0d4cf0abe0c55dd8d82fc658de4ba1b2aa9354",
+      "bytes": 2587,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/sbase-audit-retry-contract.ts",
+      "sha": "abb8a08f6d052141862a6ed5c635f12762754673",
+      "bytes": 4765,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/sbase-battery-client-contract.ts",
+      "sha": "5cfb03433937be1d3c955659c3328bd36060c375",
+      "bytes": 5304,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/signed-audit-head.ts",
+      "sha": "b82adb79bfe795e1929a1783ad766294e323ebd8",
+      "bytes": 9284,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/signed-audit-recovery.ts",
+      "sha": "16f5a64711afc20d349349f599af603848c3f378",
+      "bytes": 11439,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/wave1_r005_p05_sqlite_cas.py",
+      "sha": "f7723cbfe6bfcb67be383ac998c9aa5d85e917e7",
+      "bytes": 11131,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/wave1_r006_p05_vnext_sqlite_review.py",
+      "sha": "cf0c73495ff3c93c04be4b776adba7be9c3b981c",
+      "bytes": 8568,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/wave1_r007_p05_recovery_matrix.py",
+      "sha": "105431d41ac0542630b3113104c18d6aa1955e79",
+      "bytes": 9390,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/wave1_r008_p05_p06_failure_order.py",
+      "sha": "4f8566bce9feb7da4c592a98d05ad6ecf74907c3",
+      "bytes": 14764,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/wave1-r002-p05-audit-review.ts",
+      "sha": "dbfd497e7d3cada5b8016445ad4bc6b9a9e9977c",
+      "bytes": 6801,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/wave1-r003-p05-ack-interop.ts",
+      "sha": "78d48d08d33da7508735b3d32113ae46d22bf8bf",
+      "bytes": 7141,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/wave1-r004-p05-canonical-claim-handshake.ts",
+      "sha": "d5d39cc21243d32daca80e68a87ed20a17c8dbc7",
+      "bytes": 8783,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/src/wave1-security-notification-fence.ts",
+      "sha": "d2d1f88c0cc1dd2ba3fcff379b7ec7c89e87f850",
+      "bytes": 7180,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/anonymous-appeals.test.mjs",
+      "sha": "adfcee86c3614fcc0b13f727d713ec53264a55bc",
+      "bytes": 7410,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/anonymous-retention-r8.test.mjs",
+      "sha": "b287bfeb56b035a47c1b4ac10548c76e089cc303",
+      "bytes": 8049,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/auth-deletion-battery-bridge.test.mjs",
+      "sha": "f532ccd1d1156daa0c778a22b0dcce6fcad880ca",
+      "bytes": 6156,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/auth-deletion-battery-consumer.test.mjs",
+      "sha": "2062b3dda382484a086b94c3620ff90fe68e5b2c",
+      "bytes": 5375,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/battery-recovery-integrity.test.mjs",
+      "sha": "f2f9dac6ee40a0a01bb3b38db06e946f7224a113",
+      "bytes": 7889,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/battery-settlement-d1.test.mjs",
+      "sha": "5dbe14fe706694fda3a9cdf038e8e3ea401d14fa",
+      "bytes": 5076,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/billing-audit.test.mjs",
+      "sha": "5061cd01e0d2b7d1711498c3bbdb203b161d6206",
+      "bytes": 7219,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/contracts.test.mjs",
+      "sha": "494fd8840eba4b63ea14a6ff49d4092aa7730b15",
+      "bytes": 8002,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/d1-audit-adapter.test.mjs",
+      "sha": "a1f1994cf40d2c8df5fa274f29a26c25812300c3",
+      "bytes": 7460,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/free-battery.test.mjs",
+      "sha": "c564bc9c35b3f781cdeba0c969d043758b825b92",
+      "bytes": 8474,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/queue-recovery.test.mjs",
+      "sha": "cdd7148a874d2c529e2740d558bb40e033d13cb2",
+      "bytes": 6631,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/queue-transport.test.mjs",
+      "sha": "8c5a05c5718a00f1fcf584ebbfe5968d26c55089",
+      "bytes": 3815,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/r16-battery-publisher-receipt.test.mjs",
+      "sha": "f1c92a80361620ed4fc431777d3b5e0a7be655b9",
+      "bytes": 11202,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/r18-cross-d1-recovery-review.test.mjs",
+      "sha": "803315cbd72b290c2a2a4430c1bb99bf8abf08c7",
+      "bytes": 8842,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/r19-task-wallet-receipt-gate.test.mjs",
+      "sha": "82b66283d44e0c10480c7803c80c2af158293f5c",
+      "bytes": 8168,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/r20-task-wallet-source-binding.test.mjs",
+      "sha": "28854f915252fd693dfce5602345f31034659959",
+      "bytes": 6824,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/r21-candidate-ui-task-battery-status.test.mjs",
+      "sha": "875662b1b3fd78644fd5a06e967108bc2d811a48",
+      "bytes": 9093,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/r23-g07-readiness-preflight.test.mjs",
+      "sha": "3666970f6b7bda85a44b827976db42bae4baa854",
+      "bytes": 4387,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/r24-g07-staging-trial-plan.test.mjs",
+      "sha": "49a9064cb101ffef420b4e3ffd856b9601598db6",
+      "bytes": 6114,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/recovery-guard.test.mjs",
+      "sha": "3b0bb77961dcf2cf08a37a268ce85bd8a07f0b53",
+      "bytes": 5450,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/replay-review.test.mjs",
+      "sha": "93e36356ba6945589eea1d21e4742dbe16731ce2",
+      "bytes": 2317,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/round6-queue-hardening.test.mjs",
+      "sha": "84025ac53e9196da991773b79dd24651952d8d66",
+      "bytes": 3166,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/sbase-platform-contract.test.mjs",
+      "sha": "160aabe304be4451a4818fb82aecab8f40d1e392",
+      "bytes": 10105,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/signed-audit-head.test.mjs",
+      "sha": "eafc1116e93b71d2f43b16a0b3d60b5b022fe013",
+      "bytes": 9690,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/signed-audit-recovery.test.mjs",
+      "sha": "31d578473628ad56ddf823fe5806ec8128959b33",
+      "bytes": 8524,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_anonymous_appeals.py",
+      "sha": "aff99d79dce3dcd52280b379b6310047f64b0edb",
+      "bytes": 3102,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_auth_deletion_battery_inbox.py",
+      "sha": "8a17548f88bd0d6b05b0a2ad6ec817545ac96107",
+      "bytes": 6847,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_auth_deletion_source_bridge.py",
+      "sha": "1373570ffd94a7c46c500c49cabeaf253f3bb1d5",
+      "bytes": 5287,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_battery_recovery_integrity.py",
+      "sha": "5bf500f0ac06541ecb99561687aa7417a99f5e8e",
+      "bytes": 4061,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_battery_settlement_cas.py",
+      "sha": "7335cee223dcdec2e3f172aaafca52366f2773a9",
+      "bytes": 7125,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_billing_audit.py",
+      "sha": "e91f2b6c3788015c49c966afde902e78b02830db",
+      "bytes": 3399,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_d1_round4.py",
+      "sha": "747452b1b0e37e51628656bf5ceaaa5d74d6edcc",
+      "bytes": 5084,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_free_battery.py",
+      "sha": "bc160866d47860e4aa7e16dafaac50cdbd9e3989",
+      "bytes": 4071,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_queue_recovery.py",
+      "sha": "2c28863ab43598f3a8a0cccf902fdd45aa21c097",
+      "bytes": 3737,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_r16_battery_publisher_receipt.py",
+      "sha": "20a3c1d6adb55b07c9796c810859db3e8784798d",
+      "bytes": 5384,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_r18_cross_d1_recovery.py",
+      "sha": "6789fe19e0dc27f3bfb58cd42f3d0833d608538f",
+      "bytes": 7955,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_r19_three_db_task_wallet.py",
+      "sha": "c4da4c2171c415d1b1b880931d8a7d9f7efe9cec",
+      "bytes": 10025,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_r20_three_db_source_wallet_binding.py",
+      "sha": "74cde56d2de616bef4a1935474641154bbe4f737",
+      "bytes": 8936,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_r21_candidate_ui_sqlite.py",
+      "sha": "bc586703fdd89317819008af85a00cb64a1b4faf",
+      "bytes": 9862,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_recovery_isolation.py",
+      "sha": "16703b2938ce5e744b6789f2278fb46818f47bdb",
+      "bytes": 4448,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_round005_p05_receipt_sqlite.py",
+      "sha": "b29cc4496de313df770ec77ecae73e80a66b6868",
+      "bytes": 11713,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_round006_p05_vnext_sqlite.py",
+      "sha": "f868e09bdbdadee4369d614140bec67044ff79bb",
+      "bytes": 13478,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_round007_p05_recovery_matrix.py",
+      "sha": "90ea43a62271eaa4deb247e8ca8b158b9de72464",
+      "bytes": 7981,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_round008_p05_p06_failure_order.py",
+      "sha": "271a31823b42b1f60a3bb465e64ded8abdf81fb0",
+      "bytes": 13461,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_round6_multiwriter.py",
+      "sha": "c77049117232ac16a8d50e7bef6980940c3ff1c6",
+      "bytes": 4273,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_signed_audit_recovery.py",
+      "sha": "9a5401ee8eece6f0ebed1594a036dfb959134e35",
+      "bytes": 3228,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/test_sqlite.py",
+      "sha": "264e1162baae3b33691a98fa456a469a96425951",
+      "bytes": 3274,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/w1-d87-d06-owner-contract.test.mjs",
+      "sha": "f6a6d885138a04eec9b0d5ee46014adca144b611",
+      "bytes": 4698,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/w2-d06-private-envelope-provenance.test.mjs",
+      "sha": "6e4ea6dbf406ac3d1d33c4a165a712ff4376fdd1",
+      "bytes": 4027,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/wave1-r002-p05-audit-review.test.mjs",
+      "sha": "bee29c6cf59bf5b82ead3df851c7dd196a46a596",
+      "bytes": 8461,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/wave1-r003-p05-ack-interop.test.mjs",
+      "sha": "349102d29f8d5f193b7e24d93849598297dc6b5a",
+      "bytes": 6568,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/wave1-r004-p05-canonical-claim-handshake.test.mjs",
+      "sha": "fbed6351a43e4164458627865ee85167677aad53",
+      "bytes": 9094,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/test/wave1-security-notification-fence.test.mjs",
+      "sha": "ab7afe5ec84097069bf354cca80d108794a0d66c",
+      "bytes": 8136,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/tools/r23-g07-readiness-preflight.mjs",
+      "sha": "f830ef64abac967018c8f0567b653d6692ffff12",
+      "bytes": 4529,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/tools/r24-g07-staging-trial-plan.mjs",
+      "sha": "0032ef56312897a37cb0a945afb5f783e41ca8a6",
+      "bytes": 8557,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-ai3/tsconfig.json",
+      "sha": "d4580d1056363d16011ac935963dc998ddbf8ed4",
+      "bytes": 295,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/AI2-W1-D87-A-BILLING-AUTHORITY-INTERFACES.v0.json",
+      "sha": "ced186d571a49c23f68f6b9e41822034b17a36db",
+      "bytes": 17855,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/AI2-W1-D87-A-BILLING-SINGLE-AUTHORITY-ADR.md",
+      "sha": "84122261d24df18b15ba4db39c606f16cb9a3e0c",
+      "bytes": 16882,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/AI2-W1-D87-RECEIPT-IDENTITY-SCOPE-AMENDMENT.md",
+      "sha": "d52ca39b8a4f9da8e0c6dff8b4af569134fa6d3c",
+      "bytes": 4538,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/AI2-W1-D87-RECEIPT-IDENTITY-SCOPE-AMENDMENT.v1.json",
+      "sha": "baef3290f6212856358afd005ab6ad0c5d27c881",
+      "bytes": 11035,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/GATE1-P05-AUDIT-HANDOFF-v0.2.md",
+      "sha": "82da1b46b105cd23c7dc1fca18c0f470ddbed0e9",
+      "bytes": 6952,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/POST-R008-G04-G05-AUTHORITY-APPROVAL-MATRIX.v1.json",
+      "sha": "3a5d3be8cc7a0a9159d2cbd73f82ce3de374348b",
+      "bytes": 10380,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/POST-R008-G04-G05-STORE-BILLING-REAL-EVIDENCE-REVIEW.md",
+      "sha": "b5e447a1002bfb7febe9f3a3f458b046ae77ff2c",
+      "bytes": 9867,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/R23-GOOGLE-RTDN-CRYPTO-BOUNDARY-SANDBOX-PLAN.md",
+      "sha": "c47eb9bf89f0ff51e5ee7979e1cf0d5509a02600",
+      "bytes": 3196,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/R23-STORE-G04-G05-PREFLIGHT.md",
+      "sha": "85bb0624e07d4bcbc6a428069fbb297170cd00e7",
+      "bytes": 2847,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/ROUND10-SQLITE-FENCE-GATE.md",
+      "sha": "10983d9212868a20b7c81bfdc021b91a0b079b9c",
+      "bytes": 900,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/ROUND11-BILLING-OUTBOX-RECOVERY-FENCE.md",
+      "sha": "fd303698cc03dc4e08e18ff8afc85b97788fbe3e",
+      "bytes": 2916,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/ROUND12-SIGNED-BILLING-WITNESS-GATE.md",
+      "sha": "ee190f052f33c1b6e2cf793fc8f9f8b33af5ef5b",
+      "bytes": 1757,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/ROUND13-SIGNED-HEAD-GATE.md",
+      "sha": "93f8a80089eb299c20a30d5656dadd16fbaf0282",
+      "bytes": 1916,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/ROUND14-DELETION-FENCE-GATE.md",
+      "sha": "2f8aa238a3f3da57ceaab5d00583bb3b1619aa89",
+      "bytes": 2787,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/ROUND15-AUTH-DELETE-CONTRACT-GATE.md",
+      "sha": "e320e5bb40fef1e1911c4600009f4a07729beeef",
+      "bytes": 2656,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/ROUND16-SINGLE-PUBLISHER-INBOX-GATE.md",
+      "sha": "897b10c0a271c3bbdf94f9eb8bed562c8412f4bf",
+      "bytes": 3365,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/ROUND17-BILLING-DELETION-READBACK-GATE.md",
+      "sha": "019c1e2807ceeadc90a4979ec41ecf6b0ec7edbc",
+      "bytes": 2293,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/ROUND18-BILLING-REFUND-PITR-GATE.md",
+      "sha": "fe79828a70a81dc29460dee751fa3d79e3a432b6",
+      "bytes": 3876,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/ROUND19-SAGA-RECEIPT-READONLY-GATE.md",
+      "sha": "c38390dd4aac0b330be5370d744dfaaa06ae4b97",
+      "bytes": 2567,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/ROUND20-AUTH-BILLING-STORE-NAMESPACE-GATE.md",
+      "sha": "b0c156127fc70c0f692620a1d2f3d5c29c6c13d5",
+      "bytes": 3268,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/ROUND21-CANDIDATE-BILLING-UI-STATE.md",
+      "sha": "6e990a7aa7a5a2077c97f8148eebd58a56124638",
+      "bytes": 3907,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/ROUND3-SANDBOX-PROVIDER-GATE.md",
+      "sha": "5cd4e437e0615a6fb1230d4e45417e23a6f7388d",
+      "bytes": 4799,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/ROUND4-BILLING-D1-TRANSACTION-GATE.md",
+      "sha": "caf02dbcf3256da8a92427341e589c39a9bb8dfa",
+      "bytes": 5780,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/ROUND5-STORE-AUTHORITY-AI3-HANDOFF.md",
+      "sha": "f369278ece8c8422b0af35a10620277110b7bd29",
+      "bytes": 6084,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/ROUND6-STORE-OAUTH-PKI-RELEASE-GATE.md",
+      "sha": "47bae6c2f694cc3e8186141586d332bb161dfdac",
+      "bytes": 3320,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/ROUND9-D1-RECONCILE-GATE.md",
+      "sha": "d53557636d2fd184606ac034e346b07cb733872e",
+      "bytes": 1040,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/SBASE-20261028-BILLING-CLIENT-ADR.md",
+      "sha": "6993edaa302cd982ae2a71c07f9a506dbc579822",
+      "bytes": 7677,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/WAVE1-R007-OFFICIAL-STORE-ADAPTER-DENY-MATRIX.md",
+      "sha": "b719fa337925ca87a207142a49880915ac32bbf0",
+      "bytes": 6683,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/WAVE1-R008-CROSS-PROVIDER-CONFLICT-DENY-MATRIX.md",
+      "sha": "ba82a871a78ebef383da2777d86770b55c635c07",
+      "bytes": 7143,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/WAVE1-ROUND001-REVENUECAT-BILLING-REVIEW.md",
+      "sha": "7fb0d2599c6e19584229121cfb14e47fa4bdf1ac",
+      "bytes": 3778,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/WAVE1-ROUND002-SIGNED-SESSION-BILLING-BRIDGE.md",
+      "sha": "bd490613b1fa3489a05cf65d5388fdd8076f6583",
+      "bytes": 4026,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/WAVE1-ROUND003-AUTH-STORE-REVIEW-AND-SANDBOX-MATRIX.md",
+      "sha": "51e1b4d1740b4dae01f86e4da2e9ab4d0727d8d2",
+      "bytes": 6052,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/WAVE1-ROUND004-CROSS-OWNER-AUTH-ENTITLEMENT-GATES.md",
+      "sha": "c2f06d4e9b79b0831a7a0320e7a21348d4beb336",
+      "bytes": 5709,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/WAVE1-ROUND005-REAL-AUTH-CROSS-OS-SANDBOX-MATRIX.md",
+      "sha": "09d5cb488b79630bc0e7acfaf0ed1859d9cb2c09",
+      "bytes": 7461,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/docs/WAVE1-ROUND006-STORE-SIGNATURE-PROVENANCE-AND-P05-GATE.md",
+      "sha": "5c5c925a012cc315e6373619d61a760f4bedfab3",
+      "bytes": 8426,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/README.md",
+      "sha": "2aca17a6023063b8dd894ba57f97738c4ebd62f0",
+      "bytes": 3401,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/schema/0001_billing_rebuild.DRAFT.sql",
+      "sha": "aa3810fa727b312b97f02febc89f3f2ae6f4161f",
+      "bytes": 3441,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/schema/0004_billing_atomic_DRAFT.sql",
+      "sha": "5acdcffab9cc8195cfa8a28045612ee0174eddff",
+      "bytes": 911,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/schema/0005_reconciliation_lease_DRAFT.sql",
+      "sha": "dd60cf7b985aa7ceda1bfd38a5724ac5e2bd5f65",
+      "bytes": 3074,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/schema/0006_recovery_outbox_DRAFT.sql",
+      "sha": "baef52593cb0a4d192cc742dd6b4c0e675490c12",
+      "bytes": 1820,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/schema/0007_account_deletion_fence_DRAFT.sql",
+      "sha": "329b4e3523abef1d1575d5060bcf72d1ae7c7c7b",
+      "bytes": 3007,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/scripts/r23-store-preflight.mjs",
+      "sha": "c941f3f8a772db56f3949d4a5de4cddbd2a0c4e9",
+      "bytes": 1224,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/account-deletion-fence.ts",
+      "sha": "38e33d2646768e64afd8846ada3364cbad8d7a61",
+      "bytes": 6276,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/apple-pki-node.mjs",
+      "sha": "32780a5b355ab4c1b4685e4ba496487c4b482ab1",
+      "bytes": 5519,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/auth-deletion-contract.ts",
+      "sha": "7f8cecbd35f2d140c3140f65f96b27c70833f9f0",
+      "bytes": 8363,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/billing-d1.ts",
+      "sha": "95280644a197952828a12e48ebb13e09818fb548",
+      "bytes": 12993,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/commerce-policy.ts",
+      "sha": "cad3bf26da244e930dfdfdafc491475417746d24",
+      "bytes": 10624,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/deletion-readback-review.ts",
+      "sha": "a51261290d691efb820755411a9ecceb8b13f235",
+      "bytes": 6481,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/deletion-single-publisher-inbox.ts",
+      "sha": "72f2c9ab5d1b6e45b8ffa727be52d09caccf1a73",
+      "bytes": 11864,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/google-play-requery.ts",
+      "sha": "7f64945f9c50b5c55080097d9adedb45afc02dc0",
+      "bytes": 3468,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/index.ts",
+      "sha": "d01f1fcf8c639f6b768fee86b8885d0d11b25554",
+      "bytes": 14752,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/r18-refund-inbox.ts",
+      "sha": "9ea1ec310d7e80dfd98be5ffa9c30f3352849ce4",
+      "bytes": 13335,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/r19-saga-receipt.ts",
+      "sha": "ec596fdb7fb939569a801f78757d7b21f617b924",
+      "bytes": 10491,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/r20-namespace-mapping-gate.ts",
+      "sha": "cde293f5c7bc5b59fbc36b69321531fce91d1aca",
+      "bytes": 11207,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/r21-candidate-ui-billing-state.ts",
+      "sha": "4701831083d3ed2d4db613879608635d3d3f01ce",
+      "bytes": 12168,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/r23-google-rtdn-signed-transport.ts",
+      "sha": "fc7b1c5f22e48e87bcdb9f9a8dbc75b101299909",
+      "bytes": 10077,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/r23-store-release-preflight.ts",
+      "sha": "81036e17224c225256387b8dd3c7035730aececb",
+      "bytes": 6795,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/reconciliation-d1-ports.ts",
+      "sha": "5848dc921a5a655f452772d13324488924320643",
+      "bytes": 8701,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/reconciliation.ts",
+      "sha": "3bbf42e296568c3d0e50a9741215481394d94f88",
+      "bytes": 9598,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/recovery-outbox-fence.ts",
+      "sha": "28880f31136c062f38bc402fd853ae8f9fc3a67c",
+      "bytes": 10107,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/sandbox-providers.ts",
+      "sha": "65531a467240d73541b2ce493dfe3a913ba05cf8",
+      "bytes": 14840,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/sbase-billing-client-candidate.ts",
+      "sha": "47c776e707aed12657528fe00e32cecccb34ca1f",
+      "bytes": 10784,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/signed-billing-head.ts",
+      "sha": "c81e45fb3ad00655741e8ae392c4355be5dce445",
+      "bytes": 7350,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/signed-billing-witness.ts",
+      "sha": "e0e48c6d629e0236c3b90af7ac60d77a091cbc10",
+      "bytes": 7658,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/wave1-billing-revenuecat-review.ts",
+      "sha": "7a145e558f7a5ac004b2b87689b2696cc964ef45",
+      "bytes": 10669,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/wave1-r002-signed-auth-billing-bridge.ts",
+      "sha": "eab58fc534bbbec5455cfb67689f58383df1ca3f",
+      "bytes": 6962,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/wave1-r003-canonical-identity-store-review.ts",
+      "sha": "bafd7848605077b18e924aa23dfa16496cff9228",
+      "bytes": 11566,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/wave1-r004-entitlement-continuity-review.ts",
+      "sha": "46e6e1389bc1006f39ac4c092e6c10b683c81551",
+      "bytes": 11788,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/wave1-r005-cross-os-signed-auth-review.ts",
+      "sha": "7b8ee1b2bbf1539696b2e01dc367bfe88f489c52",
+      "bytes": 10696,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/wave1-r006-synthetic-store-provenance.ts",
+      "sha": "d64a655ce4713035a8e590f6e93c65f30f7c7eae",
+      "bytes": 17007,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/wave1-r007-official-provider-adapter-deny.ts",
+      "sha": "522da05c8fa34e4f8f3f786d683974db9e984087",
+      "bytes": 10285,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/src/wave1-r008-cross-provider-conflict-deny.ts",
+      "sha": "85cbb2f6fca4c93d08dca05830e4a5ed78b95ef3",
+      "bytes": 9860,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/account-deletion-fence.test.mjs",
+      "sha": "efdf3dc77ac48298fdc5f84d0c41e8d50a9ea4aa",
+      "bytes": 8709,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/apple-pki-node.test.mjs",
+      "sha": "ae4ee38a32944f74f148f741d98268716bc8c1a3",
+      "bytes": 5401,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/auth-deletion-contract.test.mjs",
+      "sha": "58aa7b72f7f2fb5a8be39eefed3787406ff54603",
+      "bytes": 9501,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/billing-d1.test.mjs",
+      "sha": "e99239b28944dd2edad5c12df1c359b7a5cab2ef",
+      "bytes": 7973,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/billing.test.mjs",
+      "sha": "1a9ae96687b2d4fa7b2e53a67d39d4c3bbb598a9",
+      "bytes": 14726,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/commerce-policy.test.mjs",
+      "sha": "bd00c76e0995ad54b672db3614ff104fe169404c",
+      "bytes": 11487,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/deletion-readback-review.test.mjs",
+      "sha": "f05767a254db9956e3c4d1001af2eb2cb68c8776",
+      "bytes": 7553,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/deletion-single-publisher-inbox.test.mjs",
+      "sha": "b196119b9584dd2bbf2bdef26970ea58893fb479",
+      "bytes": 12588,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/google-play-requery.test.mjs",
+      "sha": "4153213fe71ff6e257a4fd249895ae4eb9f3874f",
+      "bytes": 4140,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/r18-refund-inbox.test.mjs",
+      "sha": "a5cd69052aea01aa602106ad6f748d2a7781f54e",
+      "bytes": 12899,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/r19-saga-receipt.test.mjs",
+      "sha": "4494dfbce9d1b1a8f0e208e6744befaccbbc7915",
+      "bytes": 10767,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/r20-namespace-mapping-gate.test.mjs",
+      "sha": "f3c9de8afa1b9bf05446c0c29b72e6cd411e3ce3",
+      "bytes": 14977,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/r21-candidate-ui-billing-state.test.mjs",
+      "sha": "f6ede51373bbca58c2e21f9f70d07d779f43694f",
+      "bytes": 16067,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/r23-google-rtdn-signed-transport.test.mjs",
+      "sha": "c3487f3638521a1dd712782c577d4e9ca3a5d064",
+      "bytes": 8371,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/r23-store-release-preflight.test.mjs",
+      "sha": "390444b7b8aa3ac75b242159fa86ae9d52039cb1",
+      "bytes": 5580,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/reconciliation-d1-ports.test.mjs",
+      "sha": "5ef7e4e6e7a51855e61d3e60513f84bdd7d77909",
+      "bytes": 6929,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/reconciliation-sqlite-round10.test.mjs",
+      "sha": "009d6008fc441a54ba82effa1d351d9e82ed613e",
+      "bytes": 6964,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/reconciliation.test.mjs",
+      "sha": "c78a8badae693b82fd4f5969929535dfd31687d6",
+      "bytes": 9168,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/recovery-outbox-fence.test.mjs",
+      "sha": "6c0d71cc3fb3ff87362a74c6198bdab4510b6565",
+      "bytes": 8251,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/round5-ai3-integration.test.mjs",
+      "sha": "3195bddc8c69865dfdbead7e768d2d764e003ad3",
+      "bytes": 10885,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/sandbox-providers.test.mjs",
+      "sha": "278e72614ff0376c291550b451d05c390ea0816e",
+      "bytes": 14964,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/sbase-billing-client-candidate.test.mjs",
+      "sha": "e3a54c21e195b93773e55595599c00f6f56db8b6",
+      "bytes": 12119,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/signed-billing-head.test.mjs",
+      "sha": "09f4f8d5782da19da2f508c6125c22d67f5fcf16",
+      "bytes": 8885,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/signed-billing-witness.test.mjs",
+      "sha": "662ec1b9a147470c56a7b942646dc1f740aa97ea",
+      "bytes": 7284,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/test_reconciliation_lease.py",
+      "sha": "41fe1216896f0405851a8260e17e1d68625b6542",
+      "bytes": 5466,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/test_round4_atomic.py",
+      "sha": "7567d4c058582f158a4b64e3961f70dd6ee22453",
+      "bytes": 6797,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/test_schema.py",
+      "sha": "89ea5958e207ae2e8dcb50be409e01ca95b89ec2",
+      "bytes": 10167,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/wave1-billing-revenuecat-review.test.mjs",
+      "sha": "8fb5aabdfbd907cc98d97a38a7b5c31e906f1874",
+      "bytes": 9777,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/wave1-r002-signed-auth-billing-bridge.test.mjs",
+      "sha": "51dcc005a24ab9663b761ea4831912df163f1385",
+      "bytes": 12143,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/wave1-r003-canonical-identity-store-review.test.mjs",
+      "sha": "4c4103ec48721a4ba297923e5783e5f8a80b8dab",
+      "bytes": 12221,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/wave1-r004-entitlement-continuity-review.test.mjs",
+      "sha": "48c81e6bb009a7925544a54a2102d314e8dbbe90",
+      "bytes": 15608,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/wave1-r005-cross-os-signed-auth-review.test.mjs",
+      "sha": "254e2f653a7ffb16b39857f4106925f86e248b16",
+      "bytes": 13910,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/wave1-r006-synthetic-store-provenance.test.mjs",
+      "sha": "591121ae4e60e17d184833d82f01f04e821e8af0",
+      "bytes": 17704,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/wave1-r007-official-provider-adapter-deny.test.mjs",
+      "sha": "0d3391d3c5c17d78904bdfff06f387ab3fd8a8de",
+      "bytes": 9256,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/rebuild-billing/test/wave1-r008-cross-provider-conflict-deny.test.mjs",
+      "sha": "05fca79fe780ccf5a84fedc1fb8cce6da7d27892",
+      "bytes": 10093,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/sdk/package.json",
+      "sha": "62e5934608988a7dcaa6a3b6250802d05fc8e8b0",
+      "bytes": 145,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "packages/sdk/README.md",
+      "sha": "5029c87b931438cd2027c760a1f1bde99a516ffb",
+      "bytes": 462,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/sdk/src/index.ts",
+      "sha": "b73c40bb72c7c2605e9caf77df4ffe6f0d71eee9",
+      "bytes": 2290,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "packages/sdk/src/member-preview.ts",
+      "sha": "7259cf7690048a51c89029b1fa05b8e10565fa03",
+      "bytes": 2230,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/sdk/src/staged-rollout.preview.ts",
+      "sha": "cdf3979d427434f1cf538ca8f72cdbee4ef37fac",
+      "bytes": 1012,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/sdk/test-support/member-contract-client.ts",
+      "sha": "f582b5dc79678b90af7d5cf109c5daa746c42815",
+      "bytes": 1890,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/sdk/test/health.test.mjs",
+      "sha": "f3a1458c5390111eb5370499ee0f942519bd3bbc",
+      "bytes": 1609,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "packages/sdk/test/member-preview.test.mjs",
+      "sha": "d12647261bb00ca6efe4e1e5734ae3f158fc4dbc",
+      "bytes": 923,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "packages/sdk/test/staged-rollout.test.mjs",
+      "sha": "32570acc2fe90c840b02dbf4deabeac86aac9023",
+      "bytes": 835,
+      "selected_for_curated_promotion": false
+    },
+    {
+      "path": "tsconfig.json",
+      "sha": "0f5eb01b2a1180b3f2e3690e19f0795719e6f9bb",
+      "bytes": 632,
+      "selected_for_curated_promotion": true
+    },
+    {
+      "path": "tsconfig.rebuild-billing.json",
+      "sha": "5df9edbb1210fdc53e269ab51cb79df5cfdc83e4",
+      "bytes": 379,
+      "selected_for_curated_promotion": false
+    }
+  ]
+}
