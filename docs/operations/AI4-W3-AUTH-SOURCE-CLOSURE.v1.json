@@ -1,0 +1,242 @@
+{
+  "schema": "starry.ai4.w3.auth-source-promotion-closure.v1",
+  "status": "LOCAL_SOURCE_ONLY_NO_WORKER_ROUTE_NO_DEPLOY",
+  "base_pr": 257,
+  "base_sha": "badb2d890fb5bb95f42c3a58089e2ebe194c9199",
+  "source_pr": 255,
+  "source_sha": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79",
+  "copy_policy": "ORIGINAL_GIT_BLOBS_BYTE_PRESERVED",
+  "selected_count": 20,
+  "source_files": [
+    {
+      "path": "modules/starry-id-v1/src/index.ts",
+      "sha": "714bb530ce5ce4880f9675944d1a5ddafc8de645",
+      "bytes": 12527,
+      "mode": "100644",
+      "origin_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79"
+    },
+    {
+      "path": "modules/starry-id-v1/src/billing-bridge.ts",
+      "sha": "11fe9f5be83c7cfa93c60fc2a83c043b893520fb",
+      "bytes": 7097,
+      "mode": "100644",
+      "origin_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79"
+    },
+    {
+      "path": "modules/starry-id-v1/src/d1-ports.ts",
+      "sha": "7301c39e4b9f9e4ecced3301d5f28249d3756cb6",
+      "bytes": 8761,
+      "mode": "100644",
+      "origin_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79"
+    },
+    {
+      "path": "modules/starry-id-v1/src/oidc-crypto.ts",
+      "sha": "8a277c20a12616b9f8e57e2528295398823c09de",
+      "bytes": 7505,
+      "mode": "100644",
+      "origin_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79"
+    },
+    {
+      "path": "modules/starry-id-v1/src/session-crypto.ts",
+      "sha": "a4c620d79d19ac1b2252b60a9808d6296efa3e87",
+      "bytes": 4157,
+      "mode": "100644",
+      "origin_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79"
+    },
+    {
+      "path": "modules/starry-id-v1/src/r23-signed-session-d1-request-boundary.ts",
+      "sha": "95f89cae3a436811f9a07fff25a9d4bffc174585",
+      "bytes": 3570,
+      "mode": "100644",
+      "origin_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79"
+    },
+    {
+      "path": "modules/starry-id-v1/src/w2-r23-auth-outcome-adapter.ts",
+      "sha": "e7e9988d5bac7233d6e3afe6efc6e40a9079dab1",
+      "bytes": 6207,
+      "mode": "100644",
+      "origin_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79"
+    },
+    {
+      "path": "modules/starry-id-v1/tsconfig.json",
+      "sha": "d3dda802ecbfdf4312a8422b1ebff2f9d607c2a1",
+      "bytes": 305,
+      "mode": "100644",
+      "origin_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79"
+    },
+    {
+      "path": "modules/starry-id-v1/schema/001_starry_identity.DRAFT.sql",
+      "sha": "456cc94b754ccf34070c21eb0e99b825519fbaa6",
+      "bytes": 2694,
+      "mode": "100644",
+      "origin_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79"
+    },
+    {
+      "path": "modules/starry-id-v1/test/session-crypto.test.mjs",
+      "sha": "9fe8458f3e0a78264b9efdcce212894f60b7b713",
+      "bytes": 3437,
+      "mode": "100644",
+      "origin_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79"
+    },
+    {
+      "path": "modules/starry-id-v1/test/d1-ports.test.mjs",
+      "sha": "2ccdf9505650079f033830a17c421f1770b7e70a",
+      "bytes": 4933,
+      "mode": "100644",
+      "origin_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79"
+    },
+    {
+      "path": "modules/starry-id-v1/test/r23-signed-session-d1-request-boundary.test.mjs",
+      "sha": "54fb16eeb5784dc7738f0edb367b966a67248b41",
+      "bytes": 7788,
+      "mode": "100644",
+      "origin_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79"
+    },
+    {
+      "path": "modules/starry-id-v1/test/w2-r23-auth-outcome-adapter.test.mjs",
+      "sha": "88abe0e9fef92db794662ea67060c3c0fa721b9f",
+      "bytes": 11566,
+      "mode": "100644",
+      "origin_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79"
+    },
+    {
+      "path": "packages/integration/src/ai0-w1-isolated-self-profile.ts",
+      "sha": "3acd105e0942514cbc24dd8032c3166b484bb5c2",
+      "bytes": 6563,
+      "mode": "100644",
+      "origin_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79"
+    },
+    {
+      "path": "packages/integration/src/ai0-w1-isolated-self-profile-client.ts",
+      "sha": "f60b4063277b36c180fcece85a47db0482eda641",
+      "bytes": 5141,
+      "mode": "100644",
+      "origin_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79"
+    },
+    {
+      "path": "docs/contracts/AI0-W1-ISOLATED-SELF-PROFILE.openapi.json",
+      "sha": "638d242f3b799a894f8a3587ee3ca48737236cee",
+      "bytes": 2961,
+      "mode": "100644",
+      "origin_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79"
+    },
+    {
+      "path": "apps/api/test-support/ai4-w2-local-worker-composition.ts",
+      "sha": "0ac95f75cfac6d5fe71fc46606ac96aad5f1fb61",
+      "bytes": 4308,
+      "mode": "100644",
+      "origin_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79"
+    },
+    {
+      "path": "apps/api/test/ai0-w1-isolated-self-profile.test.mjs",
+      "sha": "9e45cdd636844443df31a99704c07697ce5118e2",
+      "bytes": 7770,
+      "mode": "100644",
+      "origin_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79"
+    },
+    {
+      "path": "apps/api/test/ai0-w1-self-profile-roundtrip.test.mjs",
+      "sha": "df8b03e0e0e5f247ba7daca09ec8797a18637200",
+      "bytes": 8835,
+      "mode": "100644",
+      "origin_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79"
+    },
+    {
+      "path": "apps/api/test/ai4-w2-local-worker-composition.test.mjs",
+      "sha": "e46e16330efd9d3ab2cb3c9585cd8d3090c81eb1",
+      "bytes": 12525,
+      "mode": "100644",
+      "origin_commit": "6ae5c2bc5cbf71db715e7e70b18833c4cd6f8a79"
+    }
+  ],
+  "dependency_edges": [
+    [
+      "modules/starry-id-v1/src/d1-ports.ts",
+      "modules/starry-id-v1/src/index.ts"
+    ],
+    [
+      "modules/starry-id-v1/src/d1-ports.ts",
+      "modules/starry-id-v1/src/billing-bridge.ts"
+    ],
+    [
+      "modules/starry-id-v1/src/billing-bridge.ts",
+      "modules/starry-id-v1/src/index.ts"
+    ],
+    [
+      "modules/starry-id-v1/src/session-crypto.ts",
+      "modules/starry-id-v1/src/index.ts"
+    ],
+    [
+      "modules/starry-id-v1/src/session-crypto.ts",
+      "modules/starry-id-v1/src/oidc-crypto.ts"
+    ],
+    [
+      "modules/starry-id-v1/src/r23-signed-session-d1-request-boundary.ts",
+      "modules/starry-id-v1/src/index.ts"
+    ],
+    [
+      "modules/starry-id-v1/src/r23-signed-session-d1-request-boundary.ts",
+      "modules/starry-id-v1/src/d1-ports.ts"
+    ],
+    [
+      "modules/starry-id-v1/src/r23-signed-session-d1-request-boundary.ts",
+      "modules/starry-id-v1/src/session-crypto.ts"
+    ],
+    [
+      "modules/starry-id-v1/src/w2-r23-auth-outcome-adapter.ts",
+      "modules/starry-id-v1/src/index.ts"
+    ],
+    [
+      "modules/starry-id-v1/src/w2-r23-auth-outcome-adapter.ts",
+      "modules/starry-id-v1/src/d1-ports.ts"
+    ],
+    [
+      "packages/integration/src/ai0-w1-isolated-self-profile.ts",
+      "modules/starry-id-v1/src/r23-signed-session-d1-request-boundary.ts"
+    ],
+    [
+      "packages/integration/src/ai0-w1-isolated-self-profile.ts",
+      "modules/starry-id-v1/src/session-crypto.ts"
+    ],
+    [
+      "packages/integration/src/ai0-w1-isolated-self-profile.ts",
+      "modules/starry-id-v1/src/index.ts"
+    ],
+    [
+      "apps/api/test-support/ai4-w2-local-worker-composition.ts",
+      "apps/api/src/index.ts"
+    ],
+    [
+      "apps/api/test-support/ai4-w2-local-worker-composition.ts",
+      "packages/integration/src/ai0-w1-isolated-self-profile.ts"
+    ],
+    [
+      "apps/api/test/ai0-w1-self-profile-roundtrip.test.mjs",
+      "docs/contracts/AI0-W1-ISOLATED-SELF-PROFILE.openapi.json"
+    ],
+    [
+      "apps/api/test/ai4-w2-local-worker-composition.test.mjs",
+      "apps/api/test-support/ai4-w2-local-worker-composition.ts"
+    ]
+  ],
+  "exclude": [
+    "24 additional historical workflows",
+    "modules/starry-id-v1/src/round*/wave1*/session-keyring.ts and other unreviewed Auth sources",
+    "AI-1 W3 branch not yet delivered",
+    "nonselected packages/integration candidates",
+    "other consumer Billing/AI3/Queue/Store/EAS sources"
+  ],
+  "ci_candidate": [
+    "npm run typecheck",
+    "npm run lint",
+    "npm test",
+    "npm run auth:typecheck",
+    "npm run auth:test",
+    "npm run api:check",
+    "npm run release:blocked",
+    "npm run promotion:verify"
+  ],
+  "protected_route_registered": false,
+  "worker_bindings_added": false,
+  "release_gate_cleared": false
+}

@@ -59,6 +59,8 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
+      - run: npm run auth:typecheck
+      - run: npm run auth:test
       - run: npm run mobile:config
       - run: npm run api:check
       - run: npm run release:blocked
