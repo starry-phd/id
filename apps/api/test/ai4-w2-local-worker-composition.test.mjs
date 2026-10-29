@@ -55,7 +55,7 @@ async function setup() {
       const row = db.prepare(sql).get(...args) ?? null;
       return row && state.extra ? {...row, oauth_email: 'private@example.invalid',
         refresh_hash: 'PRIVATE_REFRESH_SECRET', provider_subject: 'private-subject'} : row;
-    }};}}};
+    }};}};
   }};
   const key = await crypto.subtle.generateKey({name: 'HMAC', hash: 'SHA-256', length: 256},
     false, ['sign', 'verify']);
