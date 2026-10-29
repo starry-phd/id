@@ -39,6 +39,9 @@ export function reviewW1AuthPublicCoreNames(value:unknown):W1AuthReview{
   const allowed=new Set<string>(W1_AUTH_EVENT_CORE_NAMES);
   allowed.add(W1_AUTH_EVENT_CONDITIONAL_NAME);
   // Read indices directly, rejecting sparse arrays, accessors and proxy traps.
+  const keys=Reflect.ownKeys(value);
+  if(keys.some(k=>k!=='length' && (typeof k!=='string' || !/^(0|[1-9][0-9]*)$/.test(k)
+    || Number(k)>=value.length)))return deny();
   const values:string[]=[];
   for(let i=0;i<value.length;i++){
    const own=Object.getOwnPropertyDescriptor(value,String(i));

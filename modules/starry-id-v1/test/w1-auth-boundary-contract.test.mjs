@@ -95,3 +95,10 @@ test('D06 review field arrays reject accessor/sparse/proxy rather than evaluatin
  const proxy=new Proxy([...eventKeys],{getOwnPropertyDescriptor(){throw Error('TRAP')}});
  assert.equal(reviewW1AuthPublicCoreNames(proxy).status,'denied');
 });
+
+test('D06 review denies extra own properties/symbols on field-name array',()=>{
+ const extra=[...eventKeys];extra.raw_token='NOT_A_REAL_TOKEN';
+ assert.equal(reviewW1AuthPublicCoreNames(extra).status,'denied');
+ const withSymbol=[...eventKeys];withSymbol[Symbol('hidden')]='private';
+ assert.equal(reviewW1AuthPublicCoreNames(withSymbol).status,'denied');
+});
