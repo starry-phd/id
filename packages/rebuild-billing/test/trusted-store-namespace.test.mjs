@@ -59,7 +59,7 @@ test('no trust in fake official port scope; brand, runtime, verification env and
     {storeVerificationEnvironment:'production'}, {storeVerificationEnvironment:'development'},
     {provider:'stripe'}, {providerAuthority:''}, {officialStoreApp:' '},
     {appId:'starry.app '}, {providerAuthority:' authority'}, {providerAuthority:'authority '},
-    {providerAuthority:'e\u0301'}, {providerAuthority:'\u0000'},
+    {providerAuthority:'e\u0301'}, {providerAuthority:'\u0000'}, {providerAuthority:'\uD800'},
   ]) assert.throws(()=>builder({...config,...bad}),/STORE_NAMESPACE_CONFIG_DENIED/);
   for(const changed of [
     {provider:'google'}, {officialStoreApp:'another.app'},
@@ -72,7 +72,7 @@ test('no trust in fake official port scope; brand, runtime, verification env and
   }
 });
 test('reject invalid references, including empty, Unicode non-NFC, whitespace and control characters',async()=>{
-  for(const ref of ['', ' tx','tx ','e\u0301','x\n','\u0000'])
+  for(const ref of ['', ' tx','tx ','e\u0301','x\n','\u0000','\uD800'])
     await assert.rejects(keys(config,ref),/STORE_NAMESPACE_REFERENCE_DENIED/);
   assert.notEqual((await keys(config,'é')).receiptIdentity,(await keys(config,'漢')).receiptIdentity);
 });
