@@ -22,7 +22,7 @@ async function fixture(){
   .run('u1','active',3,1,'Initial Name',0,0,NOW,NOW);
  db.prepare('INSERT INTO starry_identities(provider,subject,s_user_id) VALUES(?,?,?)')
   .run('google','trusted-subject','u1');
- db.prepare('INSERT INTO starry_sessions(session_id,s_user_id,app_id,environment,auth_version,refresh_hash,expires_at)')
+ db.prepare('INSERT INTO starry_sessions(session_id,s_user_id,app_id,environment,auth_version,refresh_hash,expires_at) VALUES(?,?,?,?,?,?,?)')
   .run('session-1','u1','starry-id','staging',3,'hash-'+ 'r'.repeat(60),NOW+300);
  const key=await webcrypto.subtle.generateKey({name:'HMAC',hash:'SHA-256',length:256},false,['sign','verify']);
  const claims={...scope,provider:'google',provider_subject:'trusted-subject',
