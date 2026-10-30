@@ -83,7 +83,7 @@ export function AccountDeletionScreen({port,preview,previewTools}:AccountDeletio
   <View style={styles.panel}>
    <Text style={styles.sectionTitle}>訂閱提醒</Text>
    <Text style={styles.meta}>
-    如果您有透過 Apple App Store 或 Google Play 訂閱，
+    目前無法在此查詢您是否有訂閱。如果您有透過 Apple App Store 或 Google Play 訂閱，
     提出刪帳申請不會自動取消商店訂閱。
     請自行前往原購買商店的訂閱管理確認與處理，避免持續扣款。
    </Text>
@@ -92,7 +92,7 @@ export function AccountDeletionScreen({port,preview,previewTools}:AccountDeletio
    <Text style={styles.sectionTitle}>兩次獨立確認</Text>
    <Text style={styles.meta}>
     刪除帳號可能影響會員資料、存取權限及數位服務。
-    刪帳後既有購買權益是否可重新綁定，仍須依正式政策審核。
+    重新註冊後原有購買權益能否恢復，目前政策尚未定案，無法保證自動恢復。
    </Text>
    {!waiting&&!view.receipt?
     action('第一次確認：我要提出刪帳申請',()=>flow.requestFirst(),
