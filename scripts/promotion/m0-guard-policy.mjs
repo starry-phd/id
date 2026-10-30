@@ -64,6 +64,8 @@ export function parseRestrictedWrangler(source){
       throw Error('unknown Wrangler JSON root key');
   }else{
     data=parseToml(source);
+    if(!keys(data[''],['name','main','compatibility_date','workers_dev']))
+      throw Error('unknown TOML root configuration');
     if(data.__tables.sort().join('|') !==
       ['', 'vars','env.staging','env.staging.vars'].sort().join('|'))
       throw Error('unknown/nested TOML environment or resource binding');
@@ -132,7 +134,36 @@ export function inspectWorkflow(raw,kind){
       error('checkout credentials persisted: '+name);
   }
   // Reject extra CI steps and disguised auto-deploy calls, not only known names.
-  if(kind==='ci'){
+  if(kind==='ci') {
+    // Fail closed on edits to non-app jobs too: an extra repository-policy shell
+    // command or aggregator command must never bypass the reviewed allowlist.
+    const policy=y.jobs['repository-policy'];
+    const policySteps=policy?.steps||[];
+    const expectedDetect=[
+      'if test -f package.json && test -f package-lock.json; then',
+      '  echo "ready=true" >> "$GITHUB_OUTPUT"',
+      'else',
+      '  echo "ready=false" >> "$GITHUB_OUTPUT"',
+      '  echo "App code/tests not initialized; repository policy PASS is NOT app-test PASS."',
+      'fi',
+    ].join('\n');
+    if(policySteps.length!==3 ||
+      policySteps[0]?.uses!=='actions/checkout@v4' ||
+      policySteps[1]?.run?.trim()!=='python3 scripts/ci/validate_repository.py' ||
+      policySteps[2]?.id!=='app'||policySteps[2]?.shell!=='bash'||
+      policySteps[2]?.run?.trim()!==expectedDetect)
+      error('unreviewed repository-policy shell or action step');
+    const required=y.jobs['required-validation'];
+    const aggregateSteps=required?.steps||[];
+    const expectedAggregate=['test "$POLICY_RESULT" = success',
+      'test "$APP_RESULT" = success'].join('\n');
+    const requiredEnv=aggregateSteps[0]?.env;
+    if(aggregateSteps.length!==1 ||
+      aggregateSteps[0]?.run?.trim()!==expectedAggregate ||
+      !keys(requiredEnv,['POLICY_RESULT','APP_RESULT']) ||
+      requiredEnv.POLICY_RESULT!==('$'+'{{ needs.repository-policy.result }}') ||
+      requiredEnv.APP_RESULT!==('$'+'{{ needs.app-tests.result }}'))
+      error('unreviewed required-validation script or result bindings');
     const approvedRuns=new Set([
       'npm ci --no-audit --no-fund',
       'npm run typecheck','npm run lint','npm test',
