@@ -285,3 +285,104 @@ test('M1 SDK rejects forged logout body/redirect and errors without mutating loc
  });
  await assert.rejects(client.logout(),/STARRY_SELF_RESPONSE_INVALID/);
 });
+
+test('owner-fenced mobile CAS fails closed BEFORE Auth on missing/forged member identity or invalid fields',async()=>{
+ let reads=0,requests=0;
+ const client=createM1StagingSelfClient({
+  enabled:true,baseUrl:origin,appId:'starry-id',
+  getSessionBearer:async()=>{reads++;return 'a'.repeat(48);},
+  fetchImpl:async()=>{requests++;throw Error('PRIVATE_NETWORK');},
+ });
+ for(const userId of ['',null,undefined,'wrong user','b'.repeat(181)]){
+  await assert.rejects(client.patchSelfForUser(userId,2,{display_name:'Safe'}),
+   /STARRY_SELF_IDENTITY_CHANGED/);
+ }
+ await assert.rejects(client.patchSelfForUser(dto.s_user_id,0,{display_name:'Safe'}),
+  /STARRY_SELF_REVISION_REQUIRED/);
+ await assert.rejects(client.patchSelfForUser(dto.s_user_id,2,{role:'admin'}),
+  /STARRY_SELF_FIELDS_DENIED/);
+ assert.equal(reads,0);assert.equal(requests,0);
+ const off=make({enabled:false});
+ await assert.rejects(off.client.patchSelfForUser(dto.s_user_id,2,{display_name:'Safe'}),
+  /STARRY_SELF_DISABLED/);
+ assert.equal(off.count(),0);
+});
+
+test('owner-fenced CAS rejects foreign current signed member or stale revision BEFORE any PATCH',async()=>{
+ for(const [current,expectedCode] of [
+  [{...dto,s_user_id:'su-other'},'STARRY_SELF_IDENTITY_CHANGED'],
+  [{...dto,profile_revision:3},'STARRY_SELF_CONFLICT'],
+ ]){
+  let reads=0;
+  const calls=[];
+  const client=createM1StagingSelfClient({
+   enabled:true,baseUrl:origin,appId:'starry-id',
+   getSessionBearer:async()=>{reads++;return 'a'.repeat(48);},
+   fetchImpl:async(url,init)=>{
+    calls.push({url,init});
+    assert.equal(init.method,'GET','must never PATCH foreign or stale row');
+    return new Response(JSON.stringify(current),{
+     status:200,headers:{'content-type':'application/json','cache-control':'no-store'},
+    });
+   },
+  });
+  await assert.rejects(client.patchSelfForUser(dto.s_user_id,2,{display_name:'Wrong Person'}),
+   e=>e.message===expectedCode);
+  assert.equal(reads,1);
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].init.headers.authorization,'Bearer '+'a'.repeat(48));
+ }
+});
+
+test('owner-fenced GET and CAS PATCH use the exact SAME captured bearer, even if Auth owner later rotates',async()=>{
+ let reads=0;
+ const calls=[];
+ const client=createM1StagingSelfClient({
+  enabled:true,baseUrl:origin,appId:'starry-id',
+  getSessionBearer:async()=>{reads++;return reads===1?'a'.repeat(48):'b'.repeat(48);},
+  fetchImpl:async(url,init)=>{
+   calls.push({url,init});
+   return new Response(JSON.stringify(init.method==='GET'?dto:{
+    ...dto,display_name:'Safe Change',profile_revision:3,
+   }),{status:200,headers:{
+    'content-type':'application/json','cache-control':'no-store',
+   }});
+  },
+ });
+ const changed=await client.patchSelfForUser(dto.s_user_id,2,{display_name:'Safe Change'});
+ assert.equal(changed.display_name,'Safe Change');
+ assert.equal(changed.profile_revision,3);
+ assert.equal(reads,1,'credential supplier must be read only once per fenced mutation');
+ assert.deepEqual(calls.map(x=>x.init.method),['GET','PATCH']);
+ assert.equal(calls[0].init.headers.authorization,calls[1].init.headers.authorization);
+ assert.equal(calls[1].init.headers['if-match'],'"rev-2"');
+ assert.equal(calls[0].init.credentials,'omit');
+ assert.equal(calls[0].init.redirect,'error');
+ assert.equal(calls[0].init.cache,'no-store');
+});
+
+test('owner-fenced preflight denies unauthorized and tainted GET before writing',async()=>{
+ for(const response of [
+  new Response('PRIVATE_SQL_ERROR',{status:401}),
+  new Response(JSON.stringify(dto),{status:200,headers:{
+   'content-type':'application/json','cache-control':'public, max-age=60',
+  }}),
+  new Response(JSON.stringify({...dto,email:'private@example.invalid'}),{
+   status:200,headers:{'content-type':'application/json','cache-control':'no-store'},
+  }),
+ ]){
+  let calls=0;
+  const client=createM1StagingSelfClient({
+   enabled:true,baseUrl:origin,appId:'starry-id',
+   getSessionBearer:async()=> 'a'.repeat(48),
+   fetchImpl:async(url,init)=>{calls++;assert.equal(init.method,'GET');return response;},
+  });
+  await assert.rejects(client.patchSelfForUser(dto.s_user_id,2,{display_name:'Wrong'}),
+   e=>{
+    assert.match(e.message,/^STARRY_SELF_(UNAUTHORIZED|RESPONSE_INVALID)$/);
+    assert.doesNotMatch(e.message,/PRIVATE|SQL|email|Bearer/i);
+    return true;
+   });
+  assert.equal(calls,1);
+ }
+});
