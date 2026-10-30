@@ -77,7 +77,10 @@ test('M2 mobile controller expired identity results in explicit unauthorized wit
  assert.equal(flow.snapshot().error,'UNAUTHORIZED');
  assert.equal(flow.snapshot().receipt,null);
  await flow.refresh();
- assert.equal(flow.snapshot().phase,'idle');
+ assert.equal(flow.snapshot().phase,'unauthorized'); // latched, no old Session retry
+ const trustedNewPort=createDeletionFlow(createDeletionPreview());
+ await trustedNewPort.refresh();
+ assert.equal(trustedNewPort.snapshot().phase,'idle');
 });
 test('M2 mobile controller blocks repeat taps while first request is awaiting a response',async()=>{
  let resolve;
