@@ -81,7 +81,7 @@ test('AI4 M1 proposed Worker identity is pinned but remote staging remains NO-GO
  for(const unsafe of [
   config.replace('name = "id-starry-m1-staging"','name = "id-starry"'),
   config.replace('name = "id-starry-m1-staging"','name = "starry-id-api-staging"'),
-  config+'\\n[[env.staging.d1_databases]]\\nbinding="STARRY_SESSION_DB"\\n',
+  config+'\n[[env.staging.d1_databases]]\nbinding="STARRY_SESSION_DB"\n',
   config.replace('workers_dev = false','workers_dev = true'),
  ])assert.throws(()=>parseRestrictedWrangler(unsafe),Error);
 });
