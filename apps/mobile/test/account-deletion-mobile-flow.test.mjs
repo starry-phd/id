@@ -66,7 +66,9 @@ test('M2 mobile controller first request network ambiguity retries same backend 
  assert.equal(flow.snapshot().phase,'error');
  await flow.retry();
  assert.equal(flow.snapshot().phase,'awaiting_second_confirmation');
- assert.equal(requests,2);
+ // First POST may already have committed even if response was lost.
+ // Recovery GET confirms the existing receipt; a duplicate POST is forbidden.
+ assert.equal(requests,1);
  assert.equal(record.request_id,flow.snapshot().receipt.request_id);
 });
 test('M2 mobile controller expired identity results in explicit unauthorized without raw token',async()=>{
