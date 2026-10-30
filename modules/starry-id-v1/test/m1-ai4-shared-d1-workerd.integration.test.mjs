@@ -126,10 +126,10 @@ async function withRealD1(callback){
  const mf=new Miniflare({workers:[{config:{
   name:'ai1-ai4-real-d1-workerd-integration-fixture',
   compatibilityDate:'2026-10-24',
-  d1_databases:[{binding:'AUTH_DB',database_name:'ai1-local-e2e',database_id:dbId}],
+  
   manifest:{mainModule:'index.js',modules:{
    'index.js':{type:'esm',contents:bundle.outputFiles[0].text},
-  }},env:{},
+  }},env:{AUTH_DB:{type:'d1',id:dbId}},
  }}]});
  try{
   const db=await mf.getD1Database('AUTH_DB');
