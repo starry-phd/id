@@ -178,8 +178,12 @@ export async function reviewOfflinePitrWitnessReceipt(
     if(r.snapshot_sha256!==candidateHash||r.witness_sha256!==witnessHash)return deny(sourceRisks);
     const mac=fromBase64Url(r.mac as string);
     if(mac.length!==32)return deny(sourceRisks);
+    // Own a non-shared ArrayBuffer: WebCrypto BufferSource types exclude
+    // generic ArrayBufferLike/SharedArrayBuffer views in strict TS.
+    const ownedMac=new Uint8Array(new ArrayBuffer(mac.byteLength));
+    ownedMac.set(mac);
     const ok=await crypto.subtle.verify('HMAC',trusted.verification_key,
-      mac,new TextEncoder().encode(envelope(r)));
+      ownedMac,new TextEncoder().encode(envelope(r)));
     if(!ok)return deny(sourceRisks);
     return Object.freeze({
       status:'quarantined_review_required' as const,
