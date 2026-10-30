@@ -142,6 +142,20 @@ export function createM2DeletionRequestClient(config:M2DeletionClientConfig):M2D
    return fault('INVALID_RESPONSE');
   if(response.status===401||response.status===403)return fault('UNAUTHORIZED');
   if(response.status===404){
+   // 404 is NOT sufficient to imply absence; a proxy/HTML 404 may be a
+   // routing outage. Only AI-1's exact non-cacheable NO_REQUEST DTO counts.
+   if(!validJsonHeader(response)||!hasNoStore(response))return fault('INVALID_RESPONSE');
+   let data:unknown;
+   try{data=await boundedJson(response);}
+   catch{return fault('INVALID_RESPONSE');}
+   if(!data||typeof data!=='object'||Array.isArray(data))return fault('INVALID_RESPONSE');
+   const outer=data as Record<string,unknown>;
+   if(Object.keys(outer).length!==1||!('error' in outer)||
+     !outer.error||typeof outer.error!=='object'||Array.isArray(outer.error))
+     return fault('INVALID_RESPONSE');
+   const inner=outer.error as Record<string,unknown>;
+   if(Object.keys(inner).length!==1||inner.code!=='NO_REQUEST')
+     return fault('INVALID_RESPONSE');
    if(missingOk)return null;
    return fault('NO_REQUEST');
   }
