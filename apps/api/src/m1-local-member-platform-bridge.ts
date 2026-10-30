@@ -163,6 +163,26 @@ async function normalizeDeletion(response:Response,route:DeletionRoute):Promise<
   return new Response(JSON.stringify(value),{status:expected,headers:headers()});
  }catch{return denied(503,'SERVICE_UNAVAILABLE');}
 }
+// Only the two reviewed AI-1 member error codes can cross this boundary.
+// Unexpected/malformed upstream JSON is never reflected back to a client.
+async function safeMemberBadRequest(response:Response,route:'write'|'logout'):Promise<Response>{
+ let code='REQUEST_DENIED';
+ if(route==='write'){
+  try{
+   const raw=await boundedJson(response);
+   if(raw&&typeof raw==='object'&&!Array.isArray(raw)){
+    const value=raw as Record<string,unknown>;
+    if(Object.keys(value).length===1&&Object.hasOwn(value,'error')&&
+      value.error&&typeof value.error==='object'&&!Array.isArray(value.error)){
+     const err=value.error as Record<string,unknown>;
+     if(Object.keys(err).length===1&&err.code==='PROFILE_FIELDS_DENIED')
+      code='PROFILE_FIELDS_DENIED';
+    }
+   }
+  }catch{/* A corrupt, private or oversized upstream body is not trusted. */}
+ }
+ return denied(400,code);
+}
 function normalized(response:Response,route:MemberRoute|DeletionRoute):Promise<Response>|Response{
  if(!(response instanceof Response)||response.redirected)
   return denied(503,'SERVICE_UNAVAILABLE');
@@ -170,6 +190,8 @@ function normalized(response:Response,route:MemberRoute|DeletionRoute):Promise<R
  if(response.status===401)return denied(401,'IDENTITY_DENIED');
  if(response.status===403)return denied(403,'APP_SCOPE_DENIED');
  if(response.status===404)return denied(404,'NOT_FOUND');
+ if(response.status===400&&(route==='write'||route==='logout'))
+  return safeMemberBadRequest(response,route);
  if(route==='write'&&response.status===409)
   return denied(409,'PROFILE_VERSION_CONFLICT');
  if(route==='write'&&response.status===428)
