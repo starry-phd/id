@@ -48,7 +48,8 @@ WHERE s_user_id=? AND status='active' AND auth_version=? AND profile_revision=?
     SELECT 1 FROM starry_identities i
     WHERE i.provider=? AND i.subject=?
     AND i.s_user_id=starry_members.s_user_id
-  )`;
+  )
+RETURNING s_user_id,profile_revision`;
 
 const sessionRevoke=`UPDATE starry_sessions SET revoked_at=?
 WHERE session_id=? AND s_user_id=? AND app_id=? AND environment=?
@@ -62,7 +63,8 @@ AND EXISTS (
   SELECT 1 FROM starry_identities i
   WHERE i.s_user_id=starry_sessions.s_user_id
   AND i.provider=? AND i.subject=?
-)`;
+)
+RETURNING session_id,revoked_at`;
 
 function securityHeaders():Headers {
  return new Headers({
@@ -84,6 +86,27 @@ function success(profile:SelfProfile):Response{
   display_name_public:profile.display_name_public,
   profile_revision:profile.profile_revision,
  }),{status:200,headers:securityHeaders()});
+}
+/** Workerd may surface a zero-byte POST as a non-null ReadableStream.
+ * Only an actually exhausted, at-most-zero-byte stream is an empty logout
+ * body. Any data, stream error or already-consumed stream fails closed.
+ */
+async function emptyRequestBody(request:Request):Promise<boolean>{
+ if(request.bodyUsed)return false;
+ const declared=request.headers.get('content-length');
+ if(declared!==null&&!/^0$/.test(declared))return false;
+ if(request.body===null)return true;
+ let reader:ReadableStreamDefaultReader<Uint8Array>|null=null;
+ try{
+  reader=request.body.getReader();
+  const {done}=await reader.read();
+  if(!done){
+   await reader.cancel();
+   return false;
+  }
+  return true;
+ }catch{return false;}
+ finally{try{reader?.releaseLock();}catch{/* fail closed above */}}
 }
 async function boundedJson(request:Request):Promise<unknown>{
  if(!request.body||request.bodyUsed)throw Error('BODY_DENIED');
@@ -175,7 +198,7 @@ export function createM2LocalSelfMutationHandler(deps:Deps){
     // Every mutation is re-fenced against current member/session/identity in
     // the single SQL UPDATE itself, not only the stale pre-UPDATE principal.
     if(isLogout){
-     if(request.body!==null)return deny(400,'REQUEST_DENIED');
+     if(!await emptyRequestBody(request))return deny(400,'REQUEST_DENIED');
      const atWrite=deps.now();
      if(!clock(atWrite)||atWrite<now||atWrite>now+30||
        atWrite>=principal.expires_at)return deny(401,'IDENTITY_DENIED');
@@ -183,10 +206,13 @@ export function createM2LocalSelfMutationHandler(deps:Deps){
       atWrite,principal.session_id,principal.s_user_id,scope.app_id,
       scope.environment,principal.auth_version,atWrite,
       signed.provider,signed.provider_subject,
-     ).run();
-     if(result.success===false)return deny(503,'SERVICE_UNAVAILABLE');
-     if(result.meta?.changes!==1)return deny(401,'IDENTITY_DENIED');
-     // SQL AFTER UPDATE trigger records the audit, atomically or it ABORTs.
+     ).first<{session_id:string;revoked_at:number}>();
+     if(!result)return deny(401,'IDENTITY_DENIED');
+     if(result.session_id!==principal.session_id||result.revoked_at!==atWrite)
+      return deny(503,'SERVICE_UNAVAILABLE');
+     // UPDATE ... RETURNING binds confirmation to the unique Session row,
+     // independent of D1 meta.changes including AFTER UPDATE audit triggers.
+     // The audit trigger is still atomic or it aborts the source statement.
      return new Response(null,{status:204,headers:securityHeaders()});
     }
     if(!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(
@@ -217,9 +243,13 @@ export function createM2LocalSelfMutationHandler(deps:Deps){
       principal.s_user_id,principal.auth_version,expectedRevision,
       principal.session_id,scope.app_id,scope.environment,atWrite,
       signed.provider,signed.provider_subject,
-    ).run();
-    if(result.success===false)return deny(503,'SERVICE_UNAVAILABLE');
-    if(result.meta?.changes!==1)return deny(409,'PROFILE_VERSION_CONFLICT');
+    ).first<{s_user_id:string;profile_revision:number}>();
+    if(!result)return deny(409,'PROFILE_VERSION_CONFLICT');
+    if(result.s_user_id!==principal.s_user_id||
+      result.profile_revision!==planned.profile_revision)
+      return deny(503,'SERVICE_UNAVAILABLE');
+    // Confirm the row actually updated by unique-key UPDATE...RETURNING;
+    // D1's trigger-inclusive changes metadata is NOT a safe CAS oracle.
     // Reuse original five-field projector and its trusted-principal check.
     return success(readSelf(principal,scope,planned,atWrite));
    }catch{
