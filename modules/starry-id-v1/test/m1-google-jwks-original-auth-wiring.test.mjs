@@ -200,6 +200,28 @@ test('expired Google JWKS + transport failure rejects before OAuth state CAS/exc
  }finally{f.close();}
 });
 
+test('invalid or corrupted OAuth state and control-character code cannot cause Google JWKS traffic or CAS',async()=>{
+ const f=await setup();try{
+  const login=await f.begin();
+  const before=f.getCalls();
+  assert.equal(await f.flow.completeGoogleLogin({
+   state:login.state,code:'invalid\u0000google-code',
+  }),null,'control-character code is denied before key source');
+  assert.deepEqual(f.getCalls(),before);
+  assert.equal(f.db.prepare('SELECT consumed_at FROM starry_m1_oauth_attempts WHERE state=?')
+   .get(login.state).consumed_at,null);
+  const rogue=f.db.prepare('UPDATE starry_m1_oauth_attempts SET code_verifier=? WHERE state=?')
+   .run('untrusted-plaintext-instead-of-sealed-verifier',login.state);
+  assert.equal(rogue.changes,1);
+  assert.equal(await f.flow.completeGoogleLogin(login),null,
+   'invalid AES-GCM PKCE custody cannot unlock Google JWKS source');
+  assert.deepEqual(f.getCalls(),before,'invalid PKCE must not do JWKS requests');
+  assert.equal(f.db.prepare('SELECT consumed_at FROM starry_m1_oauth_attempts WHERE state=?')
+   .get(login.state).consumed_at,null);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,0);
+ }finally{f.close();}
+});
+
 test('mismatched JWKS issuer/audience and a disabled composition never fall back to static authority',async()=>{
  const f=await setup();try{
   assert.throws(()=>createM1SingleAuthHttpComposition({...f.deps,googleJwksSource:null}),
