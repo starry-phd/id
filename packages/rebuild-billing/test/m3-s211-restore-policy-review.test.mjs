@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
+import {readFileSync} from 'node:fs';
 import {
   compareS211RestoreProposals,S211_RESTORE_ATOMIC_ADMISSION,
   S211_RESTORE_REVIEW_LIVE_ENABLED,
@@ -134,6 +135,33 @@ test('atomic commit/outbox admission checklist keeps separate dedupe identities 
   assert.match(rows,/refund\/revoke\/chargeback/);
   assert.equal(Object.isFrozen(S211_RESTORE_ATOMIC_ADMISSION),true);
   assert.equal('commit' in compareS211RestoreProposals({}),false);
+});
+
+test('S2-11 rebind never overwrites immutable original first-claim and separates effective-owner CAS',()=>{
+  const admission=S211_RESTORE_ATOMIC_ADMISSION.join(' ');
+  assert.match(admission,/preserve immutable original first-claim/);
+  assert.match(admission,/CAS effective entitlement binding\/member\/version fence/);
+  assert.match(admission,/append-only approved rebind decision/);
+  assert.match(admission,/lawful deleted-ID record retention or anonymization/);
+  assert.match(admission,/ONE physical Billing transaction/);
+  const adr=readFileSync(new URL(
+    '../../../docs/operations/AI2-S211-RESTORE-POLICY-OWNERSHIP-COMMIT-REVIEW.md',
+    import.meta.url,
+  ),'utf8');
+  assert.match(adr,/original first-claim \/ initial owner unchanged/);
+  assert.match(adr,/UPDATE effective_entitlement_binding SET current_owner/);
+  assert.match(adr,/require exactly one matching row/);
+  assert.match(adr,/rebind_decision/);
+  assert.match(adr,/Q104 \/ Q119/);
+  assert.match(adr,/Cross-D1 caution/);
+  assert.doesNotMatch(adr,/UPDATE\\s+original_first_claim\\s+SET/i);
+  const result=compareS211RestoreProposals({});
+  assert.equal(result.release_authorized,false);
+  for(const p of result.proposals){
+    assert.equal(p.may_transfer,false);
+    assert.equal(p.may_grant,false);
+    assert.equal(p.may_write_billing,false);
+  }
 });
 
 test('new decision-review TS source passes strict typecheck without shared CI changes',()=>{
