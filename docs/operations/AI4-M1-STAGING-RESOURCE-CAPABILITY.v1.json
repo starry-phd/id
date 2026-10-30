@@ -1,0 +1,86 @@
+{
+  "schema": "starry.ai4.m1.staging-capability.v1",
+  "purpose": "review_only_no_resource_or_deployment_authority",
+  "status": "proposed_unprovisioned",
+  "source": {
+    "repo": "starry-phd/id",
+    "baseline_main_sha": "6bd75447d707365c90768aa1578de7098802db2d",
+    "issue": "https://github.com/starry-phd/id/issues/220",
+    "specification": "latest-development-integrated-v1.0-process-v3.0-2026-10-30-S2"
+  },
+  "scope": {
+    "brand_id": "starry",
+    "app_id": "starry-id",
+    "environment": "staging",
+    "production_touched": false,
+    "cross_brand_touched": false
+  },
+  "cloudflare": {
+    "account_id": null,
+    "account_verified": false,
+    "existing_production_worker": "id-starry",
+    "worker": {
+      "proposed_name": "id-starry-m1-staging",
+      "exists_verified": false,
+      "route_enabled": false,
+      "workers_dev_compatibility_verified": false,
+      "deploy_allowed": false
+    },
+    "d1": {
+      "proposed_name": "id-starry-m1-staging-db",
+      "binding_name": "STARRY_SESSION_DB",
+      "exists_verified": false,
+      "binding_verified": false,
+      "migration_applied": false,
+      "reuses_echo_or_other_database": false
+    },
+    "secrets_configured": false
+  },
+  "google_oidc": {
+    "provider": "google",
+    "oauth_client_verified": false,
+    "redirect_allowlist_verified": false,
+    "issuer_audience_verified": false,
+    "test_identity_verified": false,
+    "pkce_state_nonce_required": true,
+    "client_secret_in_repo": false
+  },
+  "access": {
+    "mode": "owner_and_explicit_test_identities_only",
+    "allowlist_approved": false,
+    "deny_unlisted": true,
+    "identity_check_required": true,
+    "access_audit_required": true
+  },
+  "cost": {
+    "incremental_usd_monthly_warning": 10,
+    "estimated_incremental_usd_monthly": null,
+    "billing_plan_verified": false,
+    "hard_spending_cap_verified": false,
+    "additional_charges_approved": false,
+    "pause_nonessential_testing_on_warning": true
+  },
+  "evidence": {
+    "cloudflare_account": null,
+    "d1_binding": null,
+    "google_oauth": null,
+    "access_control": null,
+    "cost_and_rollback": null
+  },
+  "permissions": {
+    "resource_creation_approved": false,
+    "oauth_configuration_changes_approved": false,
+    "staging_deployment_approved": false,
+    "production_release_approved": false
+  },
+  "safety": {
+    "git_push_auto_deploy": false,
+    "member_live_route_enabled": false,
+    "release_gates_all_verified": false,
+    "requires_separate_ai0_and_owner_review": true
+  },
+  "claims": {
+    "staging_ready": false,
+    "production_ready": false
+  }
+}
