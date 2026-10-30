@@ -60,15 +60,18 @@ export function createM1GoogleCodeExchange(deps:Dependencies):TrustedOAuthBacken
   const redirectUri=redirect.href;
   const enabled=deps.enabled===true;
   return async (input:Params):Promise<{idToken:string}|null>=>{
-    if(!enabled||!input||input.provider!=='google'||input.clientId!==clientId||
-      !safeCode(input.code)||!safeVerifier(input.verifier))return null;
+    if(!enabled||!input)return null;
     try{
+      // Validate and use the same values across the secret-manager await.
+      const {provider,clientId:requestedClient,code,verifier}=input;
+      if(provider!=='google'||requestedClient!==clientId||
+        !safeCode(code)||!safeVerifier(verifier))return null;
       const secret=await deps.readClientSecret();
       if(typeof secret!=='string'||secret.length<8||secret.length>1024||
         /[\u0000-\u001f\u007f]/.test(secret))return null;
       const form=new URLSearchParams({
-        grant_type:'authorization_code',code:input.code,client_id:clientId,
-        client_secret:secret,redirect_uri:redirectUri,code_verifier:input.verifier,
+        grant_type:'authorization_code',code,client_id:clientId,
+        client_secret:secret,redirect_uri:redirectUri,code_verifier:verifier,
       });
       const response=await deps.transport(M1_GOOGLE_TOKEN_ENDPOINT,{
         method:'POST',body:form.toString(),
