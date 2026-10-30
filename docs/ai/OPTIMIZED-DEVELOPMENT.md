@@ -1,5 +1,16 @@
 # 現行開發流程落實規則
 
+## 現行臨時最高優先決議｜2026-10-31～2026-11-06「單一 AI 專注開發＋GitHub CI」七日試行
+
+> 業主正式核准，記錄於 [Issue #220 的 2026-10-31 單 AI 試行令](https://github.com/starry-phd/id/issues/220#issuecomment-6531040275)。**2026-11-07 檢討是否延長或調整**。本節試行期間僅覆蓋下方及 AGENTS.md／HANDOFF-PROTOCOL.md／舊 Issue 中**「五位 AI 同時開發、各模組不同專責執行者、人工喚醒四個助手」**的分工與排程；原技術規格、歷史工程成果、版本化契約、Issue 編號、GitHub 保護及安全／法遵／發布 Gate 不變。試行期結束不自動恢復五 AI，應先評估成效並由業主決定。
+
+1. **唯一主動程式實作者與工程協調者為 AI-0（使用者目前的 ChatGPT 開發對話）**，負責從既有 `main`、#220、相關 Issue #1～#5、契約與 CI 直接接手 Auth／會員、Worker／Expo、Billing、Battery、個資刪除及整合。**AI-1～AI-4 的獨立 ChatGPT 對話在試行期停止另行派工／建立競爭 PR；不需要業主逐一喚醒。** 仍保留舊角色、文件與原 Issue 作為歷史追溯和技術領域分類；若未來恢復多人需新正式工作令。
+2. **一次只推一條有完整驗收出口的垂直功能切片、一個主要實作 PR**，優先 M1：在現存單一 Starry Auth/Session／本機 SQLite 程式之上，形成可安全驗收的**真正 Starry-only 受控測試登入 → 本人資料 GET → CAS PATCH → logout → 舊 Session 拒絕**。先處理真正缺件／接線，禁止為增加 PR 數重做 #279/#281/#293/#296/#297 或已合其他模組。若遠端 Worker/D1/Google OAuth／存取保護／成本／Secret Gate 不具備，停在 source-only 可驗收範圍且精確記錄阻塞，不冒稱已完成遠端登入。
+3. **GitHub 是唯一工程事實來源**：#220 最新狀態、相關原 Issue 與 PR 明載基準 main SHA、變更路徑、測試、原生 CI run + exact HEAD、合併與合後 main push CI、分環境的實際結果及回退。不可因單 AI 改用聊天當永久交接庫；本對話需要使用者下次發話才會繼續，GitHub Issue 留言不會喚醒 ChatGPT，GitHub Actions 只會執行已設的 CI，不等於 AI 不間斷開發。
+4. **不放寬任何品質門檻**：保留受保護 main、PR、`Repository policy` + `Required validation` 必要檢查、Node/TypeScript／SQLite／local workerd 真測試、相同 SHA 源碼／差異查核、合併後獨立 push CI。單 AI 的自我複查**不得聲稱為另一位獨立 reviewer**；涉及真 OAuth、金流、合法個資擦除、雲端安全等高風險操作，仍須符合原規範所需的獨立審核、官方／遠端證據、合法決策或人工核准。**CI 綠燈不等於安全／法遵／真實端到端／發布准入**。
+5. **既有狀態不偷渡**：#289 Store S2-11 Draft 等政策／法遵尚未定的 PR 維持 HOLD；#282～#285 test-only 禁直接合 main；舊工作依現有成果接續，非刪除／重新開發。只處理 Starry ID，H-Global／Echo 暫停，Battery 永久免費、首次贈送資格 HOLD、Ads OFF。未經核真隔離資源／費用／Google OAuth／Access 或等效測試者阻擋／Secret custody／回退及具體授權不得建 Cloudflare 專用 D1/Worker 或部署；正式 `G00–G10` 11 項 BLOCKED、`release_authorization.granted=false` 持續保護，不能改成 release。
+6. **檢討量化**：於 2026-11-07 根據 10/31～11/06 的 GitHub 證據比較「通過真正本機／遠端／裝置端完整功能驗收的切片數、從開始到合後 CI 的週期、同缺陷返工次數、業主操作負擔、11 項 release Gate 的真正缺件減少」，不以 commit／PR／測試總數假造功能完成率。決定繼續單 AI、改 2 AI 或恢復更多人，必須另記 #220。
+
 基線：[最新開發技術規範 v1.0](https://docs.google.com/document/d/1urLja9i9A63jHuz4jQPhPMTgoCtoq-i1TafXPQd3PYU)，流程 UP-01～24 v3.0 優先於舊技術基座 v1.3 衝突條款。採用日期 2026-10-29。工程狀態只記 #220、專責 Issue、PR/SHA/CI。
 
 ## 切片與責任
