@@ -164,9 +164,10 @@ export function createM2LocalSelfMutationHandler(deps:Deps){
     return deny(401,'IDENTITY_DENIED');
    const bearer=bearerPattern.exec(request.headers.get('authorization')??'');
    if(!bearer)return deny(401,'IDENTITY_DENIED');
-   const now=deps.now();
-   if(!clock(now))return deny(503,'SERVICE_UNAVAILABLE');
    try{
+    // Clock outages must use this handler's sanitized HTTP error boundary.
+    const now=deps.now();
+    if(!clock(now))return deny(503,'SERVICE_UNAVAILABLE');
     const principal=await auth.authenticate(request,now);
     if(!isTrustedPrincipal(principal))return deny(401,'IDENTITY_DENIED');
     const signed=await verifier(bearer[1],now);

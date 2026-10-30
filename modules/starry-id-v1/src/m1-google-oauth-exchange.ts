@@ -25,6 +25,27 @@ const safeCode = (v:unknown):v is string =>
   typeof v==='string' && v.length>=1 && v.length<=2048 &&
   !/[\u0000-\u001f\u007f]/.test(v);
 
+/**
+ * Extract own DATA descriptors without invoking attacker-supplied getters.
+ * Every value is copied exactly once, before any secret lookup or transport
+ * await. A readonly TS annotation alone does not protect runtime objects.
+ */
+function ownedData<T extends string>(
+  value:unknown,fields:readonly T[],
+):Record<T,unknown>|null{
+  try{
+    if(!value||typeof value!=='object'||Array.isArray(value))return null;
+    const descriptors=Object.getOwnPropertyDescriptors(value);
+    const captured={} as Record<T,unknown>;
+    for(const field of fields){
+      const descriptor=descriptors[field];
+      if(!descriptor||!Object.hasOwn(descriptor,'value'))return null;
+      captured[field]=descriptor.value;
+    }
+    return captured;
+  }catch{return null;}
+}
+
 async function boundedResponse(response:Response):Promise<string|null>{
   const length=response.headers.get('content-length');
   if(length!==null && (!/^\d{1,8}$/.test(length)||Number(length)>16384))return null;
@@ -47,30 +68,39 @@ async function boundedResponse(response:Response):Promise<string|null>{
 
 /** Must be injected explicitly by the approved server composition root. */
 export function createM1GoogleCodeExchange(deps:Dependencies):TrustedOAuthBackend['exchangeCode']{
-  if(!safeClientId(deps.clientId)||
-    typeof deps.readClientSecret!=='function'||typeof deps.transport!=='function')
+  if(!deps)throw Error('M1_GOOGLE_EXCHANGE_CONFIGURATION_DENIED');
+  // Read even getter-backed trusted DI exactly once at factory construction.
+  // No mutation of the caller's deps object may switch providers/functions.
+  const {clientId,redirectUri:requestedRedirect,enabled:optIn,
+    readClientSecret,transport}=deps;
+  if(!safeClientId(clientId)||
+    typeof readClientSecret!=='function'||typeof transport!=='function')
     throw Error('M1_GOOGLE_EXCHANGE_CONFIGURATION_DENIED');
-  const clientId=deps.clientId;
   let redirect:URL;
-  try{redirect=new URL(deps.redirectUri);}catch{throw Error('M1_GOOGLE_REDIRECT_DENIED');}
+  try{redirect=new URL(requestedRedirect);}catch{throw Error('M1_GOOGLE_REDIRECT_DENIED');}
   if(redirect.protocol!=='https:'||redirect.username||redirect.password||
     redirect.search||redirect.hash||redirect.pathname==='/'||
-    redirect.href!==deps.redirectUri)
+    redirect.href!==requestedRedirect)
     throw Error('M1_GOOGLE_REDIRECT_DENIED');
   const redirectUri=redirect.href;
-  const enabled=deps.enabled===true;
+  const enabled=optIn===true;
   return async (input:Params):Promise<{idToken:string}|null>=>{
-    if(!enabled||!input||input.provider!=='google'||input.clientId!==clientId||
-      !safeCode(input.code)||!safeVerifier(input.verifier))return null;
+    if(!enabled||!input)return null;
     try{
-      const secret=await deps.readClientSecret();
+      // Do not execute or re-read credential accessors across any await.
+      const captured=ownedData(input,['provider','clientId','code','verifier']);
+      if(!captured)return null;
+      const {provider,clientId:requestedClient,code,verifier}=captured;
+      if(provider!=='google'||requestedClient!==clientId||
+        !safeCode(code)||!safeVerifier(verifier))return null;
+      const secret=await readClientSecret();
       if(typeof secret!=='string'||secret.length<8||secret.length>1024||
         /[\u0000-\u001f\u007f]/.test(secret))return null;
       const form=new URLSearchParams({
-        grant_type:'authorization_code',code:input.code,client_id:clientId,
-        client_secret:secret,redirect_uri:redirectUri,code_verifier:input.verifier,
+        grant_type:'authorization_code',code,client_id:clientId,
+        client_secret:secret,redirect_uri:redirectUri,code_verifier:verifier,
       });
-      const response=await deps.transport(M1_GOOGLE_TOKEN_ENDPOINT,{
+      const response=await transport(M1_GOOGLE_TOKEN_ENDPOINT,{
         method:'POST',body:form.toString(),
         headers:{'content-type':'application/x-www-form-urlencoded;charset=UTF-8',accept:'application/json'},
         redirect:'error',credentials:'omit',cache:'no-store',referrerPolicy:'no-referrer',
@@ -99,22 +129,28 @@ export function createM1GoogleAuthorizeUrl(input:Readonly<{
   clientId:string;redirectUri:string;state:string;nonce:string;codeChallenge:string;
 }>):string|null{
   try{
-    if(!input||!safeClientId(input.clientId)||
-      !/^[A-Za-z0-9_-]{32,256}$/.test(input.state)||
-      !/^[A-Za-z0-9_-]{16,256}$/.test(input.nonce)||
-      !/^[A-Za-z0-9_-]{43}$/.test(input.codeChallenge))return null;
-    const redirect=new URL(input.redirectUri);
+    const captured=ownedData(input,
+      ['clientId','redirectUri','state','nonce','codeChallenge']);
+    if(!captured)return null;
+    const {clientId,redirectUri,state,nonce,codeChallenge}=captured;
+    if(!safeClientId(clientId)||
+      typeof state!=='string'||!/^[A-Za-z0-9_-]{32,256}$/.test(state)||
+      typeof nonce!=='string'||!/^[A-Za-z0-9_-]{16,256}$/.test(nonce)||
+      typeof codeChallenge!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(codeChallenge))
+      return null;
+    if(typeof redirectUri!=='string')return null;
+    const redirect=new URL(redirectUri);
     if(redirect.protocol!=='https:'||redirect.username||redirect.password||
       redirect.search||redirect.hash||redirect.pathname==='/'||
-      redirect.href!==input.redirectUri)return null;
+      redirect.href!==redirectUri)return null;
     const url=new URL(M1_GOOGLE_AUTHORIZE_ENDPOINT);
     url.searchParams.set('response_type','code');
-    url.searchParams.set('client_id',input.clientId);
-    url.searchParams.set('redirect_uri',input.redirectUri);
+    url.searchParams.set('client_id',clientId);
+    url.searchParams.set('redirect_uri',redirectUri);
     url.searchParams.set('scope','openid'); // first-login does not need email/profile PII
-    url.searchParams.set('state',input.state);
-    url.searchParams.set('nonce',input.nonce);
-    url.searchParams.set('code_challenge',input.codeChallenge);
+    url.searchParams.set('state',state);
+    url.searchParams.set('nonce',nonce);
+    url.searchParams.set('code_challenge',codeChallenge);
     url.searchParams.set('code_challenge_method','S256');
     url.searchParams.set('access_type','online'); // no offline Google refresh grant
     return url.href;

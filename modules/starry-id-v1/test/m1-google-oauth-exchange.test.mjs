@@ -103,3 +103,88 @@ test('Google authorization URL fixes issuer, openid-only scope, PKCE S256, state
    assert.equal(createM1GoogleAuthorizeUrl({...input,...changes}),null);
  }
 });
+
+ test('exchange preserves validated code and verifier during secret lookup',async()=>{
+ const f=fixture();const request={...input};
+ f.deps.readClientSecret=async()=>{request.code='changed';request.verifier='invalid';return 'test-secret-not-a-real-credential';};
+ const adapter=createM1GoogleCodeExchange(f.deps);
+ assert.deepEqual(await adapter(request),{idToken:jwt});
+ const sent=new URLSearchParams(f.calls[0][1].body);
+ assert.equal(sent.get('code'),code);assert.equal(sent.get('code_verifier'),verifier);
+});
+
+
+test('OAuth exchange construction snapshots clientId/redirectUri getter exactly once, never re-reads authority',async()=>{
+ const f=fixture();
+ let clientReads=0,redirectReads=0;
+ Object.defineProperty(f.deps,'clientId',{configurable:true,get(){
+  clientReads++;
+  return clientReads===1?client:'attacker-client.apps.googleusercontent.com';
+ }});
+ Object.defineProperty(f.deps,'redirectUri',{configurable:true,get(){
+  redirectReads++;
+  return redirectReads===1?callback:'https://evil.invalid/callback';
+ }});
+ const exchange=createM1GoogleCodeExchange(f.deps);
+ assert.deepEqual(await exchange(input),{idToken:jwt});
+ const params=new URLSearchParams(f.calls[0][1].body);
+ assert.equal(params.get('client_id'),client);
+ assert.equal(params.get('redirect_uri'),callback);
+ assert.equal(clientReads,1);
+ assert.equal(redirectReads,1);
+});
+
+test('secret reader remains the original trusted function even if dependency object is replaced after factory creation',async()=>{
+ const f=fixture();
+ const exchange=createM1GoogleCodeExchange(f.deps);
+ f.deps.readClientSecret=async()=>{throw Error('MUTATED_SECRET_READER');};
+ assert.deepEqual(await exchange(input),{idToken:jwt});
+ assert.equal(f.secrets,1);
+ assert.equal(f.calls.length,1);
+});
+
+test('secret lookup cannot replace the transport and receive the client secret after await',async()=>{
+ const f=fixture(),intercepts=[];
+ f.deps.readClientSecret=async()=>{
+  f.deps.transport=async(...args)=>{
+   intercepts.push(args);
+   return ok();
+  };
+  return 'test-secret-not-a-real-credential';
+ };
+ const exchange=createM1GoogleCodeExchange(f.deps);
+ assert.deepEqual(await exchange(input),{idToken:jwt});
+ assert.equal(f.calls.length,1);
+ assert.equal(intercepts.length,0,'untrusted replacement transport must not see the secret');
+});
+
+test('exchange rejects accessor-shaped request credentials before secret access',async()=>{
+ const f=fixture();
+ let codeReads=0,verifierReads=0;
+ const accessor={
+  provider:'google',clientId:client,
+  get code(){codeReads++;return code;},
+  get verifier(){verifierReads++;return verifier;},
+ };
+ const exchange=createM1GoogleCodeExchange(f.deps);
+ assert.equal(await exchange(accessor),null);
+ assert.equal(codeReads,0);
+ assert.equal(verifierReads,0);
+ assert.equal(f.secrets,0);
+ assert.equal(f.calls.length,0);
+});
+
+test('authorize URL refuses accessors that can switch OAuth state/nonce/challenge between validation and serialization',async()=>{
+ const {createM1GoogleAuthorizeUrl}=await import('../src/m1-google-oauth-exchange.ts');
+ for(const name of ['clientId','redirectUri','state','nonce','codeChallenge']){
+  const valid={
+   clientId:client,redirectUri:callback,state:'s'.repeat(43),
+   nonce:'n'.repeat(43),codeChallenge:'c'.repeat(43),
+  };
+  let reads=0;
+  const original=valid[name];
+  Object.defineProperty(valid,name,{get(){reads++;return reads===1?original:'attacker-controlled';}});
+  assert.equal(createM1GoogleAuthorizeUrl(valid),null,name);
+  assert.equal(reads,0,'accessor must never execute: '+name);
+ }
+});
