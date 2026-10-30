@@ -138,3 +138,26 @@ test('M2 SDK refuses a second-step mismatched response ID instead of hiding iden
  const x=sample({transport:async()=>response({...pending,request_id:'m2del-'+'d'.repeat(48)},202)});
  await rejectCode(()=>x.client.confirmDeletion(id),'INVALID_RESPONSE');
 });
+
+
+test('AI-0 regression: 404 is empty ONLY when exact private JSON NO_REQUEST; HTML/NOT_FOUND/cacheable/extra fields fail closed',async()=>{
+ const exact={error:{code:'NO_REQUEST'}};
+ const ok=sample({transport:async()=>response(exact,404)});
+ assert.equal(await ok.client.getStatus(),null);
+ await rejectCode(()=>ok.client.confirmDeletion(id),'NO_REQUEST');
+ for(const reply of [
+  new globalThis.Response('<h1>Missing route</h1>',{status:404,headers:{
+   'content-type':'text/html',
+  }}),
+  response({error:{code:'NOT_FOUND'}},404),
+  response({error:{code:'NO_REQUEST'}},404,{'cache-control':'public, max-age=100'}),
+  response({error:{code:'NO_REQUEST',debug:'PRIVATE_SQL'}},404),
+  response({error:{code:'NO_REQUEST'},email:'PRIVATE_ID'},404),
+  response({error:{code:'NO_REQUEST'}},404,{'content-type':'text/plain'}),
+  response({error:{code:'NO_REQUEST'}},404,{'content-length':'7000'}),
+ ]){
+  const x=sample({transport:async()=>reply});
+  await rejectCode(()=>x.client.getStatus(),'INVALID_RESPONSE');
+  assert.equal(x.calls.length,1);
+ }
+});
