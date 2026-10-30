@@ -192,6 +192,8 @@ test('expired Google JWKS + transport failure rejects before OAuth state CAS/exc
 
 test('mismatched JWKS issuer/audience and a disabled composition never fall back to static authority',async()=>{
  const f=await setup();try{
+  assert.throws(()=>createM1SingleAuthHttpComposition({...f.deps,googleJwksSource:null}),
+   /M1_M2_GOOGLE_FLOW_CONFIGURATION_DENIED/);
   const mismatched=createM1SingleAuthHttpComposition({
    ...f.deps,
    googleJwksSource:{getProvider:async()=>({
