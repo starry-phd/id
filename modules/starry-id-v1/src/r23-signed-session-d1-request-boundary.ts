@@ -54,7 +54,7 @@ export function createOfflineStarryRequestAuthBoundary(deps:Readonly<{
    try{
     const url=new URL(request.url);
     if(url.origin!==permittedOrigin||url.search||url.hash||
-     (request.method!=='GET'&&request.method!=='POST')||
+     (request.method!=='GET'&&request.method!=='POST'&&request.method!=='PATCH')||
      request.headers.has('cookie')||
      request.headers.has('proxy-authorization')||
      request.headers.has('x-forwarded-authorization'))return null;
