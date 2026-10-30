@@ -101,11 +101,19 @@ export type TrustedOAuthBackend = Readonly<{
  * the OAuth code/state between validation, D1 CAS and provider exchange.
  */
 function ownFieldSnapshot<T extends string>(
-  source:unknown,fields:readonly T[],
+  source:unknown,fields:readonly T[],exact=false,
 ):Record<T,unknown>|null{
   try{
     if(!source||typeof source!=='object'||Array.isArray(source))return null;
     const descriptors=Object.getOwnPropertyDescriptors(source);
+    // Only one ownKeys reflection, including for Proxies. Do not trigger a
+    // second caller-controlled trap via Object.keys() after snapshotting.
+    if(exact){
+      const actual=Reflect.ownKeys(descriptors);
+      if(actual.length!==fields.length||actual.some(
+        key=>typeof key!=='string'||!fields.includes(key as T),
+      ))return null;
+    }
     const values={} as Record<T,unknown>;
     for(const key of fields){
       const descriptor=descriptors[key];
@@ -141,8 +149,8 @@ export function createVerifiedOidcCallback(deps:Readonly<{
 
   return async (untrusted:unknown,now:number):Promise<VerifiedProviderSubject|null>=>{
     if(!Number.isSafeInteger(now)||now<0)return null;
-    const input=ownFieldSnapshot(untrusted,['code','state']);
-    if(!input||Object.keys(untrusted as object).sort().join('|')!=='code|state'||
+    const input=ownFieldSnapshot(untrusted,['code','state'],true);
+    if(!input||
        typeof input.code!=='string'||!/^.{1,2048}$/.test(input.code)||
        typeof input.state!=='string'||!(/^[A-Za-z0-9_-]{32,256}$/).test(input.state))
       return null;
