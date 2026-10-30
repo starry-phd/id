@@ -33,7 +33,7 @@ packages/sdk/src/m2-local-deletion-request-client.ts **不從 public SDK index �
 | POST | /v1/starry-id/members/me/deletion-requests/confirm | confirmation = CONFIRM_MY_ACCOUNT_DELETION；帶第一步 receipt request_id |
 | GET | /v1/starry-id/members/me/deletion-requests/status | 查本人狀態，404 表示尚無 request |
 
-只解析 #291 的六個 DTO 欄位 request_id、status、first_confirmed_at、second_confirmed_at、physical_erasure_completed:false、execution_authorized:false；限定兩種狀態 awaiting_second_confirmation/pending_processing。錯 ID、額外 PII 欄位、physical true、奇怪時間戳、cacheable/mislabelled/超 4KB/重導回應一律 fail closed，回應 body 不反射。所有請求 credentials=omit、redirect=error、cache=no-store，401/403→未授權、503/網路→可安全重試、GET 404→無申請。第一步失敗後可再送同種確認（後端冪等），第二步失敗保留同 request_id 後再確認。
+只解析 #291 的六個 DTO 欄位 request_id、status、first_confirmed_at、second_confirmed_at、physical_erasure_completed:false、execution_authorized:false；限定兩種狀態 awaiting_second_confirmation/pending_processing。錯 ID、額外 PII 欄位、physical true、奇怪時間戳、cacheable/mislabelled/超 4KB/重導回應一律 fail closed，回應 body 不反射。所有請求 credentials=omit、redirect=error、cache=no-store，401/403→未授權、503/網路→可安全重試、GET 404→無申請。**AI-0 真缺陷修正後：** 首次/第二次 POST 回應丟失的重試會先 GET 查本人權威申請狀態；若 GET 已返回 awaiting_second_confirmation，只顯示第二次不同按鈕，**不得自動做第二次**；若已 pending_processing，顯示尚在處理、不重送 POST。只有第一次 POST 且 GET 明確 404/no-request 才可按原意圖重送第一步；第二次 POST 舊 ID 查無狀態不可盲重送。
 
 後端 #291 只**受理刪帳申請**，並不撤銷所有 Session、執行實體刪除、取消商店訂閱、恢復購買權益、處理 Q104/Q119 法定保留與 PITR。不得把 pending 說成 physical erased。
 
@@ -55,3 +55,11 @@ flowchart:
 - AI-0：核對此切片 UI + SDK + preview tests 的同 SHA CI 和實際介面預覽。未來實接真 Auth 要有受審 provider/bootstrap；目前不公開 Worker 會員路由、不部署、不改資源/付費/Gates。
 
 本切片絕不聲稱已做 physical erasure、真 Google OAuth、remote D1/Store 或上架。正式發布仍受 11 Gate 與業主環境權限限制。
+
+## 5. AI-0 PR #293 初版獨立重現缺陷：真修補及重現證據
+
+- [AI-0 PR 初版 review](https://github.com/starry-phd/id/pull/293#issuecomment-6519031906) 的三個問題已針對原 source 修補，不拆分另一份 PR：401/403 或 Session source 失效 **清除 receipt/intent、封鎖所有 retry/confirm**，等待新 Auth-Owner 提供不同 port/flow；React 透過 useSyncExternalStore 立即讀新 port 狀態，舊 port invalidation epoch 抑制晚到 async 內容。
+- SDK 僅接受 status 404 同時滿足 **application/json、cache-control:no-store、bounded exact `{error:{code:"NO_REQUEST"}}`** 時才返回 null，HTML 404、NOT_FOUND、額外 PII、可快取及超大 response 都視為錯誤，不顯示「沒有申請」。
+- 首次或第二次 POST 模糊網路結果 retry **必先 GET**，新增呼叫順序與真回應丟失模擬。復原收到 `awaiting_second_confirmation` 絕不自動執行後續第二確認，收到 `pending_processing` 僅顯示待處理。
+- **訂閱提醒置於兩次確認操作之前**，使用者不必先按確認才看到重要資訊。正式 build 不連線或取得 fixture token，dev-only preview 仍只有記憶體狀態。
+- 驗證證據區分：React Native Web SSR 確認真元件排版與文字；Node flow/SDK 測試真正呼叫實作函式、驗證操作和 HTTP 序列；Expo dev preview 由審查者本機手動點按。**尚無瀏覽器手勢 E2E 或 iOS/Android 物理裝置點按證據，不冒稱已做此級驗收**。
