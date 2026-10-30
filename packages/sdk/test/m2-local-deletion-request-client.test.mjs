@@ -13,7 +13,7 @@ const awaiting={request_id:id,status:'awaiting_second_confirmation',
  first_confirmed_at:1793000000,second_confirmed_at:null,
  physical_erasure_completed:false,execution_authorized:false};
 const pending={...awaiting,status:'pending_processing',second_confirmed_at:1793000002};
-const response=(obj,status=200,headers={})=>new Response(JSON.stringify(obj),{
+const response=(obj,status=200,headers={})=>new globalThis.Response(JSON.stringify(obj),{
  status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'private, no-store',...headers},
 });
 function sample(opts={}){
@@ -128,7 +128,7 @@ test('M2 SDK fails closed on cacheable, HTML and oversized bodies, spoofed final
   start(c){c.enqueue(new Uint8Array(4097));},
   cancel(){cancelled=true;},
  });
- const tooLarge=sample({transport:async()=>new Response(bytes,{status:200,headers:{
+ const tooLarge=sample({transport:async()=>new globalThis.Response(bytes,{status:200,headers:{
   'content-type':'application/json','cache-control':'no-store',
  }})});
  await rejectCode(()=>tooLarge.client.getStatus(),'INVALID_RESPONSE');
