@@ -124,6 +124,52 @@ test('M1 bridge sanitizes upstream errors, unexpected replies and private fields
  assert.equal(failed.status,503);
  assert.doesNotMatch(await failed.text(),/PRIVATE|SQL|KEY/);
 });
+test('M1 bridge preserves AI1 PATCH/logout HTTP 400, whitelists known codes, never echoes private error bodies',async()=>{
+ const cases=[
+  {method:'PATCH',path:self,upstreamCode:'PROFILE_FIELDS_DENIED',expected:'PROFILE_FIELDS_DENIED'},
+  {method:'PATCH',path:self,upstreamCode:'REQUEST_DENIED',expected:'REQUEST_DENIED'},
+  {method:'POST',path:logout,upstreamCode:'REQUEST_DENIED',expected:'REQUEST_DENIED'},
+ ];
+ for(const {method,path,upstreamCode,expected} of cases){
+  const {bridge}=make({enabled:true,mutationPort:{async handle(){
+   return new Response(JSON.stringify({error:{code:upstreamCode}}),{
+    status:400,headers:{'content-type':'application/json','cache-control':'no-store'},
+   });
+  }}});
+  const result=await bridge.handle(req(path,method,
+   method==='PATCH'?{'if-match':'"rev-1"','content-type':'application/json'}:{},
+   method==='PATCH'?'{"s_user_id":"forbidden"}':undefined));
+  assert.equal(result.status,400);
+  assert.deepEqual(await result.json(),{error:{code:expected}});
+  assert.equal(result.headers.get('cache-control'),'no-store');
+ }
+ for(const response of [
+  new Response('PRIVATE_SQL_STACK',{status:400}),
+  new Response(JSON.stringify({error:{code:'PRIVATE_SQL_STACK',secret:'Bearer private'}}),{
+   status:400,headers:{'content-type':'application/json','cache-control':'no-store'},
+  }),
+  new Response(JSON.stringify({error:{code:'PROFILE_FIELDS_DENIED'},token:'PRIVATE_BEARER'}),{
+   status:400,headers:{'content-type':'application/json','cache-control':'no-store'},
+  }),
+  new Response(JSON.stringify({error:{code:'PROFILE_FIELDS_DENIED'}}),{
+   status:400,headers:{'content-type':'application/json','cache-control':'public'},
+  }),
+ ]){
+  const {bridge}=make({enabled:true,mutationPort:{async handle(){return response;}}});
+  const result=await bridge.handle(req(self,'PATCH',
+   {'if-match':'"rev-1"','content-type':'application/json'},'{}'));
+  assert.equal(result.status,400);
+  const text=await result.text();
+  assert.deepEqual(JSON.parse(text),{error:{code:'REQUEST_DENIED'}});
+  assert.doesNotMatch(text,/PRIVATE|SQL|BEARER|PROFILE_FIELDS_DENIED/);
+ }
+ const {bridge}=make({enabled:true,readPort:{async handle(){
+  return new Response('PRIVATE_SOURCE',{status:400});
+ }}});
+ const deniedRead=await bridge.handle(req(self));
+ assert.equal(deniedRead.status,503);
+ assert.doesNotMatch(await deniedRead.text(),/PRIVATE_SOURCE/);
+});
 test('M1 bridge accepts logout ONLY as zero-body 204, rejects forged 200/204 bodies',async()=>{
  for(const response of [
   ok(),new Response(JSON.stringify({ok:true}),{status:200}),
