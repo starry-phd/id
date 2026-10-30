@@ -34,6 +34,8 @@ type Deps = Readonly<{
   googleProvider:PinnedOidcProvider;
   /** Optional source-only server-owned official JWKS; no separate OAuth/Auth. */
   googleJwksSource?:Pick<ReturnType<typeof createM1GoogleJwksSource>,'getProvider'>;
+  /** Server-owned exact signed Google sub values of explicitly invited testers. */
+  allowedGoogleTestSubjects?:readonly string[];
   verifierCustody:M1VerifierCustody;
   activeKey:()=>Promise<SessionSigningKey>;
   getVerificationKey:(kid:string)=>Promise<CryptoKey|null>;
@@ -74,6 +76,10 @@ export function createM1M2LocalGoogleFlow(deps:Deps){
   const getVerificationKey=deps.getVerificationKey;
   const now=deps.now;
   const enabled=deps.enabled===true;
+  // A staging Google-JWKS composition cannot accidentally become open signup.
+  // An explicit allowlist is REQUIRED before any remote-like source is used.
+  const requireGoogleTestAllowlist=
+    enabled&&serverScope.environment==='staging'&&!!deps.googleJwksSource;
   // Capture the exact Google configuration before any OAuth or keyring await.
   const clientId=deps.googleProvider.clientId;
   const redirectUri=redirect.href;
@@ -85,6 +91,8 @@ export function createM1M2LocalGoogleFlow(deps:Deps){
     enabled,serverScope,expectedOrigin:origin.origin,
     authDb,provider:deps.googleProvider,exchangeCode,
     getGoogleJwksProvider:deps.googleJwksSource?.getProvider,
+    allowedGoogleTestSubjects:deps.allowedGoogleTestSubjects,
+    requireGoogleTestAllowlist,
     verifierCustody:deps.verifierCustody,requireSealedVerifier:true,
     activeKey:deps.activeKey,getVerificationKey,
     now,randomBytes:deps.randomBytes,

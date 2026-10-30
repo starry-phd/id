@@ -45,6 +45,7 @@ export function createM1SingleAuthHttpComposition(deps:GoogleDeps) {
     redirectUri:deps.redirectUri,authDb:deps.authDb,
     googleProvider:deps.googleProvider,
     googleJwksSource:deps.googleJwksSource,
+    allowedGoogleTestSubjects:deps.allowedGoogleTestSubjects,
     verifierCustody:deps.verifierCustody,
     activeKey:deps.activeKey,getVerificationKey:deps.getVerificationKey,
     readGoogleClientSecret:deps.readGoogleClientSecret,

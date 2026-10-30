@@ -31,6 +31,13 @@ type Dependencies = Readonly<{
   exchangeCode:Exchange;
   /** Server-owned source of fresh official Google JWKS; no untrusted URLs. */
   getGoogleJwksProvider?:()=>Promise<PinnedOidcProvider|null>;
+  /**
+   * Server-owned, invitation-only Google signed subjects for staging pilots.
+   * Exact verified OIDC sub only, never unverified email/name/client user_id.
+   * If required, absent/empty/malformed invites are configuration errors.
+   */
+  allowedGoogleTestSubjects?:readonly string[];
+  requireGoogleTestAllowlist?:boolean;
   /** Optional for backward-compatible local fixtures; REQUIRED for approved remote wiring. */
   verifierCustody?:M1VerifierCustody;
   requireSealedVerifier?:boolean;
@@ -73,6 +80,20 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
   const scope=Object.freeze({...deps.serverScope});
   // Snapshot trusted provider metadata, including individual JWKS records.
   // A caller changing its DI object after an await cannot move our issuer.
+  const allowedInput=deps.allowedGoogleTestSubjects;
+  const requireAllowlist=deps.requireGoogleTestAllowlist===true;
+  // Copy primitives BEFORE any async callback. Later DI mutations cannot
+  // silently expand pilot access; the set is private to this Auth instance.
+  const allowedSubjects=Array.isArray(allowedInput)?[...allowedInput]:null;
+  if((allowedInput!==undefined&&allowedSubjects===null)||
+    (deps.requireGoogleTestAllowlist!==undefined&&
+      typeof deps.requireGoogleTestAllowlist!=='boolean')||
+    ((requireAllowlist||allowedSubjects!==null)&&
+      (!allowedSubjects||allowedSubjects.length<1||allowedSubjects.length>32||
+       allowedSubjects.some(x=>typeof x!=='string'||!id.test(x))||
+       new Set(allowedSubjects).size!==allowedSubjects.length)))
+    throw Error('M1_AUTH_TEST_ALLOWLIST_DENIED');
+  const pilotAllowedSubjects=allowedSubjects===null?null:new Set(allowedSubjects);
   const provider=deps.provider&&Object.freeze({
     provider:deps.provider.provider,clientId:deps.provider.clientId,
     issuer:deps.provider.issuer,
@@ -177,6 +198,12 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
       if(!verified||verified.provider!==provider.provider||
         verified.issuer!==provider.issuer||verified.audience!==provider.clientId||
         !id.test(verified.providerSubject))return null;
+      // Signed Google subject is the ONLY invitation authority. An uninvited
+      // valid Google account may not read existing membership, register a
+      // new private member, issue a Session or write an issuance audit.
+      // OAuth state has already been consumed by the original one-time CAS.
+      if(pilotAllowedSubjects&&!pilotAllowedSubjects.has(verified.providerSubject))
+        return null;
       const known=await deps.authDb.prepare(identitySelect)
         .bind(verified.provider,verified.providerSubject)
         .first<{s_user_id:string;auth_version:number}>();

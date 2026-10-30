@@ -83,9 +83,9 @@ async function setup(){
  let jwksNow=NOW,offline=false,jwksCalls=0,tokenCalls=0;
  let providerValue=provider;
  const pending=new Map();
- async function idToken(nonce){
+ async function idToken(nonce,subject='known-subject'){
   const h=enc({alg:'RS256',kid,typ:'JWT'});
-  const p=enc({iss:provider.issuer,aud:clientId,sub:'known-subject',
+  const p=enc({iss:provider.issuer,aud:clientId,sub:subject,
    nonce,iat:NOW,exp:NOW+300});
   const payload=h+'.'+p;
   const sig=await crypto.subtle.sign('RSASSA-PKCS1-v1_5',
@@ -110,7 +110,8 @@ async function setup(){
  const deps={
   enabled:true,serverScope:scope,expectedOrigin:origin,
   redirectUri,authDb:adapter,googleProvider:provider,
-  googleJwksSource:jwks,verifierCustody:custody,
+  googleJwksSource:jwks,allowedGoogleTestSubjects:['known-subject'],
+  verifierCustody:custody,
   activeKey:async()=>({kid:'local-hmac',key:signing}),
   getVerificationKey:async k=>k==='local-hmac'?signing:null,
   readGoogleClientSecret:async()=> 'local-secret-not-real',
@@ -118,29 +119,65 @@ async function setup(){
    assert.equal(url,'https://oauth2.googleapis.com/token');
    assert.equal(init.method,'POST');
    const code=new URLSearchParams(init.body).get('code');
-   const nonce=pending.get(code);
-   if(!nonce)return json({error:'missing-code'});
+   const value=pending.get(code);
+   if(!value)return json({error:'missing-code'});
    pending.delete(code);tokenCalls++;
-   return json({id_token:await idToken(nonce),access_token:'should-never-escape'});
+   return json({id_token:await idToken(value.nonce,value.subject),
+    access_token:'should-never-escape'});
   },
   now:()=>NOW,
  };
  const flow=createM1SingleAuthHttpComposition(deps);
  let index=0;
- async function begin(){
+ async function begin(subject='known-subject'){
   const url=new URL(await flow.beginGoogleLogin());
   const state=url.searchParams.get('state'),nonce=url.searchParams.get('nonce');
   const code='mock-code-'+(++index);
   assert.equal(url.origin,'https://accounts.google.com');
   assert.equal(url.searchParams.get('code_challenge_method'),'S256');
   assert.ok(state&&nonce);
-  pending.set(code,nonce);
+  pending.set(code,{nonce,subject});
   return {state,code};
  }
  return {db,flow,begin,deps,jwks,
   close:()=>db.close(),expireJwksAndDisconnect:()=>{jwksNow=NOW+61;offline=true;},
   getCalls:()=>({jwksCalls,tokenCalls}),getProviderValue:()=>providerValue};
 }
+test('JWKS-enabled staging requires a server-owned explicit Google subject invite list at construction',async()=>{
+ const f=await setup();try{
+  for(const value of [undefined,[],null,[''],['known-subject','known-subject'],['bad\nsubject']]){
+   assert.throws(()=>createM1SingleAuthHttpComposition({
+    ...f.deps,allowedGoogleTestSubjects:value,
+   }),/M1_AUTH_TEST_ALLOWLIST_DENIED/);
+  }
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,0);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_m1_oauth_attempts').get().n,0);
+  assert.deepEqual(f.getCalls(),{jwksCalls:0,tokenCalls:0});
+ }finally{f.close();}
+});
+
+test('valid signed but uninvited Google sub cannot read membership, register, issue Session or audit',async()=>{
+ const f=await setup();try{
+  const uninvited=await f.begin('outside-pilot-subject');
+  f.deps.allowedGoogleTestSubjects.push('outside-pilot-subject');
+  const denied=await f.flow.completeGoogleLogin(uninvited);
+  assert.equal(denied,null,'mutating caller-owned allowlist after construction grants no login');
+  const row=f.db.prepare('SELECT consumed_at FROM starry_m1_oauth_attempts WHERE state=?')
+   .get(uninvited.state);
+  assert.equal(row.consumed_at,NOW,'one-time state consumed even for uninvited signed Google subject');
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_members').get().n,1);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_identities').get().n,1);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,0);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_m1_audit_intents').get().n,0);
+  assert.deepEqual(f.getCalls(),{jwksCalls:2,tokenCalls:1});
+  assert.equal(await f.flow.completeGoogleLogin(uninvited),null,'uninvited code replay denied');
+  const invited=await f.begin('known-subject');
+  assert.equal((await f.flow.completeGoogleLogin(invited))?.s_user_id,'u1');
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,1);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_members').get().n,1);
+ }finally{f.close();}
+});
+
 test('real WebCrypto Google JWK (from trusted Discovery) wires into ORIGINAL single Auth, SQLite Session and member bridge',async()=>{
  const f=await setup();try{
   assert.equal(f.flow.local_only,true);
