@@ -9,6 +9,8 @@ import {createM1OAuthVerifierCustody} from '../src/m1-oauth-verifier-custody.ts'
 import {createM1GoogleCodeExchange,M1_GOOGLE_TOKEN_ENDPOINT} from '../src/m1-google-oauth-exchange.ts';
 import {createM1M2LocalGoogleFlow,M1_M2_GOOGLE_FLOW_LIVE_ENABLED}
   from '../src/m1-m2-local-google-member-flow.ts';
+import {createM1LocalMemberPlatformBridge}
+  from '../../../apps/api/src/m1-local-member-platform-bridge.ts';
 const now=1793000000;
 const origin='https://id.starry.example';
 const scope={brand_id:'starry',app_id:'starry-id',environment:'staging'};
@@ -453,6 +455,40 @@ async function createClosedLocalGoogleFlow(f,configureDeps){
  const logout=bearer=>request('/v1/starry-id/sessions/logout',bearer,{method:'POST'});
  return {flow,ctx,start,self,patch,logout,custody};
 }
+// Independent post-#281 scoped regression with a REAL signed HMAC session,
+// original Google/SQLite Auth handler and original M2 mutation port.
+test('merged M1 bridge preserves safe 400 on forbidden PATCH and nonempty logout without SQLite writes',async()=>{
+ const f=await makeFixture();try{
+  const x=await createClosedLocalGoogleFlow(f);
+  const bridge=createM1LocalMemberPlatformBridge({
+   enabled:true,scope,expectedOrigin:origin,
+   readPort:{handle:request=>x.flow.readSelf(request)},
+   mutationPort:{handle:request=>x.flow.mutateSelf(request)},
+  });
+  const attempt=await x.start();
+  const issued=await x.flow.completeGoogleLogin({state:attempt.state,code:attempt.code});
+  assert.equal(issued?.status,'issued');
+  const forbidden=await bridge.handle(x.patch(issued.bearer,1,{
+   unsafe_member_field:'DO_NOT_STORE',
+  }));
+  assert.equal(forbidden.status,400);
+  assert.deepEqual(await forbidden.json(),{error:{code:'PROFILE_FIELDS_DENIED'}});
+  const badLogout=await bridge.handle(new Request(origin+'/v1/starry-id/sessions/logout',{
+   method:'POST',headers:{authorization:'Bearer '+issued.bearer,'content-type':'application/json'},
+   body:'{}',
+  }));
+  assert.equal(badLogout.status,400);
+  assert.deepEqual(await badLogout.json(),{error:{code:'REQUEST_DENIED'}});
+  assert.equal(f.db.prepare('SELECT profile_revision FROM starry_members WHERE s_user_id=?')
+   .get('u1').profile_revision,1);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_m2_member_mutation_audit')
+   .get().n,0);
+  const session=f.db.prepare('SELECT revoked_at FROM starry_sessions').get();
+  assert.equal(session.revoked_at,null);
+  assert.equal((await bridge.handle(x.self(issued.bearer))).status,200);
+ }finally{f.close();}
+});
+
 // A mutable trusted DI object must not silently split the M1 OAuth Session
 // and M2 profile/logout across two D1 authorities or environments.
 test('M1 and M2 capture one Starry D1 and scope despite changing composition getters',async()=>{
