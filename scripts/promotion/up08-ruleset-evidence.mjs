@@ -14,6 +14,10 @@ const EXPECTED_CHECKS = ['Repository policy', 'Required validation'];
 // Fixed GitHub Actions App ID observed in the approved live GitHub Ruleset GET.
 // This is a source-origin consistency gate, NOT proof that supplied JSON is live.
 const GITHUB_ACTIONS_APP_ID = 15368;
+const EXPECTED_RULESET_ID = 25839375;
+const EXPECTED_REPOSITORY = 'starry-phd/id';
+const EXPECTED_REPOSITORY_ID = 1433637276;
+const EXPECTED_WORKFLOW_PATH = '.github/workflows/starry-ci.yml';
 
 export function inspectUp08Evidence({ruleset, run, jobs, expectedSha}) {
   const failures = [];
@@ -25,6 +29,13 @@ export function inspectUp08Evidence({ruleset, run, jobs, expectedSha}) {
   else {
     if (ruleset.name !== 'Protect-main-Starry-ID' || ruleset.enforcement !== 'active' ||
       ruleset.target !== 'branch') fail('main ruleset is not the active approved branch ruleset');
+    // Name-only matching can accept another repository's similar-looking ruleset.
+    // Bind the supplied snapshot to this exact repository/ruleset; this still
+    // does not authenticate the snapshot or replace a fresh REST readback.
+    if (ruleset.id !== EXPECTED_RULESET_ID ||
+      ruleset.source_type !== 'Repository' || ruleset.source !== EXPECTED_REPOSITORY ||
+      ruleset.current_user_can_bypass !== 'never')
+      fail('ruleset ID, repository origin or no-bypass provenance is unverified');
     const ref = ruleset.conditions?.ref_name;
     if (!record(ref) || !Array.isArray(ref.include) || !ref.include.includes('~DEFAULT_BRANCH') ||
       !Array.isArray(ref.exclude) || ref.exclude.length !== 0)
@@ -64,6 +75,14 @@ export function inspectUp08Evidence({ruleset, run, jobs, expectedSha}) {
       !sha40(run.head_sha) || run.head_sha !== expectedSha || run.event !== 'push' ||
       run.head_branch !== 'main' || !isPass(run))
       fail('latest main push run SHA, origin or outcome not verified');
+    // The canonical-looking URL alone does not prove the payload was emitted
+    // by this repository's approved push workflow.
+    if (!record(run.repository) || run.repository.id !== EXPECTED_REPOSITORY_ID ||
+      run.repository.full_name !== EXPECTED_REPOSITORY ||
+      !record(run.head_repository) || run.head_repository.id !== EXPECTED_REPOSITORY_ID ||
+      run.head_repository.full_name !== EXPECTED_REPOSITORY ||
+      run.path !== EXPECTED_WORKFLOW_PATH)
+      fail('Actions run repository/head repository or workflow path is unverified');
     if (run.name !== 'Starry CI' || typeof run.html_url !== 'string' ||
       !/^https:\/\/github\.com\/starry-phd\/id\/actions\/runs\/[1-9][0-9]*$/.test(run.html_url) ||
       run.html_url !== 'https://github.com/starry-phd/id/actions/runs/' + String(run.id))
