@@ -11,21 +11,23 @@ import type {createM1StagingSelfClient,M1StagingSelf,M1SelfPatch}
 
 export const M1_MEMBER_PROFILE_SCREEN_LIVE_ENABLED=false as const;
 export type MemberProfilePort=Pick<ReturnType<typeof createM1StagingSelfClient>,
- 'getSelf'|'patchSelf'|'logout'>;
+ 'getSelf'|'patchSelfForUser'|'logout'>;
 export type MemberProfileScreenProps=Readonly<{port:MemberProfilePort;enabled:boolean}>;
 type Phase='disabled'|'loading'|'ready'|'saving'|'logging_out'|'logged_out'|'reauth_required'|'error';
 /** Any signed Session loss must erase stale PII, not leave editable data. */
 export function isM1SessionLost(error:unknown):boolean{
  return error instanceof Error&&(
   error.message==='STARRY_SELF_UNAUTHORIZED'||
-  error.message==='STARRY_SELF_SESSION_REQUIRED'
+  error.message==='STARRY_SELF_SESSION_REQUIRED'||
+  error.message==='STARRY_SELF_IDENTITY_CHANGED'
  );
 }
 const explanation=(error:unknown):string=>{
  if(!(error instanceof Error))return '服務暫時無法使用，請稍後重試。';
  switch(error.message){
   case 'STARRY_SELF_UNAUTHORIZED':
-  case 'STARRY_SELF_SESSION_REQUIRED':return '登入已過期，請重新登入。';
+  case 'STARRY_SELF_SESSION_REQUIRED':
+  case 'STARRY_SELF_IDENTITY_CHANGED':return '登入狀態已切換，請重新登入。';
   case 'STARRY_SELF_CONFLICT':return '會員資料已在其他地方更新，請重新讀取後再儲存。';
   case 'STARRY_SELF_FIELDS_DENIED':return '填寫的資料不符合要求，請檢查姓名與選項。';
   case 'STARRY_SELF_REVISION_REQUIRED':return '資料版本已變更，請重新讀取後再儲存。';
@@ -91,7 +93,9 @@ export function MemberProfileScreen({port,enabled}:MemberProfileScreenProps){
    display_name_public:publicName,
   };
   try{
-   const updated=await port.patchSelf(profile.profile_revision,payload);
+   // The same captured signed Session is checked against the displayed
+   // member BEFORE any CAS write. Never write to a newly switched user.
+   const updated=await port.patchSelfForUser(profile.s_user_id,profile.profile_revision,payload);
    if(generation.current===serial){apply(updated);setPhase('ready');setNotice('會員資料已儲存。');}
   }catch(error){
    if(generation.current===serial){

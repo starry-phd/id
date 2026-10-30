@@ -26,7 +26,7 @@ test('real React Native Web profile screen renders owner-safe disabled view, nev
  let invoked=0;
  const never={
   async getSelf(){invoked++;throw Error('PRIVATE_USER_AND_TOKEN');},
-  async patchSelf(){invoked++;throw Error('PRIVATE_USER_AND_TOKEN');},
+  async patchSelfForUser(){invoked++;throw Error('PRIVATE_USER_AND_TOKEN');},
   async logout(){invoked++;throw Error('PRIVATE_USER_AND_TOKEN');},
  };
  const html=renderToStaticMarkup(React.createElement(
@@ -75,5 +75,16 @@ test('M1 profile UI always erases stale PII on refresh and session loss, while p
  assert.match(source,/phase==='ready'\?<View style=\{styles.card\}>/);
  assert.match(source,/clearProfile\(\);setNotice\(''\);setPhase\('disabled'\)/);
  const route=readFileSync(new URL('../app/profile.tsx',import.meta.url),'utf8');
+ assert.match(route,/enabled=\{false\}/);
+});
+
+test('profile SAVE uses owner-fenced SDK only; account switch must erase stale private form',()=>{
+ const source=readFileSync(new URL('../src/member-profile-screen.tsx',import.meta.url),'utf8');
+ const route=readFileSync(new URL('../app/profile.tsx',import.meta.url),'utf8');
+ assert.match(source,/port\.patchSelfForUser\(profile\.s_user_id,profile\.profile_revision,payload\)/);
+ assert.doesNotMatch(source,/port\.patchSelf\(/);
+ assert.match(source,/error\.message==='STARRY_SELF_IDENTITY_CHANGED'/);
+ assert.match(source,/if\(isM1SessionLost\(error\)\)\{clearProfile\(\);setPhase\('reauth_required'\);\}/);
+ assert.match(route,/async patchSelfForUser\(/);
  assert.match(route,/enabled=\{false\}/);
 });

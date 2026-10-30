@@ -529,3 +529,60 @@ test('Expo source-only M1 port owner shares ONE real signed Session across profi
   ).first()).n,2,'revoked Session cannot write another audit');
  });
 });
+
+test('M1 owner-fenced UI CAS refuses account A form under account B signed Session in original workerd D1',async()=>{
+ await withRealD1(async({mf,db})=>{
+  const a=await finish(mf,await start(mf,'owner-fence-A','known-subject'));
+  const b=await finish(mf,await start(mf,'owner-fence-B','another-subject'));
+  assert.equal(a.s_user_id,'u1');
+  assert.notEqual(b.s_user_id,a.s_user_id);
+  let selected=a.bearer;
+  let bearerReads=0,gets=0,patches=0;
+  const client=createM1StagingSelfClient({
+   enabled:true,baseUrl:origin,appId:'starry-id',
+   getSessionBearer:async()=>{bearerReads++;return selected;},
+   fetchImpl:(url,init)=>{
+    if(init.method==='GET')gets++;
+    if(init.method==='PATCH')patches++;
+    return mf.dispatchFetch(url,init);
+   },
+  });
+  const oldScreen=await client.getSelf();
+  assert.equal(oldScreen.s_user_id,'u1');
+  assert.equal(oldScreen.profile_revision,1);
+  selected=b.bearer; // Auth owner switches; old React screen still holds A.
+  await assert.rejects(
+   client.patchSelfForUser(oldScreen.s_user_id,oldScreen.profile_revision,{
+    display_name:'Do Not Overwrite B',
+   }),
+   e=>e.message==='STARRY_SELF_IDENTITY_CHANGED',
+  );
+  assert.equal(patches,0,'foreign account must not receive even one PATCH');
+  assert.equal((await db.prepare(
+   'SELECT display_name,profile_revision FROM starry_members WHERE s_user_id=?'
+  ).bind(b.s_user_id).first()).display_name,null);
+  assert.equal((await db.prepare(
+   'SELECT display_name,profile_revision FROM starry_members WHERE s_user_id=?'
+  ).bind(a.s_user_id).first()).display_name,'Test Member');
+  selected=a.bearer;
+  const updated=await client.patchSelfForUser(oldScreen.s_user_id,
+   oldScreen.profile_revision,{display_name:'Owner Verified'});
+  assert.equal(updated.s_user_id,'u1');
+  assert.equal(updated.profile_revision,2);
+  assert.equal(patches,1);
+  assert.equal((await db.prepare(
+   'SELECT display_name FROM starry_members WHERE s_user_id=?'
+  ).bind('u1').first()).display_name,'Owner Verified');
+
+  // A version mismatch is rejected before the original D1 write, not a
+  // forged-looking successful update of a different member.
+  await assert.rejects(
+   client.patchSelfForUser(oldScreen.s_user_id,oldScreen.profile_revision,{
+    display_name:'Do Not Overwrite Old Revision',
+   }),e=>e.message==='STARRY_SELF_CONFLICT',
+  );
+  assert.equal(patches,1,'no CAS write for known-stale revision');
+  assert.ok(gets>=4);
+  assert.ok(bearerReads>=4);
+ });
+});
