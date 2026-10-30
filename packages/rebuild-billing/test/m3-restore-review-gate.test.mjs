@@ -152,3 +152,23 @@ test('new M3 gate compiles under strict TypeScript without shared CI edits',()=>
     '--allowImportingTsExtensions','packages/rebuild-billing/src/m3-restore-review-gate.ts',
   ],{stdio:'pipe',timeout:25000});
 });
+
+test('new M3 source passes isolated TypeScript-aware ESLint without modifying shared config',async()=>{
+  const {ESLint}=await import('eslint');
+  const tsParser=(await import('@typescript-eslint/parser')).default;
+  const tsPlugin=(await import('@typescript-eslint/eslint-plugin')).default;
+  const eslint=new ESLint({
+    overrideConfigFile:true,
+    overrideConfig:[{
+      files:['**/*.ts'],
+      languageOptions:{parser:tsParser,parserOptions:{ecmaVersion:'latest',sourceType:'module'}},
+      plugins:{'@typescript-eslint':tsPlugin},
+      rules:{'no-undef':'off','no-unused-vars':'off',
+        '@typescript-eslint/no-unused-vars':['error',{argsIgnorePattern:'^_'}]},
+    }],
+  });
+  const results=await eslint.lintFiles(['packages/rebuild-billing/src/m3-restore-review-gate.ts']);
+  assert.equal(results.length,1);
+  assert.equal(results[0].errorCount,0,JSON.stringify(results[0].messages));
+  assert.equal(results[0].warningCount,0,JSON.stringify(results[0].messages));
+});
