@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {URL} from 'node:url';
 import {createDeletionFlow} from '../src/account-deletion-flow.ts';
 import {createDeletionPreview} from '../src/account-deletion-preview.ts';
 import {M2DeletionClientError} from '../../../packages/sdk/src/m2-local-deletion-request-client.ts';
