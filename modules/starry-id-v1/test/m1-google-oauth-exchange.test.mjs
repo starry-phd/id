@@ -82,3 +82,24 @@ test('provider configuration is snapshotted before awaited work',async()=>{
  const data=new URLSearchParams(f.calls[0][1].body);
  assert.equal(data.get('client_id'),client);assert.equal(data.get('redirect_uri'),callback);
 });
+
+test('Google authorization URL fixes issuer, openid-only scope, PKCE S256, state and nonce',async()=>{
+ const {createM1GoogleAuthorizeUrl,M1_GOOGLE_AUTHORIZE_ENDPOINT}=await import('../src/m1-google-oauth-exchange.ts');
+ const input={clientId:client,redirectUri:callback,state:'s'.repeat(43),nonce:'n'.repeat(43),codeChallenge:'c'.repeat(43)};
+ const url=new URL(createM1GoogleAuthorizeUrl(input));
+ assert.equal(url.origin+url.pathname,M1_GOOGLE_AUTHORIZE_ENDPOINT);
+ assert.deepEqual([...url.searchParams.keys()].sort(),[
+  'response_type','client_id','redirect_uri','scope','state','nonce','code_challenge','code_challenge_method','access_type'
+ ].sort());
+ assert.equal(url.searchParams.get('response_type'),'code');
+ assert.equal(url.searchParams.get('scope'),'openid');
+ assert.equal(url.searchParams.get('code_challenge_method'),'S256');
+ assert.equal(url.searchParams.get('redirect_uri'),callback);
+ assert.equal(url.searchParams.get('access_type'),'online');
+ assert.equal(url.toString().includes('client_secret'),false);
+ assert.equal(url.toString().includes('code_verifier'),false);
+ for(const changes of [{state:'short'},{nonce:'short'},{codeChallenge:'short'},
+  {redirectUri:'http://evil.example/callback'},{clientId:'another@evil.test'}]){
+   assert.equal(createM1GoogleAuthorizeUrl({...input,...changes}),null);
+ }
+});
