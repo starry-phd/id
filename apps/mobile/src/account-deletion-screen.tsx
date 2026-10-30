@@ -1,4 +1,4 @@
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useMemo,useSyncExternalStore} from 'react';
 import {
  ActivityIndicator,Pressable,ScrollView,StyleSheet,Text,View,
 } from 'react-native';
@@ -20,11 +20,10 @@ function readableError(view:DeletionView):string{
 }
 export function AccountDeletionScreen({port,preview,previewTools}:AccountDeletionScreenProps){
  const flow=useMemo(()=>createDeletionFlow(port),[port]);
- const [view,setView]=useState<DeletionView>(()=>flow.snapshot());
+ const view=useSyncExternalStore(flow.subscribe,flow.snapshot,flow.snapshot);
  useEffect(()=>{
-  const off=flow.subscribe(setView);
   void flow.refresh();
-  return off;
+  return ()=>flow.invalidate();
  },[flow]);
  const loading=view.phase==='loading';
  const waiting=view.receipt?.status==='awaiting_second_confirmation';
@@ -77,6 +76,14 @@ export function AccountDeletionScreen({port,preview,previewTools}:AccountDeletio
    </View>:null}
    {action('查詢申請進度',()=>flow.refresh(),!canInteract,true)}
   </View>
+  <View style={styles.panel}>
+   <Text style={styles.sectionTitle}>訂閱提醒</Text>
+   <Text style={styles.meta}>
+    如果您有透過 Apple App Store 或 Google Play 訂閱，
+    提出刪帳申請不會自動取消商店訂閱。
+    請自行前往原購買商店的訂閱管理確認與處理，避免持續扣款。
+   </Text>
+  </View>
   {!pending?<View style={styles.panel}>
    <Text style={styles.sectionTitle}>兩次獨立確認</Text>
    <Text style={styles.meta}>
@@ -94,14 +101,6 @@ export function AccountDeletionScreen({port,preview,previewTools}:AccountDeletio
    {issue&&view.phase==='error'?
     action('重試上一次操作',()=>flow.retry(),!canInteract,true):null}
   </View>:null}
-  <View style={styles.panel}>
-   <Text style={styles.sectionTitle}>訂閱提醒</Text>
-   <Text style={styles.meta}>
-    如果您有透過 Apple App Store 或 Google Play 訂閱，
-    提出刪帳申請不會自動取消商店訂閱。
-    請自行前往原購買商店的訂閱管理確認與處理，避免持續扣款。
-   </Text>
-  </View>
   {preview&&previewTools?<View style={styles.preview}>
    <Text style={styles.meta}>開發預覽測試（以下操作只影響下一次本機模擬請求）</Text>
    {action('模擬下次服務暫時無法使用',async()=>{
