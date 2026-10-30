@@ -409,7 +409,7 @@ test('remote staging verifier custody required refuses plaintext fallback at con
  * All credential responses below use freshly generated test-only RS256 keys,
  * never a real Google credential or provider network request.
  */
-async function createClosedLocalGoogleFlow(f){
+async function createClosedLocalGoogleFlow(f,configureDeps){
  const aes=await webcrypto.subtle.generateKey(
   {name:'AES-GCM',length:256},false,['encrypt','decrypt']);
  const custody=createM1OAuthVerifierCustody({
@@ -417,7 +417,7 @@ async function createClosedLocalGoogleFlow(f){
   findKey:async kid=>kid==='local-test-aes'?aes:null,
  });
  const ctx={nonce:'',subject:'verified-sub',calls:[],overrideToken:null};
- const flow=createM1M2LocalGoogleFlow({
+ const config={
   enabled:true,serverScope:f.deps.serverScope,expectedOrigin:f.deps.expectedOrigin,
   redirectUri:origin+'/v1/starry-id/oauth/google/callback',
   authDb:f.adapter,googleProvider:f.deps.provider,verifierCustody:custody,
@@ -430,7 +430,9 @@ async function createClosedLocalGoogleFlow(f){
    return new Response(JSON.stringify({id_token:idToken,access_token:'NOT_FOR_CLIENT'}),
     {status:200,headers:{'content-type':'application/json'}});
   },
- });
+ };
+ configureDeps?.(config);
+ const flow=createM1M2LocalGoogleFlow(config);
  async function start(){
   const authorizeUrl=await flow.beginGoogleLogin();
   assert.equal(typeof authorizeUrl,'string');
@@ -451,6 +453,38 @@ async function createClosedLocalGoogleFlow(f){
  const logout=bearer=>request('/v1/starry-id/sessions/logout',bearer,{method:'POST'});
  return {flow,ctx,start,self,patch,logout,custody};
 }
+// A mutable trusted DI object must not silently split the M1 OAuth Session
+// and M2 profile/logout across two D1 authorities or environments.
+test('M1 and M2 capture one Starry D1 and scope despite changing composition getters',async()=>{
+ for(const dimension of ['authDb','serverScope']){
+  const f=await makeFixture();try{
+   let reads=0;
+   const x=await createClosedLocalGoogleFlow(f,config=>{
+    Object.defineProperty(config,dimension,{get(){
+     reads++;
+     if(dimension==='authDb')return reads===1?f.adapter:{
+      prepare(){throw Error('WRONG_AUTH_DATABASE');},
+      async batch(){throw Error('WRONG_AUTH_DATABASE');},
+     };
+     return reads===1?scope:{...scope,environment:'development'};
+    }});
+   });
+   const attempt=await x.start();
+   const issued=await x.flow.completeGoogleLogin({state:attempt.state,code:attempt.code});
+   assert.equal(issued?.status,'issued',dimension);
+   assert.equal((await x.flow.readSelf(x.self(issued.bearer))).status,200,dimension);
+   const patched=await x.flow.mutateSelf(x.patch(issued.bearer,1,{
+    display_name:'One Starry Authority',
+   }));
+   assert.equal(patched.status,200,dimension+' cannot redirect the M2 write');
+   assert.equal(f.db.prepare('SELECT display_name FROM starry_members WHERE s_user_id=?')
+    .get('u1').display_name,'One Starry Authority');
+   assert.equal((await x.flow.mutateSelf(x.logout(issued.bearer))).status,204,dimension);
+   assert.equal(reads,1,dimension+' must be read just once at composition');
+  }finally{f.close();}
+ }
+});
+
 test('single REAL local Google → sealed attempt → RS256 → SQLite Session → W3 GET → CAS → logout loop',async()=>{
  const f=await makeFixture();try{
   const x=await createClosedLocalGoogleFlow(f);
