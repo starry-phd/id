@@ -1,0 +1,159 @@
+{
+  "schema_version": "ai3.m2.privacy-retention-review.v1",
+  "baseline": "6bd75447d707365c90768aa1578de7098802db2d",
+  "specification": "最新開發技術規範 v1.0 / 2026-10-30 decisions S2 / UP-15 / UP-17 / UP-18",
+  "scope": {
+    "brand_id": "starry",
+    "repository": "starry-phd/id",
+    "production_enabled": false
+  },
+  "state": "REVIEW_ONLY_NOT_APPROVED",
+  "approvals": {
+    "Q104": false,
+    "Q119": false,
+    "lawful_retention_schedule": false,
+    "independent_anti_pitr_witness": false,
+    "cross_account_dedupe_basis": false,
+    "live_erasure_implementation": false
+  },
+  "execution": {
+    "member_deletion_request_acceptance": "M2_REQUIRES_IMPLEMENTATION",
+    "unapproved_erasure": false,
+    "pitr_restore": false,
+    "first_registration_battery_gift": false,
+    "account_reregistration_allowed": true,
+    "eligibility_status": "PENDING_VERIFICATION",
+    "cross_account_persistent_tracking": false
+  },
+  "requirements": [
+    "Never replace deletion with suspension",
+    "No PITR resurrection of deleted personal data",
+    "Do not store email/device fingerprint/government ID indefinitely as dedupe source",
+    "A user may register/login while gift eligibility remains pending",
+    "No Queue/ACK or real erasure follows from this plan",
+    "Where lawful record retention is actually required, restrict type/purpose/access/duration after independent legal approval"
+  ],
+  "categories": [
+    {
+      "id": "member_profile",
+      "owner": "AI-1",
+      "proposed_disposition": "DELETE_GENERAL_PII",
+      "legal_basis": null,
+      "retention_duration": null,
+      "external_propagation": "REQUIRES_MAPPING",
+      "anti_pitr": "REQUIRES_INDEPENDENT_EVIDENCE",
+      "approved": false,
+      "review_note": "本人五欄/公開搜尋投影；刪除可見度與快取"
+    },
+    {
+      "id": "provider_identity",
+      "owner": "AI-1",
+      "proposed_disposition": "DELETE_GENERAL_PII",
+      "legal_basis": null,
+      "retention_duration": null,
+      "external_propagation": "REQUIRES_MAPPING",
+      "anti_pitr": "REQUIRES_INDEPENDENT_EVIDENCE",
+      "approved": false,
+      "review_note": "provider subject、帳戶映射；不以 email 替代合規防重領"
+    },
+    {
+      "id": "sessions_and_refresh",
+      "owner": "AI-1",
+      "proposed_disposition": "REVOKE_AND_DELETE_GENERAL_PII",
+      "legal_basis": null,
+      "retention_duration": null,
+      "external_propagation": "REQUIRES_MAPPING",
+      "anti_pitr": "REQUIRES_INDEPENDENT_EVIDENCE",
+      "approved": false,
+      "review_note": "Session/refresh hash/金鑰輪替；先撤權且各裝置失效"
+    },
+    {
+      "id": "oauth_attempts",
+      "owner": "AI-1",
+      "proposed_disposition": "DELETE_GENERAL_PII",
+      "legal_basis": null,
+      "retention_duration": null,
+      "external_propagation": "REQUIRES_MAPPING",
+      "anti_pitr": "REQUIRES_INDEPENDENT_EVIDENCE",
+      "approved": false,
+      "review_note": "state/nonce/code verifier；消耗後按核准 TTL 清理"
+    },
+    {
+      "id": "battery_first_gift",
+      "owner": "AI-3",
+      "proposed_disposition": "PENDING_LEGAL_DECISION",
+      "legal_basis": null,
+      "retention_duration": null,
+      "external_propagation": "REQUIRES_MAPPING",
+      "anti_pitr": "REQUIRES_INDEPENDENT_EVIDENCE",
+      "approved": false,
+      "review_note": "首贈資格與去重，禁止先贈送、永久 email 或裝置指紋"
+    },
+    {
+      "id": "billing_finance",
+      "owner": "AI-2",
+      "proposed_disposition": "PENDING_LEGAL_DECISION",
+      "legal_basis": null,
+      "retention_duration": null,
+      "external_propagation": "REQUIRES_MAPPING",
+      "anti_pitr": "REQUIRES_INDEPENDENT_EVIDENCE",
+      "approved": false,
+      "review_note": "訂單/退款/付款法定必要紀錄逐類審查；不可當一般個資無限保留"
+    },
+    {
+      "id": "audit_and_outbox",
+      "owner": "AI-3/domain owner",
+      "proposed_disposition": "PENDING_LEGAL_DECISION",
+      "legal_basis": null,
+      "retention_duration": null,
+      "external_propagation": "REQUIRES_MAPPING",
+      "anti_pitr": "REQUIRES_INDEPENDENT_EVIDENCE",
+      "approved": false,
+      "review_note": "最小事件證據與合法留存；不保存 bearer/secret"
+    },
+    {
+      "id": "notifications_and_appeals",
+      "owner": "AI-3",
+      "proposed_disposition": "DELETE_GENERAL_PII",
+      "legal_basis": null,
+      "retention_duration": null,
+      "external_propagation": "REQUIRES_MAPPING",
+      "anti_pitr": "REQUIRES_INDEPENDENT_EVIDENCE",
+      "approved": false,
+      "review_note": "偏好/申訴/通知地址與投遞證據逐欄"
+    },
+    {
+      "id": "backups_and_pitr",
+      "owner": "AI-0/AI-3",
+      "proposed_disposition": "RECONCILE_NO_RESURRECTION",
+      "legal_basis": null,
+      "retention_duration": null,
+      "external_propagation": "REQUIRES_MAPPING",
+      "anti_pitr": "REQUIRES_INDEPENDENT_EVIDENCE",
+      "approved": false,
+      "review_note": "刪除後備份與還原；必須獨立不可回退見證"
+    },
+    {
+      "id": "external_processors",
+      "owner": "each domain owner",
+      "proposed_disposition": "PENDING_LEGAL_DECISION",
+      "legal_basis": null,
+      "retention_duration": null,
+      "external_propagation": "REQUIRES_MAPPING",
+      "anti_pitr": "REQUIRES_INDEPENDENT_EVIDENCE",
+      "approved": false,
+      "review_note": "依依法適用的第三方同步、刪除確認與回覆"
+    },
+    {
+      "id": "member_admin_records",
+      "owner": "AI-1",
+      "proposed_disposition": "PENDING_LEGAL_DECISION",
+      "legal_basis": null,
+      "retention_duration": null,
+      "external_propagation": "REQUIRES_MAPPING",
+      "anti_pitr": "REQUIRES_INDEPENDENT_EVIDENCE",
+      "approved": false,
+      "review_note": "step-up/管理授權/高風險操作證據限制用途"
+    }
+  ]
+}
