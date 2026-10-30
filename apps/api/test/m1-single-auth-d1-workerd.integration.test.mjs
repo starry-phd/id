@@ -392,7 +392,7 @@ test('original signed Session connects SDK and durable two-confirmation deletion
  await withRealD1(async({mf,db})=>{
   const issued=await finish(mf,await start(mf,'deletion-receipt-one'));
   assert.equal(issued.status,'issued');
-  assert.match(issued.bearer,/^v1\\./);
+  assert.match(issued.bearer,/^v1\./);
   const client=createM2DeletionRequestClient({
    enabled:true,appId:'starry-id',environment:'staging',
    baseUrl:origin,getSessionBearer:async()=>issued.bearer,
