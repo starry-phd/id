@@ -124,7 +124,7 @@ test('M2 SDK fails closed on cacheable, HTML and oversized bodies, spoofed final
  }});
  await rejectCode(()=>spoofs.client.getStatus(),'INVALID_RESPONSE');
  let cancelled=false;
- const bytes=new ReadableStream({
+ const bytes=new globalThis.ReadableStream({
   start(c){c.enqueue(new Uint8Array(4097));},
   cancel(){cancelled=true;},
  });
