@@ -14,6 +14,7 @@ import {fileURLToPath,URL} from 'node:url';
 import {build} from 'esbuild';
 import {Miniflare} from 'miniflare';
 import {createM1StagingSelfClient} from '../../../packages/sdk/src/m1-staging-self-client.ts';
+import {createM1SessionBoundMemberPorts} from '../../mobile/src/m1-session-bound-member-ports.ts';
 import {
  createM2DeletionRequestClient,M2DeletionClientError,
 } from '../../../packages/sdk/src/m2-local-deletion-request-client.ts';
@@ -476,4 +477,55 @@ test('deletion receipt endpoints never register on public, liveness-only Worker'
    assert.equal(result.headers.get('cache-control'),'no-store');
   }
  }
+});
+
+test('Expo source-only M1 port owner shares ONE real signed Session across profile, deletion receipt and logout on workerd D1',async()=>{
+ await withRealD1(async({mf,db})=>{
+  const issued=await finish(mf,await start(mf,'mobile-one-session'));
+  assert.equal(issued.status,'issued');
+  let reads=0;
+  const config={
+   enabled:true,appId:'starry-id',environment:'staging',
+   baseUrl:origin,
+   getSessionBearer:async()=>{reads++;return issued.bearer;},
+   fetchImpl:(url,init)=>mf.dispatchFetch(url,init),
+  };
+  const {profile,deletion,live_enabled,source_only}=
+   createM1SessionBoundMemberPorts(config);
+  assert.equal(live_enabled,false);
+  assert.equal(source_only,true);
+  const me=await profile.getSelf();
+  assert.equal(me.s_user_id,'u1');
+  assert.equal(me.profile_revision,1);
+  assert.equal(await deletion.getStatus(),null);
+  const updated=await profile.patchSelf(me.profile_revision,{display_name:'Shared Session Profile'});
+  assert.equal(updated.profile_revision,2);
+  assert.equal(updated.display_name,'Shared Session Profile');
+  const first=await deletion.requestDeletion();
+  assert.equal(first.status,'awaiting_second_confirmation');
+  assert.equal(first.physical_erasure_completed,false);
+  const second=await deletion.confirmDeletion(first.request_id);
+  assert.equal(second.status,'pending_processing');
+  assert.equal(second.execution_authorized,false);
+  assert.equal((await db.prepare(
+   'SELECT count(*) AS n FROM starry_m2_deletion_request_audit WHERE request_id=?'
+  ).bind(first.request_id).first()).n,2);
+  assert.equal((await db.prepare(
+   'SELECT status FROM starry_members WHERE s_user_id=?'
+  ).bind('u1').first()).status,'active');
+  await profile.logout();
+  assert.equal((await db.prepare(
+   'SELECT revoked_at FROM starry_sessions WHERE s_user_id=?'
+  ).bind('u1').first()).revoked_at,NOW);
+  await assert.rejects(profile.getSelf(),
+   e=>e.message==='STARRY_SELF_UNAUTHORIZED');
+  await assert.rejects(deletion.getStatus(),
+   e=>e instanceof M2DeletionClientError&&e.code==='UNAUTHORIZED');
+  await assert.rejects(deletion.requestDeletion(),
+   e=>e instanceof M2DeletionClientError&&e.code==='UNAUTHORIZED');
+  assert.ok(reads>=8,'each operation asks original volatile Auth owner again');
+  assert.equal((await db.prepare(
+   'SELECT count(*) AS n FROM starry_m2_deletion_request_audit'
+  ).first()).n,2,'revoked Session cannot write another audit');
+ });
 });
