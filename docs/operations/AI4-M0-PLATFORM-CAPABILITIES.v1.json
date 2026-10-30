@@ -1,0 +1,45 @@
+{
+  "schema": "starry.ai4.m0.platform-capabilities.v2",
+  "stage": "source_only_not_publishable",
+  "production_enabled": false,
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/v1/health",
+      "auth": "none",
+      "environments": [
+        "development",
+        "staging"
+      ],
+      "enabled": true,
+      "aliases": [],
+      "bindings": []
+    },
+    {
+      "method": "GET",
+      "path": "/v1/starry-id/members/me",
+      "auth": "starry-session",
+      "environments": [
+        "staging"
+      ],
+      "enabled": false,
+      "aliases": [],
+      "bindings": [
+        {
+          "name": "STARRY_SESSION_DB",
+          "kind": "injected-test-port",
+          "provisioned": false
+        }
+      ]
+    }
+  ],
+  "reviewed_source_paths": [
+    "apps/api/src/index.ts",
+    "apps/api/openapi.yaml",
+    "packages/sdk/src/index.ts",
+    "modules/starry-id-v1/src/index.ts",
+    "modules/starry-id-v1/schema/001_starry_identity.DRAFT.sql",
+    "modules/starry-id-v1/test/session-crypto.test.mjs"
+  ],
+  "notes": "UP-07 inert staging route is schema-only and disabled, not deployed; injected-test-port is NOT a Cloudflare D1 binding. Changes to source paths are allowed with PR review+CI while historical W2/W3 Git blobs remain in immutable ledgers. This does not grant release authority."
+}
