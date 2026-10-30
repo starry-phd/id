@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {ReadableStream} from 'node:stream/web';
+import {URL} from 'node:url';
 import {
  createM2DeletionRequestClient,M2DeletionClientError,
 } from '../../../packages/sdk/src/m2-local-deletion-request-client.ts';
