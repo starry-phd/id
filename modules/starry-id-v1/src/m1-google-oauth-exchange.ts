@@ -90,3 +90,33 @@ export function createM1GoogleCodeExchange(deps:Dependencies):TrustedOAuthBacken
     }catch{return null;} // No remote error, request or secret propagation.
   };
 }
+
+export const M1_GOOGLE_AUTHORIZE_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth' as const;
+/** Creates ONLY public authorize parameters; no secret, code verifier or token.
+ * An approved server route must obtain state/nonce/challenge from the M1 core.
+ */
+export function createM1GoogleAuthorizeUrl(input:Readonly<{
+  clientId:string;redirectUri:string;state:string;nonce:string;codeChallenge:string;
+}>):string|null{
+  try{
+    if(!input||!safeClientId(input.clientId)||
+      !/^[A-Za-z0-9_-]{32,256}$/.test(input.state)||
+      !/^[A-Za-z0-9_-]{16,256}$/.test(input.nonce)||
+      !/^[A-Za-z0-9_-]{43}$/.test(input.codeChallenge))return null;
+    const redirect=new URL(input.redirectUri);
+    if(redirect.protocol!=='https:'||redirect.username||redirect.password||
+      redirect.search||redirect.hash||redirect.pathname==='/'||
+      redirect.href!==input.redirectUri)return null;
+    const url=new URL(M1_GOOGLE_AUTHORIZE_ENDPOINT);
+    url.searchParams.set('response_type','code');
+    url.searchParams.set('client_id',input.clientId);
+    url.searchParams.set('redirect_uri',input.redirectUri);
+    url.searchParams.set('scope','openid'); // first-login does not need email/profile PII
+    url.searchParams.set('state',input.state);
+    url.searchParams.set('nonce',input.nonce);
+    url.searchParams.set('code_challenge',input.codeChallenge);
+    url.searchParams.set('code_challenge_method','S256');
+    url.searchParams.set('access_type','online'); // no offline Google refresh grant
+    return url.href;
+  }catch{return null;}
+}
