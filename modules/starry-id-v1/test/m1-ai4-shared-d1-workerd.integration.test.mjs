@@ -140,15 +140,15 @@ async function withRealD1(callback){
   // bodies and their internal semicolon as a single SQLite statement.
   for(const path of schemaPaths){
    const sql=readFileSync(new URL(path,import.meta.url),'utf8')
-    .replace(/^\\s*--[^\\n]*$/gm,'').trim();
-   const statements=sql.split(/;\\s*(?=PRAGMA|CREATE|$)/gi)
+    .replace(/^\s*--[^\n]*$/gm,'').trim();
+   const statements=sql.split(/;\s*(?=PRAGMA|CREATE|$)/gi)
     .map(part=>part.trim()).filter(Boolean);
    for(const statement of statements){
-    if(/^PRAGMA foreign_keys\\s*=\\s*ON/i.test(statement))continue;
+    if(/^PRAGMA foreign_keys\s*=\s*ON/i.test(statement))continue;
     // D1.exec is the documented local migration/DDL interface. Each complete
     // SQL statement is flattened to one line because D1's exec parser
     // treats newline-separated comments as independent (empty) statements.
-    await db.exec(statement.replace(/\\s*\\n\\s*/g,' '));
+    await db.exec(statement.replace(/\s*\n\s*/g,' '));
    }
   }
   await db.prepare('INSERT INTO starry_members(s_user_id,status,auth_version,profile_revision,display_name,directory_opt_in,display_name_public,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)')
