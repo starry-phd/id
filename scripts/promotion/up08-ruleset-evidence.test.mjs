@@ -42,6 +42,8 @@ test('UP08 denies bypasses, disabled policies, wrong branches and wrong check or
     x => x.bypass_actors.push({actor_id: 1}),
     x => x.rules.shift(),
     x => x.rules.at(-1).parameters.required_status_checks[1].integration_id = null,
+    x => x.rules.at(-1).parameters.required_status_checks[0].integration_id = 100000,
+    x => x.rules.at(-1).parameters.required_status_checks[1].integration_id = 999999,
     x => x.rules.at(-1).parameters.required_status_checks.push({context:'Required validation', integration_id:15368}),
   ]) {
     const bad = structuredClone(ruleset);
@@ -57,6 +59,10 @@ test('UP08 rejects mismatched SHA, PR-only runs, pending/skipped/cancelled jobs 
     x => x.status = 'queued',
     x => x.conclusion = 'cancelled',
     x => x.name = 'Different Workflow',
+    x => delete x.id,
+    x => x.id = 0,
+    x => x.id = 41000266185,
+    x => x.html_url = 'https://github.com/starry-phd/id/actions/runs/42',
   ]) {
     const bad = structuredClone(run); mutation(bad);
     assert.equal(inspect({run: bad}).up08_enforced, false);
