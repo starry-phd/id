@@ -35,6 +35,8 @@ export type OfflineWitnessTrust = Readonly<{
 const receiptFields=['schema_version','brand_id','app_id','environment',
   'nonce','snapshot_generation','witness_generation','issued_at',
   'snapshot_sha256','witness_sha256','key_id','mac'];
+const trustFields=['expected_nonce','minimum_witness_generation',
+  'expected_key_id','now_seconds','verification_key'];
 const validNonce=(v:unknown):v is string=>
   typeof v==='string'&&/^[A-Za-z0-9_-]{32,128}$/.test(v);
 const validKeyId=(v:unknown):v is string=>
@@ -64,6 +66,10 @@ function bytesToHex(bytes:Uint8Array):string{
 function fromBase64Url(v:string):Uint8Array{
   const bytes=Uint8Array.from(atob(v.replace(/-/g,'+').replace(/_/g,'/')+'='),c=>c.charCodeAt(0));
   if(bytes.length!==32)return new Uint8Array();
+  // Reject equivalent non-canonical encodings of the same 32-byte MAC.
+  const canonical=btoa(Array.from(bytes,b=>String.fromCharCode(b)).join(''))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  if(canonical!==v)return new Uint8Array();
   return bytes;
 }
 async function digest(text:string):Promise<string>{
@@ -128,19 +134,31 @@ export async function reviewOfflinePitrWitnessReceipt(
   try{
     const baseline=reviewOfflinePitrCandidate(candidate,witness);
     sourceRisks=baseline.risks;
-    if(!isPlainRecord(receipt,receiptFields)||!trust||
-      !validNonce(trust.expected_nonce)||!validKeyId(trust.expected_key_id)||
-      !validGeneration(trust.minimum_witness_generation)||!validSeconds(trust.now_seconds)||
-      !(trust.verification_key instanceof CryptoKey)||
-      trust.verification_key.extractable!==false||
-      trust.verification_key.algorithm.name!=='HMAC'||
-      !trust.verification_key.usages.includes('verify'))return deny(sourceRisks);
-    const r=receipt;
+    // No getters, unexpected fields or mutable aliases across digest/verify awaits.
+    // This local snapshot is NOT a source of authority: caller must provide trust.
+    if(!isPlainRecord(receipt,receiptFields)||!isPlainRecord(trust,trustFields))
+      return deny(sourceRisks);
+    const r:Record<string,unknown>=Object.freeze(Object.fromEntries(
+      receiptFields.map(field=>[field,receipt[field]])));
+    const trusted:OfflineWitnessTrust=Object.freeze({
+      expected_nonce:trust.expected_nonce,
+      minimum_witness_generation:trust.minimum_witness_generation,
+      expected_key_id:trust.expected_key_id,
+      now_seconds:trust.now_seconds,
+      verification_key:trust.verification_key,
+    });
+    if(!validNonce(trusted.expected_nonce)||!validKeyId(trusted.expected_key_id)||
+      !validGeneration(trusted.minimum_witness_generation)||!validSeconds(trusted.now_seconds)||
+      !(trusted.verification_key instanceof CryptoKey)||
+      trusted.verification_key.extractable!==false||
+      trusted.verification_key.algorithm.name!=='HMAC'||
+      (trusted.verification_key.algorithm as HmacKeyAlgorithm).hash.name!=='SHA-256'||
+      !trusted.verification_key.usages.includes('verify'))return deny(sourceRisks);
     if(r.schema_version!=='starry.ai3.m2.offline-witness-receipt.v1'||
       r.brand_id!=='starry'||r.app_id!=='starry-id'||
       (r.environment!=='development'&&r.environment!=='staging')||
-      !validNonce(r.nonce)||r.nonce!==trust.expected_nonce||
-      !validKeyId(r.key_id)||r.key_id!==trust.expected_key_id||
+      !validNonce(r.nonce)||r.nonce!==trusted.expected_nonce||
+      !validKeyId(r.key_id)||r.key_id!==trusted.expected_key_id||
       !validGeneration(r.snapshot_generation)||!validGeneration(r.witness_generation)||
       !validSeconds(r.issued_at)||!validHex(r.snapshot_sha256)||!validHex(r.witness_sha256)||
       !validMac(r.mac))return deny(sourceRisks);
@@ -148,10 +166,10 @@ export async function reviewOfflinePitrWitnessReceipt(
     if(r.environment!==c.environment||r.environment!==w.environment||
       r.snapshot_generation!==c.snapshot_generation||
       r.witness_generation!==w.observed_generation||
-      r.witness_generation<trust.minimum_witness_generation||
+      r.witness_generation<trusted.minimum_witness_generation||
       r.witness_generation<r.snapshot_generation||
-      r.issued_at>trust.now_seconds+30||
-      trust.now_seconds-r.issued_at>120)return deny(sourceRisks);
+      r.issued_at>trusted.now_seconds+30||
+      trusted.now_seconds-r.issued_at>120)return deny(sourceRisks);
     // Freeze the primitive snapshot strings synchronously before any await.
     const candidateBytes=canonicalCandidate(c),witnessBytes=canonicalWitness(w);
     const [candidateHash,witnessHash]=await Promise.all([
@@ -160,7 +178,7 @@ export async function reviewOfflinePitrWitnessReceipt(
     if(r.snapshot_sha256!==candidateHash||r.witness_sha256!==witnessHash)return deny(sourceRisks);
     const mac=fromBase64Url(r.mac as string);
     if(mac.length!==32)return deny(sourceRisks);
-    const ok=await crypto.subtle.verify('HMAC',trust.verification_key,
+    const ok=await crypto.subtle.verify('HMAC',trusted.verification_key,
       mac,new TextEncoder().encode(envelope(r)));
     if(!ok)return deny(sourceRisks);
     return Object.freeze({
