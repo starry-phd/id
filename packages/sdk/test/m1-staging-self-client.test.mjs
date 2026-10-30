@@ -12,7 +12,7 @@ const make=(overrides={})=>{
   getSessionBearer:async()=> 'a'.repeat(48),
   fetchImpl:async(url,init)=>{
    count++;request={url,init};
-   return new Response(JSON.stringify(dto),{status:200,headers:{'content-type':'application/json'}});
+   return new Response(JSON.stringify(dto),{status:200,headers:{'content-type':'application/json','cache-control':'no-store'}});
   },...overrides,
  });
  return {client:c,count:()=>count,request:()=>request};
@@ -64,4 +64,60 @@ test('M1 SDK refuses raw invalid/error/extra-field responses without leaking sec
    return true;
   });
  }
+});
+
+
+test('M1 SDK sanitizes exceptions from Auth credential supplier without fetching',async()=>{
+ const {client,count}=make({enabled:true,getSessionBearer:async()=>{throw Error('PRIVATE_SESSION_AND_PROVIDER_TOKEN');}});
+ await assert.rejects(client.getSelf(),e=>{
+  assert.equal(e.message,'STARRY_SELF_SESSION_REQUIRED');
+  return true;
+ });
+ assert.equal(count(),0);
+});
+test('M1 SDK rejects redirected, wrong final origin, cacheable or ambiguous content-type responses',async()=>{
+ for(const alter of [
+  r=>Object.defineProperty(r,'redirected',{value:true}),
+  r=>Object.defineProperty(r,'url',{value:'https://other.invalid/v1/starry-id/members/me'}),
+  r=>r.headers.set('cache-control','public, max-age=60'),
+  r=>r.headers.set('cache-control','no-cache'),
+  r=>r.headers.set('content-type','application/jsonp'),
+  r=>r.headers.set('content-type','application/json; charset=iso-8859-1'),
+ ]) {
+  const r=new Response(JSON.stringify(dto),{status:200,headers:{
+   'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
+  alter(r);
+  const {client}=make({enabled:true,fetchImpl:async()=>r});
+  await assert.rejects(client.getSelf(),/STARRY_SELF_RESPONSE_INVALID/);
+ }
+});
+test('M1 SDK rejects oversized, malformed-UTF8 and out-of-range five-field payloads',async()=>{
+ const headers={'content-type':'application/json','cache-control':'no-store'};
+ const cases=[
+  new Response(JSON.stringify(dto),{status:200,headers:{...headers,'content-length':'4097'}}),
+  new Response(new Uint8Array([0xff,0xfe,0xfd]),{status:200,headers}),
+  new Response(JSON.stringify({...dto,profile_revision:Number.MAX_SAFE_INTEGER}),{status:200,headers}),
+  new Response(JSON.stringify({...dto,extra_field:'private'}),{status:200,headers}),
+ ];
+ for(const response of cases) {
+  const {client}=make({enabled:true,fetchImpl:async()=>response});
+  await assert.rejects(client.getSelf(),/STARRY_SELF_RESPONSE_INVALID/);
+ }
+ let cancelled=false;
+ const stream=new ReadableStream({
+  start(c){c.enqueue(new Uint8Array(4097));},
+  cancel(){cancelled=true;},
+ });
+ const {client}=make({enabled:true,fetchImpl:async()=>
+  new Response(stream,{status:200,headers})});
+ await assert.rejects(client.getSelf(),/STARRY_SELF_RESPONSE_INVALID/);
+ assert.equal(cancelled,true);
+});
+test('M1 SDK accepts exact contract UTF-8 response with no-store, no redirect',async()=>{
+ const {client}=make({enabled:true,fetchImpl:async()=>
+  new Response(JSON.stringify(dto),{status:200,headers:{
+   'content-type':'application/json; charset=utf-8',
+   'cache-control':'private, no-store',
+  }})});
+ assert.deepEqual(await client.getSelf(),dto);
 });

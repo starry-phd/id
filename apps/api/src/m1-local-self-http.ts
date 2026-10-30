@@ -35,7 +35,8 @@ function exactSelfDto(value:unknown):boolean {
      d.display_name.length>0&&d.display_name.length<=80))&&
     typeof d.directory_opt_in==='boolean'&&
     typeof d.display_name_public==='boolean'&&
-    typeof d.profile_revision==='number'&&Number.isSafeInteger(d.profile_revision)&&d.profile_revision>0;
+    typeof d.profile_revision==='number'&&Number.isSafeInteger(d.profile_revision)&&d.profile_revision>0&&
+    d.profile_revision<Number.MAX_SAFE_INTEGER;
 }
 /** Not a route registrar; callers need explicit opt-in and a trusted core port. */
 export function createM1LocalSelfHttp(config:M1HttpConfig){
