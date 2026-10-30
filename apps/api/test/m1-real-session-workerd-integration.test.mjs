@@ -221,11 +221,9 @@ async function withRealWorkerd(x,callback){
   contents:entry,resolveDir:fileURLToPath(new URL('../src/',import.meta.url)),
   sourcefile:'m1-real-session-workerd-entry.ts',loader:'ts',
  },bundle:true,platform:'browser',format:'esm',target:'es2022',write:false,logLevel:'silent'});
- const mf=new Miniflare({workers:[{config:{
+ const mf=new Miniflare({workers:[{
   name:'m1-composite-real-auth-workerd',compatibilityDate:'2026-10-01',
-  manifest:{mainModule:'index.js',modules:{
-   'index.js':{type:'esm',contents:bundle.outputFiles[0].text},
-  }},
+  modules:true,script:bundle.outputFiles[0].text,
   serviceBindings:{
    async AUTH(request){
     // Test-only Node service port: original AI1 Auth+SQLite is the
@@ -235,8 +233,8 @@ async function withRealWorkerd(x,callback){
     return local.method==='GET'?
      x.readPort.handle(local):x.mutationPort.handle(local);
    },
-  },env:{},
- }}]});
+  },
+ }]});
  try{await callback(mf);}finally{await mf.dispose();}
 }
 
