@@ -44,6 +44,8 @@ function parseToml(source){
     try{obj[section][kv[1]]=JSON.parse(kv[2]);}
     catch{throw Error('nonliteral TOML value at '+(i+1));}
   }
+  if(!keys(obj[''],['name','main','compatibility_date','workers_dev']))
+    throw Error('unknown TOML root configuration');
   return {name:obj[''].name,main:obj[''].main,compatibility_date:obj[''].compatibility_date,
     workers_dev:obj[''].workers_dev,vars:obj.vars,
     env:Object.entries(obj).filter(([k])=>k.startsWith('env.'))
@@ -64,8 +66,6 @@ export function parseRestrictedWrangler(source){
       throw Error('unknown Wrangler JSON root key');
   }else{
     data=parseToml(source);
-    if(!keys(data[''],['name','main','compatibility_date','workers_dev']))
-      throw Error('unknown TOML root configuration');
     if(data.__tables.sort().join('|') !==
       ['', 'vars','env.staging','env.staging.vars'].sort().join('|'))
       throw Error('unknown/nested TOML environment or resource binding');
