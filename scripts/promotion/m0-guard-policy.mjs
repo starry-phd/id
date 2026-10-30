@@ -78,7 +78,7 @@ export function parseRestrictedWrangler(source){
   if(data.name!=='starry-id-api-local'||data.main!=='src/index.ts'||
     data.compatibility_date!=='2026-10-01'||data.workers_dev!==false||
     data.vars.STARRY_ENVIRONMENT!=='development'||data.vars.STARRY_APP_ID!=='starry-id'||
-    data.env.staging.name!=='starry-id-api-staging'||
+    data.env.staging.name!=='id-starry-m1-staging'||
     data.env.staging.workers_dev!==false||
     data.env.staging.vars.STARRY_ENVIRONMENT!=='staging'||
     data.env.staging.vars.STARRY_APP_ID!=='starry-id')
