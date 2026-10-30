@@ -11,6 +11,9 @@ const sha40 = value => typeof value === 'string' && /^[0-9a-f]{40}$/.test(value)
 const isPass = value => record(value) && value.status === 'completed' && value.conclusion === 'success';
 const EXPECTED_JOBS = ['App typecheck, lint and tests', 'Repository policy', 'Required validation'];
 const EXPECTED_CHECKS = ['Repository policy', 'Required validation'];
+// Fixed GitHub Actions App ID observed in the approved live GitHub Ruleset GET.
+// This is a source-origin consistency gate, NOT proof that supplied JSON is live.
+const GITHUB_ACTIONS_APP_ID = 15368;
 
 export function inspectUp08Evidence({ruleset, run, jobs, expectedSha}) {
   const failures = [];
@@ -47,7 +50,7 @@ export function inspectUp08Evidence({ruleset, run, jobs, expectedSha}) {
           }
           if (new Set(all).size !== all.length ||
             contexts.some(c => !record(c) || typeof c.context !== 'string' ||
-              !Number.isInteger(c.integration_id) || c.integration_id <= 0))
+              !Number.isInteger(c.integration_id) || c.integration_id !== GITHUB_ACTIONS_APP_ID))
             fail('required check origin is ambiguous or duplicate');
         }
       }
@@ -57,11 +60,13 @@ export function inspectUp08Evidence({ruleset, run, jobs, expectedSha}) {
   // GitHub GET /repos/{owner}/{repo}/actions/runs/{run_id}
   if (!record(run)) fail('exact GitHub Actions workflow run response missing');
   else {
-    if (!sha40(run.head_sha) || run.head_sha !== expectedSha || run.event !== 'push' ||
+    if (!Number.isSafeInteger(run.id) || run.id <= 0 ||
+      !sha40(run.head_sha) || run.head_sha !== expectedSha || run.event !== 'push' ||
       run.head_branch !== 'main' || !isPass(run))
       fail('latest main push run SHA, origin or outcome not verified');
     if (run.name !== 'Starry CI' || typeof run.html_url !== 'string' ||
-      !/^https:\/\/github\.com\/starry-phd\/id\/actions\/runs\/[1-9][0-9]*$/.test(run.html_url))
+      !/^https:\/\/github\.com\/starry-phd\/id\/actions\/runs\/[1-9][0-9]*$/.test(run.html_url) ||
+      run.html_url !== 'https://github.com/starry-phd/id/actions/runs/' + String(run.id))
       fail('run must identify canonical Starry CI evidence URL');
   }
 
@@ -73,7 +78,8 @@ export function inspectUp08Evidence({ruleset, run, jobs, expectedSha}) {
       const matches = arr.filter(job => job?.name === name);
       if (matches.length !== 1 || !isPass(matches[0]))
         fail('required completed-success job missing/failed/skipped: ' + name);
-      if (matches.length === 1 && run?.id !== undefined && matches[0].run_id !== run.id)
+      if (matches.length === 1 && (!Number.isSafeInteger(run?.id) ||
+        matches[0].run_id !== run.id))
         fail('job belongs to different workflow run: ' + name);
     }
   }
