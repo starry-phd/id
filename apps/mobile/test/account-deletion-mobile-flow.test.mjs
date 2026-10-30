@@ -105,7 +105,7 @@ test('M2 route has only DEV-only in-memory preview and no fixture bearer, storag
  assert.match(route,/__DEV__===true/);
  assert.match(route,/createDeletionPreview/);
  assert.match(route,/disabledPort/);
- assert.doesNotMatch(route,/fixture|localStorage|AsyncStorage|EXPO_PUBLIC_|createM2DeletionRequestClient/i);
+ assert.doesNotMatch(route,/localStorage|AsyncStorage|EXPO_PUBLIC_|createM2DeletionRequestClient|getSessionBearer|fetch\(/i);
  assert.match(ui,/第一次確認：我要提出刪帳申請/);
  assert.match(ui,/第二次確認：確認送出刪帳申請/);
  assert.match(ui,/尚在處理中/);
