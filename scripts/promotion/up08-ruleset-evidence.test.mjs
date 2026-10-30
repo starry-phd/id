@@ -4,6 +4,8 @@ import {inspectUp08Evidence} from './up08-ruleset-evidence.mjs';
 
 const sha = 'f153aa601e0a1971366edd9fc5e44b439d2f3c8f';
 const ruleset = {
+  id: 25839375, source_type: 'Repository', source: 'starry-phd/id',
+  current_user_can_bypass: 'never',
   name: 'Protect-main-Starry-ID', enforcement: 'active', target: 'branch',
   conditions: {ref_name: {include: ['~DEFAULT_BRANCH'], exclude: []}},
   bypass_actors: [],
@@ -17,7 +19,10 @@ const ruleset = {
 };
 const run = {id: 40989834519, event: 'push', head_branch: 'main', head_sha: sha,
   status: 'completed', conclusion: 'success', name: 'Starry CI',
-  html_url: 'https://github.com/starry-phd/id/actions/runs/40989834519'};
+  html_url: 'https://github.com/starry-phd/id/actions/runs/40989834519',
+  path: '.github/workflows/starry-ci.yml',
+  repository: {id: 1433637276, full_name: 'starry-phd/id'},
+  head_repository: {id: 1433637276, full_name: 'starry-phd/id'}};
 const jobs = ['Repository policy', 'App typecheck, lint and tests', 'Required validation']
   .map((name, i) => ({id: i + 1, run_id: run.id, name, status: 'completed', conclusion: 'success'}));
 const inspect = (changes={}) => inspectUp08Evidence({ruleset, run, jobs, expectedSha: sha, ...changes});
@@ -80,4 +85,40 @@ test('UP08 rejects mismatched SHA, PR-only runs, pending/skipped/cancelled jobs 
   assert.equal(inspect({jobs: null}).up08_enforced, false);
   assert.equal(inspect({expectedSha: 'short'}).up08_enforced, false);
   assert.equal(inspect({ruleset: null, run: null}).release_authorized, false);
+});
+
+test('UP08 rejects a lookalike Ruleset ID, cross-repo origin or bypass, even when checks look green', () => {
+  for (const mutation of [
+    x => delete x.id,
+    x => x.id = 1,
+    x => x.source = 'other-org/id',
+    x => x.source_type = 'Organization',
+    x => delete x.current_user_can_bypass,
+    x => x.current_user_can_bypass = 'always',
+  ]) {
+    const bad = structuredClone(ruleset);
+    mutation(bad);
+    const result = inspect({ruleset: bad});
+    assert.equal(result.up08_enforced, false);
+    assert.match(result.failures.join(' '), /ruleset ID, repository origin or no-bypass/);
+  }
+});
+
+test('UP08 rejects workflow snapshots that claim the right SHA and URL but originate elsewhere', () => {
+  for (const mutation of [
+    x => delete x.repository,
+    x => x.repository.id = 1,
+    x => x.repository.full_name = 'untrusted/id',
+    x => delete x.head_repository,
+    x => x.head_repository.id = 1,
+    x => x.head_repository.full_name = 'untrusted/id',
+    x => x.path = '.github/workflows/untrusted.yml',
+    x => delete x.path,
+  ]) {
+    const bad = structuredClone(run);
+    mutation(bad);
+    const result = inspect({run: bad});
+    assert.equal(result.up08_enforced, false);
+    assert.match(result.failures.join(' '), /Actions run repository/);
+  }
 });
