@@ -11,6 +11,8 @@ import {createM1M2LocalGoogleFlow,M1_M2_GOOGLE_FLOW_LIVE_ENABLED}
   from '../src/m1-m2-local-google-member-flow.ts';
 import {createM1LocalMemberPlatformBridge}
   from '../../../apps/api/src/m1-local-member-platform-bridge.ts';
+import {createM1SingleAuthHttpComposition,M1_SINGLE_AUTH_HTTP_LIVE_ENABLED}
+  from '../../../apps/api/src/m1-single-auth-http-composition.ts';
 const now=1793000000;
 const origin='https://id.starry.example';
 const scope={brand_id:'starry',app_id:'starry-id',environment:'staging'};
@@ -453,7 +455,7 @@ async function createClosedLocalGoogleFlow(f,configureDeps){
   body:JSON.stringify(body),
  });
  const logout=bearer=>request('/v1/starry-id/sessions/logout',bearer,{method:'POST'});
- return {flow,ctx,start,self,patch,logout,custody};
+ return {flow,config,ctx,start,self,patch,logout,custody};
 }
 // Independent post-#281 scoped regression with a REAL signed HMAC session,
 // original Google/SQLite Auth handler and original M2 mutation port.
@@ -764,5 +766,79 @@ test('Google redirect stays pinned when caller mutates deps during beginOAuthAtt
   const issued=await flow.completeGoogleLogin({code:'test-only-code',state:url.searchParams.get('state')});
   assert.ok(issued?.bearer);
   assert.equal((await flow.readSelf(x.self(issued.bearer))).status,200);
+ }finally{f.close();}
+});
+
+test('single-Auth HTTP composition executes original RS256+AES-GCM+HMAC+SQLite member lifecycle through the REAL bridge',async()=>{
+ const f=await makeFixture();try{
+  const x=await createClosedLocalGoogleFlow(f);
+  const slice=createM1SingleAuthHttpComposition(x.config);
+  assert.equal(M1_SINGLE_AUTH_HTTP_LIVE_ENABLED,false);
+  assert.equal(slice.live_enabled,false);
+  assert.equal(slice.public_worker_route_registered,false);
+  assert.equal(slice.local_only,true);
+  const authorization=await slice.beginGoogleLogin();
+  const url=new URL(authorization);
+  assert.equal(url.origin,'https://accounts.google.com');
+  assert.equal(url.searchParams.get('code_challenge_method'),'S256');
+  assert.equal(url.searchParams.has('code_verifier'),false);
+  x.ctx.nonce=url.searchParams.get('nonce');
+  const issued=await slice.completeGoogleLogin({
+   code:'test-only-auth-code',state:url.searchParams.get('state'),
+  });
+  assert.equal(issued?.status,'issued');
+  assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM starry_sessions').get().n,1);
+  const first=await slice.handleMember(x.self(issued.bearer));
+  assert.equal(first.status,200);
+  assert.deepEqual(await first.json(),{
+   s_user_id:'u1',display_name:'Registered Member',directory_opt_in:false,
+   display_name_public:false,profile_revision:1,
+  });
+  const updated=await slice.handleMember(x.patch(issued.bearer,1,{
+   display_name:'One Scoped Http Auth',
+  }));
+  assert.equal(updated.status,200);
+  assert.equal((await updated.json()).profile_revision,2);
+  assert.equal(f.db.prepare('SELECT display_name FROM starry_members WHERE s_user_id=?')
+   .get('u1').display_name,'One Scoped Http Auth');
+  const forbidden=await slice.handleMember(x.patch(issued.bearer,2,{
+   forbidden_member_id:'never',
+  }));
+  assert.equal(forbidden.status,400);
+  assert.deepEqual(await forbidden.json(),{error:{code:'PROFILE_FIELDS_DENIED'}});
+  assert.equal(f.db.prepare('SELECT profile_revision FROM starry_members WHERE s_user_id=?')
+   .get('u1').profile_revision,2);
+  const logout=await slice.handleMember(x.logout(issued.bearer));
+  assert.equal(logout.status,204);
+  assert.equal((await slice.handleMember(x.self(issued.bearer))).status,401);
+  assert.equal(x.ctx.calls.length,1);
+ }finally{f.close();}
+});
+
+test('single-Auth composition is OFF by default and refuses wrong scope/origin before any HTTP member route',async()=>{
+ const f=await makeFixture();try{
+  const x=await createClosedLocalGoogleFlow(f);
+  const off=createM1SingleAuthHttpComposition({...x.config,enabled:false});
+  const before=f.db.prepare('SELECT total_changes() AS n').get().n;
+  assert.equal(await off.beginGoogleLogin(),null);
+  assert.equal(await off.completeGoogleLogin({state:'ignored',code:'ignored'}),null);
+  const denied=await off.handleMember(x.self('not-a-real-bearer'));
+  assert.equal(denied.status,503);
+  assert.deepEqual(await denied.json(),{error:{code:'FEATURE_DISABLED'}});
+  assert.equal(f.db.prepare('SELECT total_changes() AS n').get().n,before);
+  for(const serverScope of [
+   {...scope,brand_id:'hglobal'}, {...scope,app_id:'echo-starry'},
+   {...scope,environment:'production'},
+  ])assert.throws(()=>createM1SingleAuthHttpComposition({
+   ...x.config,serverScope,
+  }));
+  assert.throws(()=>createM1SingleAuthHttpComposition({
+   ...x.config,redirectUri:'https://attacker.invalid/oauth',
+  }),/ORIGIN_DENIED/);
+  const slice=createM1SingleAuthHttpComposition(x.config);
+  const fake=await slice.handleMember(new Request('https://wrong.invalid/v1/starry-id/members/me',{
+   headers:{authorization:'Bearer v1.'+'a'.repeat(48)+'.'+'b'.repeat(43)},
+  }));
+  assert.equal(fake.status,404);
  }finally{f.close();}
 });
