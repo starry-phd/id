@@ -14,6 +14,9 @@ import {fileURLToPath,URL} from 'node:url';
 import {build} from 'esbuild';
 import {Miniflare} from 'miniflare';
 import {createM1StagingSelfClient} from '../../../packages/sdk/src/m1-staging-self-client.ts';
+import {
+ createM2DeletionRequestClient,M2DeletionClientError,
+} from '../../../packages/sdk/src/m2-local-deletion-request-client.ts';
 
 const origin='https://staging.starry.invalid';
 const scope={brand_id:'starry',app_id:'starry-id',environment:'staging'};
@@ -25,6 +28,7 @@ const schemaPaths=[
  '../../../modules/starry-id-v1/schema/001_starry_identity.DRAFT.sql',
  '../../../modules/starry-id-v1/schema/002_m1_local_oauth_attempts.DRAFT.sql',
  '../../../modules/starry-id-v1/schema/003_m2_local_member_self_mutations.DRAFT.sql',
+ '../../../modules/starry-id-v1/schema/004_m2_local_deletion_request_receipt.DRAFT.sql',
 ];
 function testWorkerSource(){
  return [
@@ -382,4 +386,94 @@ test('cross-layer SDK calls the ORIGINAL signed Session on real local workerd/D1
   );
   assert.ok(credentialReads>=5,'client obtains only Auth-owned transient bearer');
  });
+});
+
+test('original signed Session connects SDK and durable two-confirmation deletion receipts on ONE real workerd SQLite D1',async()=>{
+ await withRealD1(async({mf,db})=>{
+  const issued=await finish(mf,await start(mf,'deletion-receipt-one'));
+  assert.equal(issued.status,'issued');
+  assert.match(issued.bearer,/^v1\\./);
+  const client=createM2DeletionRequestClient({
+   enabled:true,appId:'starry-id',environment:'staging',
+   baseUrl:origin,getSessionBearer:async()=>issued.bearer,
+   fetchImpl:(url,init)=>mf.dispatchFetch(url,init),
+  });
+  assert.equal(await client.getStatus(),null,'exact no-request 404');
+  const requested=await client.requestDeletion();
+  assert.match(requested.request_id,/^m2del-[a-f0-9]{48}$/);
+  assert.equal(requested.status,'awaiting_second_confirmation');
+  assert.equal(requested.physical_erasure_completed,false);
+  assert.equal(requested.execution_authorized,false);
+  assert.equal(requested.second_confirmed_at,null);
+  assert.deepEqual(await client.getStatus(),requested);
+  assert.equal((await db.prepare(
+   'SELECT count(*) AS n FROM starry_m2_deletion_requests WHERE s_user_id=?'
+  ).bind('u1').first()).n,1);
+  assert.equal((await db.prepare(
+   'SELECT event_type FROM starry_m2_deletion_request_audit'
+  ).first()).event_type,'first_confirmation_received');
+
+  const forged=await finish(mf,await start(mf,'deletion-foreign-session','foreign-subject'));
+  assert.notEqual(forged.s_user_id,'u1');
+  const foreign=createM2DeletionRequestClient({
+   enabled:true,appId:'starry-id',environment:'staging',baseUrl:origin,
+   getSessionBearer:async()=>forged.bearer,
+   fetchImpl:(url,init)=>mf.dispatchFetch(url,init),
+  });
+  assert.equal(await foreign.getStatus(),null,'other member cannot see receipt');
+  await assert.rejects(foreign.confirmDeletion(requested.request_id),
+   e=>e instanceof M2DeletionClientError&&e.code==='UNAVAILABLE',
+   'foreign Session cannot confirm the other member deletion request');
+  assert.equal((await client.getStatus()).status,'awaiting_second_confirmation');
+
+  const confirmed=await client.confirmDeletion(requested.request_id);
+  assert.equal(confirmed.request_id,requested.request_id);
+  assert.equal(confirmed.status,'pending_processing');
+  assert.equal(confirmed.second_confirmed_at,NOW);
+  assert.equal(confirmed.physical_erasure_completed,false);
+  assert.equal(confirmed.execution_authorized,false);
+  assert.deepEqual(await client.getStatus(),confirmed);
+  const row=await db.prepare(
+   'SELECT status,second_confirmed_at FROM starry_m2_deletion_requests WHERE request_id=?'
+  ).bind(confirmed.request_id).first();
+  assert.equal(row.status,'pending_processing');
+  assert.equal(row.second_confirmed_at,NOW);
+  const events=(await db.prepare(
+   'SELECT event_type FROM starry_m2_deletion_request_audit ORDER BY event_type'
+  ).all()).results.map(r=>r.event_type);
+  assert.deepEqual(events,[
+   'first_confirmation_received','second_confirmation_received',
+  ]);
+  assert.equal((await db.prepare(
+   'SELECT status FROM starry_members WHERE s_user_id=?'
+  ).bind('u1').first()).status,'active');
+  assert.equal((await db.prepare(
+   'SELECT revoked_at FROM starry_sessions WHERE s_user_id=?'
+  ).bind('u1').first()).revoked_at,null);
+  assert.equal((await request(mf,member,authorized(issued.bearer))).status,200);
+  assert.equal((await request(mf,logout,authorized(issued.bearer,'POST'))).status,204);
+  await assert.rejects(client.getStatus(),
+   e=>e instanceof M2DeletionClientError&&e.code==='UNAUTHORIZED');
+  await assert.rejects(client.requestDeletion(),
+   e=>e instanceof M2DeletionClientError&&e.code==='UNAUTHORIZED');
+  assert.equal((await db.prepare(
+   'SELECT count(*) AS n FROM starry_m2_deletion_request_audit'
+  ).first()).n,2,'revoked Session cannot mutate audit');
+ });
+});
+
+test('deletion receipt endpoints never register on public, liveness-only Worker',async()=>{
+ const {handleRequest}=await import('../src/index.ts');
+ const env={STARRY_APP_ID:'starry-id',STARRY_ENVIRONMENT:'staging'};
+ for(const route of [
+  '/v1/starry-id/members/me/deletion-requests',
+  '/v1/starry-id/members/me/deletion-requests/confirm',
+  '/v1/starry-id/members/me/deletion-requests/status',
+ ]){
+  for(const method of ['GET','POST']){
+   const result=handleRequest(new Request(origin+route,{method}),env);
+   assert.notEqual(result.status,200);
+   assert.equal(result.headers.get('cache-control'),'no-store');
+  }
+ }
 });
