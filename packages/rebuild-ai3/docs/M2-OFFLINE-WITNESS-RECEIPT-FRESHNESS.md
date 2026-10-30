@@ -22,3 +22,7 @@
 AI-1 [#276](https://github.com/starry-phd/id/pull/276) 已合 source-side `003_m2_local_member_self_mutations.DRAFT.sql`：profile audit `environment=NULL`（唯一物理 D1 綁定環境尚未核准），`s_user_id` 和 `session_id` 雖不記顯示姓名仍屬可能的連結識別，Q104/Q119 的實際保留/刪除治理不可跳過；trigger 在 SQL statement 內隨成功原子化，**不代表真 outbox/ACK、刪帳完成、獨立 witness**。本輪不修改 AI-1 的 DB schema；給 AI-1 的後續法遵/事件契約 review 另在 GitHub 留痕。
 
 停止/回退：本次僅新增 AI3 專屬檔，可保留 Draft 或依批准後合併，由 AI-0 決定；沒有遠端部署／變更，Git 回退不解除任何正式 Gate。Battery 永久免費、首贈資格未核准保持 HOLD，Ads OFF；HGlobal/Echo 不介入。
+
+## 同 PR 第二輪安全修補（AI-0 合成驗收後）
+
+Review 自我驗證發現新 `receipt` 與 trusted KID/nonce/clock 的 JavaScript 物件原本在 SHA-256 與 `crypto.subtle.verify` 的 `await` 期間仍可被其他呼叫端修改，可能讓先前白名單檢查與最後 MAC 驗證看到**不同版本的輸入**。現行程式先嚴格檢查 receipt/trust 各自的欄位、拒絕 getter/未知參數，再在第一個 `await` 之前固定欄位快照與不變 `CryptoKey` 參照；所有 envelope、digest 與核對均從單一快照讀取。額外拒絕非標準的 HMAC-SHA256 key／非 canonical 32-byte MAC 編碼。新增可執行 mutation-on-await／digest 值變更／trust getter 偽裝／替代 base64url 最後兩個 bits 的負測，並直接 `tsc --strict` 檢查新來源。這是**真正的 TOCTOU 簽章驗證缺陷修補**，不是重建 #274 或假造真獨立 witness。最新 exact PR HEAD／CI 應以 GitHub 最後一次成功的同 SHA 為準，舊 #41000179655 僅初版。
