@@ -22,6 +22,10 @@ export function AccountDeletionScreen({port,preview,previewTools}:AccountDeletio
  const flow=useMemo(()=>createDeletionFlow(port),[port]);
  const view=useSyncExternalStore(flow.subscribe,flow.snapshot,flow.snapshot);
  useEffect(()=>{
+  // React 19 StrictMode calls setup, cleanup, setup on one memoized flow.
+  // Each new setup must rearm the exact port without allowing late results
+  // from the previous generation to update this member's screen.
+  flow.activate();
   void flow.refresh();
   return ()=>flow.invalidate();
  },[flow]);
