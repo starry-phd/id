@@ -25,9 +25,9 @@ test('M1 source-only mobile ports are OFF without credential reads or HTTP',asyn
  await assert.rejects(ports.profile.getSelf(),/STARRY_SELF_DISABLED/);
  await assert.rejects(ports.profile.patchSelf(1,{display_name:'Safe'}),/STARRY_SELF_DISABLED/);
  await assert.rejects(ports.profile.logout(),/STARRY_SELF_DISABLED/);
- await assert.rejects(ports.deletion.getStatus(),
+ await assert.rejects(ports.deletionForUser('u1').getStatus(),
   e=>e instanceof M2DeletionClientError&&e.code==='DISABLED');
- await assert.rejects(ports.deletion.requestDeletion(),
+ await assert.rejects(ports.deletionForUser('u1').requestDeletion(),
   e=>e instanceof M2DeletionClientError&&e.code==='DISABLED');
  assert.equal(reads,0);
  assert.equal(network,0);
@@ -53,7 +53,7 @@ test('M1 port owner pins the provided Auth callback once rather than trusting la
  const ports=createM1SessionBoundMemberPorts(config);
  config.getSessionBearer=async()=>{forged++;return 'a'.repeat(48);};
  await assert.rejects(ports.profile.getSelf(),/STARRY_SELF_SESSION_REQUIRED/);
- await assert.rejects(ports.deletion.getStatus(),
+ await assert.rejects(ports.deletionForUser('u1').getStatus(),
   e=>e instanceof M2DeletionClientError&&e.code==='SESSION_REQUIRED');
  assert.equal(original,2);
  assert.equal(forged,0);
