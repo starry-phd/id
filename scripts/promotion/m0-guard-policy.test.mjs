@@ -59,6 +59,32 @@ test('UP08 TOML and equivalent Wrangler JSON alternative are structurally accept
  const json={...w[''],vars:w.vars,env:{staging:{...w['env.staging'],vars:w['env.staging.vars']}}};
  assert.deepEqual(JSON.parse(JSON.stringify(parseRestrictedWrangler(JSON.stringify(json)))),JSON.parse(JSON.stringify(w)));
 });
+test('AI4 M1 proposed Worker identity is pinned but remote staging remains NO-GO',()=>{
+ const config=read('apps/api/wrangler.toml');
+ const checked=parseRestrictedWrangler(config);
+ const proposed=JSON.parse(read('docs/operations/AI4-M1-STAGING-RESOURCE-CAPABILITY.v1.json'));
+ assert.equal(checked['env.staging'].name,'id-starry-m1-staging');
+ assert.equal(checked['env.staging'].name,proposed.cloudflare.worker.proposed_name);
+ assert.notEqual(checked['env.staging'].name,proposed.cloudflare.existing_production_worker);
+ assert.equal(checked['env.staging'].workers_dev,false);
+ assert.equal(proposed.cloudflare.d1.proposed_name,'id-starry-m1-staging-db');
+ assert.equal(proposed.cloudflare.d1.binding_name,'STARRY_SESSION_DB');
+ for(const actual of [proposed.cloudflare.worker.exists_verified,
+   proposed.cloudflare.worker.route_enabled,proposed.cloudflare.worker.deploy_allowed,
+   proposed.cloudflare.d1.exists_verified,proposed.cloudflare.d1.binding_verified,
+   proposed.permissions.resource_creation_approved,
+   proposed.permissions.staging_deployment_approved,
+   proposed.safety.member_live_route_enabled,proposed.claims.staging_ready])
+  assert.equal(actual,false,'cannot claim an unprovisioned M1 staging resource');
+ // Even when the candidate alias matches, impersonating production or
+ // binding a D1/Queue/Secret is forbidden by this source-only parser.
+ for(const unsafe of [
+  config.replace('name = "id-starry-m1-staging"','name = "id-starry"'),
+  config.replace('name = "id-starry-m1-staging"','name = "starry-id-api-staging"'),
+  config+'\\n[[env.staging.d1_databases]]\\nbinding="STARRY_SESSION_DB"\\n',
+  config.replace('workers_dev = false','workers_dev = true'),
+ ])assert.throws(()=>parseRestrictedWrangler(unsafe),Error);
+});
 test('UP08 nested, alternative JSON env, resource bindings, unknown keys, duplicate tables denied',()=>{
  const path='apps/api/wrangler.toml',t=read(path),w=parseRestrictedWrangler(t);
  const json={...w[''],vars:w.vars,env:{staging:{...w['env.staging'],vars:w['env.staging.vars']}}};
