@@ -214,7 +214,7 @@ async function withRealWorkerd(x,callback){
    const bytes=Buffer.concat(chunks);
    if(bytes.length>4096){outgoing.writeHead(413);outgoing.end();return;}
    const path=new URL(incoming.url??'/',origin);
-   const headers=new Headers(incoming.headers);
+   const headers=new globalThis.Headers(incoming.headers);
    headers.delete('host');
    const method=incoming.method??'GET';
    const request=new Request(origin+path.pathname+path.search,{
