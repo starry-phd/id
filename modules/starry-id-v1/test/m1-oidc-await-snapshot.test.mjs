@@ -122,3 +122,20 @@ test('PINNED callback issuer/audience/backend references cannot be changed after
  assert.equal(verified?.audience,originalClient);
  assert.deepEqual(f.stats(),{casCalls:1,readCalls:1,exchangeCalls:1});
 });
+
+
+test('outer callback inspects a proxy once, never invokes a second ownKeys trap after snapshot',async()=>{
+ const f=await fixture();
+ let keyEnumerations=0;
+ const caller=new Proxy({...f.request},{
+  ownKeys(target){
+   keyEnumerations++;
+   if(keyEnumerations>1)throw Error('SECOND_UNTRUSTED_PROXY_TRAP');
+   return Reflect.ownKeys(target);
+  },
+ });
+ const verified=await f.run(caller);
+ assert.equal(verified?.providerSubject,'verified-test-subject');
+ assert.equal(keyEnumerations,1);
+ assert.deepEqual(f.stats(),{casCalls:1,readCalls:1,exchangeCalls:1});
+});
