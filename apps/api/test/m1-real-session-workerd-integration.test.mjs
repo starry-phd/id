@@ -10,6 +10,8 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import {webcrypto} from 'node:crypto';
+import {createServer} from 'node:http';
+import {Buffer} from 'node:buffer';
 import {TextEncoder} from 'node:util';
 import {URL,fileURLToPath} from 'node:url';
 import {build} from 'esbuild';
@@ -203,39 +205,70 @@ test('AI4 bridge refuses current-session provider unlink and auth_version change
 });
 
 async function withRealWorkerd(x,callback){
+ // Local loopback relay to the ORIGINAL AI-1 Node SQLite handler. Binding is
+ // test-only and listens on 127.0.0.1 ephemeral port, never internet-facing.
+ const server=createServer(async (incoming,outgoing)=>{
+  try{
+   const chunks=[];
+   for await(const part of incoming)chunks.push(part);
+   const bytes=Buffer.concat(chunks);
+   if(bytes.length>4096){outgoing.writeHead(413);outgoing.end();return;}
+   const path=new URL(incoming.url??'/',origin);
+   const headers=new Headers(incoming.headers);
+   headers.delete('host');
+   const method=incoming.method??'GET';
+   const request=new Request(origin+path.pathname+path.search,{
+    method,headers,body:method==='PATCH'&&bytes.length?bytes:undefined,
+   });
+   const response=method==='GET'?
+    await x.readPort.handle(request):await x.mutationPort.handle(request);
+   const h=Object.fromEntries(response.headers);
+   outgoing.writeHead(response.status,h);
+   outgoing.end(Buffer.from(await response.arrayBuffer()));
+  }catch{
+   outgoing.writeHead(503,{'cache-control':'no-store'});
+   outgoing.end();
+  }
+ });
+ await new Promise((resolve,reject)=>{
+  server.once('error',reject);
+  server.listen(0,'127.0.0.1',resolve);
+ });
+ const address=server.address();
+ const port=typeof address==='object'&&address?address.port:0;
  const entry=[
   "import {createM1LocalMemberPlatformBridge} from './m1-local-member-platform-bridge.ts';",
-  "export default {async fetch(req,env){",
-  "const local=new Request(req.url,req);",
-  // Miniflare5's injected proxy Host is not the user's Host. Test shim
-  // removes ONLY that local artefact, product's Host guard remains strict.
-  "local.headers.delete('host');",
+  "const relay=async r=>{",
+  "const url=new URL(r.url);const h=new Headers(r.headers);h.delete('host');",
+  "const body=r.method==='PATCH'?await r.text():undefined;",
+  "return fetch('http://127.0.0.1:"+port+"'+url.pathname+url.search,",
+  "{method:r.method,headers:h,body,redirect:'error',cache:'no-store'});",
+  "};",
+  "export default {async fetch(req){",
+  "const local=new Request(req.url,req);local.headers.delete('host');",
   "const handler=createM1LocalMemberPlatformBridge({",
   "enabled:true,scope:{brand_id:'starry',app_id:'starry-id',environment:'staging'},",
   "expectedOrigin:"+JSON.stringify(origin)+",",
-  "readPort:{handle:r=>env.AUTH.fetch(r)},",
-  "mutationPort:{handle:r=>env.AUTH.fetch(r)},",
+  "readPort:{handle:relay},mutationPort:{handle:relay}",
   "});return handler.handle(local);}};",
  ].join('\n');
- const bundle=await build({stdin:{
-  contents:entry,resolveDir:fileURLToPath(new URL('../src/',import.meta.url)),
-  sourcefile:'m1-real-session-workerd-entry.ts',loader:'ts',
- },bundle:true,platform:'browser',format:'esm',target:'es2022',write:false,logLevel:'silent'});
- const mf=new Miniflare({workers:[{
-  name:'m1-composite-real-auth-workerd',compatibilityDate:'2026-10-01',
-  modules:true,script:bundle.outputFiles[0].text,
-  serviceBindings:{
-   async AUTH(request){
-    // Test-only Node service port: original AI1 Auth+SQLite is the
-    // authoritative actor. This is NOT remote D1, Cloudflare or Google.
-    const local=new Request(request.url,request);
-    local.headers.delete('host');
-    return local.method==='GET'?
-     x.readPort.handle(local):x.mutationPort.handle(local);
-   },
-  },
- }]});
- try{await callback(mf);}finally{await mf.dispose();}
+ let mf;
+ try{
+  const bundle=await build({stdin:{
+   contents:entry,resolveDir:fileURLToPath(new URL('../src/',import.meta.url)),
+   sourcefile:'m1-real-session-workerd-entry.ts',loader:'ts',
+  },bundle:true,platform:'browser',format:'esm',target:'es2022',write:false,logLevel:'silent'});
+  mf=new Miniflare({workers:[{config:{
+   name:'m1-composite-real-auth-workerd',compatibilityDate:'2026-10-01',
+   manifest:{mainModule:'index.js',modules:{
+    'index.js':{type:'esm',contents:bundle.outputFiles[0].text},
+   }},env:{},
+  }}]});
+  await callback(mf);
+ }finally{
+  if(mf)await mf.dispose();
+  await new Promise(resolve=>server.close(resolve));
+ }
 }
 
 test('real workerd route → one shared AI1 SQLite Session/Member → CAS → logout → GET denied',async()=>{
