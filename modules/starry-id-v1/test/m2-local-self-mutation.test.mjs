@@ -263,3 +263,13 @@ test('managed HMAC key failure, DB throw and post-await clock jump never return 
   }finally{f.close();}
  }
 });
+
+test('account deletion/version-bump is never mislabeled as an ordinary profile update',async()=>{
+ const f=await fixture();try{
+  // This is only a local audit classification negative, NOT an authorized
+  // deletion flow; M2 erasure/retention/anti-PITR remains blocked by Q104/Q119.
+  f.db.prepare("UPDATE starry_members SET status='deleted',profile_revision=profile_revision+1,display_name=NULL,directory_opt_in=0,display_name_public=0 WHERE s_user_id=?").run('u1');
+  assert.equal(f.audit().filter(e=>e.event_type==='profile_updated').length,0);
+  assert.equal((await f.handle.handle(f.profile())).status,401);
+ }finally{f.close();}
+});
