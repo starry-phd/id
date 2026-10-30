@@ -1,0 +1,161 @@
+/** Starry ID M1 member screen: React Native / Expo / Web.
+ * No public Auth, test bearer, credential storage or fake member data.
+ * Receives only the existing, Auth-owned, scoped M1 SDK port.
+ */
+import {useCallback,useEffect,useRef,useState} from 'react';
+import {
+ ActivityIndicator,Pressable,ScrollView,StyleSheet,Switch,Text,TextInput,View,
+} from 'react-native';
+import type {createM1StagingSelfClient,M1StagingSelf,M1SelfPatch}
+ from '../../../packages/sdk/src/m1-staging-self-client.ts';
+
+export const M1_MEMBER_PROFILE_SCREEN_LIVE_ENABLED=false as const;
+export type MemberProfilePort=Pick<ReturnType<typeof createM1StagingSelfClient>,
+ 'getSelf'|'patchSelf'|'logout'>;
+export type MemberProfileScreenProps=Readonly<{port:MemberProfilePort;enabled:boolean}>;
+type Phase='disabled'|'loading'|'ready'|'saving'|'logging_out'|'logged_out'|'error';
+const explanation=(error:unknown):string=>{
+ if(!(error instanceof Error))return '服務暫時無法使用，請稍後重試。';
+ switch(error.message){
+  case 'STARRY_SELF_UNAUTHORIZED':
+  case 'STARRY_SELF_SESSION_REQUIRED':return '登入已過期，請重新登入。';
+  case 'STARRY_SELF_CONFLICT':return '會員資料已在其他地方更新，請重新讀取後再儲存。';
+  case 'STARRY_SELF_FIELDS_DENIED':return '填寫的資料不符合要求，請檢查姓名與選項。';
+  case 'STARRY_SELF_REVISION_REQUIRED':return '資料版本已變更，請重新讀取後再儲存。';
+  default:return '服務暫時無法使用，請稍後重試。';
+ }
+};
+export function MemberProfileScreen({port,enabled}:MemberProfileScreenProps){
+ const generation=useRef(0);
+ const busy=useRef(false);
+ const [phase,setPhase]=useState<Phase>(enabled?'loading':'disabled');
+ const [profile,setProfile]=useState<M1StagingSelf|null>(null);
+ const [displayName,setDisplayName]=useState('');
+ const [directory,setDirectory]=useState(false);
+ const [publicName,setPublicName]=useState(false);
+ const [notice,setNotice]=useState('');
+ const apply=(data:M1StagingSelf)=>{
+  setProfile(data);
+  setDisplayName(data.display_name??'');
+  setDirectory(data.directory_opt_in);
+  setPublicName(data.display_name_public);
+ };
+ const refresh=useCallback(async()=>{
+  if(!enabled||busy.current)return;
+  busy.current=true;
+  const serial=++generation.current;
+  setPhase('loading');setNotice('');
+  try{
+   const value=await port.getSelf();
+   if(generation.current===serial){apply(value);setPhase('ready');}
+  }catch(error){
+   if(generation.current===serial){setProfile(null);setPhase('error');setNotice(explanation(error));}
+  }finally{if(generation.current===serial)busy.current=false;}
+ },[enabled,port]);
+ useEffect(()=>{
+  if(enabled){void refresh();}
+  else{generation.current++;busy.current=false;setPhase('disabled');setProfile(null);}
+  return()=>{generation.current++;busy.current=false;};
+ },[enabled,refresh]);
+ const save=async()=>{
+  if(!enabled||busy.current||!profile||phase!=='ready')return;
+  busy.current=true;
+  const serial=++generation.current;
+  setPhase('saving');setNotice('');
+  const payload:M1SelfPatch={
+   display_name:displayName.trim()||null,
+   directory_opt_in:directory,
+   display_name_public:publicName,
+  };
+  try{
+   const updated=await port.patchSelf(profile.profile_revision,payload);
+   if(generation.current===serial){apply(updated);setPhase('ready');setNotice('會員資料已儲存。');}
+  }catch(error){
+   if(generation.current===serial){setPhase('ready');setNotice(explanation(error));}
+  }finally{if(generation.current===serial)busy.current=false;}
+ };
+ const logout=async()=>{
+  if(!enabled||busy.current||phase!=='ready')return;
+  busy.current=true;
+  const serial=++generation.current;
+  setPhase('logging_out');setNotice('');
+  try{
+   await port.logout();
+   if(generation.current===serial){
+    setProfile(null);setDisplayName('');setDirectory(false);setPublicName(false);
+    setPhase('logged_out');setNotice('目前的登入工作階段已登出。');
+   }
+  }catch(error){
+   if(generation.current===serial){setPhase('ready');setNotice(explanation(error));}
+  }finally{if(generation.current===serial)busy.current=false;}
+ };
+ const locked=phase!=='ready'||busy.current;
+ const button=(label:string,action:()=>void,disabled=false,secondary=false)=>(
+  <Pressable accessibilityRole="button" accessibilityLabel={label}
+   disabled={disabled} onPress={action}
+   style={[styles.button,secondary?styles.secondary:styles.primary,disabled?styles.disabled:null]}>
+   <Text style={secondary?styles.secondaryText:styles.primaryText}>{label}</Text>
+  </Pressable>
+ );
+ return <ScrollView style={styles.page} contentContainerStyle={styles.content}>
+  <Text style={styles.eyebrow}>STARRY ID · 會員中心</Text>
+  <Text accessibilityRole="header" style={styles.heading}>我的會員資料</Text>
+  <Text style={styles.description}>此頁只會讀取登入會員本人資料，不支援切換他人帳號或修改會員身分。</Text>
+  {!enabled?<View style={styles.warning}>
+   <Text style={styles.warningText}>正式登入與會員資料服務尚未開放。需要獨立的安全測試環境與真正的 Google 登入，才能啟用本頁。</Text>
+  </View>:null}
+  {phase==='loading'||phase==='saving'||phase==='logging_out'?
+   <View style={styles.row}><ActivityIndicator accessibilityLabel="處理中"/><Text style={styles.muted}>正在安全處理…</Text></View>:null}
+  {notice?<Text accessibilityLiveRegion="polite" style={styles.notice}>{notice}</Text>:null}
+  {profile&&phase!=='logged_out'?<View style={styles.card}>
+   <Text style={styles.section}>個人資料</Text>
+   <Text style={styles.label}>公開顯示名稱</Text>
+   <TextInput accessibilityLabel="公開顯示名稱"
+    style={styles.input} maxLength={80} editable={!locked}
+    value={displayName} onChangeText={setDisplayName}
+    placeholder="請輸入顯示名稱" autoCapitalize="words"/>
+   <View style={styles.switchRow}>
+    <Text style={styles.label}>列入公開會員搜尋</Text>
+    <Switch accessibilityLabel="列入公開會員搜尋" value={directory} disabled={locked} onValueChange={setDirectory}/>
+   </View>
+   <View style={styles.switchRow}>
+    <Text style={styles.label}>公開顯示名稱</Text>
+    <Switch accessibilityLabel="公開顯示名稱開關" value={publicName} disabled={locked} onValueChange={setPublicName}/>
+   </View>
+   <Text style={styles.muted}>資料版本：{profile.profile_revision}。若其他裝置已修改，請重新讀取後再儲存。</Text>
+   {button('儲存會員資料',()=>{void save();},locked)}
+   {button('重新讀取會員資料',()=>{void refresh();},locked,true)}
+   {button('登出目前的工作階段',()=>{void logout();},locked,true)}
+  </View>:null}
+  {enabled&&(phase==='error'||phase==='logged_out')?
+   <View style={styles.card}>
+    <Text style={styles.muted}>{phase==='logged_out'?'已登出，請透過正式登入流程重新登入。':'無法取得會員資料。'}</Text>
+    {phase==='error'?button('重新讀取',()=>{void refresh();},false,true):null}
+   </View>:null}
+  <Text style={styles.footer}>本頁不包含金流、管理員權限、刪帳執行或公開會員搜尋。服務未開放時不會取得任何身分憑證。</Text>
+ </ScrollView>;
+}
+const styles=StyleSheet.create({
+ page:{flex:1,backgroundColor:'#F6F8FC'},
+ content:{padding:20,paddingBottom:60,gap:17,maxWidth:540,width:'100%',alignSelf:'center'},
+ eyebrow:{fontSize:12,fontWeight:'700',letterSpacing:1.3,color:'#526780'},
+ heading:{fontSize:28,fontWeight:'800',color:'#162F4F'},
+ description:{fontSize:15,lineHeight:24,color:'#334963'},
+ warning:{padding:16,borderRadius:12,backgroundColor:'#FFF2D8'},
+ warningText:{fontSize:14,lineHeight:22,color:'#60450F'},
+ card:{padding:18,borderWidth:1,borderColor:'#E1E8F0',borderRadius:16,backgroundColor:'#FFFFFF',gap:14},
+ section:{fontSize:19,fontWeight:'800',color:'#1E3654'},
+ label:{fontSize:15,fontWeight:'600',color:'#294361',flexShrink:1},
+ muted:{fontSize:13,lineHeight:21,color:'#526780'},
+ row:{flexDirection:'row',alignItems:'center',gap:12},
+ switchRow:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:16,minHeight:46},
+ input:{minHeight:48,padding:12,borderWidth:1,borderColor:'#B9C9DD',borderRadius:9,fontSize:16,color:'#162F4F'},
+ button:{minHeight:48,paddingVertical:13,paddingHorizontal:14,borderRadius:11,alignItems:'center',justifyContent:'center'},
+ primary:{backgroundColor:'#19598E'},
+ secondary:{backgroundColor:'#E7F0F9'},
+ disabled:{opacity:0.45},
+ primaryText:{color:'#FFFFFF',fontSize:15,fontWeight:'700',textAlign:'center'},
+ secondaryText:{color:'#1D527C',fontSize:15,fontWeight:'700',textAlign:'center'},
+ notice:{fontSize:14,lineHeight:22,color:'#7E500D'},
+ footer:{fontSize:13,lineHeight:21,color:'#526780'},
+});
