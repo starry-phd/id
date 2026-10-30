@@ -127,42 +127,76 @@ export function createM1StagingSelfClient(config:M1StagingSelfConfig) {
       .split(',').some(x=>x.trim()==='no-store'))
    throw Error('STARRY_SELF_RESPONSE_INVALID');
  }
+ // For a screen showing one member, use a single captured bearer to
+ // validate the current owner AND perform the CAS write. Merely calling
+ // getSelf() and then patchSelf() would read Auth twice and could write to
+ // a different member after an account switch.
+ async function readWithBearer(bearer:string):Promise<M1StagingSelf>{
+  try{
+   const response=await transport(endpoint,{method:'GET',
+    credentials:'omit',redirect:'error',cache:'no-store',
+    headers:{accept:'application/json',authorization:'Bearer '+bearer},
+   });
+   checkResponse(response,endpoint);
+   if(response.status===401||response.status===403)
+    throw Error('STARRY_SELF_UNAUTHORIZED');
+   if(response.status!==200)throw Error('STARRY_SELF_UNAVAILABLE');
+   if(!/^application\\/json(?:\\s*;\\s*charset\\s*=\\s*utf-8)?\\s*$/i
+        .test(response.headers.get('content-type')??''))
+    throw Error('STARRY_SELF_RESPONSE_INVALID');
+   requireNoStore(response);
+   return project(await parseBoundedJson(response));
+  }catch(e){
+   if(e instanceof Error&&[
+    'STARRY_SELF_UNAUTHORIZED','STARRY_SELF_RESPONSE_INVALID',
+   ].includes(e.message))throw e;
+   throw Error('STARRY_SELF_UNAVAILABLE');
+  }
+ }
+ async function mutateWithBearer(expectedRevision:number,
+  patch:M1SelfPatch,token:string):Promise<M1StagingSelf>{
+  try{
+   const response=await transport(endpoint,{
+    method:'PATCH',credentials:'omit',redirect:'error',cache:'no-store',
+    headers:{
+     accept:'application/json','content-type':'application/json',
+     authorization:'Bearer '+token,
+     'if-match':'"rev-'+expectedRevision+'"',
+    },
+    body:JSON.stringify(patch),
+   });
+   checkResponse(response,endpoint);
+   if(response.status===401||response.status===403)
+    throw Error('STARRY_SELF_UNAUTHORIZED');
+   if(response.status===409)throw Error('STARRY_SELF_CONFLICT');
+   if(response.status===428)throw Error('STARRY_SELF_REVISION_REQUIRED');
+   if(response.status===400||response.status===415)
+    throw Error('STARRY_SELF_FIELDS_DENIED');
+   if(response.status!==200)throw Error('STARRY_SELF_UNAVAILABLE');
+   if(!/^application\\/json(?:\\s*;\\s*charset\\s*=\\s*utf-8)?\\s*$/i
+       .test(response.headers.get('content-type')??''))
+    throw Error('STARRY_SELF_RESPONSE_INVALID');
+   requireNoStore(response);
+   const dto=project(await parseBoundedJson(response));
+   if(dto.profile_revision!==expectedRevision+1)
+    throw Error('STARRY_SELF_RESPONSE_INVALID');
+   return dto;
+  }catch(e){
+   if(e instanceof Error&&[
+    'STARRY_SELF_UNAUTHORIZED','STARRY_SELF_CONFLICT',
+    'STARRY_SELF_REVISION_REQUIRED','STARRY_SELF_FIELDS_DENIED',
+    'STARRY_SELF_RESPONSE_INVALID',
+   ].includes(e.message))throw e;
+   throw Error('STARRY_SELF_UNAVAILABLE');
+  }
+ }
  return Object.freeze({
   contract:M1_STAGING_SELF_CONTRACT,
   source_only:true as const,
   live_enabled:M1_STAGING_SELF_SDK_LIVE,
   async getSelf():Promise<M1StagingSelf>{
    if(!enabled)throw Error('STARRY_SELF_DISABLED');
-   // The Auth Owner's credential supplier may fail; do not leak its
-   // exception, token, provider details or stack to the App.
-   let bearer:string|null;
-   try{bearer=await readBearer();}
-   catch{throw Error('STARRY_SELF_SESSION_REQUIRED');}
-   if(!bearer||!/^[A-Za-z0-9._~-]{16,4096}$/.test(bearer))
-     throw Error('STARRY_SELF_SESSION_REQUIRED');
-   try {
-    const response=await transport(endpoint,{method:'GET',
-      credentials:'omit',redirect:'error',cache:'no-store',
-      headers:{accept:'application/json',authorization:'Bearer '+bearer},
-    });
-    // A test transport (or a future proxy) must not silently follow
-    // redirects, substitute another endpoint or accept cacheable PII.
-    checkResponse(response,endpoint);
-    if(response.status===401||response.status===403)throw Error('STARRY_SELF_UNAUTHORIZED');
-    if(response.status!==200)throw Error('STARRY_SELF_UNAVAILABLE');
-    if(!/^application\/json(?:\s*;\s*charset\s*=\s*utf-8)?\s*$/i
-         .test(response.headers.get('content-type')??''))
-      throw Error('STARRY_SELF_RESPONSE_INVALID');
-    const cache=(response.headers.get('cache-control')??'').toLowerCase()
-      .split(',').map(v=>v.trim());
-    if(!cache.includes('no-store'))throw Error('STARRY_SELF_RESPONSE_INVALID');
-    return project(await parseBoundedJson(response));
-   }catch(e) {
-    // Do not echo tokens, provider/SQL errors or raw response body to the App.
-    if(e instanceof Error&&['STARRY_SELF_UNAUTHORIZED','STARRY_SELF_RESPONSE_INVALID'].includes(e.message))
-      throw e;
-    throw Error('STARRY_SELF_UNAVAILABLE');
-   }
+   return readWithBearer(await currentBearer());
   },
   /**
    * Strict server-side CAS. A profile revision is mandatory; identity/roles
@@ -174,41 +208,35 @@ export function createM1StagingSelfClient(config:M1StagingSelfConfig) {
       expectedRevision>=Number.MAX_SAFE_INTEGER)
     throw Error('STARRY_SELF_REVISION_REQUIRED');
    const patch=validateSelfPatch(input);
+   return mutateWithBearer(expectedRevision,patch,await currentBearer());
+  },
+  /**
+   * UI-safe CAS with an owner fence: before writing, use the EXACT bearer
+   * captured once for an authenticated GET. Never write a new member's row
+   * when a stale screen still displays the previous member.
+   * A preflight GET cannot replace server authorization; the original
+   * signed Session and D1 CAS checks remain mandatory for the PATCH.
+   */
+  async patchSelfForUser(expectedUserId:string,expectedRevision:number,
+   input:M1SelfPatch):Promise<M1StagingSelf>{
+   if(!enabled)throw Error('STARRY_SELF_DISABLED');
+   if(typeof expectedUserId!=='string'||
+      !/^[A-Za-z0-9._:-]{1,180}$/.test(expectedUserId))
+    throw Error('STARRY_SELF_IDENTITY_CHANGED');
+   if(!Number.isSafeInteger(expectedRevision)||expectedRevision<1||
+      expectedRevision>=Number.MAX_SAFE_INTEGER)
+    throw Error('STARRY_SELF_REVISION_REQUIRED');
+   const patch=validateSelfPatch(input);
    const token=await currentBearer();
-   try{
-    const response=await transport(endpoint,{
-     method:'PATCH',credentials:'omit',redirect:'error',cache:'no-store',
-     headers:{
-      accept:'application/json','content-type':'application/json',
-      authorization:'Bearer '+token,
-      'if-match':'"rev-'+expectedRevision+'"',
-     },
-     body:JSON.stringify(patch),
-    });
-    checkResponse(response,endpoint);
-    if(response.status===401||response.status===403)
-     throw Error('STARRY_SELF_UNAUTHORIZED');
-    if(response.status===409)throw Error('STARRY_SELF_CONFLICT');
-    if(response.status===428)throw Error('STARRY_SELF_REVISION_REQUIRED');
-    if(response.status===400||response.status===415)
-     throw Error('STARRY_SELF_FIELDS_DENIED');
-    if(response.status!==200)throw Error('STARRY_SELF_UNAVAILABLE');
-    if(!/^application\/json(?:\s*;\s*charset\s*=\s*utf-8)?\s*$/i
-        .test(response.headers.get('content-type')??''))
-     throw Error('STARRY_SELF_RESPONSE_INVALID');
-    requireNoStore(response);
-    const dto=project(await parseBoundedJson(response));
-    if(dto.profile_revision!==expectedRevision+1)
-     throw Error('STARRY_SELF_RESPONSE_INVALID');
-    return dto;
-   }catch(e){
-    if(e instanceof Error&&[
-     'STARRY_SELF_UNAUTHORIZED','STARRY_SELF_CONFLICT',
-     'STARRY_SELF_REVISION_REQUIRED','STARRY_SELF_FIELDS_DENIED',
-     'STARRY_SELF_RESPONSE_INVALID',
-    ].includes(e.message))throw e;
-    throw Error('STARRY_SELF_UNAVAILABLE');
-   }
+   const current=await readWithBearer(token);
+   if(current.s_user_id!==expectedUserId)
+    throw Error('STARRY_SELF_IDENTITY_CHANGED');
+   if(current.profile_revision!==expectedRevision)
+    throw Error('STARRY_SELF_CONFLICT');
+   const updated=await mutateWithBearer(expectedRevision,patch,token);
+   if(updated.s_user_id!==expectedUserId)
+    throw Error('STARRY_SELF_RESPONSE_INVALID');
+   return updated;
   },
   /** Server revokes precisely this signed Session. No token/body is exposed. */
   async logout():Promise<void>{
