@@ -17,3 +17,8 @@ AI-0 authorizations: [#6511165892](https://github.com/starry-phd/id/issues/2#iss
 
 ## Transaction assumptions and rollback
 `authDb.batch()` must provide **real all-or-nothing authoritative SQLite/D1 transaction semantics**; do not inject an adapter which independently commits individual writes. For the first login, UNIQUE(provider,subject) contention aborts the loser and rolls back attempted orphan member, session and audit. Existing-account Session insert repeats active member/auth_version/provider-link checks at commit. Failure never returns a signed bearer; the consumed OAuth attempt is intentionally not undone. Minimal audit-intent resides in source DB transaction only, not a claim of remote durable Queue delivery.
+
+## M0 dependency and new-base CI revalidation (AI-0, 2026-10-30)
+- M0 platform/guard/workerd slice [#267](https://github.com/starry-phd/id/pull/267) was squash-merged to main as `7e997f14c1b161d2a47142607a0cddc12549a40f` after three successful CI jobs on reviewed M0 HEAD `9a5c2cb35d1e1ab5087981d5684ab5ae5f997827`.
+- This M1 PR remains **Draft** and its four new source/schema/test/docs paths must be validated in the PR's effective **latest-main merge** with M0's path guard and glob test wiring. Earlier M1-head CI failure under pre-M0 guard is historical evidence, not an M1 approval. Confirm the actual M1 test executes, plus required combined CI and local transaction negative cases; never relabel this as remote Google OIDC, real D1, or publishable.
+- No formal M1 release authorization, real Staging resource or new billed service arises from the M0 merge. Preserve G00–G10 BLOCKED, first-login audit and all privacy/Store requirements.
