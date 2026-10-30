@@ -39,7 +39,7 @@ async function fixture(){
   session_id:sess,auth_version:3,issued_at:NOW,expires_at:NOW+300,key_id:'test-kid',
  },scope,NOW,{kid:'test-kid',key});
  const t1=await token(),t2=await token('u2','subject-2','session-2');
- const state={time:NOW,writeCount:0,beforeWrite:null,throwWrite:false,reads:0,keyReads:0};
+ const state={time:NOW,writeCount:0,beforeWrite:null,throwWrite:false,reads:0,keyReads:0,randomCount:0};
  const adapter={prepare(sql){
   let params=[];
   return {
@@ -58,7 +58,7 @@ async function fixture(){
  const deps={enabled:true,serverScope:scope,expectedOrigin:origin,authDb:adapter,
   getVerificationKey:async kid=>{state.keyReads++;return kid==='test-kid'?key:null;},
   now:()=>state.time,
-  randomBytes:n=>new Uint8Array(n).fill(0xab),
+  randomBytes:n=>new Uint8Array(n).fill((++state.randomCount)%256),
  };
  const handler=createM2LocalDeletionRequestHandler(deps);
  const request=(path,who=t1,method='GET',body,extra={})=>new Request(origin+path,{
