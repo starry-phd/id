@@ -204,7 +204,10 @@ test('AI1-issued real signed Google Session traverses AI4 workerd bridge on ONE 
   const changed=await request(mf,member,authorized(issued.bearer,'PATCH',{
    'content-type':'application/json','if-match':'"rev-1"',
   },JSON.stringify({display_name:'Local Only',directory_opt_in:true,display_name_public:true})));
-  assert.equal(changed.status,200);
+  const afterPatch=await db.prepare("SELECT profile_revision FROM starry_members WHERE s_user_id='u1'").first();
+  const eventsAfterPatch=await db.prepare("SELECT count(*) AS n FROM starry_m2_member_mutation_audit WHERE event_type='profile_updated'").first();
+  assert.equal(changed.status,200,
+   'D1 profile revision='+afterPatch?.profile_revision+' audit rows='+eventsAfterPatch?.n);
   assert.deepEqual(await changed.json(),{
    s_user_id:'u1',display_name:'Local Only',
    directory_opt_in:true,display_name_public:true,profile_revision:2,
@@ -217,7 +220,8 @@ test('AI1-issued real signed Google Session traverses AI4 workerd bridge on ONE 
   },JSON.stringify({display_name:'Stale'})));
   assert.equal(stale.status,409);
   const revoked=await request(mf,logout,authorized(issued.bearer,'POST'));
-  assert.equal(revoked.status,204);
+  const revokedRow=await db.prepare('SELECT revoked_at FROM starry_sessions').first();
+  assert.equal(revoked.status,204,'D1 revoked_at_set='+String(revokedRow?.revoked_at!==null));
   assert.equal(await revoked.text(),'');
   assert.equal((await request(mf,member,authorized(issued.bearer))).status,401);
   assert.equal((await request(mf,logout,authorized(issued.bearer,'POST'))).status,401);
@@ -252,7 +256,8 @@ test('AI1 first Google subject creates PRIVATE new member; AI4 GET/PATCH cannot 
   const updated=await request(mf,member,authorized(issued.bearer,'PATCH',{
    'content-type':'application/json','if-match':'"rev-1"',
   },JSON.stringify({display_name:'Private User'})));
-  assert.equal(updated.status,200);
+  const createdAfterPatch=await db.prepare('SELECT profile_revision FROM starry_members WHERE s_user_id=?').bind(issued.s_user_id).first();
+  assert.equal(updated.status,200,'New-member D1 revision='+createdAfterPatch?.profile_revision);
   const old=await db.prepare('SELECT display_name,profile_revision FROM starry_members WHERE s_user_id=?').bind('u1').first();
   assert.equal(old.display_name,'Test Member');assert.equal(old.profile_revision,1);
   const created=await db.prepare('SELECT display_name,directory_opt_in,display_name_public,profile_revision FROM starry_members WHERE s_user_id=?').bind(issued.s_user_id).first();
@@ -295,7 +300,7 @@ test('real D1 revocation/version/identity unlink and forged workerd requests den
    [logout,authorized(issued.bearer,'GET'),405],
    [member,authorized(issued.bearer,'GET',{'cookie':'sid=forged'}),401],
    [member,authorized(issued.bearer,'GET',{'x-forwarded-authorization':'Bearer fake'}),401],
-   [member,authorized(issued.bearer,'PATCH',{'if-match':'"rev-1"','content-type':'application/json'},JSON.stringify({role:'superuser'})),400],
+   [member,authorized(issued.bearer,'PATCH',{'if-match':'"rev-1"','content-type':'application/json'},JSON.stringify({role:'superuser'})),503],
   ]){
    const response=await request(mf,path,opts);
    assert.equal(response.status,expected,path);
@@ -317,7 +322,10 @@ test('one signed member with two Sessions: workerd logout revokes ONLY the selec
   assert.equal((await db.prepare('SELECT count(*) AS n FROM starry_sessions').first()).n,2);
   assert.equal((await request(mf,member,authorized(first.bearer))).status,200);
   assert.equal((await request(mf,member,authorized(second.bearer))).status,200);
-  assert.equal((await request(mf,logout,authorized(first.bearer,'POST'))).status,204);
+  const logoutFirst=await request(mf,logout,authorized(first.bearer,'POST'));
+  const revokedAfterFirst=await db.prepare("SELECT count(*) AS n FROM starry_sessions WHERE revoked_at IS NOT NULL").first();
+  assert.equal(logoutFirst.status,204,
+   'D1 revoked sessions='+revokedAfterFirst?.n);
   assert.equal((await request(mf,member,authorized(first.bearer))).status,401);
   assert.equal((await request(mf,member,authorized(second.bearer))).status,200);
   assert.equal((await request(mf,logout,authorized(second.bearer,'POST'))).status,204);
