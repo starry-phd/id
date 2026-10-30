@@ -86,7 +86,7 @@ test('M2 first confirmation refuses a stale A screen after Auth switched to B',a
   getSessionBearer:async()=>{reads++;return signedB;},
   fetchImpl:async(url,init)=>{
    calls.push({url,init});
-   if(new URL(url).pathname==='/v1/starry-id/members/me')
+   if(new globalThis.URL(url).pathname==='/v1/starry-id/members/me')
     return json(selfOf(memberIdB));
    throw Error('MUST_NOT_WRITE_DELETION_FOR_B');
   },
@@ -98,7 +98,7 @@ test('M2 first confirmation refuses a stale A screen after Auth switched to B',a
  assert.equal(reads,3);
  assert.equal(calls.length,3);
  assert.ok(calls.every(c=>c.init.method==='GET'&&
-  new URL(c.url).pathname==='/v1/starry-id/members/me'));
+  new globalThis.URL(c.url).pathname==='/v1/starry-id/members/me'));
  assert.ok(calls.every(c=>c.init.headers.authorization==='Bearer '+signedB));
 });
 
@@ -114,7 +114,7 @@ test('M2 member owner preflight and mutation reuse exactly ONE volatile bearer',
   },
   fetchImpl:async(url,init)=>{
    calls.push({url,init});
-   const path=new URL(url).pathname;
+   const path=new globalThis.URL(url).pathname;
    if(path==='/v1/starry-id/members/me')
     return json(selfOf(init.headers.authorization==='Bearer '+signedA?
      memberIdA:memberIdB));
@@ -141,10 +141,10 @@ test('M2 owner-fenced status/second confirmation fail closed on wrong member and
   enabled:true,getSessionBearer:async()=>signedA,
   fetchImpl:async(url,init)=>{
    calls.push({url,init});
-   if(new URL(url).pathname==='/v1/starry-id/members/me')
+   if(new globalThis.URL(url).pathname==='/v1/starry-id/members/me')
     return json(selfOf(memberIdA));
    writes++;
-   if(new URL(url).pathname.endsWith('/status'))
+   if(new globalThis.URL(url).pathname.endsWith('/status'))
     return json({error:{code:'NO_REQUEST'}},404);
    return json({...receipt,status:'pending_processing',
     second_confirmed_at:1793000001},202);
