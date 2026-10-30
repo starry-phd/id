@@ -68,6 +68,7 @@ test('UP08 nested, alternative JSON env, resource bindings, unknown keys, duplic
   t+'\n[vars]\nSTARRY_APP_ID="other"',
   t.replace('workers_dev = false','workers_dev = true'),
   t.replace('main = "src/index.ts"','main = "src/secret.ts"'),
+  t.replace('main = "src/index.ts"','main = "src/index.ts"\nunknown_root = true'),
   JSON.stringify({...json,env:{...json.env,production:json.env.staging}}),
   JSON.stringify({...json,d1_databases:[{binding:'DB'}]}),
   JSON.stringify({...json,env:{staging:{...json.env.staging,vars:{...json.env.staging.vars,DB:{nested:'x'}}}}}),
@@ -95,6 +96,10 @@ test('UP08 workflow rejects triggers, secrets, permissions, nested env, deploy c
   y=>y.jobs['app-tests'].steps.push({run:'echo '+ '$'+'{{ secrets.CLOUDFLARE_API_TOKEN }}'}),
   y=>y.jobs['app-tests'].steps.push({run:'echo '+ '$'+'{{ github.token }}'}),
   y=>y.jobs['evil']={steps:[{run:'echo hi'}]},
+  y=>y.jobs['repository-policy'].steps.push({run:'echo hidden-policy-step'}),
+  y=>y.jobs['repository-policy'].steps[2].run+='\necho hidden-followup',
+  y=>y.jobs['required-validation'].steps[0].run+='\necho hidden-aggregate-command',
+  y=>y.jobs['required-validation'].steps[0].env.APP_RESULT='success',
   y=>y.on.push.branches=['develop'],
   y=>y.jobs['app-tests'].steps=y.jobs['app-tests'].steps.filter(s=>s.run!=='npm run promotion:verify'),
  ];
