@@ -625,3 +625,41 @@ test('composed Google flow OFF / foreign scope / cross-origin callback / missing
   }))).status,503);
  }finally{f.close();}
 });
+
+// Pause inside the real sealed-attempt await, then mutate the caller-owned
+// configuration. Authorization and token exchange must share the validated URL.
+test('Google redirect stays pinned when caller mutates deps during beginOAuthAttempt await',async()=>{
+ const f=await makeFixture();try{
+  const x=await createClosedLocalGoogleFlow(f);
+  let entered,release;
+  const paused=new Promise(resolve=>{entered=resolve;});
+  const resumed=new Promise(resolve=>{release=resolve;});
+  const redirectUri=origin+'/v1/starry-id/oauth/google/callback';
+  const deps={enabled:true,serverScope:scope,expectedOrigin:origin,redirectUri,
+   authDb:f.adapter,googleProvider:f.deps.provider,
+   verifierCustody:{
+    async seal(...args){entered();await resumed;return x.custody.seal(...args);},
+    open:(...args)=>x.custody.open(...args),
+   },
+   activeKey:f.deps.activeKey,getVerificationKey:f.deps.getVerificationKey,
+   now:f.deps.now,readGoogleClientSecret:async()=> 'test-only-secret',
+   googleTransport:async (_url,init)=>{
+    assert.equal(new URLSearchParams(init.body).get('redirect_uri'),redirectUri);
+    return new Response(JSON.stringify({id_token:await f.signIdToken(nonce)}),{
+     status:200,headers:{'content-type':'application/json'},
+    });
+   },
+  };
+  const flow=createM1M2LocalGoogleFlow(deps);
+  const pending=flow.beginGoogleLogin();
+  await paused;
+  deps.redirectUri='https://foreign.example/changed-callback';
+  release();
+  const url=new URL(await pending);
+  assert.equal(url.searchParams.get('redirect_uri'),redirectUri);
+  const nonce=url.searchParams.get('nonce');
+  const issued=await flow.completeGoogleLogin({code:'test-only-code',state:url.searchParams.get('state')});
+  assert.ok(issued?.bearer);
+  assert.equal((await flow.readSelf(x.self(issued.bearer))).status,200);
+ }finally{f.close();}
+});

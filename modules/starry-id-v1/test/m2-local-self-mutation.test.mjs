@@ -328,3 +328,15 @@ test('UPDATE RETURNING confirms exactly the affected row and audits; stale revis
   assert.ok(sourceSqls.every(sql=>/RETURNING\s+/i.test(sql)));
  }finally{f.close();}
 });
+
+test('throwing clock yields sanitized 503 for both PATCH and logout with zero writes',async()=>{
+ const f=await fixture();try{
+ const handler=createM2LocalSelfMutationHandler({...f.deps,now:()=>{throw Error('PRIVATE_CLOCK_FAILURE');}});
+ for(const request of [f.profile(),f.logout()]){
+ const response=await handler.handle(request);
+ assert.equal(response.status,503);
+ assert.deepEqual(await response.json(),{error:{code:'SERVICE_UNAVAILABLE'}});
+ }
+ assert.equal(f.state.writes,0);assert.equal(f.audit().length,0);
+ }finally{f.close();}
+});

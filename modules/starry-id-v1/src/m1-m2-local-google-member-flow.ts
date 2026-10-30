@@ -62,8 +62,9 @@ export function createM1M2LocalGoogleFlow(deps:Deps){
   const enabled=deps.enabled===true;
   // Capture the exact Google configuration before any OAuth or keyring await.
   const clientId=deps.googleProvider.clientId;
+  const redirectUri=redirect.href;
   const exchangeCode=createM1GoogleCodeExchange({
-    enabled,clientId,redirectUri:deps.redirectUri,
+    enabled,clientId,redirectUri,
     readClientSecret:deps.readGoogleClientSecret,transport:deps.googleTransport,
   });
   const core=createM1LocalAuthSessionCore({
@@ -88,7 +89,7 @@ export function createM1M2LocalGoogleFlow(deps:Deps){
       const attempt=await core.beginOAuthAttempt();
       if(!attempt||attempt.provider!=='google')return null;
       return createM1GoogleAuthorizeUrl({
-        clientId,redirectUri:deps.redirectUri,state:attempt.state,
+        clientId,redirectUri,state:attempt.state,
         nonce:attempt.nonce,codeChallenge:attempt.codeChallenge,
       });
     },

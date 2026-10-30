@@ -95,29 +95,89 @@ export type TrustedOAuthBackend = Readonly<{
   consumeAttemptCAS:(state:string,provider:OidcProvider,now:number)=>Promise<boolean>;
   exchangeCode:(params:Readonly<{provider:OidcProvider;code:string;clientId:string;verifier:string}>)=>Promise<{idToken:string}|null>;
 }>;
+/**
+ * Input is untrusted runtime data, not necessarily a plain JSON object.
+ * Reading data descriptors does not execute JS getters which might change
+ * the OAuth code/state between validation, D1 CAS and provider exchange.
+ */
+function ownFieldSnapshot<T extends string>(
+  source:unknown,fields:readonly T[],exact=false,
+):Record<T,unknown>|null{
+  try{
+    if(!source||typeof source!=='object'||Array.isArray(source))return null;
+    const descriptors=Object.getOwnPropertyDescriptors(source);
+    // Only one ownKeys reflection, including for Proxies. Do not trigger a
+    // second caller-controlled trap via Object.keys() after snapshotting.
+    if(exact){
+      const actual=Reflect.ownKeys(descriptors);
+      if(actual.length!==fields.length||actual.some(
+        key=>typeof key!=='string'||!fields.includes(key as T),
+      ))return null;
+    }
+    const values={} as Record<T,unknown>;
+    for(const key of fields){
+      const descriptor=descriptors[key];
+      if(!descriptor||!Object.hasOwn(descriptor,'value'))return null;
+      values[key]=descriptor.value;
+    }
+    return values;
+  }catch{return null;}
+}
 export function createVerifiedOidcCallback(deps:Readonly<{
   config:PinnedOidcProvider; appId:string; environment:OAuthAttempt['environment']; backend:TrustedOAuthBackend;
 }>) {
+  // Capture the caller's pinned provider, JWKS and trusted backend functions
+  // ONCE at construction; no await may shift an authorized issuer or CAS port.
+  const provider=deps.config;
+  const config={
+    provider:provider.provider,
+    clientId:provider.clientId,
+    issuer:provider.issuer,
+    jwks:(Array.isArray(provider.jwks)?provider.jwks:[]).map(
+      jwk=>({...jwk,key_ops:jwk.key_ops?[...jwk.key_ops]:undefined}),
+    ),
+  } as PinnedOidcProvider;
+  const appId=deps.appId,environment=deps.environment;
+  const backend=deps.backend;
+  if(!backend||typeof backend.readAttempt!=='function'||
+    typeof backend.consumeAttemptCAS!=='function'||
+    typeof backend.exchangeCode!=='function')
+    throw Error('OIDC_CALLBACK_CONFIGURATION_DENIED');
+  const readAttempt=backend.readAttempt.bind(backend);
+  const consumeAttemptCAS=backend.consumeAttemptCAS.bind(backend);
+  const exchangeCode=backend.exchangeCode.bind(backend);
+
   return async (untrusted:unknown,now:number):Promise<VerifiedProviderSubject|null>=>{
-    if(!Number.isSafeInteger(now)||now<0||!untrusted||typeof untrusted!=='object'||Array.isArray(untrusted))return null;
-    const req=untrusted as Record<string,unknown>;
-    if(Object.keys(req).sort().join('|')!=='code|state' ||
-       typeof req.code!=='string'||!/^.{1,2048}$/.test(req.code) ||
-       typeof req.state!=='string'||!(/^[A-Za-z0-9_-]{32,256}$/).test(req.state))return null;
+    if(!Number.isSafeInteger(now)||now<0)return null;
+    const input=ownFieldSnapshot(untrusted,['code','state'],true);
+    if(!input||
+       typeof input.code!=='string'||!/^.{1,2048}$/.test(input.code)||
+       typeof input.state!=='string'||!(/^[A-Za-z0-9_-]{32,256}$/).test(input.state))
+      return null;
+    const {code,state}=input;
     try{
-      const tx=await deps.backend.readAttempt(req.state);
-      if(!tx||tx.state!==req.state||tx.provider!==deps.config.provider||
-        tx.clientId!==deps.config.clientId || tx.appId!==deps.appId ||
-        tx.environment!==deps.environment || tx.consumedAt!==null||
+      const attempt=await readAttempt(state);
+      // A backend row may be mutable after awaited D1/PKCE or CAS calls.
+      // Snapshot all verified attempt authority fields BEFORE first PKCE await.
+      const frozen=ownFieldSnapshot(attempt,[
+        'state','codeVerifier','codeChallenge','nonce','provider','clientId',
+        'appId','environment','expiresAt','consumedAt',
+      ]);
+      if(!frozen)return null;
+      const tx=frozen as unknown as OAuthAttempt;
+      if(tx.state!==state||tx.provider!==config.provider||
+        tx.clientId!==config.clientId||tx.appId!==appId||
+        tx.environment!==environment||tx.consumedAt!==null||
         !Number.isSafeInteger(tx.expiresAt)||tx.expiresAt<=now||
         !await verifyPkceS256(tx.codeVerifier,tx.codeChallenge))return null;
-      // One-winner atomic consume before exchanging; no replay or repeated code exchange.
-      if(!await deps.backend.consumeAttemptCAS(tx.state,tx.provider,now))return null;
-      const exchange=await deps.backend.exchangeCode({
-        provider:tx.provider,code:req.code,clientId:tx.clientId,verifier:tx.codeVerifier,
+      // One-winner atomic consume before exchanging. Use exactly the state,
+      // provider, verifier and code that were just checked (never re-read).
+      if(!await consumeAttemptCAS(tx.state,tx.provider,now))return null;
+      const exchange=await exchangeCode({
+        provider:tx.provider,code,clientId:tx.clientId,verifier:tx.codeVerifier,
       });
       return exchange && await verifySignedOidcIdToken(exchange.idToken,{
-        issuer:deps.config,nonce:tx.nonce,now,
+        issuer:config,nonce:tx.nonce,now,
       });
     }catch{return null;}
   };
