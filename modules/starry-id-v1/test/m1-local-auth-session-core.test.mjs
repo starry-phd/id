@@ -521,6 +521,39 @@ test('M1 and M2 capture one Starry D1 and scope despite changing composition get
  }
 });
 
+// Complement the already merged #296 single-D1/scope fence: a signed
+// Session's verification key provider and clock must also be identical for
+// M1 issuer/reader and M2 mutation/logout. No new Auth or DB fixture.
+test('M1/M2 key verification and clock function are each captured once in the original signed SQLite flow',async()=>{
+ for(const field of ['getVerificationKey','now']){
+  const f=await makeFixture();try{
+   let getterReads=0;
+   const x=await createClosedLocalGoogleFlow(f,config=>{
+    Object.defineProperty(config,field,{get(){
+     getterReads++;
+     if(getterReads===1)return f.deps[field];
+     // Simulates a misconfigured mutable container switching Auth authority
+     // after the core is constructed, before M2 receives its dependencies.
+     return field==='getVerificationKey'?async()=>null:()=>now+3600;
+    }});
+   });
+   const attempt=await x.start();
+   const issued=await x.flow.completeGoogleLogin({state:attempt.state,code:attempt.code});
+   assert.equal(issued?.status,'issued',field);
+   assert.equal((await x.flow.readSelf(x.self(issued.bearer))).status,200,field);
+   const update=await x.flow.mutateSelf(x.patch(issued.bearer,1,{
+    display_name:'Shared Auth Clock and Key',
+   }));
+   assert.equal(update.status,200,field+' must keep the original Session authority');
+   assert.equal(f.db.prepare('SELECT display_name,profile_revision FROM starry_members WHERE s_user_id=?')
+    .get('u1').display_name,'Shared Auth Clock and Key');
+   assert.equal((await x.flow.mutateSelf(x.logout(issued.bearer))).status,204,field);
+   assert.equal((await x.flow.readSelf(x.self(issued.bearer))).status,401,field);
+   assert.equal(getterReads,1,field+' must be read exactly once at flow construction');
+  }finally{f.close();}
+ }
+});
+
 test('single REAL local Google → sealed attempt → RS256 → SQLite Session → W3 GET → CAS → logout loop',async()=>{
  const f=await makeFixture();try{
   const x=await createClosedLocalGoogleFlow(f);
