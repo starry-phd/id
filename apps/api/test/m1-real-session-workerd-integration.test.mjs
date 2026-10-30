@@ -207,7 +207,9 @@ test('AI4 bridge refuses current-session provider unlink and auth_version change
 async function withRealWorkerd(x,callback){
  // Local loopback relay to the ORIGINAL AI-1 Node SQLite handler. Binding is
  // test-only and listens on 127.0.0.1 ephemeral port, never internet-facing.
+ let relayHits=0,relayFaults=0;
  const server=createServer(async (incoming,outgoing)=>{
+  relayHits++;
   try{
    const chunks=[];
    for await(const part of incoming)chunks.push(part);
@@ -226,6 +228,7 @@ async function withRealWorkerd(x,callback){
    outgoing.writeHead(response.status,h);
    outgoing.end(Buffer.from(await response.arrayBuffer()));
   }catch{
+   relayFaults++;
    outgoing.writeHead(503,{'cache-control':'no-store'});
    outgoing.end();
   }
@@ -264,7 +267,7 @@ async function withRealWorkerd(x,callback){
     'index.js':{type:'esm',contents:bundle.outputFiles[0].text},
    }},env:{},
   }}]});
-  await callback(mf);
+  await callback(mf,()=>({relayHits,relayFaults}));
  }finally{
   if(mf)await mf.dispose();
   await new Promise(resolve=>server.close(resolve));
@@ -275,7 +278,7 @@ test('real workerd route → one shared AI1 SQLite Session/Member → CAS → lo
  const x=await fixture();
  try{
   const {bearer}=await x.issue();
-  await withRealWorkerd(x,async mf=>{
+  await withRealWorkerd(x,async (mf,stats)=>{
    const authorization='Bearer '+bearer;
    const get=()=>mf.dispatchFetch(origin+selfPath,{headers:{authorization}});
    const update=(rev,name)=>mf.dispatchFetch(origin+selfPath,{
@@ -285,7 +288,7 @@ test('real workerd route → one shared AI1 SQLite Session/Member → CAS → lo
    });
    const drop=()=>mf.dispatchFetch(origin+logoutPath,{method:'POST',headers:{authorization}});
    const first=await get();
-   assert.equal(first.status,200);
+   assert.equal(first.status,200,JSON.stringify({...stats(),response:await first.clone().text()}));
    assert.equal((await first.json()).profile_revision,1);
    const changed=await update(1,'Workerd SQLite CAS');
    assert.equal(changed.status,200);
