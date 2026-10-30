@@ -154,7 +154,7 @@ test('S2-11 rebind never overwrites immutable original first-claim and separates
   assert.match(adr,/rebind_decision/);
   assert.match(adr,/Q104 \/ Q119/);
   assert.match(adr,/Cross-D1 caution/);
-  assert.doesNotMatch(adr,/UPDATE\\s+original_first_claim\\s+SET/i);
+  assert.doesNotMatch(adr,/UPDATE\s+original_first_claim\s+SET/i);
   const result=compareS211RestoreProposals({});
   assert.equal(result.release_authorized,false);
   for(const p of result.proposals){
