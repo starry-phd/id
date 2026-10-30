@@ -33,6 +33,21 @@ test('real React Native Web profile screen renders owner-safe disabled view, nev
   compiled.exports.MemberProfileScreen,{port:never,enabled:false},
  ));
  assert.equal(compiled.exports.M1_MEMBER_PROFILE_SCREEN_LIVE_ENABLED,false);
+ const isLost=compiled.exports.isM1SessionLost;
+ assert.equal(isLost(Error('STARRY_SELF_UNAUTHORIZED')),true);
+ assert.equal(isLost(Error('STARRY_SELF_SESSION_REQUIRED')),true);
+ for(const value of [Error('STARRY_SELF_CONFLICT'),Error('PRIVATE_PROVIDER_TOKEN'),
+  Error('STARRY_SELF_UNAVAILABLE'),null,'STARRY_SELF_UNAUTHORIZED',{}]){
+  assert.equal(isLost(value),false,'only Auth-owned session loss clears identity');
+ }
+ // SSR never starts a real credential lookup; the profile remains guarded
+ // even when a future authorized port explicitly opts into loading.
+ const loading=renderToStaticMarkup(React.createElement(
+  compiled.exports.MemberProfileScreen,{port:never,enabled:true},
+ ));
+ assert.match(loading,/正在安全處理/);
+ assert.doesNotMatch(loading,/PRIVATE_USER|PRIVATE_TOKEN|Bearer |u1/);
+ assert.equal(invoked,0);
  assert.match(html,/我的會員資料/);
  assert.match(html,/正式登入與會員資料服務尚未開放/);
  assert.match(html,/不會取得任何身分憑證/);
@@ -48,4 +63,17 @@ test('mobile route is explicitly disabled, no dummy Auth or real callback; homep
  assert.doesNotMatch(route,/enabled=\{true\}|Bearer v1|test-only-client|localhost|createM1StagingSelfClient/);
  assert.match(home,/href="\/profile"/);
  assert.match(home,/服務尚未啟用/);
+});
+
+test('M1 profile UI always erases stale PII on refresh and session loss, while public route remains OFF',()=>{
+ const source=readFileSync(new URL('../src/member-profile-screen.tsx',import.meta.url),'utf8');
+ assert.match(source,/clearProfile\(\);\s*setPhase\('loading'\)/);
+ assert.match(source,/setPhase\(isM1SessionLost\(error\)\?'reauth_required':'error'\)/);
+ assert.equal((source.match(/if\(isM1SessionLost\(error\)\)\{clearProfile\(\);setPhase\('reauth_required'\);\}/g)||[]).length,2,
+  'PATCH and logout unauthorized must both clear stale member data');
+ assert.match(source,/phase==='reauth_required'\?'登入狀態失效，私人資料已從畫面清除/);
+ assert.match(source,/phase==='ready'\?<View style=\{styles.card\}>/);
+ assert.match(source,/clearProfile\(\);setNotice\(''\);setPhase\('disabled'\)/);
+ const route=readFileSync(new URL('../app/profile.tsx',import.meta.url),'utf8');
+ assert.match(route,/enabled=\{false\}/);
 });
