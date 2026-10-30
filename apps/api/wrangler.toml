@@ -8,7 +8,9 @@ STARRY_ENVIRONMENT = "development"
 STARRY_APP_ID = "starry-id"
 
 [env.staging]
-name = "starry-id-api-staging"
+# Source-only candidate from approved #290 capability pack; NOT provisioned.
+# This Worker still serves only /v1/health. NO D1, OAuth, Access or deploy authority.
+name = "id-starry-m1-staging"
 workers_dev = false
 [env.staging.vars]
 STARRY_ENVIRONMENT = "staging"
