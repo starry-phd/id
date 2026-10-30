@@ -20,6 +20,8 @@ export type DeletionFlow=Readonly<{
  requestFirst():Promise<void>;
  confirmSecond():Promise<void>;
  retry():Promise<void>;
+ /** React 19 StrictMode replays effect setup after cleanup on the same flow. */
+ activate():void;
  /** Called when Auth identity or port changes/unmounts: reject late results. */
  invalidate():void;
 }>;
@@ -88,7 +90,8 @@ export function createDeletionFlow(port:M2DeletionPort):DeletionFlow{
  return Object.freeze({
   snapshot:()=>view,
   subscribe(listener){
-   if(!active)return ()=>{};
+   // React can subscribe between StrictMode cleanup and second effect setup.
+   // Do not orphan this subscription while the flow is inactive.
    listeners.add(listener);
    return ()=>{listeners.delete(listener);};
   },
@@ -100,8 +103,19 @@ export function createDeletionFlow(port:M2DeletionPort):DeletionFlow{
    const intent=view.intent;
    return run(intent??'status',intent==='first'||intent==='second');
   },
+  activate(){
+   // StrictMode setup -> cleanup -> setup reuses this memoized flow.
+   // Each replay starts a fresh generation with the SAME injected Auth port.
+   // A previously started request may still resolve, but its generation can
+   // never paint this new mount.
+   if(active)return;
+   epoch++;active=true;inflight=false;
+   set(empty);
+  },
   invalidate(){
-   // Stale async work must never update the next signed-in member's UI.
+   // Retire all in-flight results from this mount/identity. The component
+   // may re-activate on StrictMode effect replay with the SAME trusted port;
+   // switching identity must supply a new port/flow instance.
    epoch++;active=false;inflight=false;
    view=empty;
    listeners.clear();
