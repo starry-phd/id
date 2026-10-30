@@ -157,7 +157,7 @@ export function createM1StagingSelfClient(config:M1StagingSelfConfig) {
       throw e;
     throw Error('STARRY_SELF_UNAVAILABLE');
    }
-  },,
+  },
   /**
    * Strict server-side CAS. A profile revision is mandatory; identity/roles
    * cannot be patched. Never sends credentials/cookies or follows redirects.
