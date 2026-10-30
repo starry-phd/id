@@ -58,7 +58,7 @@ test('M2 typed SDK sends exact three endpoints and two distinct confirmation pay
  assert.deepEqual(await x.client.requestDeletion(),awaiting);
  assert.deepEqual(await x.client.confirmDeletion(id),pending);
  assert.equal(x.credentials,3);
- assert.deepEqual(x.calls.map(c=>new URL(c.url).pathname),
+ assert.deepEqual(x.calls.map(c=>new globalThis.URL(c.url).pathname),
   [M2_STATUS_PATH,M2_REQUEST_PATH,M2_CONFIRM_PATH]);
  assert.deepEqual(x.calls.map(c=>c.init.method),['GET','POST','POST']);
  assert.equal(x.calls[0].init.body,undefined);
