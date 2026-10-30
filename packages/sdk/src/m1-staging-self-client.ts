@@ -110,9 +110,16 @@ export function createM1StagingSelfClient(config:M1StagingSelfConfig) {
    throw Error('STARRY_SELF_SESSION_REQUIRED');
   return token;
  }
+ // A Cloudflare workerd Response (and some RN fetch adapters) can belong to
+ // a different JS realm. instanceof Response falsely denies valid HTTPS
+ // results. Check the exact Fetch shape and origin instead of its prototype.
  function checkResponse(res:Response,endpoint:string):void{
-  if(!(res instanceof Response)||res.redirected||
-     (res.url!==''&&res.url!==endpoint))
+  if(!res||typeof res!=='object'||
+     !Number.isInteger(res.status)||res.status<100||res.status>599||
+     typeof res.redirected!=='boolean'||typeof res.url!=='string'||
+     !res.headers||typeof res.headers.get!=='function'||
+     (res.body!==null&&typeof res.body?.getReader!=='function')||
+     res.redirected||(res.url!==''&&res.url!==endpoint))
    throw Error('STARRY_SELF_RESPONSE_INVALID');
  }
  function requireNoStore(res:Response):void{
@@ -140,8 +147,7 @@ export function createM1StagingSelfClient(config:M1StagingSelfConfig) {
     });
     // A test transport (or a future proxy) must not silently follow
     // redirects, substitute another endpoint or accept cacheable PII.
-    if(response.redirected||(response.url!==''&&response.url!==endpoint))
-      throw Error('STARRY_SELF_RESPONSE_INVALID');
+    checkResponse(response,endpoint);
     if(response.status===401||response.status===403)throw Error('STARRY_SELF_UNAUTHORIZED');
     if(response.status!==200)throw Error('STARRY_SELF_UNAVAILABLE');
     if(!/^application\/json(?:\s*;\s*charset\s*=\s*utf-8)?\s*$/i
