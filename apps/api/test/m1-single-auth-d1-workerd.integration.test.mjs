@@ -490,11 +490,12 @@ test('Expo source-only M1 port owner shares ONE real signed Session across profi
    getSessionBearer:async()=>{reads++;return issued.bearer;},
    fetchImpl:(url,init)=>mf.dispatchFetch(url,init),
   };
-  const {profile,deletion,live_enabled,source_only}=
+  const {profile,deletionForUser,live_enabled,source_only}=
    createM1SessionBoundMemberPorts(config);
   assert.equal(live_enabled,false);
   assert.equal(source_only,true);
   const me=await profile.getSelf();
+  const deletion=deletionForUser(me.s_user_id);
   assert.equal(me.s_user_id,'u1');
   assert.equal(me.profile_revision,1);
   assert.equal(await deletion.getStatus(),null);
