@@ -13,7 +13,14 @@ export const M1_MEMBER_PROFILE_SCREEN_LIVE_ENABLED=false as const;
 export type MemberProfilePort=Pick<ReturnType<typeof createM1StagingSelfClient>,
  'getSelf'|'patchSelf'|'logout'>;
 export type MemberProfileScreenProps=Readonly<{port:MemberProfilePort;enabled:boolean}>;
-type Phase='disabled'|'loading'|'ready'|'saving'|'logging_out'|'logged_out'|'error';
+type Phase='disabled'|'loading'|'ready'|'saving'|'logging_out'|'logged_out'|'reauth_required'|'error';
+/** Any signed Session loss must erase stale PII, not leave editable data. */
+export function isM1SessionLost(error:unknown):boolean{
+ return error instanceof Error&&(
+  error.message==='STARRY_SELF_UNAUTHORIZED'||
+  error.message==='STARRY_SELF_SESSION_REQUIRED'
+ );
+}
 const explanation=(error:unknown):string=>{
  if(!(error instanceof Error))return '服務暫時無法使用，請稍後重試。';
  switch(error.message){
@@ -34,6 +41,12 @@ export function MemberProfileScreen({port,enabled}:MemberProfileScreenProps){
  const [directory,setDirectory]=useState(false);
  const [publicName,setPublicName]=useState(false);
  const [notice,setNotice]=useState('');
+ const clearProfile=useCallback(()=>{
+  setProfile(null);
+  setDisplayName('');
+  setDirectory(false);
+  setPublicName(false);
+ },[]);
  const apply=(data:M1StagingSelf)=>{
   setProfile(data);
   setDisplayName(data.display_name??'');
@@ -44,19 +57,29 @@ export function MemberProfileScreen({port,enabled}:MemberProfileScreenProps){
   if(!enabled||busy.current)return;
   busy.current=true;
   const serial=++generation.current;
+  // Fail closed before any refresh, including when an Auth owner/port changes.
+  // The previous user's name must not remain visible while a new request runs.
+  clearProfile();
   setPhase('loading');setNotice('');
   try{
    const value=await port.getSelf();
    if(generation.current===serial){apply(value);setPhase('ready');}
   }catch(error){
-   if(generation.current===serial){setProfile(null);setPhase('error');setNotice(explanation(error));}
+   if(generation.current===serial){
+    clearProfile();
+    setPhase(isM1SessionLost(error)?'reauth_required':'error');
+    setNotice(explanation(error));
+   }
   }finally{if(generation.current===serial)busy.current=false;}
- },[enabled,port]);
+ },[enabled,port,clearProfile]);
  useEffect(()=>{
   if(enabled){void refresh();}
-  else{generation.current++;busy.current=false;setPhase('disabled');setProfile(null);}
+  else{
+   generation.current++;busy.current=false;
+   clearProfile();setNotice('');setPhase('disabled');
+  }
   return()=>{generation.current++;busy.current=false;};
- },[enabled,refresh]);
+ },[enabled,refresh,clearProfile]);
  const save=async()=>{
   if(!enabled||busy.current||!profile||phase!=='ready')return;
   busy.current=true;
@@ -71,7 +94,11 @@ export function MemberProfileScreen({port,enabled}:MemberProfileScreenProps){
    const updated=await port.patchSelf(profile.profile_revision,payload);
    if(generation.current===serial){apply(updated);setPhase('ready');setNotice('會員資料已儲存。');}
   }catch(error){
-   if(generation.current===serial){setPhase('ready');setNotice(explanation(error));}
+   if(generation.current===serial){
+    if(isM1SessionLost(error)){clearProfile();setPhase('reauth_required');}
+    else setPhase('ready');
+    setNotice(explanation(error));
+   }
   }finally{if(generation.current===serial)busy.current=false;}
  };
  const logout=async()=>{
@@ -82,11 +109,15 @@ export function MemberProfileScreen({port,enabled}:MemberProfileScreenProps){
   try{
    await port.logout();
    if(generation.current===serial){
-    setProfile(null);setDisplayName('');setDirectory(false);setPublicName(false);
+    clearProfile();
     setPhase('logged_out');setNotice('目前的登入工作階段已登出。');
    }
   }catch(error){
-   if(generation.current===serial){setPhase('ready');setNotice(explanation(error));}
+   if(generation.current===serial){
+    if(isM1SessionLost(error)){clearProfile();setPhase('reauth_required');}
+    else setPhase('ready');
+    setNotice(explanation(error));
+   }
   }finally{if(generation.current===serial)busy.current=false;}
  };
  const locked=phase!=='ready'||busy.current;
@@ -107,7 +138,7 @@ export function MemberProfileScreen({port,enabled}:MemberProfileScreenProps){
   {phase==='loading'||phase==='saving'||phase==='logging_out'?
    <View style={styles.row}><ActivityIndicator accessibilityLabel="處理中"/><Text style={styles.muted}>正在安全處理…</Text></View>:null}
   {notice?<Text accessibilityLiveRegion="polite" style={styles.notice}>{notice}</Text>:null}
-  {profile&&phase!=='logged_out'?<View style={styles.card}>
+  {profile&&phase==='ready'?<View style={styles.card}>
    <Text style={styles.section}>個人資料</Text>
    <Text style={styles.label}>公開顯示名稱</Text>
    <TextInput accessibilityLabel="公開顯示名稱"
@@ -127,9 +158,10 @@ export function MemberProfileScreen({port,enabled}:MemberProfileScreenProps){
    {button('重新讀取會員資料',()=>{void refresh();},locked,true)}
    {button('登出目前的工作階段',()=>{void logout();},locked,true)}
   </View>:null}
-  {enabled&&(phase==='error'||phase==='logged_out')?
+  {enabled&&(phase==='error'||phase==='logged_out'||phase==='reauth_required')?
    <View style={styles.card}>
-    <Text style={styles.muted}>{phase==='logged_out'?'已登出，請透過正式登入流程重新登入。':'無法取得會員資料。'}</Text>
+    <Text style={styles.muted}>{phase==='logged_out'?'已登出，請透過正式登入流程重新登入。':
+     phase==='reauth_required'?'登入狀態失效，私人資料已從畫面清除。請重新登入。':'無法取得會員資料。'}</Text>
     {phase==='error'?button('重新讀取',()=>{void refresh();},false,true):null}
    </View>:null}
   <Text style={styles.footer}>本頁不包含金流、管理員權限、刪帳執行或公開會員搜尋。服務未開放時不會取得任何身分憑證。</Text>
