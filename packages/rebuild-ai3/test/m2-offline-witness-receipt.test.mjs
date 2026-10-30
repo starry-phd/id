@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
 import {
   reviewOfflinePitrWitnessReceipt,M2_WITNESS_RECEIPT_LIVE_ENABLED,
 } from '../src/m2-offline-witness-receipt.ts';
@@ -226,4 +227,63 @@ test('reordered member/session records bind canonical deterministic snapshot',as
   const out=await reviewOfflinePitrWitnessReceipt(reversed,reversedWitness,r,trust(secret));
   assert.equal(out.receipt,'offline_authenticated');
   assertQuarantined(out);
+});
+
+test('receipt and trusted nonce cannot be swapped during asynchronous hash validation',async()=>{
+  const secret=await key(),c=candidate(),w=witness();
+  const forged=await signReceipt(c,w,secret,{nonce:'B'.repeat(43)});
+  forged.nonce=nonce; // checked initially as A, but MAC was signed for B
+  const pending=reviewOfflinePitrWitnessReceipt(c,w,forged,trust(secret));
+  forged.nonce='B'.repeat(43); // try to swap back after pre-await checks
+  const r=await pending;
+  assert.equal(r.receipt,'rejected');
+  assertQuarantined(r);
+});
+
+test('invalid snapshot digest cannot become valid after the first await',async()=>{
+  const secret=await key(),c=candidate(),w=witness();
+  const valid=await signReceipt(c,w,secret);
+  const forged={...valid,snapshot_sha256:'0'.repeat(64)};
+  const pending=reviewOfflinePitrWitnessReceipt(c,w,forged,trust(secret));
+  forged.snapshot_sha256=valid.snapshot_sha256;
+  const r=await pending;
+  assert.equal(r.receipt,'rejected');
+  assertQuarantined(r);
+});
+
+test('trust boundary rejects getters, self-reported approval and unexpected fields without accessing them',async()=>{
+  const secret=await key(),c=candidate(),w=witness(),receipt=await signReceipt(c,w,secret);
+  let calls=0;
+  const forged=trust(secret);
+  Object.defineProperty(forged,'expected_nonce',{enumerable:true,get(){calls++;throw Error('side effect');}});
+  const outcome=await reviewOfflinePitrWitnessReceipt(c,w,receipt,forged);
+  assert.equal(calls,0);
+  assert.equal(outcome.receipt,'rejected');
+  assertQuarantined(outcome);
+  for(const extra of [{approved:true},{source:'production'},{independently_verified:true}]){
+    const r=await reviewOfflinePitrWitnessReceipt(c,w,receipt,{...trust(secret),...extra});
+    assert.equal(r.receipt,'rejected');
+    assertQuarantined(r);
+  }
+});
+
+test('canonical 32-byte HMAC encoding forbids alternative trailing base64url padding bits',async()=>{
+  const secret=await key(),c=candidate(),w=witness(),receipt=await signReceipt(c,w,secret);
+  const abc='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  const last=abc.indexOf(receipt.mac.at(-1));
+  assert.ok(last>=0);
+  const alias=receipt.mac.slice(0,-1)+abc[(last&60)|((last+1)&3)];
+  assert.notEqual(alias,receipt.mac);
+  const r=await reviewOfflinePitrWitnessReceipt(c,w,{...receipt,mac:alias},trust(secret));
+  assert.equal(r.receipt,'rejected');
+  assertQuarantined(r);
+});
+
+test('new source is checked by strict TypeScript in repository CI',()=>{
+  const executable=process.platform==='win32'?'node_modules/.bin/tsc.cmd':'./node_modules/.bin/tsc';
+  const args=['--noEmit','--strict','--target','ES2022','--module','ESNext',
+    '--moduleResolution','Bundler','--skipLibCheck','--allowImportingTsExtensions',
+    'packages/rebuild-ai3/src/m2-offline-witness-receipt.ts'];
+  const result=spawnSync(executable,args,{encoding:'utf8',timeout:60000});
+  assert.equal(result.status,0,(result.stdout||'')+(result.stderr||'')+String(result.error??''));
 });
