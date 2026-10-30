@@ -334,3 +334,51 @@ test('clock leap, keyring outage, failed SQL never misreport confirmed or echo P
   }finally{f.close();}
  }
 });
+
+// AI-0 independently reproduced an unmasked trusted-clock exception against
+// previous HEAD; this is NOT a bogus HTTP bridge failure. No write permitted.
+test('trusted server clock throwing fails closed as sanitized 503 with ZERO writes and no raw rejection',async()=>{
+ const f=await fixture();try{
+  const instance=createM2LocalDeletionRequestHandler({
+   ...f.deps,now:()=>{throw Error('PRIVATE_CLOCK_FAILURE');},
+  });
+  const reply=await instance.handle(f.first());
+  assert.equal(reply.status,503);
+  const text=await reply.text();
+  assert.deepEqual(JSON.parse(text),{error:{code:'SERVICE_UNAVAILABLE'}});
+  assert.equal(text.includes('PRIVATE_CLOCK_FAILURE'),false);
+  assert.equal(f.state.writeCount,0);
+  assert.equal(f.requests().length,0);
+  assert.equal(f.audit().length,0);
+ }finally{f.close();}
+});
+
+test('server-owned authDb/clock/keyring references cannot be replaced after factory creation',async()=>{
+ const f=await fixture();try{
+  const original=f.adapter.prepare;
+  let maliciousCalls=0;
+  f.deps.now=()=>{maliciousCalls++;throw Error('MUTATED_CLOCK_REFERENCE');};
+  f.deps.getVerificationKey=async()=>{
+   maliciousCalls++;throw Error('MUTATED_KEYRING_REFERENCE');
+  };
+  f.deps.authDb={
+   prepare(){
+    maliciousCalls++;
+    throw Error('MUTATED_AUTH_DATABASE_REFERENCE');
+   },
+  };
+  // Trusted original authDb object itself must not be a mutable method port
+  // across the signature/keyring or SQLite await.
+  f.adapter.prepare=()=>{
+   maliciousCalls++;
+   throw Error('MUTATED_SQLITE_PREPARE_METHOD');
+  };
+  const result=await f.handler.handle(f.first());
+  assert.equal(result.status,202);
+  assert.equal(maliciousCalls,0);
+  assert.equal(f.requests().length,1);
+  assert.equal(f.audit().length,1);
+  // Ensure our instrumentation did not change the actual SQLite authority.
+  f.adapter.prepare=original;
+ }finally{f.close();}
+});
