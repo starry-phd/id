@@ -135,9 +135,18 @@ async function withRealD1(callback){
   const db=await mf.getD1Database('AUTH_DB');
   // Each test has a unique in-memory workerd/SQLite database, shared
   // across M1 issuance, W3 GET and M2 PATCH/logout within the same test.
+  // D1.exec() splits SQL at newlines and rejects bare '--' comment-only
+  // lines. Prepare each whole schema statement, preserving BEGIN..END trigger
+  // bodies and their internal semicolon as a single SQLite statement.
   for(const path of schemaPaths){
-   const sql=readFileSync(new URL(path,import.meta.url),'utf8');
-   await db.exec(sql);
+   const sql=readFileSync(new URL(path,import.meta.url),'utf8')
+    .replace(/^\\s*--[^\\n]*$/gm,'').trim();
+   const statements=sql.split(/;\\s*(?=PRAGMA|CREATE|$)/gi)
+    .map(part=>part.trim()).filter(Boolean);
+   for(const statement of statements){
+    if(/^PRAGMA foreign_keys\\s*=\\s*ON/i.test(statement))continue;
+    await db.prepare(statement).run();
+   }
   }
   await db.prepare('INSERT INTO starry_members(s_user_id,status,auth_version,profile_revision,display_name,directory_opt_in,display_name_public,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)')
    .bind('u1','active',3,1,'Test Member',0,0,NOW,NOW).run();
