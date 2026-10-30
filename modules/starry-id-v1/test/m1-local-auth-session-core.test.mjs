@@ -9,6 +9,8 @@ import {createM1OAuthVerifierCustody} from '../src/m1-oauth-verifier-custody.ts'
 import {createM1GoogleCodeExchange,M1_GOOGLE_TOKEN_ENDPOINT} from '../src/m1-google-oauth-exchange.ts';
 import {createM1M2LocalGoogleFlow,M1_M2_GOOGLE_FLOW_LIVE_ENABLED}
   from '../src/m1-m2-local-google-member-flow.ts';
+import {createM1LocalMemberPlatformBridge}
+  from '../../../apps/api/src/m1-local-member-platform-bridge.ts';
 const now=1793000000;
 const origin='https://id.starry.example';
 const scope={brand_id:'starry',app_id:'starry-id',environment:'staging'};
@@ -409,7 +411,7 @@ test('remote staging verifier custody required refuses plaintext fallback at con
  * All credential responses below use freshly generated test-only RS256 keys,
  * never a real Google credential or provider network request.
  */
-async function createClosedLocalGoogleFlow(f){
+async function createClosedLocalGoogleFlow(f,configureDeps){
  const aes=await webcrypto.subtle.generateKey(
   {name:'AES-GCM',length:256},false,['encrypt','decrypt']);
  const custody=createM1OAuthVerifierCustody({
@@ -417,7 +419,7 @@ async function createClosedLocalGoogleFlow(f){
   findKey:async kid=>kid==='local-test-aes'?aes:null,
  });
  const ctx={nonce:'',subject:'verified-sub',calls:[],overrideToken:null};
- const flow=createM1M2LocalGoogleFlow({
+ const config={
   enabled:true,serverScope:f.deps.serverScope,expectedOrigin:f.deps.expectedOrigin,
   redirectUri:origin+'/v1/starry-id/oauth/google/callback',
   authDb:f.adapter,googleProvider:f.deps.provider,verifierCustody:custody,
@@ -430,7 +432,9 @@ async function createClosedLocalGoogleFlow(f){
    return new Response(JSON.stringify({id_token:idToken,access_token:'NOT_FOR_CLIENT'}),
     {status:200,headers:{'content-type':'application/json'}});
   },
- });
+ };
+ configureDeps?.(config);
+ const flow=createM1M2LocalGoogleFlow(config);
  async function start(){
   const authorizeUrl=await flow.beginGoogleLogin();
   assert.equal(typeof authorizeUrl,'string');
@@ -451,6 +455,105 @@ async function createClosedLocalGoogleFlow(f){
  const logout=bearer=>request('/v1/starry-id/sessions/logout',bearer,{method:'POST'});
  return {flow,ctx,start,self,patch,logout,custody};
 }
+// Independent post-#281 scoped regression with a REAL signed HMAC session,
+// original Google/SQLite Auth handler and original M2 mutation port.
+test('merged M1 bridge preserves safe 400 on forbidden PATCH and nonempty logout without SQLite writes',async()=>{
+ const f=await makeFixture();try{
+  const x=await createClosedLocalGoogleFlow(f);
+  const bridge=createM1LocalMemberPlatformBridge({
+   enabled:true,scope,expectedOrigin:origin,
+   readPort:{handle:request=>x.flow.readSelf(request)},
+   mutationPort:{handle:request=>x.flow.mutateSelf(request)},
+  });
+  const attempt=await x.start();
+  const issued=await x.flow.completeGoogleLogin({state:attempt.state,code:attempt.code});
+  assert.equal(issued?.status,'issued');
+  const forbidden=await bridge.handle(x.patch(issued.bearer,1,{
+   unsafe_member_field:'DO_NOT_STORE',
+  }));
+  assert.equal(forbidden.status,400);
+  assert.deepEqual(await forbidden.json(),{error:{code:'PROFILE_FIELDS_DENIED'}});
+  const badLogout=await bridge.handle(new Request(origin+'/v1/starry-id/sessions/logout',{
+   method:'POST',headers:{authorization:'Bearer '+issued.bearer,'content-type':'application/json'},
+   body:'{}',
+  }));
+  assert.equal(badLogout.status,400);
+  assert.deepEqual(await badLogout.json(),{error:{code:'REQUEST_DENIED'}});
+  assert.equal(f.db.prepare('SELECT profile_revision FROM starry_members WHERE s_user_id=?')
+   .get('u1').profile_revision,1);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_m2_member_mutation_audit')
+   .get().n,0);
+  const session=f.db.prepare('SELECT revoked_at FROM starry_sessions').get();
+  assert.equal(session.revoked_at,null);
+  assert.equal((await bridge.handle(x.self(issued.bearer))).status,200);
+ }finally{f.close();}
+});
+
+// A mutable trusted DI object must not silently split the M1 OAuth Session
+// and M2 profile/logout across two D1 authorities or environments.
+test('M1 and M2 capture one Starry D1 and scope despite changing composition getters',async()=>{
+ for(const dimension of ['authDb','serverScope']){
+  const f=await makeFixture();try{
+   let reads=0;
+   const x=await createClosedLocalGoogleFlow(f,config=>{
+    Object.defineProperty(config,dimension,{get(){
+     reads++;
+     if(dimension==='authDb')return reads===1?f.adapter:{
+      prepare(){throw Error('WRONG_AUTH_DATABASE');},
+      async batch(){throw Error('WRONG_AUTH_DATABASE');},
+     };
+     return reads===1?scope:{...scope,environment:'development'};
+    }});
+   });
+   const attempt=await x.start();
+   const issued=await x.flow.completeGoogleLogin({state:attempt.state,code:attempt.code});
+   assert.equal(issued?.status,'issued',dimension);
+   assert.equal((await x.flow.readSelf(x.self(issued.bearer))).status,200,dimension);
+   const patched=await x.flow.mutateSelf(x.patch(issued.bearer,1,{
+    display_name:'One Starry Authority',
+   }));
+   assert.equal(patched.status,200,dimension+' cannot redirect the M2 write');
+   assert.equal(f.db.prepare('SELECT display_name FROM starry_members WHERE s_user_id=?')
+    .get('u1').display_name,'One Starry Authority');
+   assert.equal((await x.flow.mutateSelf(x.logout(issued.bearer))).status,204,dimension);
+   assert.equal(reads,1,dimension+' must be read just once at composition');
+  }finally{f.close();}
+ }
+});
+
+// Complement the already merged #296 single-D1/scope fence: a signed
+// Session's verification key provider and clock must also be identical for
+// M1 issuer/reader and M2 mutation/logout. No new Auth or DB fixture.
+test('M1/M2 key verification and clock function are each captured once in the original signed SQLite flow',async()=>{
+ for(const field of ['getVerificationKey','now']){
+  const f=await makeFixture();try{
+   let getterReads=0;
+   const x=await createClosedLocalGoogleFlow(f,config=>{
+    Object.defineProperty(config,field,{get(){
+     getterReads++;
+     if(getterReads===1)return f.deps[field];
+     // Simulates a misconfigured mutable container switching Auth authority
+     // after the core is constructed, before M2 receives its dependencies.
+     return field==='getVerificationKey'?async()=>null:()=>now+3600;
+    }});
+   });
+   const attempt=await x.start();
+   const issued=await x.flow.completeGoogleLogin({state:attempt.state,code:attempt.code});
+   assert.equal(issued?.status,'issued',field);
+   assert.equal((await x.flow.readSelf(x.self(issued.bearer))).status,200,field);
+   const update=await x.flow.mutateSelf(x.patch(issued.bearer,1,{
+    display_name:'Shared Auth Clock and Key',
+   }));
+   assert.equal(update.status,200,field+' must keep the original Session authority');
+   assert.equal(f.db.prepare('SELECT display_name,profile_revision FROM starry_members WHERE s_user_id=?')
+    .get('u1').display_name,'Shared Auth Clock and Key');
+   assert.equal((await x.flow.mutateSelf(x.logout(issued.bearer))).status,204,field);
+   assert.equal((await x.flow.readSelf(x.self(issued.bearer))).status,401,field);
+   assert.equal(getterReads,1,field+' must be read exactly once at flow construction');
+  }finally{f.close();}
+ }
+});
+
 test('single REAL local Google → sealed attempt → RS256 → SQLite Session → W3 GET → CAS → logout loop',async()=>{
  const f=await makeFixture();try{
   const x=await createClosedLocalGoogleFlow(f);

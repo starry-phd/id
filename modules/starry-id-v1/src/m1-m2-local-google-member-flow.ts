@@ -59,6 +59,15 @@ export function createM1M2LocalGoogleFlow(deps:Deps){
     redirect.origin!==origin.origin||redirect.pathname!==M1_M2_GOOGLE_CALLBACK_PATH||
     redirect.search||redirect.hash||redirect.href!==deps.redirectUri)
     throw Error('M1_M2_GOOGLE_FLOW_ORIGIN_DENIED');
+  // M1 Session issuance and M2 mutations must share one Starry D1 authority
+  // and one verified scope. Caller-owned DI getters must not switch either.
+  const authDb=deps.authDb;
+  const serverScope=Object.freeze({...deps.serverScope});
+  // Session verification and trusted clock must come from the SAME captured
+  // provider in M1 reads and M2 writes; changing the caller DI object must
+  // not make an issued, current Session unusable for the mutation handler.
+  const getVerificationKey=deps.getVerificationKey;
+  const now=deps.now;
   const enabled=deps.enabled===true;
   // Capture the exact Google configuration before any OAuth or keyring await.
   const clientId=deps.googleProvider.clientId;
@@ -68,15 +77,15 @@ export function createM1M2LocalGoogleFlow(deps:Deps){
     readClientSecret:deps.readGoogleClientSecret,transport:deps.googleTransport,
   });
   const core=createM1LocalAuthSessionCore({
-    enabled,serverScope:deps.serverScope,expectedOrigin:origin.origin,
-    authDb:deps.authDb,provider:deps.googleProvider,exchangeCode,
+    enabled,serverScope,expectedOrigin:origin.origin,
+    authDb,provider:deps.googleProvider,exchangeCode,
     verifierCustody:deps.verifierCustody,requireSealedVerifier:true,
-    activeKey:deps.activeKey,getVerificationKey:deps.getVerificationKey,
-    now:deps.now,randomBytes:deps.randomBytes,
+    activeKey:deps.activeKey,getVerificationKey,
+    now,randomBytes:deps.randomBytes,
   });
   const mutations=createM2LocalSelfMutationHandler({
-    enabled,serverScope:deps.serverScope,expectedOrigin:origin.origin,
-    authDb:deps.authDb,getVerificationKey:deps.getVerificationKey,now:deps.now,
+    enabled,serverScope,expectedOrigin:origin.origin,
+    authDb,getVerificationKey,now,
   });
   return Object.freeze({
     contract:M1_M2_GOOGLE_FLOW_CONTRACT,
