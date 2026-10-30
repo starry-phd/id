@@ -1,21 +1,17 @@
 /**
- * AI-4 cross-owner COMPOSITE-ONLY integration gate.
+ * AI-4 cross-owner COMPOSITE-ONLY Node integration gate.
  * Real local Node SQLite + WebCrypto: AI-1 #279 issues the Session and AI-4
- * #281 routes GET/PATCH/logout through the SAME current DB. In workerd only
- * the transport is an isolate; the test-only service binding delegates to the
- * original AI-1 authoritative Node SQLite port. NO remote Google/Cloudflare.
+ * #281 routes GET/PATCH/logout through the SAME current DB.
+ * Not a workerd or remote D1/Google test. Workerd real-DB parity remains
+ * unverified; existing separate workerd denial tests remain unchanged.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import {webcrypto} from 'node:crypto';
-import {createServer} from 'node:http';
-import {Buffer} from 'node:buffer';
 import {TextEncoder} from 'node:util';
-import {URL,fileURLToPath} from 'node:url';
-import {build} from 'esbuild';
-import {Miniflare} from 'miniflare';
+import {URL} from 'node:url';
 import {bytesToBase64url} from '../../../modules/starry-id-v1/src/oidc-crypto.ts';
 import {createM1OAuthVerifierCustody} from
  '../../../modules/starry-id-v1/src/m1-oauth-verifier-custody.ts';
@@ -204,104 +200,34 @@ test('AI4 bridge refuses current-session provider unlink and auth_version change
  }
 });
 
-async function withRealWorkerd(x,callback){
- // Local loopback relay to the ORIGINAL AI-1 Node SQLite handler. Binding is
- // test-only and listens on 127.0.0.1 ephemeral port, never internet-facing.
- let relayHits=0,relayFaults=0;
- const server=createServer(async (incoming,outgoing)=>{
-  relayHits++;
-  try{
-   const chunks=[];
-   for await(const part of incoming)chunks.push(part);
-   const bytes=Buffer.concat(chunks);
-   if(bytes.length>4096){outgoing.writeHead(413);outgoing.end();return;}
-   const path=new URL(incoming.url??'/',origin);
-   const headers=new globalThis.Headers(incoming.headers);
-   headers.delete('host');
-   const method=incoming.method??'GET';
-   const request=new Request(origin+path.pathname+path.search,{
-    method,headers,body:method==='PATCH'&&bytes.length?bytes:undefined,
-   });
-   const response=method==='GET'?
-    await x.readPort.handle(request):await x.mutationPort.handle(request);
-   const h=Object.fromEntries(response.headers);
-   outgoing.writeHead(response.status,h);
-   outgoing.end(Buffer.from(await response.arrayBuffer()));
-  }catch{
-   relayFaults++;
-   outgoing.writeHead(503,{'cache-control':'no-store'});
-   outgoing.end();
-  }
- });
- await new Promise((resolve,reject)=>{
-  server.once('error',reject);
-  server.listen(0,'127.0.0.1',resolve);
- });
- const address=server.address();
- const port=typeof address==='object'&&address?address.port:0;
- const entry=[
-  "import {createM1LocalMemberPlatformBridge} from './m1-local-member-platform-bridge.ts';",
-  "const relay=async r=>{",
-  "const url=new URL(r.url);const h=new Headers(r.headers);h.delete('host');",
-  "const body=r.method==='PATCH'?await r.text():undefined;",
-  "return fetch('http://127.0.0.1:"+port+"'+url.pathname+url.search,",
-  "{method:r.method,headers:h,body,redirect:'error',cache:'no-store'});",
-  "};",
-  "export default {async fetch(req){",
-  "const local=new Request(req.url,req);local.headers.delete('host');",
-  "const handler=createM1LocalMemberPlatformBridge({",
-  "enabled:true,scope:{brand_id:'starry',app_id:'starry-id',environment:'staging'},",
-  "expectedOrigin:"+JSON.stringify(origin)+",",
-  "readPort:{handle:relay},mutationPort:{handle:relay}",
-  "});return handler.handle(local);}};",
- ].join('\n');
- let mf;
- try{
-  const bundle=await build({stdin:{
-   contents:entry,resolveDir:fileURLToPath(new URL('../src/',import.meta.url)),
-   sourcefile:'m1-real-session-workerd-entry.ts',loader:'ts',
-  },bundle:true,platform:'browser',format:'esm',target:'es2022',write:false,logLevel:'silent'});
-  mf=new Miniflare({workers:[{config:{
-   name:'m1-composite-real-auth-workerd',compatibilityDate:'2026-10-01',
-   manifest:{mainModule:'index.js',modules:{
-    'index.js':{type:'esm',contents:bundle.outputFiles[0].text},
-   }},env:{},
-  }}]});
-  await callback(mf,()=>({relayHits,relayFaults}));
- }finally{
-  if(mf)await mf.dispose();
-  await new Promise(resolve=>server.close(resolve));
- }
-}
 
-test('real workerd route → one shared AI1 SQLite Session/Member → CAS → logout → GET denied',async()=>{
+test('AI1 real signed same-SQLite Session through AI4 bridge: concurrent CAS one winner',async()=>{
  const x=await fixture();
  try{
   const {bearer}=await x.issue();
-  await withRealWorkerd(x,async (mf,stats)=>{
-   const authorization='Bearer '+bearer;
-   const get=()=>mf.dispatchFetch(origin+selfPath,{headers:{authorization}});
-   const update=(rev,name)=>mf.dispatchFetch(origin+selfPath,{
-    method:'PATCH',headers:{
-     authorization,'content-type':'application/json','if-match':'"rev-'+rev+'"',
-    },body:JSON.stringify({display_name:name}),
-   });
-   const drop=()=>mf.dispatchFetch(origin+logoutPath,{method:'POST',headers:{authorization}});
-   const first=await get();
-   assert.equal(first.status,200,JSON.stringify({...stats(),response:await first.clone().text()}));
-   assert.equal((await first.json()).profile_revision,1);
-   const changed=await update(1,'Workerd SQLite CAS');
-   assert.equal(changed.status,200);
-   assert.equal((await changed.json()).profile_revision,2);
-   assert.equal((await update(1,'stale')).status,409);
-   assert.equal((await drop()).status,204);
-   const denied=await get();
-   assert.equal(denied.status,401);
-   assert.deepEqual(await denied.json(),{error:{code:'IDENTITY_DENIED'}});
-   assert.equal((await update(2,'after revoke')).status,401);
-   assert.equal((await drop()).status,401);
-   assert.equal(x.db.prepare("SELECT profile_revision FROM starry_members WHERE s_user_id='u1'").get().profile_revision,2);
-   assert.equal(x.db.prepare("SELECT count(*) n FROM starry_m2_member_mutation_audit WHERE event_type='session_revoked'").get().n,1);
-  });
+  const [a,b]=await Promise.all([
+   x.bridge.handle(patch(x,bearer,1,'first concurrent writer')),
+   x.bridge.handle(patch(x,bearer,1,'second concurrent writer')),
+  ]);
+  assert.deepEqual([a.status,b.status].sort(),[200,409]);
+  assert.equal(x.db.prepare("SELECT profile_revision FROM starry_members WHERE s_user_id='u1'").get().profile_revision,2);
+  assert.equal(x.db.prepare("SELECT count(*) n FROM starry_m2_member_mutation_audit WHERE event_type='profile_updated'").get().n,1);
+ }finally{x.close();}
+});
+test('AI4 bridge refuses forged Host, foreign origin and header credentials before real SQLite read',async()=>{
+ const x=await fixture();
+ try{
+  const {bearer}=await x.issue();
+  for(const request of [
+   new Request(origin+selfPath,{headers:{authorization:'Bearer '+bearer,host:'evil.invalid'}}),
+   new Request('https://evil.invalid'+selfPath,{headers:{authorization:'Bearer '+bearer}}),
+   new Request(origin+selfPath,{headers:{authorization:'Bearer '+bearer,cookie:'id=spoof'}}),
+   new Request(origin+selfPath,{headers:{authorization:'Bearer '+bearer,'x-forwarded-user':'root'}}),
+  ]){
+   const response=await x.bridge.handle(request);
+   assert.notEqual(response.status,200);
+   assert.equal(response.headers.get('cache-control'),'no-store');
+  }
+  assert.equal(x.db.prepare("SELECT profile_revision FROM starry_members WHERE s_user_id='u1'").get().profile_revision,1);
  }finally{x.close();}
 });
