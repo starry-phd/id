@@ -50,14 +50,8 @@ export function createM1SessionBoundMemberPorts(config:M1MemberPortsConfig){
   profile:createM1StagingSelfClient({
    enabled,appId:'starry-id',baseUrl,getSessionBearer,fetchImpl,
   }),
-  // Raw M2 port remains for existing local integration fixtures only.
-  // A member-bound screen MUST use deletionForUser instead: otherwise a
-  // Session switch between rendering and pressing the FIRST confirmation
-  // could submit a request for the newly signed-in member.
-  deletion:createM2DeletionRequestClient({
-   enabled,appId:'starry-id',environment:'staging',
-   baseUrl,getSessionBearer,fetchImpl,
-  }),
+  // There is intentionally NO un-fenced deletion port in this mobile DI.
+  // A stale screen must never submit a request under a newly signed-in user.
   deletionForUser(expectedUserId:string):M2DeletionPort{
    // Capture the screen owner's immutable identity, not a mutable DI getter.
    // This id must come from the existing signed-Session getSelf() response.
