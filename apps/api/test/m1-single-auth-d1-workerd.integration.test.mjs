@@ -490,11 +490,12 @@ test('Expo source-only M1 port owner shares ONE real signed Session across profi
    getSessionBearer:async()=>{reads++;return issued.bearer;},
    fetchImpl:(url,init)=>mf.dispatchFetch(url,init),
   };
-  const {profile,deletion,live_enabled,source_only}=
+  const {profile,deletionForUser,live_enabled,source_only}=
    createM1SessionBoundMemberPorts(config);
   assert.equal(live_enabled,false);
   assert.equal(source_only,true);
   const me=await profile.getSelf();
+  const deletion=deletionForUser(me.s_user_id);
   assert.equal(me.s_user_id,'u1');
   assert.equal(me.profile_revision,1);
   assert.equal(await deletion.getStatus(),null);
@@ -584,5 +585,67 @@ test('M1 owner-fenced UI CAS refuses account A form under account B signed Sessi
   assert.equal(patches,1,'no CAS write for known-stale revision');
   assert.ok(gets>=4);
   assert.ok(bearerReads>=4);
+ });
+});
+
+test('owner-fenced deletion refuses stale A screen under B signed Session on real workerd D1',async()=>{
+ await withRealD1(async({mf,db})=>{
+  const a=await finish(mf,await start(mf,'m2-owner-A','known-subject'));
+  const b=await finish(mf,await start(mf,'m2-owner-B','m2-foreign-subject'));
+  assert.equal(a.s_user_id,'u1');
+  assert.notEqual(b.s_user_id,a.s_user_id);
+  let selected=a.bearer,swapAfterRead=false,reads=0,postCount=0;
+  const ports=createM1SessionBoundMemberPorts({
+   enabled:true,appId:'starry-id',environment:'staging',baseUrl:origin,
+   getSessionBearer:async()=>{
+    reads++;
+    const captured=selected;
+    if(swapAfterRead)selected=b.bearer;
+    return captured;
+   },
+   fetchImpl:(url,init)=>{
+    if(init.method==='POST')postCount++;
+    return mf.dispatchFetch(url,init);
+   },
+  });
+  const screen=ports.deletionForUser(a.s_user_id);
+  selected=b.bearer;
+  await assert.rejects(screen.requestDeletion(),
+   e=>e instanceof M2DeletionClientError&&e.code==='UNAUTHORIZED');
+  assert.equal(postCount,0,'B must not receive first-confirmation POST');
+  assert.equal((await db.prepare(
+   'SELECT count(*) AS n FROM starry_m2_deletion_requests WHERE s_user_id=?'
+  ).bind(b.s_user_id).first()).n,0);
+
+  // Auth switches to B AFTER a single signed A Session was captured.
+  // Owner preflight and first-confirmation must still use A, never B.
+  selected=a.bearer;swapAfterRead=true;
+  const first=await screen.requestDeletion();
+  assert.equal(first.status,'awaiting_second_confirmation');
+  assert.equal(postCount,1);
+  assert.equal(selected,b.bearer);
+  assert.equal((await db.prepare(
+   'SELECT count(*) AS n FROM starry_m2_deletion_requests WHERE s_user_id=?'
+  ).bind(a.s_user_id).first()).n,1);
+  assert.equal((await db.prepare(
+   'SELECT count(*) AS n FROM starry_m2_deletion_requests WHERE s_user_id=?'
+  ).bind(b.s_user_id).first()).n,0);
+
+  swapAfterRead=false; // B is now current while A's receipt is on screen.
+  await assert.rejects(screen.confirmDeletion(first.request_id),
+   e=>e instanceof M2DeletionClientError&&e.code==='UNAUTHORIZED');
+  assert.equal(postCount,1,'B must not receive second confirmation for A');
+  assert.equal((await db.prepare(
+   'SELECT count(*) AS n FROM starry_m2_deletion_request_audit'
+  ).first()).n,1);
+  selected=a.bearer;
+  const second=await screen.confirmDeletion(first.request_id);
+  assert.equal(second.status,'pending_processing');
+  assert.equal(second.execution_authorized,false);
+  assert.equal(postCount,2);
+  assert.equal((await db.prepare(
+   'SELECT count(*) AS n FROM starry_m2_deletion_request_audit'
+  ).first()).n,2);
+  assert.ok(reads>=4);
  });
 });
