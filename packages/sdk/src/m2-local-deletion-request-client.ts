@@ -7,8 +7,8 @@
 export const M2_DELETION_CLIENT_LIVE=false as const;
 export const M2_DELETION_CLIENT_CONTRACT='starry.ai4.m2.deletion-request-mobile.v1' as const;
 export const M2_REQUEST_PATH='/v1/starry-id/members/me/deletion-requests' as const;
-export const M2_CONFIRM_PATH=M2_REQUEST_PATH+'/confirm' as const;
-export const M2_STATUS_PATH=M2_REQUEST_PATH+'/status' as const;
+export const M2_CONFIRM_PATH='/v1/starry-id/members/me/deletion-requests/confirm' as const;
+export const M2_STATUS_PATH='/v1/starry-id/members/me/deletion-requests/status' as const;
 export const M2_FIRST_CONFIRMATION='REQUEST_MY_ACCOUNT_DELETION' as const;
 export const M2_SECOND_CONFIRMATION='CONFIRM_MY_ACCOUNT_DELETION' as const;
 
