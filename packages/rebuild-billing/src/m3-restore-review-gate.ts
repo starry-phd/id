@@ -146,6 +146,24 @@ export function createOfflineM3RestoreReviewGate(
           return hold('identity_denied');
         if (claim.ownerMemberId !== current.memberId)
           return hold('ownership_conflict'); // Never auto-transfer deleted/other ID.
+        // Provider evidence can be refunded or revoked while the first-claim
+        // lookup awaits. Re-read before even reporting a same-member candidate.
+        // This is NOT an atomic Store/DB authorization transaction.
+        const latestPurchase = dataCopy(await readPurchase(), PURCHASE);
+        if (!latestPurchase ||
+            !['valid','refunded','revoked','expired','unknown'].includes(latestPurchase.state as string))
+          return hold('evidence_unavailable');
+        if (latestPurchase.state !== 'valid') return hold('purchase_not_valid');
+        if (latestPurchase.receiptTransactionRef !== purchase.receiptTransactionRef ||
+            latestPurchase.originalTransactionRef !== purchase.originalTransactionRef ||
+            latestPurchase.providerEventRef !== purchase.providerEventRef)
+          return hold('evidence_unavailable');
+        // A final identity check also closes an await window in provider refresh.
+        const finalMember = dataCopy(await readMember(), MEMBER);
+        if (!validMember(finalMember,scope) ||
+            finalMember.memberId !== start.memberId ||
+            finalMember.authVersion !== start.authVersion)
+          return hold('identity_denied');
         // Valid same-member evidence is NOT an entitlement grant or approval.
         return result('same_member_review','same_member_needs_reconciliation');
       } catch {
