@@ -81,7 +81,7 @@ function validateSelfPatch(input:unknown):M1SelfPatch{
  for(const [key,{value}] of Object.entries(descriptions)){
   if(key==='display_name'){
    if(value!==null&&(typeof value!=='string'||value.trim()!==value||
-       value.length<1||value.length>80||/[\x00-\x1F\x7F]/.test(value)))
+       value.length<1||value.length>80||Array.from(value).some(ch=>ch.charCodeAt(0)<32||ch.charCodeAt(0)===127)))
     throw Error('STARRY_SELF_FIELDS_DENIED');
    result[key]=value;
   }else{
