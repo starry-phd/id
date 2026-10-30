@@ -147,7 +147,11 @@ test('real WebCrypto Google JWK (from trusted Discovery) wires into ORIGINAL sin
   assert.equal(f.flow.public_worker_route_registered,false);
   assert.equal(f.flow.live_enabled,false);
   assert.equal((await f.flow.completeGoogleLogin({code:'invalid',state:'bad'})),null);
-  assert.equal(f.getCalls().jwksCalls,0,'invalid callback cannot cause network read');
+  assert.equal(await f.flow.completeGoogleLogin({
+   code:'forged-valid-shape',state:'R'.repeat(43),
+  }),null,'valid-looking random state has no persisted OAuth authority');
+  assert.equal(f.getCalls().jwksCalls,0,
+   'invalid/missing state cannot cause Google JWKS network read');
   const first=await f.begin();
   assert.equal(f.db.prepare('SELECT consumed_at FROM starry_m1_oauth_attempts WHERE state=?').get(first.state).consumed_at,null);
   const issued=await f.flow.completeGoogleLogin(first);
@@ -164,6 +168,7 @@ test('real WebCrypto Google JWK (from trusted Discovery) wires into ORIGINAL sin
    directory_opt_in:false,display_name_public:false,profile_revision:1,
   });
   assert.equal((await f.flow.completeGoogleLogin(first)),null);
+  assert.equal(f.getCalls().jwksCalls,2,'replayed consumed OAuth state avoids JWKS calls');
   assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,1);
   assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_m1_audit_intents').get().n,1);
   const second=await f.begin();
@@ -181,6 +186,11 @@ test('expired Google JWKS + transport failure rejects before OAuth state CAS/exc
   f.expireJwksAndDisconnect();
   const attempt=await f.begin();
   const callsBefore=f.getCalls();
+  assert.equal(await f.flow.completeGoogleLogin({
+   code:'forged',state:'Q'.repeat(43),
+  }),null,'expired cache still must not fetch for absent OAuth state');
+  assert.deepEqual(f.getCalls(),callsBefore,
+   'random state cannot trigger JWKS refresh after cache expiry');
   assert.equal(await f.flow.completeGoogleLogin(attempt),null);
   assert.deepEqual(f.getCalls(),callsBefore,
    'transport failure cannot reach Google token endpoint');
