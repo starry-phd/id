@@ -335,22 +335,12 @@ test('cross-layer SDK calls the ORIGINAL signed Session on real local workerd/D1
   assert.equal(issued?.status,'issued');
   assert.match(issued.bearer,/^v1\./);
   let credentialReads=0;
-  const transportReplies=[];
   const client=createM1StagingSelfClient({
    enabled:true,baseUrl:origin,appId:'starry-id',
    getSessionBearer:async()=>{credentialReads++;return issued.bearer;},
    // Real dispatch into the existing Miniflare workerd instance. It uses
    // the #300 single-Auth composition and ONE D1; it is NOT an HTTP stub.
-   fetchImpl:async(url,options)=>{
-    const response=await mf.dispatchFetch(url,options);
-    // Only public test origin, HTTP method and status: never log bearer/body.
-    transportReplies.push({
-     method:options.method,requestUrl:url,
-     responseUrl:response.url,redirected:response.redirected,
-     status:response.status,
-    });
-    return response;
-   },
+   fetchImpl:(url,options)=>mf.dispatchFetch(url,options),
   });
   assert.equal(client.live_enabled,false,'this explicit fixture never promotes a public route');
   const before=await client.getSelf();
@@ -358,16 +348,9 @@ test('cross-layer SDK calls the ORIGINAL signed Session on real local workerd/D1
    s_user_id:'u1',display_name:'Test Member',
    directory_opt_in:false,display_name_public:false,profile_revision:1,
   });
-  let changed;
-  try {
-   changed=await client.patchSelf(before.profile_revision,{
-    display_name:'Client Through D1',directory_opt_in:true,
-   });
-  }catch(error){
-   assert.fail('SDK transport metadata diagnostic (no PII): '+JSON.stringify({
-    code:error?.message,transportReplies,
-   }));
-  }
+  const changed=await client.patchSelf(before.profile_revision,{
+   display_name:'Client Through D1',directory_opt_in:true,
+  });
   assert.deepEqual(changed,{
    s_user_id:'u1',display_name:'Client Through D1',
    directory_opt_in:true,display_name_public:false,profile_revision:2,
