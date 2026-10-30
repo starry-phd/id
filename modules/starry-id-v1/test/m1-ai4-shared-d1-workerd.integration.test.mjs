@@ -293,3 +293,24 @@ test('real D1 revocation/version/identity unlink and forged workerd requests den
   assert.equal((await db.prepare('SELECT count(*) AS n FROM starry_m2_member_mutation_audit').first()).n,0);
  });
 });
+
+test('one signed member with two Sessions: workerd logout revokes ONLY the selected Session in shared SQLite',async()=>{
+ await withRealD1(async({mf,db})=>{
+  const first=await finish(mf,await start(mf,'device-one'));
+  const second=await finish(mf,await start(mf,'device-two'));
+  assert.ok(first?.bearer&&second?.bearer);
+  assert.notEqual(first.bearer,second.bearer);
+  assert.equal(first.s_user_id,'u1');
+  assert.equal(second.s_user_id,'u1');
+  assert.equal((await db.prepare('SELECT count(*) AS n FROM starry_sessions').first()).n,2);
+  assert.equal((await request(mf,member,authorized(first.bearer))).status,200);
+  assert.equal((await request(mf,member,authorized(second.bearer))).status,200);
+  assert.equal((await request(mf,logout,authorized(first.bearer,'POST'))).status,204);
+  assert.equal((await request(mf,member,authorized(first.bearer))).status,401);
+  assert.equal((await request(mf,member,authorized(second.bearer))).status,200);
+  assert.equal((await request(mf,logout,authorized(second.bearer,'POST'))).status,204);
+  assert.equal((await request(mf,member,authorized(second.bearer))).status,401);
+  assert.equal((await db.prepare("SELECT count(*) AS n FROM starry_sessions WHERE revoked_at=?").bind(NOW).first()).n,2);
+  assert.equal((await db.prepare("SELECT count(*) AS n FROM starry_m2_member_mutation_audit WHERE event_type='session_revoked'").first()).n,2);
+ });
+});
