@@ -1,6 +1,8 @@
 -- M1 LOCAL-ONLY OAuth attempt store. NOT an approved production migration.
 -- Place only in same SQLite authority as starry_members/identities/sessions.
--- Secret code_verifier needs encryption-at-rest/TTL cleanup before remote enable.
+-- code_verifier stores either legacy local-test plaintext or versioned AES-GCM sealed bytes.
+-- For approved remote bindings requireSealedVerifier=true MUST be enabled, with
+-- non-extractable keyring injection, TTL cleanup and recovery/rotation evidence.
 CREATE TABLE IF NOT EXISTS starry_m1_oauth_attempts(
  state TEXT PRIMARY KEY,
  provider TEXT NOT NULL CHECK(provider IN ('apple','google')),
@@ -14,7 +16,7 @@ CREATE TABLE IF NOT EXISTS starry_m1_oauth_attempts(
  consumed_at INTEGER,
  CHECK(length(state)>=32 AND length(state)<=256),
  CHECK(length(nonce)>=16 AND length(nonce)<=256),
- CHECK(length(code_verifier)>=43 AND length(code_verifier)<=128),
+ CHECK(length(code_verifier)>=43 AND length(code_verifier)<=512),
  CHECK(length(code_challenge)=43),
  CHECK(consumed_at IS NULL OR consumed_at>=0)
 );
