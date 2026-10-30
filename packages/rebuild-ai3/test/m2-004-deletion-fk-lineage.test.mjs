@@ -131,6 +131,94 @@ test('true 004 SQLite double FK prevents deleting request AND member after Auth/
  }finally{db.close();}
 });
 
+
+test('real 001–004 first event scope tampering: clean FK + unchanged counts must NOT mean verified provenance',()=>{
+ const db=fixture();try{
+  insert(db,member,opaque);
+  db.exec('BEGIN IMMEDIATE');
+  try{
+   // 004 permits both dev/staging independently; its FK binds only request_id.
+   // This is a real valid UPDATE, NOT a rewritten schema or synthetic FK.
+   assert.equal(db.prepare(
+    "UPDATE starry_m2_deletion_request_audit SET environment='development' "+
+    "WHERE request_id=? AND event_type='first_confirmation_received'")
+    .run(opaque).changes,1);
+   assert.equal(db.prepare('PRAGMA foreign_key_check').all().length,0);
+   db.exec('COMMIT');
+  }catch(e){db.exec('ROLLBACK');throw e;}
+  const changes=db.prepare('SELECT total_changes() AS n').get().n;
+  const review=inspectLocalM2DeletionRequestChain(db,member);
+  assert.equal(review.schema_chain_verified,true); // FK graph only
+  assert.equal(review.referential_integrity_ok,true);
+  assert.deepEqual([review.request_count,review.first_confirmation_audit_count,
+   review.second_confirmation_audit_count],[1,1,0]); // counts look normal!
+  assert.equal(review.audit_scope_verified,false);
+  assert.equal(review.audit_scope_mismatch_count,1);
+  assert.equal(review.counts_verified,false);
+  assert.ok(review.blockers.includes('DELETION_AUDIT_SCOPE_MISMATCH'));
+  assert.ok(!review.blockers.includes('INCOMPLETE_DELETION_REQUEST_AUDIT'));
+  assert.equal(review.may_delete_request_or_audit,false);
+  assert.equal(review.may_delete_member,false);
+  assert.equal(db.prepare('SELECT total_changes() AS n').get().n,changes);
+  for(const secret of [member,opaque])
+   assert.equal(JSON.stringify(review).includes(secret),false);
+ }finally{db.close();}
+});
+
+test('real 001–004 second event mismatch is scoped to its request/member; another member remains verified',()=>{
+ const db=fixture();try{
+  insert(db,member,opaque,true);
+  insert(db,member2,opaque2,true);
+  // Valid 004 CHECK, still no broken FK; both original SQLite triggers fired.
+  db.prepare(
+   "UPDATE starry_m2_deletion_request_audit SET environment='development' "+
+   "WHERE request_id=? AND event_type='second_confirmation_received'")
+   .run(opaque);
+  assert.equal(db.prepare('PRAGMA foreign_key_check').all().length,0);
+  const corrupted=inspectLocalM2DeletionRequestChain(db,member);
+  const other=inspectLocalM2DeletionRequestChain(db,member2);
+  assert.equal(corrupted.request_count,1);
+  assert.equal(corrupted.first_confirmation_audit_count,1);
+  assert.equal(corrupted.second_confirmation_audit_count,1);
+  assert.equal(corrupted.audit_scope_mismatch_count,1);
+  assert.equal(corrupted.audit_scope_verified,false);
+  assert.equal(corrupted.counts_verified,false);
+  assert.ok(corrupted.blockers.includes('DELETION_AUDIT_SCOPE_MISMATCH'));
+  assert.equal(other.audit_scope_mismatch_count,0);
+  assert.equal(other.audit_scope_verified,true);
+  assert.equal(other.counts_verified,true);
+  assert.ok(!other.blockers.includes('DELETION_AUDIT_SCOPE_MISMATCH'));
+  assert.equal(JSON.stringify(other).includes(opaque),false);
+  for(const item of [corrupted,other]){
+   assert.equal(item.may_delete_member,false);
+   assert.equal(item.may_restore,false);
+   assert.equal(item.may_grant_battery,false);
+  }
+ }finally{db.close();}
+});
+
+test('app_id disagreement is rejected even when a test explicitly disables SQL CHECK (not a valid production row)',()=>{
+ const db=fixture();try{
+  insert(db,member,opaque);
+  db.exec('PRAGMA ignore_check_constraints=ON');
+  try{
+   db.prepare(
+    "UPDATE starry_m2_deletion_request_audit SET app_id='another-app' "+
+    "WHERE request_id=? AND event_type='first_confirmation_received'").run(opaque);
+  }finally{db.exec('PRAGMA ignore_check_constraints=OFF');}
+  // This last case deliberately manufactures invalid CHECK data while leaving
+  // the FK intact. It exercises the app_id half of the read-only comparison;
+  // the first two tests show the bug under unmodified *valid* 004 constraints.
+  assert.equal(db.prepare('PRAGMA foreign_key_check').all().length,0);
+  const review=inspectLocalM2DeletionRequestChain(db,member);
+  assert.equal(review.audit_scope_mismatch_count,1);
+  assert.equal(review.audit_scope_verified,false);
+  assert.equal(review.counts_verified,false);
+  assert.ok(review.blockers.includes('DELETION_AUDIT_SCOPE_MISMATCH'));
+  assert.equal(review.may_delete_member,false);
+ }finally{db.close();}
+});
+
 test('missing audit event despite valid FK is detected without erasing or assuming legal retention',()=>{
  const db=fixture();try{
   insert(db,member,opaque,true);
