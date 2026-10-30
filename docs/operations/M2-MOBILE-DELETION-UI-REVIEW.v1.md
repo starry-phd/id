@@ -63,3 +63,11 @@ flowchart:
 - 首次或第二次 POST 模糊網路結果 retry **必先 GET**，新增呼叫順序與真回應丟失模擬。復原收到 `awaiting_second_confirmation` 絕不自動執行後續第二確認，收到 `pending_processing` 僅顯示待處理。
 - **訂閱提醒置於兩次確認操作之前**，使用者不必先按確認才看到重要資訊。正式 build 不連線或取得 fixture token，dev-only preview 仍只有記憶體狀態。
 - 驗證證據區分：React Native Web SSR 確認真元件排版與文字；Node flow/SDK 測試真正呼叫實作函式、驗證操作和 HTTP 序列；Expo dev preview 由審查者本機手動點按。**尚無瀏覽器手勢 E2E 或 iOS/Android 物理裝置點按證據，不冒稱已做此級驗收**。
+
+## 6. AI-0 React19 StrictMode 真元件實測缺陷與修正
+
+AI-0 [Review #6519162887](https://github.com/starry-phd/id/pull/293#issuecomment-6519162887) 使用 React19 createRoot + StrictMode + 真 AccountDeletionScreen + scratch jsdom26 發現：setup→cleanup→setup 後按鈕顯示但按下第一次確認不呼叫 POST1。原因是 memoized flow 在 cleanup 被永久 invalidate，第二次 setup 未重新啟用。
+
+本 PR 新增 flow.activate()，每次 React effect setup 重新啟用**同一受信任 port** 的全新 epoch；cleanup **繼續 invalidate** 舊請求與畫面，避免異步舊結果覆蓋換人的狀態。useSyncExternalStore 訂閱允許在 StrictMode cleanup 與第二次 setup 之間註冊；如 Auth port identity 改變，React useMemo 立即產生獨立空白 flow。
+
+新增 Node 真 flow source 回歸：GET→GET→第一次按鈕對應的 POST1、舊 GET 晚到不得覆蓋第二代畫面、replay 提前訂閱不遺失。**本次回歸是控制器的實際呼叫測試，不冒充 jsdom/Chrome/iOS/Android 實際按鈕 click 測試**。React Native Web SSR 只證實元件畫面文字；實際 createRoot StrictMode 点击還需 AI-0 使用其原先獨立 jsdom 腳本，在本 PR 的**最終 exact HEAD** 再次執行，確認紅→綠；不得用 SSR 取代此證據。
