@@ -12,7 +12,7 @@ test('Actual React Native Web screen server-renders a usable first confirmation 
  // externally resolve the project's pinned React / React Native Web.
  const filename=fileURLToPath(new URL('../src/account-deletion-screen.tsx',import.meta.url));
  const bundle=await build({entryPoints:[filename],bundle:true,
-  platform:'node',format:'cjs',target:'node22',write:false,
+  platform:'node',format:'cjs',target:'node22',write:false,jsx:'automatic',
   alias:{'react-native':'react-native-web'},
   external:['react','react/jsx-runtime','react-native-web'],logLevel:'silent',
  });
