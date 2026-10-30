@@ -13,6 +13,7 @@ import {readFileSync} from 'node:fs';
 import {fileURLToPath,URL} from 'node:url';
 import {build} from 'esbuild';
 import {Miniflare} from 'miniflare';
+import {createM1StagingSelfClient} from '../../../packages/sdk/src/m1-staging-self-client.ts';
 
 const origin='https://staging.starry.invalid';
 const scope={brand_id:'starry',app_id:'starry-id',environment:'staging'};
@@ -325,5 +326,60 @@ test('one signed member with two Sessions: workerd logout revokes ONLY the selec
   assert.equal((await request(mf,member,authorized(second.bearer))).status,401);
   assert.equal((await db.prepare("SELECT count(*) AS n FROM starry_sessions WHERE revoked_at=?").bind(NOW).first()).n,2);
   assert.equal((await db.prepare("SELECT count(*) AS n FROM starry_m2_member_mutation_audit WHERE event_type='session_revoked'").first()).n,2);
+ });
+});
+
+test('cross-layer SDK calls the ORIGINAL signed Session on real local workerd/D1 (GET/CAS/logout/revoke)',async()=>{
+ await withRealD1(async({mf,db})=>{
+  const issued=await finish(mf,await start(mf,'sdk-one-device'));
+  assert.equal(issued?.status,'issued');
+  assert.match(issued.bearer,/^v1\./);
+  let credentialReads=0;
+  const client=createM1StagingSelfClient({
+   enabled:true,baseUrl:origin,appId:'starry-id',
+   getSessionBearer:async()=>{credentialReads++;return issued.bearer;},
+   // Real dispatch into the existing Miniflare workerd instance. It uses
+   // the #300 single-Auth composition and ONE D1; it is NOT an HTTP stub.
+   fetchImpl:(url,options)=>mf.dispatchFetch(url,options),
+  });
+  assert.equal(client.live_enabled,false,'this explicit fixture never promotes a public route');
+  const before=await client.getSelf();
+  assert.deepEqual(before,{
+   s_user_id:'u1',display_name:'Test Member',
+   directory_opt_in:false,display_name_public:false,profile_revision:1,
+  });
+  const changed=await client.patchSelf(before.profile_revision,{
+   display_name:'Client Through D1',directory_opt_in:true,
+  });
+  assert.deepEqual(changed,{
+   s_user_id:'u1',display_name:'Client Through D1',
+   directory_opt_in:true,display_name_public:false,profile_revision:2,
+  });
+  await assert.rejects(
+   client.patchSelf(1,{display_name:'Stale write'}),
+   error=>error?.message==='STARRY_SELF_CONFLICT',
+  );
+  const row=await db.prepare(
+   'SELECT display_name,directory_opt_in,display_name_public,profile_revision FROM starry_members WHERE s_user_id=?'
+  ).bind('u1').first();
+  assert.equal(row.display_name,'Client Through D1');
+  assert.equal(row.directory_opt_in,1);
+  assert.equal(row.display_name_public,0);
+  assert.equal(row.profile_revision,2,'stale SDK write may not mutate D1');
+  await client.logout();
+  assert.equal(
+   (await db.prepare('SELECT revoked_at FROM starry_sessions WHERE s_user_id=?')
+    .bind('u1').first()).revoked_at,NOW,
+  );
+  await assert.rejects(client.getSelf(),error=>error?.message==='STARRY_SELF_UNAUTHORIZED');
+  await assert.rejects(
+   client.patchSelf(2,{display_name:'Must not write after logout'}),
+   error=>error?.message==='STARRY_SELF_UNAUTHORIZED',
+  );
+  assert.equal(
+   (await db.prepare('SELECT profile_revision FROM starry_members WHERE s_user_id=?')
+    .bind('u1').first()).profile_revision,2,
+  );
+  assert.ok(credentialReads>=5,'client obtains only Auth-owned transient bearer');
  });
 });
