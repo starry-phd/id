@@ -279,6 +279,60 @@ test('canonical 32-byte HMAC encoding forbids alternative trailing base64url pad
   assertQuarantined(r);
 });
 
+test('mutable candidate array cannot report clean risks for a different signed unsafe snapshot',async()=>{
+  const secret=await key(),w=witness();
+  const safe=candidate().members[0]; // deleted, revoked, profile absent
+  const unsafe={...safe,status:'active',profile_present:true,
+    sessions:[{...safe.sessions[0],revoked_at:null}]};
+  const signed=await signReceipt(candidate({members:[unsafe]}),w,secret);
+  let reads=0;
+  // The ORIGINAL verifier iterated this caller-owned array for risk analysis,
+  // then .map() read it again for the signed digest. Two different contents
+  // could therefore authenticate an unsafe digest while reporting no risks.
+  const swapped=new Proxy([safe],{
+    get(target,key,receiver){
+      if(key==='0')return ++reads===1?safe:unsafe;
+      return Reflect.get(target,key,receiver);
+    },
+  });
+  const out=await reviewOfflinePitrWitnessReceipt(
+    candidate({members:swapped}),w,signed,trust(secret));
+  assert.equal(out.receipt,'rejected');
+  assertQuarantined(out);
+});
+
+test('mutable witness array cannot hide deletion risk in a newly authenticated MAC',async()=>{
+  const secret=await key();
+  const c=candidate({members:[{...candidate().members[0],status:'active'}]});
+  const safe={member_ref:'member_001',minimum_auth_version:8,deleted:false};
+  const unsafe={...safe,deleted:true};
+  const signed=await signReceipt(c,witness({records:[unsafe]}),secret);
+  let reads=0;
+  const swapped=new Proxy([safe],{
+    get(target,key,receiver){
+      if(key==='0')return ++reads===1?safe:unsafe;
+      return Reflect.get(target,key,receiver);
+    },
+  });
+  const out=await reviewOfflinePitrWitnessReceipt(
+    c,witness({records:swapped}),signed,trust(secret));
+  assert.equal(out.receipt,'rejected');
+  assertQuarantined(out);
+});
+
+test('nested array element getter cannot run during offline evidence snapshot',async()=>{
+  const secret=await key(),c=candidate(),w=witness();
+  const signed=await signReceipt(c,w,secret);
+  let reads=0;
+  const malicious=[c.members[0]];
+  Object.defineProperty(malicious,'0',{get(){reads++;throw Error('PRIVATE_GETTER');}});
+  const out=await reviewOfflinePitrWitnessReceipt(
+    candidate({members:malicious}),w,signed,trust(secret));
+  assert.equal(reads,0);
+  assert.equal(out.receipt,'rejected');
+  assertQuarantined(out);
+});
+
 test('new source is checked by strict TypeScript in repository CI',()=>{
   const executable=process.platform==='win32'?'node_modules/.bin/tsc.cmd':'./node_modules/.bin/tsc';
   const args=['--noEmit','--strict','--target','ES2022','--module','ESNext',
