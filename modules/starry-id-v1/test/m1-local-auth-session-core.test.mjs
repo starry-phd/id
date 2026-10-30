@@ -5,6 +5,8 @@ import {readFileSync} from 'node:fs';
 import {webcrypto} from 'node:crypto';
 import {bytesToBase64url} from '../src/oidc-crypto.ts';
 import {createM1LocalAuthSessionCore,M1_AUTH_LIVE_ENABLED} from '../src/m1-local-auth-session-core.ts';
+import {createM1OAuthVerifierCustody} from '../src/m1-oauth-verifier-custody.ts';
+import {createM1GoogleCodeExchange,M1_GOOGLE_TOKEN_ENDPOINT} from '../src/m1-google-oauth-exchange.ts';
 const now=1793000000;
 const origin='https://id.starry.example';
 const scope={brand_id:'starry',app_id:'starry-id',environment:'staging'};
@@ -322,5 +324,80 @@ test('first-login SQL audit failure atomically rolls back member, identity and S
   assert.notEqual(f.db.prepare('SELECT consumed_at FROM starry_m1_oauth_attempts WHERE state=?')
     .get(input.state).consumed_at,null);
   assert.equal(await core.issueFromVerifiedCallback(input),null);
+ }finally{f.close();}
+});
+
+test('Google token exchange + sealed PKCE + real RS256/HMAC + SQLite and W3 five-field compose',async()=>{
+ const f=await makeFixture();try{
+  const aes=await webcrypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const custody=createM1OAuthVerifierCustody({
+   activeKey:async()=>({kid:'test-only-aes-1',key:aes}),
+   findKey:async kid=>kid==='test-only-aes-1'?aes:null,
+  });
+  const transportLog=[];
+  let nonce='';
+  const exchangeCode=createM1GoogleCodeExchange({
+   enabled:true,clientId:f.deps.provider.clientId,
+   redirectUri:origin+'/v1/starry-id/oauth/google/callback',
+   readClientSecret:async()=> 'test-only-secret-not-for-deployment',
+   transport:async(url,init)=>{
+    transportLog.push({url,init});
+    return new Response(JSON.stringify({id_token:await f.signIdToken(nonce),access_token:'not-for-client'}),
+      {headers:{'content-type':'application/json'}});
+   },
+  });
+  const core=createM1LocalAuthSessionCore({...f.deps,verifierCustody:custody,
+    requireSealedVerifier:true,exchangeCode});
+  const started=await core.beginOAuthAttempt();
+  assert.equal(started?.provider,'google');
+  nonce=started.nonce;
+  const attempt=f.db.prepare('SELECT * FROM starry_m1_oauth_attempts WHERE state=?').get(started.state);
+  assert.ok(attempt.code_verifier.startsWith('m1gcm1.test-only-aes-1.'));
+  assert.equal(attempt.code_verifier.includes('v'.repeat(43)),false);
+  const issued=await core.issueFromVerifiedCallback({state:started.state,code:'test-only-google-code'});
+  assert.equal(issued?.status,'issued');assert.equal(issued?.s_user_id,'u1');
+  assert.equal(transportLog.length,1);
+  assert.equal(transportLog[0].url,M1_GOOGLE_TOKEN_ENDPOINT);
+  const sent=new URLSearchParams(transportLog[0].init.body);
+  assert.ok(/^[A-Za-z0-9._~-]{43,128}$/.test(sent.get('code_verifier')));
+  assert.equal(sent.get('client_id'),f.deps.provider.clientId);
+  const response=await core.readSelf(new Request(origin+'/v1/starry-id/members/me',{
+    headers:{authorization:'Bearer '+issued.bearer},
+  }));
+  assert.equal(response.status,200);
+  assert.deepEqual(await response.json(),{
+    s_user_id:'u1',display_name:'Registered Member',
+    directory_opt_in:false,display_name_public:false,profile_revision:1,
+  });
+  assert.equal(await core.issueFromVerifiedCallback({state:started.state,code:'test-only-google-code'}),null);
+  assert.equal(transportLog.length,1);
+ }finally{f.close();}
+});
+test('encrypted PKCE authority binding and KID mutation deny before code exchange',async()=>{
+ for(const mutation of [
+  "UPDATE starry_m1_oauth_attempts SET expires_at=expires_at+1",
+  "UPDATE starry_m1_oauth_attempts SET client_id='tampered-client'",
+  "UPDATE starry_m1_oauth_attempts SET code_verifier=replace(code_verifier,'m1gcm1.','m1gcm1.other-')",
+ ]){
+  const f=await makeFixture();try{
+   const aes=await webcrypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+   const custody=createM1OAuthVerifierCustody({
+    activeKey:async()=>({kid:'kid-a',key:aes}),
+    findKey:async kid=>kid==='kid-a'?aes:null,
+   });
+   const core=createM1LocalAuthSessionCore({...f.deps,verifierCustody:custody,requireSealedVerifier:true});
+   const started=await core.beginOAuthAttempt();
+   assert.ok(started);
+   f.db.exec(mutation);
+   assert.equal(await core.issueFromVerifiedCallback({state:started.state,code:'unused-code'}),null);
+   assert.equal(f.state.exchanges,0);
+   assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,0);
+  }finally{f.close();}
+ }
+});
+test('remote staging verifier custody required refuses plaintext fallback at construction',async()=>{
+ const f=await makeFixture();try{
+  assert.throws(()=>createM1LocalAuthSessionCore({...f.deps,requireSealedVerifier:true}),
+    /M1_AUTH_CONFIGURATION_DENIED/);
  }finally{f.close();}
 });
