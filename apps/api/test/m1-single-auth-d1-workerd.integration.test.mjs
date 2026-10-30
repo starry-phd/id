@@ -422,8 +422,8 @@ test('original signed Session connects SDK and durable two-confirmation deletion
   });
   assert.equal(await foreign.getStatus(),null,'other member cannot see receipt');
   await assert.rejects(foreign.confirmDeletion(requested.request_id),
-   e=>e instanceof M2DeletionClientError&&e.code==='UNAVAILABLE',
-   'foreign Session cannot confirm the other member deletion request');
+   e=>e instanceof M2DeletionClientError&&e.code==='NO_REQUEST',
+   'foreign Session must receive exact non-cacheable NO_REQUEST without identifying another member');
   assert.equal((await client.getStatus()).status,'awaiting_second_confirmation');
 
   const confirmed=await client.confirmDeletion(requested.request_id);
