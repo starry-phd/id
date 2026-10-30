@@ -7,6 +7,8 @@ import {bytesToBase64url} from '../src/oidc-crypto.ts';
 import {createM1LocalAuthSessionCore,M1_AUTH_LIVE_ENABLED} from '../src/m1-local-auth-session-core.ts';
 import {createM1OAuthVerifierCustody} from '../src/m1-oauth-verifier-custody.ts';
 import {createM1GoogleCodeExchange,M1_GOOGLE_TOKEN_ENDPOINT} from '../src/m1-google-oauth-exchange.ts';
+import {createM1M2LocalGoogleFlow,M1_M2_GOOGLE_FLOW_LIVE_ENABLED}
+  from '../src/m1-m2-local-google-member-flow.ts';
 const now=1793000000;
 const origin='https://id.starry.example';
 const scope={brand_id:'starry',app_id:'starry-id',environment:'staging'};
@@ -17,6 +19,7 @@ async function makeFixture(){
  db.exec('PRAGMA foreign_keys=ON');
  db.exec(readFileSync(new URL('../schema/001_starry_identity.DRAFT.sql',import.meta.url),'utf8'));
  db.exec(readFileSync(new URL('../schema/002_m1_local_oauth_attempts.DRAFT.sql',import.meta.url),'utf8'));
+ db.exec(readFileSync(new URL('../schema/003_m2_local_member_self_mutations.DRAFT.sql',import.meta.url),'utf8'));
  db.prepare('INSERT INTO starry_members VALUES(?,?,?,?,?,?,?,?,?)')
    .run('u1','active',3,1,'Registered Member',0,0,now,now);
  db.prepare('INSERT INTO starry_identities(provider,subject,s_user_id) VALUES(?,?,?)')
@@ -399,5 +402,264 @@ test('remote staging verifier custody required refuses plaintext fallback at con
  const f=await makeFixture();try{
   assert.throws(()=>createM1LocalAuthSessionCore({...f.deps,requireSealedVerifier:true}),
     /M1_AUTH_CONFIGURATION_DENIED/);
+ }finally{f.close();}
+});
+
+/** The single shared SQLite authority is the actual M1+M2 local composition.
+ * All credential responses below use freshly generated test-only RS256 keys,
+ * never a real Google credential or provider network request.
+ */
+async function createClosedLocalGoogleFlow(f){
+ const aes=await webcrypto.subtle.generateKey(
+  {name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+ const custody=createM1OAuthVerifierCustody({
+  activeKey:async()=>({kid:'local-test-aes',key:aes}),
+  findKey:async kid=>kid==='local-test-aes'?aes:null,
+ });
+ const ctx={nonce:'',subject:'verified-sub',calls:[],overrideToken:null};
+ const flow=createM1M2LocalGoogleFlow({
+  enabled:true,serverScope:f.deps.serverScope,expectedOrigin:f.deps.expectedOrigin,
+  redirectUri:origin+'/v1/starry-id/oauth/google/callback',
+  authDb:f.adapter,googleProvider:f.deps.provider,verifierCustody:custody,
+  activeKey:f.deps.activeKey,getVerificationKey:f.deps.getVerificationKey,
+  now:f.deps.now,
+  readGoogleClientSecret:async()=> 'test-only-confidential-client-secret',
+  googleTransport:async (url,init)=>{
+   ctx.calls.push({url,init});
+   const idToken=ctx.overrideToken ?? await f.signIdToken(ctx.nonce,ctx.subject);
+   return new Response(JSON.stringify({id_token:idToken,access_token:'NOT_FOR_CLIENT'}),
+    {status:200,headers:{'content-type':'application/json'}});
+  },
+ });
+ async function start(){
+  const authorizeUrl=await flow.beginGoogleLogin();
+  assert.equal(typeof authorizeUrl,'string');
+  const url=new URL(authorizeUrl);
+  ctx.nonce=url.searchParams.get('nonce');
+  const state=url.searchParams.get('state');
+  assert.ok(state&&ctx.nonce);
+  return {url,state,code:'test-only-auth-code'};
+ }
+ const request=(path,bearer,init={})=>new Request(origin+path,{
+  ...init,headers:{authorization:'Bearer '+bearer,...init.headers},
+ });
+ const self=bearer=>request('/v1/starry-id/members/me',bearer);
+ const patch=(bearer,revision,body)=>request('/v1/starry-id/members/me',bearer,{
+  method:'PATCH',headers:{'content-type':'application/json','if-match':'"rev-'+revision+'"'},
+  body:JSON.stringify(body),
+ });
+ const logout=bearer=>request('/v1/starry-id/sessions/logout',bearer,{method:'POST'});
+ return {flow,ctx,start,self,patch,logout,custody};
+}
+test('single REAL local Google → sealed attempt → RS256 → SQLite Session → W3 GET → CAS → logout loop',async()=>{
+ const f=await makeFixture();try{
+  const x=await createClosedLocalGoogleFlow(f);
+  assert.equal(M1_M2_GOOGLE_FLOW_LIVE_ENABLED,false);
+  assert.equal(x.flow.public_worker_route_registered,false);
+  const begin=await x.start();
+  assert.equal(begin.url.origin,'https://accounts.google.com');
+  assert.equal(begin.url.searchParams.get('scope'),'openid');
+  assert.equal(begin.url.searchParams.get('code_challenge_method'),'S256');
+  assert.equal(begin.url.searchParams.has('client_secret'),false);
+  assert.equal(begin.url.searchParams.has('code_verifier'),false);
+  const stored=f.db.prepare('SELECT code_verifier,consumed_at FROM starry_m1_oauth_attempts WHERE state=?').get(begin.state);
+  assert.ok(stored.code_verifier.startsWith('m1gcm1.local-test-aes.'));
+  assert.equal(stored.consumed_at,null);
+  const issued=await x.flow.completeGoogleLogin({code:begin.code,state:begin.state});
+  assert.equal(issued?.status,'issued');
+  assert.equal(issued?.s_user_id,'u1');
+  assert.equal(x.ctx.calls.length,1);
+  assert.equal(x.ctx.calls[0].url,M1_GOOGLE_TOKEN_ENDPOINT);
+  const posted=new URLSearchParams(x.ctx.calls[0].init.body);
+  assert.equal(posted.get('grant_type'),'authorization_code');
+  assert.match(posted.get('code_verifier'),/^[A-Za-z0-9._~-]{43,128}$/);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,1);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_m1_audit_intents').get().n,1);
+  assert.deepEqual(await (await x.flow.readSelf(x.self(issued.bearer))).json(),{
+   s_user_id:'u1',display_name:'Registered Member',
+   directory_opt_in:false,display_name_public:false,profile_revision:1,
+  });
+  const updated=await x.flow.mutateSelf(x.patch(issued.bearer,1,{
+   display_name:'Approved Public Name',directory_opt_in:true,display_name_public:true,
+  }));
+  assert.equal(updated.status,200);
+  assert.deepEqual(await updated.json(),{
+   s_user_id:'u1',display_name:'Approved Public Name',
+   directory_opt_in:true,display_name_public:true,profile_revision:2,
+  });
+  const latest=await x.flow.readSelf(x.self(issued.bearer));
+  assert.equal(latest.status,200);
+  assert.deepEqual(await latest.json(),{
+   s_user_id:'u1',display_name:'Approved Public Name',
+   directory_opt_in:true,display_name_public:true,profile_revision:2,
+  });
+  const [a,b]=await Promise.all([
+   x.flow.mutateSelf(x.patch(issued.bearer,2,{display_name:'First Winner'})),
+   x.flow.mutateSelf(x.patch(issued.bearer,2,{display_name:'Second Winner'})),
+  ]);
+  assert.deepEqual([a.status,b.status].sort(),[200,409]);
+  assert.equal(f.db.prepare('SELECT profile_revision FROM starry_members WHERE s_user_id=?').get('u1').profile_revision,3);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_m2_member_mutation_audit WHERE event_type=?').get('profile_updated').n,2);
+  const logout=await x.flow.mutateSelf(x.logout(issued.bearer));
+  assert.equal(logout.status,204);
+  assert.equal((await x.flow.readSelf(x.self(issued.bearer))).status,401);
+  assert.equal((await x.flow.mutateSelf(x.logout(issued.bearer))).status,401);
+  assert.equal((await x.flow.mutateSelf(x.patch(issued.bearer,3,{display_name:'Denied'}))).status,401);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_m2_member_mutation_audit WHERE event_type=?').get('session_revoked').n,1);
+  assert.equal(await x.flow.completeGoogleLogin({code:begin.code,state:begin.state}),null);
+  assert.equal(x.ctx.calls.length,1);
+  const allAudits=JSON.stringify(f.db.prepare('SELECT * FROM starry_m2_member_mutation_audit').all());
+  for(const secret of ['Approved Public Name','First Winner','Second Winner',issued.bearer,'NOT_FOR_CLIENT']){
+   assert.equal(allAudits.includes(secret),false);
+  }
+ }finally{f.close();}
+});
+test('first verified Google subject registers new private member, CAS owns ONLY that member, no email matching',async()=>{
+ const f=await makeFixture();try{
+  const x=await createClosedLocalGoogleFlow(f);
+  x.ctx.subject='first-login-new-subject';
+  const begin=await x.start();
+  const issued=await x.flow.completeGoogleLogin({state:begin.state,code:begin.code});
+  assert.equal(issued?.status,'issued');
+  assert.ok(issued.s_user_id.startsWith('su-'));
+  assert.notEqual(issued.s_user_id,'u1');
+  const old=f.db.prepare('SELECT display_name,profile_revision FROM starry_members WHERE s_user_id=?').get('u1');
+  assert.deepEqual({...old},{display_name:'Registered Member',profile_revision:1});
+  const created=await x.flow.readSelf(x.self(issued.bearer));
+  assert.deepEqual(await created.json(),{
+   s_user_id:issued.s_user_id,display_name:null,
+   directory_opt_in:false,display_name_public:false,profile_revision:1,
+  });
+  const changed=await x.flow.mutateSelf(x.patch(issued.bearer,1,{display_name:'Self Only'}));
+  assert.equal(changed.status,200);
+  const record=f.db.prepare('SELECT display_name,profile_revision FROM starry_members WHERE s_user_id=?').get(issued.s_user_id);
+  assert.equal(record.display_name,'Self Only');assert.equal(record.profile_revision,2);
+  assert.deepEqual({...f.db.prepare('SELECT display_name,profile_revision FROM starry_members WHERE s_user_id=?').get('u1')},{...old});
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_m1_audit_intents').get().n,2);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_m2_member_mutation_audit').get().n,1);
+ }finally{f.close();}
+});
+test('one-time Google callback concurrent replay grants only one durable Session, others denied',async()=>{
+ const f=await makeFixture();try{
+  const x=await createClosedLocalGoogleFlow(f);
+  const begin=await x.start();
+  const results=await Promise.all(Array.from({length:3},
+   ()=>x.flow.completeGoogleLogin({state:begin.state,code:begin.code})));
+  assert.equal(results.filter(Boolean).length,1);
+  assert.equal(x.ctx.calls.length,1);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,1);
+  assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_m1_audit_intents').get().n,1);
+ }finally{f.close();}
+});
+test('pinned Google issuer/audience, nonce, RS256 signature and clock reject without member or Session mutation',async()=>{
+ for(const scenario of ['wrong-nonce','wrong-issuer','wrong-audience','bad-signature','expired-state']){
+  const f=await makeFixture();try{
+   const x=await createClosedLocalGoogleFlow(f);
+   const begin=await x.start();
+   if(scenario==='wrong-nonce')x.ctx.nonce='attacker-invalid-nonce-0123456789';
+   if(scenario==='wrong-issuer')f.deps.provider.issuer='https://appleid.apple.com';
+   if(scenario==='wrong-audience')f.deps.provider.clientId='forged-client';
+   if(scenario==='bad-signature'){
+    const original=await f.signIdToken(x.ctx.nonce);
+    const parts=original.split('.');
+    parts[2]=(parts[2][0]==='A'?'B':'A')+parts[2].slice(1);
+    x.ctx.overrideToken=parts.join('.');
+   }
+   if(scenario==='expired-state')f.state.clock=now+181;
+   assert.equal(await x.flow.completeGoogleLogin({state:begin.state,code:begin.code}),null,scenario);
+   assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_sessions').get().n,0,scenario);
+   assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_m1_audit_intents').get().n,0,scenario);
+   assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_m2_member_mutation_audit').get().n,0,scenario);
+  }finally{f.close();}
+ }
+});
+test('current auth_version, suspension, identity unlink and cross-origin deny W3/CAS/logout after Google issue',async()=>{
+ for(const change of [
+  "UPDATE starry_members SET auth_version=auth_version+1 WHERE s_user_id='u1'",
+  "UPDATE starry_members SET status='suspended' WHERE s_user_id='u1'",
+  "DELETE FROM starry_identities WHERE provider='google' AND s_user_id='u1'",
+ ]){
+  const f=await makeFixture();try{
+   const x=await createClosedLocalGoogleFlow(f),begin=await x.start();
+   const issued=await x.flow.completeGoogleLogin({state:begin.state,code:begin.code});
+   assert.ok(issued);
+   assert.notEqual((await x.flow.readSelf(new Request('https://foreign.example/v1/starry-id/members/me',{
+    headers:{authorization:'Bearer '+issued.bearer},
+   }))).status,200);
+   assert.notEqual((await x.flow.mutateSelf(new Request('https://foreign.example/v1/starry-id/members/me',{
+    method:'PATCH',headers:{authorization:'Bearer '+issued.bearer},
+   }))).status,200);
+   f.db.exec(change);
+   assert.equal((await x.flow.readSelf(x.self(issued.bearer))).status,401);
+   assert.notEqual((await x.flow.mutateSelf(x.patch(issued.bearer,1,{display_name:'Denied'}))).status,200);
+   assert.notEqual((await x.flow.mutateSelf(x.logout(issued.bearer))).status,204);
+   assert.equal(f.db.prepare('SELECT profile_revision FROM starry_members WHERE s_user_id=?').get('u1').profile_revision,1);
+  }finally{f.close();}
+ }
+});
+test('composed Google flow OFF / foreign scope / cross-origin callback / missing custody fail closed',async()=>{
+ const f=await makeFixture();try{
+  assert.throws(()=>createM1M2LocalGoogleFlow({
+   enabled:true,serverScope:scope,expectedOrigin:origin,
+   redirectUri:'https://foreign.example/v1/starry-id/oauth/google/callback',
+   authDb:f.adapter,googleProvider:f.deps.provider,
+   verifierCustody:null,activeKey:f.deps.activeKey,
+   getVerificationKey:f.deps.getVerificationKey,now:f.deps.now,
+   readGoogleClientSecret:async()=>null,googleTransport:async()=>new Response(),
+  }),/M1_M2_GOOGLE_FLOW_CONFIGURATION_DENIED|ORIGIN_DENIED/);
+  const x=await createClosedLocalGoogleFlow(f);
+  const off=createM1M2LocalGoogleFlow({
+   enabled:false,serverScope:scope,expectedOrigin:origin,
+   redirectUri:origin+'/v1/starry-id/oauth/google/callback',
+   authDb:f.adapter,googleProvider:f.deps.provider,
+   verifierCustody:x.custody,activeKey:f.deps.activeKey,
+   getVerificationKey:f.deps.getVerificationKey,now:f.deps.now,
+   readGoogleClientSecret:async()=>{throw Error('NEVER_LOAD_SECRETS');},
+   googleTransport:async()=>{throw Error('NEVER_CALL_PROVIDER');},
+  });
+  assert.equal(await off.beginGoogleLogin(),null);
+  assert.equal(await off.completeGoogleLogin({code:'x',state:'s'.repeat(43)}),null);
+  assert.equal((await off.readSelf(new Request(origin+'/v1/starry-id/members/me'))).status,503);
+  assert.equal((await off.mutateSelf(new Request(origin+'/v1/starry-id/sessions/logout',{
+   method:'POST',
+  }))).status,503);
+ }finally{f.close();}
+});
+
+// Pause inside the real sealed-attempt await, then mutate the caller-owned
+// configuration. Authorization and token exchange must share the validated URL.
+test('Google redirect stays pinned when caller mutates deps during beginOAuthAttempt await',async()=>{
+ const f=await makeFixture();try{
+  const x=await createClosedLocalGoogleFlow(f);
+  let entered,release;
+  const paused=new Promise(resolve=>{entered=resolve;});
+  const resumed=new Promise(resolve=>{release=resolve;});
+  const redirectUri=origin+'/v1/starry-id/oauth/google/callback';
+  const deps={enabled:true,serverScope:scope,expectedOrigin:origin,redirectUri,
+   authDb:f.adapter,googleProvider:f.deps.provider,
+   verifierCustody:{
+    async seal(...args){entered();await resumed;return x.custody.seal(...args);},
+    open:(...args)=>x.custody.open(...args),
+   },
+   activeKey:f.deps.activeKey,getVerificationKey:f.deps.getVerificationKey,
+   now:f.deps.now,readGoogleClientSecret:async()=> 'test-only-secret',
+   googleTransport:async (_url,init)=>{
+    assert.equal(new URLSearchParams(init.body).get('redirect_uri'),redirectUri);
+    return new Response(JSON.stringify({id_token:await f.signIdToken(nonce)}),{
+     status:200,headers:{'content-type':'application/json'},
+    });
+   },
+  };
+  const flow=createM1M2LocalGoogleFlow(deps);
+  const pending=flow.beginGoogleLogin();
+  await paused;
+  deps.redirectUri='https://foreign.example/changed-callback';
+  release();
+  const url=new URL(await pending);
+  assert.equal(url.searchParams.get('redirect_uri'),redirectUri);
+  const nonce=url.searchParams.get('nonce');
+  const issued=await flow.completeGoogleLogin({code:'test-only-code',state:url.searchParams.get('state')});
+  assert.ok(issued?.bearer);
+  assert.equal((await flow.readSelf(x.self(issued.bearer))).status,200);
  }finally{f.close();}
 });

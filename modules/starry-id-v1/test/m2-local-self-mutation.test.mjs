@@ -37,6 +37,13 @@ async function fixture(){
    async first(){
     state.reads++;
     if(state.beforeRead){const hook=state.beforeRead;state.beforeRead=null;hook(sql);}
+    // UPDATE ... RETURNING is a real atomic write, not an ordinary SELECT.
+    // Run the exact same revocation/TOCTOU/error hooks as the old .run() path.
+    if(/^UPDATE starry_(members|sessions)\b/.test(sql)){
+     state.writes++;
+     if(state.throwSQL)throw Error('PRIVATE_SQL_COLUMN_AND_SECRET');
+     if(state.beforeWrite){const hook=state.beforeWrite;state.beforeWrite=null;hook(sql);}
+    }
     return db.prepare(sql).get(...params)??null;
    },
    async run(){
@@ -271,5 +278,65 @@ test('account deletion/version-bump is never mislabeled as an ordinary profile u
   f.db.prepare("UPDATE starry_members SET status='deleted',profile_revision=profile_revision+1,display_name=NULL,directory_opt_in=0,display_name_public=0 WHERE s_user_id=?").run('u1');
   assert.equal(f.audit().filter(e=>e.event_type==='profile_updated').length,0);
   assert.equal((await f.handle.handle(f.profile())).status,401);
+ }finally{f.close();}
+});
+
+test('workerd-style empty POST body stream is accepted; nonempty stream is refused without Session change',async()=>{
+ const empty=await fixture();try{
+  const request=new Request(origin+M2_SELF_LOGOUT_PATH,{method:'POST',
+   headers:{authorization:'Bearer '+empty.token},
+   body:new ReadableStream({start(controller){controller.close();}}),
+   duplex:'half'});
+  const result=await empty.handle.handle(request);
+  assert.equal(result.status,204);
+  assert.equal(empty.db.prepare('SELECT revoked_at FROM starry_sessions').get().revoked_at,NOW);
+  assert.equal(empty.audit().filter(a=>a.event_type==='session_revoked').length,1);
+ }finally{empty.close();}
+ const nonempty=await fixture();try{
+  const request=new Request(origin+M2_SELF_LOGOUT_PATH,{method:'POST',
+   headers:{authorization:'Bearer '+nonempty.token},
+   body:new ReadableStream({start(controller){
+    controller.enqueue(new TextEncoder().encode('NOT_AN_EMPTY_REQUEST'));
+    controller.close();
+   }}),duplex:'half'});
+  const result=await nonempty.handle.handle(request);
+  assert.equal(result.status,400);
+  assert.equal(nonempty.db.prepare('SELECT revoked_at FROM starry_sessions').get().revoked_at,null);
+  assert.equal(nonempty.audit().length,0);
+ }finally{nonempty.close();}
+});
+
+test('UPDATE RETURNING confirms exactly the affected row and audits; stale revision NEVER changes',async()=>{
+ const f=await fixture();try{
+  const original=f.adapter.prepare;
+  let sourceSqls=[];
+  f.adapter.prepare=function(sql){
+   if(/^UPDATE starry_(members|sessions)\b/.test(sql))sourceSqls.push(sql);
+   return original.call(f.adapter,sql);
+  };
+  const instance=createM2LocalSelfMutationHandler(f.deps);
+  const first=await instance.handle(f.profile({display_name:'New Name'}));
+  assert.equal(first.status,200);
+  const repeat=await instance.handle(f.profile({display_name:'Rejected'},1));
+  assert.equal(repeat.status,409);
+  assert.equal(f.db.prepare('SELECT display_name FROM starry_members').get().display_name,'New Name');
+  assert.equal(f.audit().length,1);
+  const out=await instance.handle(f.logout());
+  assert.equal(out.status,204);
+  assert.equal(f.audit().length,2);
+  assert.equal(sourceSqls.length,2);
+  assert.ok(sourceSqls.every(sql=>/RETURNING\s+/i.test(sql)));
+ }finally{f.close();}
+});
+
+test('throwing clock yields sanitized 503 for both PATCH and logout with zero writes',async()=>{
+ const f=await fixture();try{
+ const handler=createM2LocalSelfMutationHandler({...f.deps,now:()=>{throw Error('PRIVATE_CLOCK_FAILURE');}});
+ for(const request of [f.profile(),f.logout()]){
+ const response=await handler.handle(request);
+ assert.equal(response.status,503);
+ assert.deepEqual(await response.json(),{error:{code:'SERVICE_UNAVAILABLE'}});
+ }
+ assert.equal(f.state.writes,0);assert.equal(f.audit().length,0);
  }finally{f.close();}
 });
