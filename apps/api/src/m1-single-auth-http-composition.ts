@@ -43,7 +43,9 @@ export function createM1SingleAuthHttpComposition(deps:GoogleDeps) {
   const authDeps = Object.freeze({
     enabled,serverScope:scope,expectedOrigin,
     redirectUri:deps.redirectUri,authDb:deps.authDb,
-    googleProvider:deps.googleProvider,verifierCustody:deps.verifierCustody,
+    googleProvider:deps.googleProvider,
+    googleJwksSource:deps.googleJwksSource,
+    verifierCustody:deps.verifierCustody,
     activeKey:deps.activeKey,getVerificationKey:deps.getVerificationKey,
     readGoogleClientSecret:deps.readGoogleClientSecret,
     googleTransport:deps.googleTransport,now:deps.now,

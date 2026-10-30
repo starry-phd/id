@@ -11,6 +11,7 @@ import {
   createM1GoogleAuthorizeUrl,createM1GoogleCodeExchange,
 } from './m1-google-oauth-exchange.ts';
 import type {PinnedOidcProvider} from './oidc-crypto.ts';
+import type {createM1GoogleJwksSource} from './m1-google-jwks-source.ts';
 import type {SessionSigningKey} from './session-crypto.ts';
 import type {M1VerifierCustody} from './m1-oauth-verifier-custody.ts';
 import {createM2LocalSelfMutationHandler} from './m2-local-self-mutation.ts';
@@ -31,6 +32,8 @@ type Deps = Readonly<{
   redirectUri:string;
   authDb:M1WriteDatabase;
   googleProvider:PinnedOidcProvider;
+  /** Optional source-only server-owned official JWKS; no separate OAuth/Auth. */
+  googleJwksSource?:Pick<ReturnType<typeof createM1GoogleJwksSource>,'getProvider'>;
   verifierCustody:M1VerifierCustody;
   activeKey:()=>Promise<SessionSigningKey>;
   getVerificationKey:(kid:string)=>Promise<CryptoKey|null>;
@@ -43,6 +46,8 @@ type Deps = Readonly<{
 
 export function createM1M2LocalGoogleFlow(deps:Deps){
   if(!deps||!deps.googleProvider||deps.googleProvider.provider!=='google'||
+    (deps.googleJwksSource!==undefined&&
+      typeof deps.googleJwksSource?.getProvider!=='function')||
     !deps.verifierCustody||typeof deps.verifierCustody.seal!=='function'||
     typeof deps.verifierCustody.open!=='function')
     throw Error('M1_M2_GOOGLE_FLOW_CONFIGURATION_DENIED');
@@ -79,6 +84,7 @@ export function createM1M2LocalGoogleFlow(deps:Deps){
   const core=createM1LocalAuthSessionCore({
     enabled,serverScope,expectedOrigin:origin.origin,
     authDb,provider:deps.googleProvider,exchangeCode,
+    getGoogleJwksProvider:deps.googleJwksSource?.getProvider,
     verifierCustody:deps.verifierCustody,requireSealedVerifier:true,
     activeKey:deps.activeKey,getVerificationKey,
     now,randomBytes:deps.randomBytes,
