@@ -29,6 +29,8 @@ type Dependencies = Readonly<{
   authDb:M1WriteDatabase;
   provider:PinnedOidcProvider;
   exchangeCode:Exchange;
+  /** Server-owned source of fresh official Google JWKS; no untrusted URLs. */
+  getGoogleJwksProvider?:()=>Promise<PinnedOidcProvider|null>;
   /** Optional for backward-compatible local fixtures; REQUIRED for approved remote wiring. */
   verifierCustody?:M1VerifierCustody;
   requireSealedVerifier?:boolean;
@@ -82,6 +84,8 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
     !deps.authDb||typeof deps.authDb.prepare!=='function'||typeof deps.authDb.batch!=='function'||
     typeof deps.exchangeCode!=='function'||typeof deps.activeKey!=='function'||
     typeof deps.now!=='function'||typeof deps.getVerificationKey!=='function'||
+    (deps.getGoogleJwksProvider!==undefined&&
+      (typeof deps.getGoogleJwksProvider!=='function'||provider?.provider!=='google'))||
     (deps.verifierCustody!==undefined &&
       (typeof deps.verifierCustody.seal!=='function'||typeof deps.verifierCustody.open!=='function'))||
     (deps.requireSealedVerifier===true&&!deps.verifierCustody)||
@@ -128,9 +132,38 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
     },
     exchangeCode:deps.exchangeCode,
   };
-  const callback=createVerifiedOidcCallback({
+  const pinnedCallback=createVerifiedOidcCallback({
     config:provider,appId:scope.app_id,environment:scope.environment,backend:port,
   });
+  // SOURCE-ONLY. Capture the original, server-owned key source once. The
+  // trusted Google metadata is pinned above; refreshed JWKs may never switch
+  // issuer, client ID or provider even after an asynchronous fetch.
+  const getGoogleJwksProvider=deps.getGoogleJwksProvider;
+  async function verifyCallback(input:unknown,time:number){
+    if(!getGoogleJwksProvider)return pinnedCallback(input,time);
+    // Reject malformed caller values *before* touching Google/network.
+    // The same exact-shape+own-data rule remains enforced by the original
+    // OIDC callback before reading/consuming the one-time SQLite OAuth state.
+    if(!validTime(time)||!input||typeof input!=='object'||Array.isArray(input))
+      return null;
+    const descriptors=Object.getOwnPropertyDescriptors(input);
+    const keys=Reflect.ownKeys(descriptors);
+    if(keys.length!==2||!keys.includes('code')||!keys.includes('state')||
+       typeof descriptors.code?.value!=='string'||
+       descriptors.code.value.length<1||descriptors.code.value.length>2048||
+       /[\u0000-\u001f\u007f]/.test(descriptors.code.value)||
+       typeof descriptors.state?.value!=='string'||
+       !statePattern.test(descriptors.state.value))return null;
+    const fresh=await getGoogleJwksProvider();
+    if(!fresh||fresh.provider!==provider.provider||
+       fresh.clientId!==provider.clientId||fresh.issuer!==provider.issuer||
+       !Array.isArray(fresh.jwks)||fresh.jwks.length<1||fresh.jwks.length>8)
+      return null; // Fail before OAuth CAS/exchange on missing/expired keys.
+    return createVerifiedOidcCallback({
+      config:{...provider,jwks:fresh.jwks},
+      appId:scope.app_id,environment:scope.environment,backend:port,
+    })(input,time);
+  }
   return Object.freeze({
     contract:M1_AUTH_CONTRACT,local_only:true as const,live_enabled:M1_AUTH_LIVE_ENABLED,
     async beginOAuthAttempt():Promise<Readonly<{state:string;codeChallenge:string;nonce:string;provider:string}>|null>{
@@ -166,7 +199,7 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
       if(!validTime(now))return null;
       // The callback validates exact code/state, PKCE, nonce and *real RS256*
       // token against injected pinned JWKS; a fake subject cannot bypass it.
-      const verified=await callback(input,now);
+      const verified=await verifyCallback(input,now);
       if(!verified||verified.provider!==provider.provider||
         verified.issuer!==provider.issuer||verified.audience!==provider.clientId||
         !id.test(verified.providerSubject))return null;
