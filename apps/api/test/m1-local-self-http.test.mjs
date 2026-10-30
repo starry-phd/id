@@ -65,6 +65,7 @@ test('M1 local port response fail closed: raw SQL errors, extra keys, invalid DT
    {async readSelf(){throw Error('PRIVATE_SQL_secret');}},
    {async readSelf(){return new Response(JSON.stringify({...valid,email:'bad@example.invalid'}),{status:200});}},
    {async readSelf(){return new Response(JSON.stringify({...valid,profile_revision:'1'}),{status:200});}},
+   {async readSelf(){return new Response(JSON.stringify({...valid,profile_revision:Number.MAX_SAFE_INTEGER}),{status:200});}},
    {async readSelf(){return new Response(JSON.stringify({error:'sensitive'}),{status:200});}},
    {async readSelf(){return new Response('PRIVATE_SQL_SECRET',{status:500});}},
    {async readSelf(){return new Response('revoked',{status:401});}},
