@@ -29,12 +29,16 @@ async function fixture(){
   s_user_id:'u1',session_id:'session-1',auth_version:3,issued_at:NOW,
   expires_at:NOW+300,key_id:'local-key'};
  const token=await signServerSession(claims,scope,NOW,{kid:'local-key',key});
- const state={time:NOW,reads:0,writes:0,beforeWrite:null,throwSQL:false,keyReads:0};
+ const state={time:NOW,reads:0,writes:0,beforeWrite:null,beforeRead:null,throwSQL:false,keyReads:0};
  const adapter={prepare(sql){
   const params=[];
   return {
    bind(...values){params.splice(0,params.length,...values);return this;},
-   async first(){state.reads++;return db.prepare(sql).get(...params)??null;},
+   async first(){
+    state.reads++;
+    if(state.beforeRead){const hook=state.beforeRead;state.beforeRead=null;hook(sql);}
+    return db.prepare(sql).get(...params)??null;
+   },
    async run(){
     state.writes++;
     if(state.throwSQL)throw Error('PRIVATE_SQL_COLUMN_AND_SECRET');
@@ -249,7 +253,7 @@ test('managed HMAC key failure, DB throw and post-await clock jump never return 
   const f=await fixture();try{
    if(mode==='key')f.deps.getVerificationKey=async()=>{throw Error('PRIVATE_KMS_KEY');};
    if(mode==='db')f.state.throwSQL=true;
-   if(mode==='time')f.state.beforeWrite=()=>{f.state.time=NOW+301;};
+   if(mode==='time')f.state.beforeRead=()=>{f.state.time=NOW+301;};
    const instance=mode==='key'?createM2LocalSelfMutationHandler(f.deps):f.handle;
    const res=await instance.handle(f.profile());
    assert.notEqual(res.status,200);
