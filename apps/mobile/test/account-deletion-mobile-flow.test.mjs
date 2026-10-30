@@ -249,3 +249,77 @@ test('AI-0 regression: port/Session epoch invalidation prevents old async Sessio
  await old.requestFirst();
  assert.equal(old.snapshot().phase,'idle');
 });
+
+
+test('AI-0 React19 StrictMode setup-cleanup-setup reactivates SAME flow and first press invokes POST1',async()=>{
+ // Matches the lifecycle documented in #293 review #6519162887:
+ // effect setup(GET) -> effect cleanup(invalidate) -> replay setup(GET)
+ // -> first Pressable onPress(requestFirst). React DOM createRoot itself is
+ // independently exercised by AI-0 with jsdom; this test reproduces the
+ // lifecycle's actual controller callback, without claiming a browser click.
+ const events=[];
+ const receipt={
+  request_id:'m2del-'+'7'.repeat(48),status:'awaiting_second_confirmation',
+  first_confirmed_at:1793000000,second_confirmed_at:null,
+  physical_erasure_completed:false,execution_authorized:false,
+ };
+ const port={
+  async getStatus(){events.push('GET');return null;},
+  async requestDeletion(){events.push('POST1');return receipt;},
+  async confirmDeletion(){events.push('POST2');throw Error('unexpected');},
+ };
+ const flow=createDeletionFlow(port);
+ const first=flow.refresh();
+ flow.invalidate();
+ flow.activate(); // the second setup, same memoized hook instance
+ await flow.refresh();
+ await first;
+ assert.equal(flow.snapshot().phase,'idle');
+ await flow.requestFirst();
+ assert.deepEqual(events,['GET','GET','POST1']);
+ assert.equal(flow.snapshot().phase,'awaiting_second_confirmation');
+ assert.equal(flow.snapshot().receipt.request_id,receipt.request_id);
+});
+
+test('AI-0 StrictMode replay ignores first setup GET arriving after next setup and user tap',async()=>{
+ let resolveOld;
+ const old=new Promise(resolve=>{resolveOld=resolve;});
+ const events=[];
+ let gets=0;
+ const receipt={
+  request_id:'m2del-'+'8'.repeat(48),status:'awaiting_second_confirmation',
+  first_confirmed_at:1793000000,second_confirmed_at:null,
+  physical_erasure_completed:false,execution_authorized:false,
+ };
+ const port={
+  getStatus(){events.push('GET');return gets++===0?old:Promise.resolve(null);},
+  async requestDeletion(){events.push('POST1');return receipt;},
+  async confirmDeletion(){throw Error('unexpected POST2');},
+ };
+ const flow=createDeletionFlow(port);
+ const obsolete=flow.refresh();
+ flow.invalidate();
+ flow.activate();
+ await flow.refresh();
+ await flow.requestFirst();
+ resolveOld({...receipt,status:'pending_processing',second_confirmed_at:1793000005});
+ await obsolete;
+ assert.deepEqual(events,['GET','GET','POST1']);
+ assert.equal(flow.snapshot().phase,'awaiting_second_confirmation');
+ assert.equal(flow.snapshot().receipt.request_id,receipt.request_id);
+});
+
+test('AI-0 StrictMode replay supports subscribe before activate and does not orphan listeners',async()=>{
+ const flow=createDeletionFlow(createDeletionPreview());
+ const states=[];
+ flow.subscribe(v=>states.push(v.phase));
+ await flow.refresh();
+ flow.invalidate();
+ // React may subscribe after cleanup but before next effect setup.
+ flow.subscribe(v=>states.push('replay:'+v.phase));
+ flow.activate();
+ await flow.refresh();
+ await flow.requestFirst();
+ assert.ok(states.includes('replay:awaiting_second_confirmation'));
+ assert.equal(flow.snapshot().phase,'awaiting_second_confirmation');
+});
