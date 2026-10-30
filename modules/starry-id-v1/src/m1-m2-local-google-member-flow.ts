@@ -47,7 +47,7 @@ type Deps = Readonly<{
 export function createM1M2LocalGoogleFlow(deps:Deps){
   if(!deps||!deps.googleProvider||deps.googleProvider.provider!=='google'||
     (deps.googleJwksSource!==undefined&&
-      typeof deps.googleJwksSource.getProvider!=='function')||
+      typeof deps.googleJwksSource?.getProvider!=='function')||
     !deps.verifierCustody||typeof deps.verifierCustody.seal!=='function'||
     typeof deps.verifierCustody.open!=='function')
     throw Error('M1_M2_GOOGLE_FLOW_CONFIGURATION_DENIED');
