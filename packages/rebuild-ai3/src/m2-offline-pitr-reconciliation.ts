@@ -109,8 +109,10 @@ export function reviewOfflinePitrCandidate(candidate:unknown,witness:unknown):Of
   if((c.input as Record<string,unknown>).environment!==(w.input as Record<string,unknown>).environment)
     throw Error('AI3_RECOVERY_SCOPE_DENIED');
   const risks=new Set<OfflineRecoveryRisk>();
-  if((c.input as Record<string,unknown>).snapshot_generation <
-     (w.input as Record<string,unknown>).observed_generation)
+  // Both generations were strictly validated as safe integers by the parsers.
+  const snapshotGeneration=(c.input as Record<string,number>).snapshot_generation;
+  const witnessedGeneration=(w.input as Record<string,number>).observed_generation;
+  if(snapshotGeneration<witnessedGeneration)
     risks.add('SNAPSHOT_BEHIND_WITNESS');
   for(const [id,m] of c.members){
     const record=w.records.get(id);
