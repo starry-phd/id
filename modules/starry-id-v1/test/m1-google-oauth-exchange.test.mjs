@@ -103,3 +103,12 @@ test('Google authorization URL fixes issuer, openid-only scope, PKCE S256, state
    assert.equal(createM1GoogleAuthorizeUrl({...input,...changes}),null);
  }
 });
+
+ test('exchange preserves validated code and verifier during secret lookup',async()=>{
+ const f=fixture();const request={...input};
+ f.deps.readClientSecret=async()=>{request.code='changed';request.verifier='invalid';return 'test-secret-not-a-real-credential';};
+ const adapter=createM1GoogleCodeExchange(f.deps);
+ assert.deepEqual(await adapter(request),{idToken:jwt});
+ const sent=new URLSearchParams(f.calls[0][1].body);
+ assert.equal(sent.get('code'),code);assert.equal(sent.get('code_verifier'),verifier);
+});
