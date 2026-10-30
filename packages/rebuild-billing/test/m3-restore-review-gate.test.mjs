@@ -59,7 +59,7 @@ test('same member valid purchase only requires reconciliation; NEVER authorizes 
   assert.equal(r.reason,'same_member_needs_reconciliation');
   assert.equal(r.may_grant,false);assert.equal(r.may_transfer,false);
   assert.equal(Object.isFrozen(r),true);
-  assert.deepEqual(counts(),{memberReads:2,claimReads:1,purchaseReads:1});
+  assert.deepEqual(counts(),{memberReads:3,claimReads:1,purchaseReads:2});
 });
 test('deleted original owner claimed by new member: HOLD without auto alias or leaked owner',async()=>{
   const {gate}=await setup({member:{...member(),memberId:'member-B'}});
@@ -171,4 +171,79 @@ test('new M3 source passes isolated TypeScript-aware ESLint without modifying sh
   assert.equal(results.length,1);
   assert.equal(results[0].errorCount,0,JSON.stringify(results[0].messages));
   assert.equal(results[0].warningCount,0,JSON.stringify(results[0].messages));
+});
+
+test('refund that lands while original first-claim awaits is rechecked before same-member review',async()=>{
+  let release;
+  const wait=new Promise(resolve=>{release=resolve});
+  const ns=verified(),p=purchase();
+  const keys=await ns.build(p.receiptTransactionRef,p.originalTransactionRef,p.providerEventRef);
+  let evidence=p,readCount=0;
+  const gate=createOfflineM3RestoreReviewGate(scope,ns,{
+    readCurrentMember:async()=>member(),
+    readVerifiedPurchaseCandidate:async()=>{readCount++;return evidence;},
+    readOriginalFirstClaim:async()=>{
+      await wait;
+      return {namespace:keys.namespace,originalLineageIdentity:keys.originalLineageIdentity,
+        ownerMemberId:'member-A'};
+    },
+  },true);
+  const inFlight=gate.assess();
+  await new Promise(resolve=>setImmediate(resolve));
+  evidence={...p,state:'refunded',providerEventRef:'refund-2'};
+  release();
+  const r=await inFlight;
+  assert.deepEqual(r,{decision:'hold',reason:'purchase_not_valid',
+    local_only:true,may_grant:false,may_transfer:false});
+  assert.equal(readCount,2);
+});
+test('original transaction reference changed after first-claim await cannot be same-member',async()=>{
+  const initial=purchase();
+  const ns=verified(),keys=await ns.build(
+    initial.receiptTransactionRef,initial.originalTransactionRef,initial.providerEventRef);
+  let evidence=initial;
+  let release;
+  const wait=new Promise(resolve=>{release=resolve});
+  const gate=createOfflineM3RestoreReviewGate(scope,ns,{
+    readCurrentMember:async()=>member(),
+    readVerifiedPurchaseCandidate:async()=>evidence,
+    readOriginalFirstClaim:async()=>{await wait;return {
+      namespace:keys.namespace,originalLineageIdentity:keys.originalLineageIdentity,
+      ownerMemberId:'member-A'};},
+  },true);
+  const inFlight=gate.assess();
+  await new Promise(resolve=>setImmediate(resolve));
+  evidence={...initial,originalTransactionRef:'another-original'};
+  release();
+  const r=await inFlight;
+  assert.equal(r.reason,'evidence_unavailable');
+  assert.equal(r.may_grant,false);
+  assert.equal(r.may_transfer,false);
+});
+test('member revoke during final provider refresh cannot pass stale member status',async()=>{
+  const p=purchase(),ns=verified();
+  const keys=await ns.build(p.receiptTransactionRef,p.originalTransactionRef,p.providerEventRef);
+  let active=member(),providerReads=0,release;
+  const wait=new Promise(resolve=>{release=resolve});
+  const gate=createOfflineM3RestoreReviewGate(scope,ns,{
+    readCurrentMember:async()=>active,
+    readVerifiedPurchaseCandidate:async()=>{
+      providerReads++;
+      if(providerReads===2)await wait;
+      return p;
+    },
+    readOriginalFirstClaim:async()=>({
+      namespace:keys.namespace,originalLineageIdentity:keys.originalLineageIdentity,
+      ownerMemberId:'member-A',
+    }),
+  },true);
+  const inFlight=gate.assess();
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(providerReads,2);
+  active={...member(),status:'deleted',authVersion:2};
+  release();
+  const r=await inFlight;
+  assert.equal(r.reason,'identity_denied');
+  assert.equal(r.may_grant,false);
+  assert.equal(r.may_transfer,false);
 });
