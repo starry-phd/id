@@ -84,6 +84,62 @@ type Candidate=Readonly<{brand_id:string;app_id:string;environment:string;
   snapshot_generation:number;members:readonly Member[]}>;
 type Witness=Readonly<{brand_id:string;app_id:string;environment:string;
   observed_generation:number;records:readonly WitnessEntry[]}>;
+/**
+ * Pin ONE validated-risk/hash input before any await. The old verifier first
+ * analyzed caller-owned arrays, then traversed those arrays again to hash.
+ * A mutable/proxied array could serve different members on the two reads:
+ * authenticated unsafe snapshot with clean (stale) source_risks.
+ *
+ * Copy only own DATA descriptors once. Nested getter/accessor records are
+ * rejected without invocation; copy lists with bounded lengths. The existing
+ * strict reconciliation parser then validates the detached primitive tree.
+ * This is still synthetic input, NOT external independent witness custody.
+ */
+function ownData(value:unknown,fields:readonly string[]):Record<string,unknown>{
+  if(!isPlainRecord(value,fields))throw Error('AI3_WITNESS_SNAPSHOT_DENIED');
+  const out:Record<string,unknown>={};
+  for(const field of fields){
+    const descriptor=Object.getOwnPropertyDescriptor(value,field);
+    if(!descriptor||!Object.hasOwn(descriptor,'value'))
+      throw Error('AI3_WITNESS_SNAPSHOT_DENIED');
+    out[field]=descriptor.value as unknown;
+  }
+  return Object.freeze(out);
+}
+function ownList<T>(value:unknown,maximum:number,copy:(item:unknown)=>T):readonly T[]{
+  if(!Array.isArray(value)||value.length>maximum)
+    throw Error('AI3_WITNESS_SNAPSHOT_DENIED');
+  const size=value.length;
+  const out:T[]=[];
+  for(let i=0;i<size;i++){
+    const descriptor=Object.getOwnPropertyDescriptor(value,String(i));
+    if(!descriptor||!Object.hasOwn(descriptor,'value'))
+      throw Error('AI3_WITNESS_SNAPSHOT_DENIED');
+    out.push(copy(descriptor.value));
+  }
+  return Object.freeze(out);
+}
+function stableCandidate(value:unknown):Candidate{
+  const c=ownData(value,['brand_id','app_id','environment',
+    'snapshot_generation','members']);
+  const members=ownList(c.members,500,entry=>{
+    const m=ownData(entry,['member_ref','status','auth_version',
+      'profile_present','sessions']);
+    return Object.freeze({
+      ...m,
+      sessions:ownList(m.sessions,50,s=>ownData(s,
+        ['session_ref','auth_version','revoked_at'])),
+    });
+  });
+  return Object.freeze({...c,members}) as unknown as Candidate;
+}
+function stableWitness(value:unknown):Witness{
+  const w=ownData(value,['brand_id','app_id','environment',
+    'observed_generation','records']);
+  const records=ownList(w.records,500,r=>ownData(r,
+    ['member_ref','minimum_auth_version','deleted']));
+  return Object.freeze({...w,records}) as unknown as Witness;
+}
 function canonicalCandidate(value:Candidate):string{
   return JSON.stringify({
     brand_id:value.brand_id,app_id:value.app_id,environment:value.environment,
@@ -132,7 +188,10 @@ export async function reviewOfflinePitrWitnessReceipt(
 ):Promise<WitnessReceiptReview>{
   let sourceRisks:readonly string[]=[];
   try{
-    const baseline=reviewOfflinePitrCandidate(candidate,witness);
+    // Synchronously detach the candidate and witness ONCE so the source
+    // risk review, generation checks and HMAC digests see identical bytes.
+    const c=stableCandidate(candidate),w=stableWitness(witness);
+    const baseline=reviewOfflinePitrCandidate(c,w);
     sourceRisks=baseline.risks;
     // No getters, unexpected fields or mutable aliases across digest/verify awaits.
     // This local snapshot is NOT a source of authority: caller must provide trust.
@@ -162,7 +221,6 @@ export async function reviewOfflinePitrWitnessReceipt(
       !validGeneration(r.snapshot_generation)||!validGeneration(r.witness_generation)||
       !validSeconds(r.issued_at)||!validHex(r.snapshot_sha256)||!validHex(r.witness_sha256)||
       !validMac(r.mac))return deny(sourceRisks);
-    const c=candidate as Candidate,w=witness as Witness;
     if(r.environment!==c.environment||r.environment!==w.environment||
       r.snapshot_generation!==c.snapshot_generation||
       r.witness_generation!==w.observed_generation||
