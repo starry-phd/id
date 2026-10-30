@@ -121,3 +121,167 @@ test('M1 SDK accepts exact contract UTF-8 response with no-store, no redirect',a
   }})});
  assert.deepEqual(await client.getSelf(),dto);
 });
+
+
+test('M1 scoped SDK defaults OFF for PATCH and logout without reading token or network',async()=>{
+ let reads=0,requests=0;
+ const client=createM1StagingSelfClient({
+  enabled:false,baseUrl:origin,appId:'starry-id',
+  getSessionBearer:async()=>{reads++;return 'a'.repeat(48);},
+  fetchImpl:async()=>{requests++;throw Error('SHOULD_NOT_FETCH');},
+ });
+ await assert.rejects(client.patchSelf(1,{display_name:'Safe'}),/STARRY_SELF_DISABLED/);
+ await assert.rejects(client.logout(),/STARRY_SELF_DISABLED/);
+ assert.equal(reads,0);assert.equal(requests,0);
+});
+
+test('M1 scoped SDK sends exact CAS PATCH and zero-body single-session logout to original Starry routes',async()=>{
+ const calls=[];
+ const client=createM1StagingSelfClient({
+  enabled:true,baseUrl:origin,appId:'starry-id',
+  getSessionBearer:async()=> 'a'.repeat(48),
+  fetchImpl:async(url,init)=>{
+   calls.push({url,init});
+   if(init.method==='PATCH')
+    return new Response(JSON.stringify({...dto,display_name:'Changed',profile_revision:3}),{
+     status:200,headers:{'content-type':'application/json; charset=utf-8','cache-control':'private, no-store'},
+    });
+   return new Response(null,{status:204,headers:{'cache-control':'no-store'}});
+  },
+ });
+ const patched=await client.patchSelf(2,{display_name:'Changed'});
+ assert.equal(patched.display_name,'Changed');
+ assert.equal(patched.profile_revision,3);
+ await client.logout();
+ assert.equal(calls.length,2);
+ const patch=calls[0],logout=calls[1];
+ assert.equal(patch.url,origin+'/v1/starry-id/members/me');
+ assert.equal(patch.init.method,'PATCH');
+ assert.equal(patch.init.credentials,'omit');
+ assert.equal(patch.init.redirect,'error');
+ assert.equal(patch.init.cache,'no-store');
+ assert.equal(patch.init.headers['if-match'],'"rev-2"');
+ assert.equal(patch.init.headers.authorization,'Bearer '+'a'.repeat(48));
+ assert.deepEqual(JSON.parse(patch.init.body),{display_name:'Changed'});
+ assert.equal(logout.url,origin+'/v1/starry-id/sessions/logout');
+ assert.equal(logout.init.method,'POST');
+ assert.equal(logout.init.credentials,'omit');
+ assert.equal(logout.init.redirect,'error');
+ assert.equal(logout.init.cache,'no-store');
+ assert.equal(logout.init.headers.authorization,'Bearer '+'a'.repeat(48));
+ assert.equal('body' in logout.init,false);
+ assert.equal('cookie' in logout.init.headers,false);
+});
+
+test('M1 SDK rejects illegal PATCH fields, getters, arrays and invalid revision BEFORE credential or network',async()=>{
+ let credentialReads=0,requests=0,accessed=0;
+ const client=createM1StagingSelfClient({
+  enabled:true,baseUrl:origin,appId:'starry-id',
+  getSessionBearer:async()=>{credentialReads++;return 'a'.repeat(48);},
+  fetchImpl:async()=>{requests++;throw Error('NOT_ALLOWED');},
+ });
+ for(const version of [0,-1,0.5,NaN,Number.MAX_SAFE_INTEGER]) {
+  await assert.rejects(client.patchSelf(version,{display_name:'Valid'}),/STARRY_SELF_REVISION_REQUIRED/);
+ }
+ const getter={get display_name(){accessed++;return 'Should Not Run';}};
+ for(const value of [{},{s_user_id:'foreign'},{role:'admin'},
+  {display_name:' x '},{display_name:''},{display_name:'a'.repeat(81)},
+  {directory_opt_in:'true'},{display_name_public:1},[1],getter,
+  Object.create(null),Object.assign(Object.create(null),{display_name:'Fake'}),
+ ])await assert.rejects(client.patchSelf(2,value),/STARRY_SELF_FIELDS_DENIED/);
+ assert.equal(accessed,0);
+ assert.equal(credentialReads,0);
+ assert.equal(requests,0);
+});
+
+test('M1 SDK PATCH/logout require session and do not fetch for empty or failing credentials',async()=>{
+ for(const bearer of [null,'short','Bearer '+ 'a'.repeat(48)]){
+  let requests=0;
+  const client=createM1StagingSelfClient({
+   enabled:true,baseUrl:origin,appId:'starry-id',
+   getSessionBearer:async()=>bearer,
+   fetchImpl:async()=>{requests++;throw Error('PRIVATE_TOKEN');},
+  });
+  await assert.rejects(client.patchSelf(2,{display_name:'Valid'}),/STARRY_SELF_SESSION_REQUIRED/);
+  await assert.rejects(client.logout(),/STARRY_SELF_SESSION_REQUIRED/);
+  assert.equal(requests,0);
+ }
+});
+
+test('M1 SDK normalizes server CAS errors without leaking any upstream private text',async()=>{
+ for(const [status,code] of [
+  [400,'STARRY_SELF_FIELDS_DENIED'],[401,'STARRY_SELF_UNAUTHORIZED'],
+  [403,'STARRY_SELF_UNAUTHORIZED'],[409,'STARRY_SELF_CONFLICT'],
+  [428,'STARRY_SELF_REVISION_REQUIRED'],[415,'STARRY_SELF_FIELDS_DENIED'],
+  [503,'STARRY_SELF_UNAVAILABLE'],
+ ]){
+  const client=createM1StagingSelfClient({
+   enabled:true,baseUrl:origin,appId:'starry-id',
+   getSessionBearer:async()=> 'a'.repeat(48),
+   fetchImpl:async()=>new Response('PRIVATE_PROVIDER_EMAIL_OR_SQL',{
+    status,headers:{'content-type':'text/plain'},
+   }),
+  });
+  await assert.rejects(client.patchSelf(2,{directory_opt_in:true}),e=>{
+   assert.equal(e.message,code);
+   assert.doesNotMatch(e.message,/PRIVATE|PROVIDER|EMAIL|SQL/);
+   return true;
+  });
+ }
+});
+
+test('M1 SDK fails closed on invalid PATCH response, stale/forged revision and payload scope',async()=>{
+ for(const reply of [
+  new Response(JSON.stringify({...dto,profile_revision:2}),{status:200,headers:{
+   'content-type':'application/json','cache-control':'no-store',
+  }}),
+  new Response(JSON.stringify({...dto,profile_revision:4}),{status:200,headers:{
+   'content-type':'application/json','cache-control':'no-store',
+  }}),
+  new Response(JSON.stringify({...dto,email:'PRIVATE'}),{status:200,headers:{
+   'content-type':'application/json','cache-control':'no-store',
+  }}),
+  new Response(JSON.stringify({...dto,profile_revision:3}),{status:200,headers:{
+   'content-type':'application/json','cache-control':'public',
+  }}),
+  new Response('x'.repeat(4097),{status:200,headers:{
+   'content-type':'application/json','cache-control':'no-store',
+  }}),
+ ]){
+  const client=createM1StagingSelfClient({
+   enabled:true,baseUrl:origin,appId:'starry-id',
+   getSessionBearer:async()=> 'a'.repeat(48),
+   fetchImpl:async()=>reply,
+  });
+  await assert.rejects(client.patchSelf(2,{display_name:'Only'}),/STARRY_SELF_RESPONSE_INVALID/);
+ }
+});
+
+test('M1 SDK rejects forged logout body/redirect and errors without mutating local session',async()=>{
+ for(const reply of [
+  new Response('PRIVATE_SQL',{status:500}),
+  new Response(JSON.stringify({ok:true}),{status:200}),
+  new Response(null,{status:204,headers:{'cache-control':'public'}}),
+  Object.defineProperty(new Response(null,{status:204,headers:{'cache-control':'no-store'}}),
+   'body',{value:new ReadableStream()}),
+ ]){
+  const client=createM1StagingSelfClient({
+   enabled:true,baseUrl:origin,appId:'starry-id',
+   getSessionBearer:async()=> 'a'.repeat(48),
+   fetchImpl:async()=>reply,
+  });
+  await assert.rejects(client.logout(),e=>{
+   assert.match(e.message,/^STARRY_SELF_(?:UNAVAILABLE|RESPONSE_INVALID)$/);
+   assert.doesNotMatch(e.message,/PRIVATE|SQL/);
+   return true;
+  });
+ }
+ const redirected=new Response(null,{status:204,headers:{'cache-control':'no-store'}});
+ Object.defineProperty(redirected,'url',{value:'https://foreign.invalid/v1/starry-id/sessions/logout'});
+ const client=createM1StagingSelfClient({
+  enabled:true,baseUrl:origin,appId:'starry-id',
+  getSessionBearer:async()=> 'a'.repeat(48),
+  fetchImpl:async()=>redirected,
+ });
+ await assert.rejects(client.logout(),/STARRY_SELF_RESPONSE_INVALID/);
+});
