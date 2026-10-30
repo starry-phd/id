@@ -11,6 +11,7 @@ import type {SessionSigningKey} from './session-crypto.ts';
 import type {D1Database,D1Prepared,D1Result} from './d1-ports.ts';
 import type {TrustedScope} from './index.ts';
 import {createLocalOnlyVNextTypedSelfProfileHandler} from './w3-local-vnext-typed-self-profile.ts';
+import type {M1VerifierBinding,M1VerifierCustody} from './m1-oauth-verifier-custody.ts';
 
 export const M1_AUTH_LIVE_ENABLED = false as const;
 export const M1_AUTH_CONTRACT = 'starry.ai1.m1.oauth-session.local-v1' as const;
@@ -28,6 +29,9 @@ type Dependencies = Readonly<{
   authDb:M1WriteDatabase;
   provider:PinnedOidcProvider;
   exchangeCode:Exchange;
+  /** Optional for backward-compatible local fixtures; REQUIRED for approved remote wiring. */
+  verifierCustody?:M1VerifierCustody;
+  requireSealedVerifier?:boolean;
   /** Key provider must be server-owned, non-extractable, rotated, never HTTP. */
   activeKey:()=>Promise<SessionSigningKey>;
   getVerificationKey:(kid:string)=>Promise<CryptoKey|null>;
@@ -78,6 +82,9 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
     !deps.authDb||typeof deps.authDb.prepare!=='function'||typeof deps.authDb.batch!=='function'||
     typeof deps.exchangeCode!=='function'||typeof deps.activeKey!=='function'||
     typeof deps.now!=='function'||typeof deps.getVerificationKey!=='function'||
+    (deps.verifierCustody!==undefined &&
+      (typeof deps.verifierCustody.seal!=='function'||typeof deps.verifierCustody.open!=='function'))||
+    (deps.requireSealedVerifier===true&&!deps.verifierCustody)||
     !provider||!id.test(provider.clientId)||
     !['google','apple'].includes(provider.provider)||
     (provider.provider==='apple'&&provider.issuer!=='https://appleid.apple.com')||
@@ -103,8 +110,15 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
         r.client_id!==provider.clientId||r.app_id!==scope.app_id||
         r.environment!==scope.environment||!validTime(r.expires_at)||
         (r.consumed_at!==null&&!validTime(r.consumed_at)))return null;
+      // AES-GCM AAD binds exact state/provider/client/app/env/expiry; a DB row
+      // mutation or removed key fails closed before consuming OAuth state.
+      const binding:M1VerifierBinding={state:r.state,provider:r.provider,
+        clientId:r.client_id,appId:r.app_id,environment:r.environment,expiresAt:r.expires_at};
+      const verifier=deps.verifierCustody?
+        await deps.verifierCustody.open(r.code_verifier,binding):r.code_verifier;
+      if(typeof verifier!=='string'||!/^[A-Za-z0-9._~-]{43,128}$/.test(verifier))return null;
       return {state:r.state,provider:r.provider,clientId:r.client_id,
-        codeVerifier:r.code_verifier,codeChallenge:r.code_challenge,nonce:r.nonce,
+        codeVerifier:verifier,codeChallenge:r.code_challenge,nonce:r.nonce,
         appId:r.app_id,environment:r.environment,expiresAt:r.expires_at,consumedAt:r.consumed_at};
     },
     async consumeAttemptCAS(state,callbackProvider,now){
@@ -131,8 +145,16 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
         const nonce=bytesToBase64url(bytes[2]);
         const challenge=bytesToBase64url(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier))));
         const issuedAt=deps.now();if(!validTime(issuedAt)||issuedAt<now||issuedAt>now+30)return null;
+        const expiresAt=issuedAt+180;
+        const binding:M1VerifierBinding={state,provider:provider.provider,
+          clientId:provider.clientId,appId:scope.app_id,environment:scope.environment,expiresAt};
+        const storedVerifier=deps.verifierCustody?
+          await deps.verifierCustody.seal(verifier,binding):verifier;
+        if(typeof storedVerifier!=='string'||storedVerifier.length<43||storedVerifier.length>512)return null;
+        const afterSeal=deps.now();
+        if(!validTime(afterSeal)||afterSeal<issuedAt||afterSeal>issuedAt+30)return null;
         const written=await deps.authDb.prepare('INSERT INTO starry_m1_oauth_attempts(state,provider,client_id,code_verifier,code_challenge,nonce,app_id,environment,expires_at,consumed_at) VALUES(?,?,?,?,?,?,?,?,?,NULL)')
-          .bind(state,provider.provider,provider.clientId,verifier,challenge,nonce,scope.app_id,scope.environment,issuedAt+180).run();
+          .bind(state,provider.provider,provider.clientId,storedVerifier,challenge,nonce,scope.app_id,scope.environment,expiresAt).run();
         if(written.success===false||written.meta?.changes!==1)return null;
         return Object.freeze({state,codeChallenge:challenge,nonce,provider:provider.provider});
       }catch{return null;}
