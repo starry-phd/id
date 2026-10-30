@@ -10,8 +10,9 @@ import {
  createM1StagingSelfClient,
 } from '../../../packages/sdk/src/m1-staging-self-client.ts';
 import {
- createM2DeletionRequestClient,
+ createM2DeletionRequestClient,M2DeletionClientError,
 } from '../../../packages/sdk/src/m2-local-deletion-request-client.ts';
+import type {M2DeletionPort} from '../../../packages/sdk/src/m2-local-deletion-request-client.ts';
 
 export const M1_MEMBER_PORTS_LIVE_ENABLED=false as const;
 export type M1MemberPortsConfig=Readonly<{
@@ -49,9 +50,56 @@ export function createM1SessionBoundMemberPorts(config:M1MemberPortsConfig){
   profile:createM1StagingSelfClient({
    enabled,appId:'starry-id',baseUrl,getSessionBearer,fetchImpl,
   }),
+  // Raw M2 port remains for existing local integration fixtures only.
+  // A member-bound screen MUST use deletionForUser instead: otherwise a
+  // Session switch between rendering and pressing the FIRST confirmation
+  // could submit a request for the newly signed-in member.
   deletion:createM2DeletionRequestClient({
    enabled,appId:'starry-id',environment:'staging',
    baseUrl,getSessionBearer,fetchImpl,
   }),
+  deletionForUser(expectedUserId:string):M2DeletionPort{
+   // Capture the screen owner's immutable identity, not a mutable DI getter.
+   // This id must come from the existing signed-Session getSelf() response.
+   if(typeof expectedUserId!=='string'||
+      !/^[A-Za-z0-9._:-]{1,180}$/.test(expectedUserId))
+    throw new M2DeletionClientError('UNAUTHORIZED');
+   const withOwner=async <T>(send:(port:M2DeletionPort)=>Promise<T>):Promise<T>=>{
+    if(!enabled)throw new M2DeletionClientError('DISABLED');
+    let bearer:string|null;
+    try{bearer=await getSessionBearer();}
+    catch{throw new M2DeletionClientError('SESSION_REQUIRED');}
+    if(!bearer)throw new M2DeletionClientError('SESSION_REQUIRED');
+    // Both preflight and deletion mutation use this one volatile bearer.
+    // No token is persisted, refreshed, copied to a component, or re-read
+    // from Auth midway through the operation.
+    const sameBearer=async()=>bearer;
+    try{
+     const self=await createM1StagingSelfClient({
+      enabled:true,appId:'starry-id',baseUrl,
+      getSessionBearer:sameBearer,fetchImpl,
+     }).getSelf();
+     if(self.s_user_id!==expectedUserId)
+      throw new M2DeletionClientError('UNAUTHORIZED');
+    }catch(error){
+     if(error instanceof M2DeletionClientError)throw error;
+     const code=error instanceof Error?error.message:'';
+     throw new M2DeletionClientError(
+      code==='STARRY_SELF_UNAUTHORIZED'?'UNAUTHORIZED':
+      code==='STARRY_SELF_SESSION_REQUIRED'?'SESSION_REQUIRED':
+      code==='STARRY_SELF_RESPONSE_INVALID'?'INVALID_RESPONSE':'UNAVAILABLE');
+    }
+    const current=createM2DeletionRequestClient({
+     enabled:true,appId:'starry-id',environment:'staging',baseUrl,
+     getSessionBearer:sameBearer,fetchImpl,
+    });
+    return send(current);
+   };
+   return Object.freeze({
+    getStatus:()=>withOwner(port=>port.getStatus()),
+    requestDeletion:()=>withOwner(port=>port.requestDeletion()),
+    confirmDeletion:(requestId:string)=>withOwner(port=>port.confirmDeletion(requestId)),
+   });
+  },
  });
 }
