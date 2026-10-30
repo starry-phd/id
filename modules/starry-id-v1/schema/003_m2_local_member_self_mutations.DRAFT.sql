@@ -20,7 +20,8 @@ CREATE INDEX IF NOT EXISTS idx_starry_m2_member_audit_member
 
 CREATE TRIGGER IF NOT EXISTS starry_m2_profile_update_audit
 AFTER UPDATE OF profile_revision ON starry_members
-WHEN NEW.profile_revision = OLD.profile_revision+1
+WHEN NEW.status='active' AND OLD.status='active'
+  AND NEW.profile_revision = OLD.profile_revision+1
 BEGIN
   INSERT INTO starry_m2_member_mutation_audit
     (event_id,event_type,s_user_id,session_id,app_id,environment,profile_revision,created_at)
@@ -41,6 +42,9 @@ BEGIN
      NEW.session_id,NEW.app_id,NEW.environment,NULL,NEW.revoked_at);
 END;
 
+-- Account deletion is NOT a profile-update event; deleted/suspended status
+-- transitions do not activate the profile audit trigger. M2 lawful delete
+-- outbox/anti-PITR workflow remains a separate unapproved mechanism.
 -- Audit stores neither display_name nor bearer/refresh/provider identifiers.
 -- Trigger failure (collision/FK/SQL) ABORTs source change in the SAME statement.
 -- Physical D1 env, future outbox/ACK, retention and anti-PITR are separate Gates.
