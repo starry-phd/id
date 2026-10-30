@@ -524,7 +524,7 @@ test('first verified Google subject registers new private member, CAS owns ONLY 
   assert.ok(issued.s_user_id.startsWith('su-'));
   assert.notEqual(issued.s_user_id,'u1');
   const old=f.db.prepare('SELECT display_name,profile_revision FROM starry_members WHERE s_user_id=?').get('u1');
-  assert.deepEqual(old,{display_name:'Registered Member',profile_revision:1});
+  assert.deepEqual({...old},{display_name:'Registered Member',profile_revision:1});
   const created=await x.flow.readSelf(x.self(issued.bearer));
   assert.deepEqual(await created.json(),{
    s_user_id:issued.s_user_id,display_name:null,
@@ -534,7 +534,7 @@ test('first verified Google subject registers new private member, CAS owns ONLY 
   assert.equal(changed.status,200);
   const record=f.db.prepare('SELECT display_name,profile_revision FROM starry_members WHERE s_user_id=?').get(issued.s_user_id);
   assert.equal(record.display_name,'Self Only');assert.equal(record.profile_revision,2);
-  assert.deepEqual(f.db.prepare('SELECT display_name,profile_revision FROM starry_members WHERE s_user_id=?').get('u1'),old);
+  assert.deepEqual({...f.db.prepare('SELECT display_name,profile_revision FROM starry_members WHERE s_user_id=?').get('u1')},{...old});
   assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_m1_audit_intents').get().n,2);
   assert.equal(f.db.prepare('SELECT count(*) AS n FROM starry_m2_member_mutation_audit').get().n,1);
  }finally{f.close();}
