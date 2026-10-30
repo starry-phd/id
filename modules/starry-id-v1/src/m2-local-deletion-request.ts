@@ -168,11 +168,20 @@ const confirmRequest=`UPDATE starry_m2_deletion_requests SET
 
 export function createM2LocalDeletionRequestHandler(deps:Deps){
  const scope=Object.freeze({...deps?.serverScope});
+ // Trusted DI may be a mutable JS object even with Readonly<T> at compile
+ // time. Pin every authority and method BEFORE an awaited key/DB operation.
+ const sourceDb=deps?.authDb;
+ const getVerificationKey=deps?.getVerificationKey;
+ const now=deps?.now;
+ const randomBytes=deps?.randomBytes;
  if(scope.brand_id!=='starry'||scope.app_id!=='starry-id'||
   !['development','staging'].includes(scope.environment)||
-  !deps.authDb||typeof deps.authDb.prepare!=='function'||
-  typeof deps.getVerificationKey!=='function'||typeof deps.now!=='function')
+  !sourceDb||typeof sourceDb.prepare!=='function'||
+  typeof getVerificationKey!=='function'||typeof now!=='function')
   throw Error('M2_DELETE_REQUEST_CONFIGURATION_DENIED');
+ const authDb:D1Database=Object.freeze({
+  prepare:sourceDb.prepare.bind(sourceDb),
+ });
  let origin:URL;
  try{origin=new URL(deps.expectedOrigin);}catch{throw Error('M2_DELETE_REQUEST_ORIGIN_DENIED');}
  if(origin.protocol!=='https:'||origin.username||origin.password||
@@ -181,12 +190,12 @@ export function createM2LocalDeletionRequestHandler(deps:Deps){
  const enabled=deps.enabled===true;
  const authenticate=createOfflineStarryRequestAuthBoundary({
   enabled,serverScope:scope,expectedOrigin:origin.origin,
-  authDb:deps.authDb,getVerificationKey:deps.getVerificationKey,
+  authDb,getVerificationKey,
  });
  const verifySession=createVerifiedSignedSession({
-  scope,getKey:deps.getVerificationKey,
+  scope,getKey:getVerificationKey,
  });
- const random=deps.randomBytes??(n=>crypto.getRandomValues(new Uint8Array(n)));
+ const random=randomBytes??(n=>crypto.getRandomValues(new Uint8Array(n)));
  return Object.freeze({
   contract:M2_DELETE_REQUEST_CONTRACT,
   local_only:true as const,
@@ -218,9 +227,11 @@ export function createM2LocalDeletionRequestHandler(deps:Deps){
    if(check&&request.body!==null)return error(400,'REQUEST_DENIED');
    const bearer=bearerPattern.exec(request.headers.get('authorization')??'');
    if(!bearer)return error(401,'IDENTITY_DENIED');
-   const startedAt=deps.now();
-   if(!timestamp(startedAt))return error(503,'SERVICE_UNAVAILABLE');
    try{
+    // Trusted time itself may throw; own the exception boundary instead of
+    // letting a raw Promise rejection leak via an unapproved HTTP wrapper.
+    const startedAt=now();
+    if(!timestamp(startedAt))return error(503,'SERVICE_UNAVAILABLE');
     const principal=await authenticate.authenticate(request,startedAt);
     if(!isTrustedPrincipal(principal))return error(401,'IDENTITY_DENIED');
     const verified=await verifySession(bearer[1],startedAt);
@@ -234,7 +245,7 @@ export function createM2LocalDeletionRequestHandler(deps:Deps){
     }
     const key=check?'check':exactBody(body,first?'first':'second');
     if(!key)return error(400,'CONFIRMATION_DENIED');
-    const atWrite=deps.now();
+    const atWrite=now();
     if(!timestamp(atWrite)||atWrite<startedAt||atWrite>startedAt+30||
       atWrite>=principal.expires_at)
       return error(401,'IDENTITY_DENIED');
@@ -243,7 +254,7 @@ export function createM2LocalDeletionRequestHandler(deps:Deps){
      principal.session_id,scope.app_id,scope.environment,atWrite,
      verified.provider,verified.provider_subject,
     ] as const;
-    const get=()=>deps.authDb.prepare(selectRequest).bind(
+    const get=()=>authDb.prepare(selectRequest).bind(
      principal.s_user_id,scope.app_id,scope.environment,...fence,
     ).first<Row>();
     if(check){
@@ -253,7 +264,7 @@ export function createM2LocalDeletionRequestHandler(deps:Deps){
     if(first){
      // SINGLE SQLite INSERT: trigger audits atomically, unique member/app/env
      // ensures even parallel first confirmations share exactly one row.
-     const inserted=await deps.authDb.prepare(insertRequest).bind(
+     const inserted=await authDb.prepare(insertRequest).bind(
       randomId(random),scope.app_id,scope.environment,atWrite,...fence,
      ).first<Row>();
      if(inserted&&!goodRow(inserted))return error(503,'SERVICE_UNAVAILABLE');
@@ -262,7 +273,7 @@ export function createM2LocalDeletionRequestHandler(deps:Deps){
     }
     // The second confirmation references the first response's opaque ID.
     // UPDATE RETURNING is a CAS oracle unaffected by AFTER UPDATE triggers.
-    const changed=await deps.authDb.prepare(confirmRequest).bind(
+    const changed=await authDb.prepare(confirmRequest).bind(
      atWrite,key,principal.s_user_id,scope.app_id,scope.environment,...fence,
     ).first<Row>();
     if(changed&&!goodRow(changed))return error(503,'SERVICE_UNAVAILABLE');
