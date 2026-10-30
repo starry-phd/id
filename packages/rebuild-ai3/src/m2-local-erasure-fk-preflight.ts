@@ -175,7 +175,13 @@ export function inspectLocalMemberErasureForeignKeys(
  */
 export type LocalM2DeletionChainReview = Readonly<{
   status: 'quarantined_source_review';
+  /** FK graph shape only; NOT proof of original DDL, triggers or legal provenance. */
   schema_chain_verified: boolean;
+  /** Every joined 004 event agrees with its request's app + environment. */
+  audit_scope_verified: boolean;
+  /** Aggregate only; no request/member/event identifiers are returned. */
+  audit_scope_mismatch_count: number;
+  /** False for any scope mismatch, FK fault or missing source schema. */
   counts_verified: boolean;
   foreign_keys_enforced: boolean;
   referential_integrity_ok: boolean;
@@ -193,6 +199,7 @@ export type LocalM2DeletionChainReview = Readonly<{
     'ACCOUNT_NOT_PRESENT' |
     'UNVERIFIED_DELETION_FK_CHAIN' |
     'INCOMPLETE_DELETION_REQUEST_AUDIT' |
+    'DELETION_AUDIT_SCOPE_MISMATCH' |
     'DELETION_REQUEST_ROWS_REMAIN' |
     'LEGAL_DISPOSITION_NOT_APPROVED' |
     'EXTERNAL_ERASURE_AND_PITR_UNVERIFIED'
@@ -261,6 +268,7 @@ export function inspectLocalM2DeletionRequestChain(
     count(db.prepare('SELECT COUNT(*) AS n FROM starry_members WHERE s_user_id = ?')
       .get(memberRef)) === 1;
   let requestCount = 0, awaiting = 0, pending = 0, first = 0, second = 0;
+  let auditScopeMismatches = 0;
   if (countsVerified && presentMember) {
     requestCount = count(db.prepare(
       'SELECT COUNT(*) AS n FROM starry_m2_deletion_requests WHERE s_user_id = ?')
@@ -277,6 +285,17 @@ export function inspectLocalM2DeletionRequestChain(
       'WHERE r.s_user_id = ? AND a.event_type = ?';
     first = count(db.prepare(auditSql).get(memberRef, 'first_confirmation_received'));
     second = count(db.prepare(auditSql).get(memberRef, 'second_confirmation_received'));
+    // 004's FK links only request_id. Both tables independently CHECK their
+    // app/environment, so FK_check and per-event counts alone cannot detect
+    // a staging request whose audit event was changed to development.
+    // Compare *every* event (both first and second) to its owner request.
+    // SQLite IS NOT includes NULL differences if a future schema drifts.
+    auditScopeMismatches = count(db.prepare(
+      'SELECT COUNT(*) AS n FROM starry_m2_deletion_request_audit a ' +
+      'JOIN starry_m2_deletion_requests r ON a.request_id = r.request_id ' +
+      'WHERE r.s_user_id = ? AND ' +
+      '(a.app_id IS NOT r.app_id OR a.environment IS NOT r.environment)'
+    ).get(memberRef));
   }
   const blockers: LocalM2DeletionChainReview['blockers'][number][] = [];
   if (!complete) blockers.push('SOURCE_SCHEMA_INCOMPLETE');
@@ -284,6 +303,8 @@ export function inspectLocalM2DeletionRequestChain(
   if (!integrity) blockers.push('REFERENTIAL_INTEGRITY_FAILURE');
   if (!presentMember) blockers.push('ACCOUNT_NOT_PRESENT');
   if (!schemaVerified) blockers.push('UNVERIFIED_DELETION_FK_CHAIN');
+  if (countsVerified && presentMember && auditScopeMismatches > 0)
+    blockers.push('DELETION_AUDIT_SCOPE_MISMATCH');
   if (countsVerified && presentMember &&
     (requestCount !== awaiting + pending || first !== requestCount ||
       second !== pending))
@@ -296,7 +317,9 @@ export function inspectLocalM2DeletionRequestChain(
   return Object.freeze({
     status: 'quarantined_source_review' as const,
     schema_chain_verified: schemaVerified,
-    counts_verified: countsVerified && presentMember,
+    audit_scope_verified: countsVerified && presentMember && auditScopeMismatches === 0,
+    audit_scope_mismatch_count: auditScopeMismatches,
+    counts_verified: countsVerified && presentMember && auditScopeMismatches === 0,
     foreign_keys_enforced: enforced,
     referential_integrity_ok: integrity,
     member_present: presentMember,
