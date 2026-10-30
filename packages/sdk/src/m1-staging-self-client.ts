@@ -187,7 +187,7 @@ export function createM1StagingSelfClient(config:M1StagingSelfConfig) {
     if(response.status===400||response.status===415)
      throw Error('STARRY_SELF_FIELDS_DENIED');
     if(response.status!==200)throw Error('STARRY_SELF_UNAVAILABLE');
-    if(!/^application\\/json(?:\\s*;\\s*charset\\s*=\\s*utf-8)?\\s*$/i
+    if(!/^application\/json(?:\s*;\s*charset\s*=\s*utf-8)?\s*$/i
         .test(response.headers.get('content-type')??''))
      throw Error('STARRY_SELF_RESPONSE_INVALID');
     requireNoStore(response);
