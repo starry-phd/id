@@ -125,6 +125,8 @@ function ownFieldSnapshot<T extends string>(
 }
 export function createVerifiedOidcCallback(deps:Readonly<{
   config:PinnedOidcProvider; appId:string; environment:OAuthAttempt['environment']; backend:TrustedOAuthBackend;
+  /** Server-owned JWKS; fetch only after durable OAuth state + PKCE checks. */
+  getVerificationProvider?:()=>Promise<PinnedOidcProvider|null>;
 }>) {
   // Capture the caller's pinned provider, JWKS and trusted backend functions
   // ONCE at construction; no await may shift an authorized issuer or CAS port.
@@ -139,6 +141,10 @@ export function createVerifiedOidcCallback(deps:Readonly<{
   } as PinnedOidcProvider;
   const appId=deps.appId,environment=deps.environment;
   const backend=deps.backend;
+  const getVerificationProvider=deps.getVerificationProvider;
+  if(getVerificationProvider!==undefined&&
+    (typeof getVerificationProvider!=='function'||config.provider!=='google'))
+    throw Error('OIDC_CALLBACK_CONFIGURATION_DENIED');
   if(!backend||typeof backend.readAttempt!=='function'||
     typeof backend.consumeAttemptCAS!=='function'||
     typeof backend.exchangeCode!=='function')
@@ -152,6 +158,7 @@ export function createVerifiedOidcCallback(deps:Readonly<{
     const input=ownFieldSnapshot(untrusted,['code','state'],true);
     if(!input||
        typeof input.code!=='string'||!/^.{1,2048}$/.test(input.code)||
+       /[\u0000-\u001f\u007f]/.test(input.code)||
        typeof input.state!=='string'||!(/^[A-Za-z0-9_-]{32,256}$/).test(input.state))
       return null;
     const {code,state}=input;
@@ -170,6 +177,20 @@ export function createVerifiedOidcCallback(deps:Readonly<{
         tx.environment!==environment||tx.consumedAt!==null||
         !Number.isSafeInteger(tx.expiresAt)||tx.expiresAt<=now||
         !await verifyPkceS256(tx.codeVerifier,tx.codeChallenge))return null;
+      // Only a real, scoped, unconsumed, PKCE-valid attempt may fetch JWKS.
+      // Wrong/random/replayed state never consumes Google public-key traffic.
+      let verificationProvider=config;
+      if(getVerificationProvider){
+        const fresh=await getVerificationProvider();
+        if(!fresh||fresh.provider!==config.provider||
+          fresh.clientId!==config.clientId||fresh.issuer!==config.issuer||
+          !Array.isArray(fresh.jwks)||fresh.jwks.length<1||fresh.jwks.length>8)
+          return null; // Fail closed without static-key fallback.
+        verificationProvider={
+          provider:config.provider,clientId:config.clientId,issuer:config.issuer,
+          jwks:fresh.jwks.map(jwk=>({...jwk,key_ops:jwk.key_ops?[...jwk.key_ops]:undefined})),
+        };
+      }
       // One-winner atomic consume before exchanging. Use exactly the state,
       // provider, verifier and code that were just checked (never re-read).
       if(!await consumeAttemptCAS(tx.state,tx.provider,now))return null;
@@ -177,7 +198,7 @@ export function createVerifiedOidcCallback(deps:Readonly<{
         provider:tx.provider,code,clientId:tx.clientId,verifier:tx.codeVerifier,
       });
       return exchange && await verifySignedOidcIdToken(exchange.idToken,{
-        issuer:config,nonce:tx.nonce,now,
+        issuer:verificationProvider,nonce:tx.nonce,now,
       });
     }catch{return null;}
   };
