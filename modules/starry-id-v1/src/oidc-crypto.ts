@@ -158,6 +158,7 @@ export function createVerifiedOidcCallback(deps:Readonly<{
     const input=ownFieldSnapshot(untrusted,['code','state'],true);
     if(!input||
        typeof input.code!=='string'||!/^.{1,2048}$/.test(input.code)||
+       /[\u0000-\u001f\u007f]/.test(input.code)||
        typeof input.state!=='string'||!(/^[A-Za-z0-9_-]{32,256}$/).test(input.state))
       return null;
     const {code,state}=input;
