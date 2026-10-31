@@ -97,9 +97,17 @@ export function createM1SessionBoundMemberPorts(config:M1MemberPortsConfig){
     try{bearer=await getSessionBearer();}
     catch{throw new M2DeletionClientError('SESSION_REQUIRED');}
     if(!bearer)throw new M2DeletionClientError('SESSION_REQUIRED');
-    // Both preflight and deletion mutation use this one volatile bearer.
-    // No token is persisted, refreshed, copied to a component, or re-read
-    // from Auth midway through the operation.
+    // The server authenticates every request with ONE captured A bearer.
+    // Re-read the ONLY Auth owner solely to prove A is STILL selected;
+    // never switch the mutation to a newly signed-in B, even when both
+    // Sessions happen to belong to the same member.
+    const stillSelected=async():Promise<void>=>{
+     let now:string|null;
+     try{now=await getSessionBearer();}
+     catch{throw new M2DeletionClientError('SESSION_REQUIRED');}
+     if(!now)throw new M2DeletionClientError('SESSION_REQUIRED');
+     if(now!==bearer)throw new M2DeletionClientError('UNAUTHORIZED');
+    };
     const sameBearer=async()=>bearer;
     try{
      const self=await createM1StagingSelfClient({
@@ -116,11 +124,29 @@ export function createM1SessionBoundMemberPorts(config:M1MemberPortsConfig){
       code==='STARRY_SELF_SESSION_REQUIRED'?'SESSION_REQUIRED':
       code==='STARRY_SELF_RESPONSE_INVALID'?'INVALID_RESPONSE':'UNAVAILABLE');
     }
+    // A can switch to B while the preflight GET awaits its response.
+    // This check stops an unwanted POST before it even reaches the SDK.
+    await stillSelected();
+    // Recheck immediately at the actual transport dispatch, including
+    // getStatus, request and second confirmation; a screen's original
+    // member-id check is NOT sufficient after a Session switch.
+    const guardedFetch:typeof fetch=async(input,init)=>{
+     await stillSelected();
+     return (fetchImpl??fetch)(input,init);
+    };
     const current=createM2DeletionRequestClient({
      enabled:true,appId:'starry-id',environment:'staging',baseUrl,
-     getSessionBearer:sameBearer,fetchImpl,
+     getSessionBearer:sameBearer,fetchImpl:guardedFetch,
     });
-    return send(current);
+    // Once a POST is dispatched the client cannot undo a legitimate A
+    // server mutation. Never deliver its late receipt to the current B UI.
+    const outcome=await send(current).then(
+     value=>({ok:true as const,value}),
+     error=>({ok:false as const,error}),
+    );
+    await stillSelected();
+    if(!outcome.ok)throw outcome.error;
+    return outcome.value;
    };
    return Object.freeze({
     getStatus:()=>withOwner(port=>port.getStatus()),
