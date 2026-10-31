@@ -101,7 +101,7 @@ test('native root receives OS link once, shows self, logs out, and disposes ONE 
   ['/v1/starry-id/sessions/exchange','POST'],
   ['/v1/starry-id/members/me','GET'],
  ]);
- await h.root.profile.logout();
+ await h.root.profile.logout(h.root.sessionRevision());
  assert.equal(h.root.sessionExpiresAt(),null);
  h.root.stop();h.root.stop();
  assert.equal(h.subscribed(),false);
@@ -333,7 +333,7 @@ test('native A logout late 204 cannot show logged-out success on B screen or cle
  }}});
  h.root.start();
  h.emit(url);await settled();
- const oldLogout=h.root.profile.logout();
+ const oldLogout=h.root.profile.logout(h.root.sessionRevision());
  await pendingRevoke;
  h.emit(urlB);await settled();
  finishRevoke(new Response(null,{status:204,headers:{'cache-control':'no-store'}}));
@@ -774,5 +774,85 @@ test('an old A profile-save callback cannot mutate B of the SAME member',async()
   {method:'GET',authorization:'Bearer '+bearerB},
   {method:'PATCH',authorization:'Bearer '+bearerB},
  ]);
+ h.root.stop();
+});
+
+test('stale A logout callback cannot revoke B of the SAME member',async()=>{
+ const codeB='B'.repeat(43);
+ const urlB=app+'#handoff='+codeB;
+ const bearerB='v1.'+'q'.repeat(40)+'.'+'r'.repeat(43);
+ const revoked=[];
+ const h=harness({config:{fetchImpl:async(raw,init)=>{
+  const path=new globalThis.URL(raw).pathname;
+  if(path==='/v1/starry-id/sessions/exchange'){
+   const code=JSON.parse(init.body).handoff_code;
+   return new Response(JSON.stringify({
+    access_token:code===codeB?bearerB:bearer,
+    token_type:'Bearer',expires_at:now+300,
+   }),{status:200,headers:{
+    'content-type':'application/json','cache-control':'no-store',
+   }});
+  }
+  if(path==='/v1/starry-id/sessions/logout'){
+   revoked.push(init.headers.authorization);
+   return new Response(null,{status:204,headers:{
+    'cache-control':'no-store',
+   }});
+  }
+  throw Error('UNEXPECTED_LOGOUT_NETWORK');
+ }}});
+ h.root.start();h.emit(url);await settled();
+ const oldARevision=h.root.sessionRevision();
+ h.emit(urlB);await settled();
+ const currentBRevision=h.root.sessionRevision();
+ assert.notEqual(oldARevision,currentBRevision);
+ await assert.rejects(h.root.profile.logout(oldARevision),
+  /STARRY_SELF_IDENTITY_CHANGED/);
+ await assert.rejects(h.root.profile.logout(),
+  /STARRY_SELF_IDENTITY_CHANGED/);
+ assert.deepEqual(revoked,[],
+  'an old screen must never issue a new POST revoking B');
+ assert.equal(h.root.sessionExpiresAt(),now+300,
+  'B is still the sole live Auth owner');
+ await h.root.profile.logout(currentBRevision);
+ assert.deepEqual(revoked,['Bearer '+bearerB],
+  'only B explicit current-render logout revokes B');
+ assert.equal(h.root.sessionExpiresAt(),null);
+ h.root.stop();
+});
+
+test('native logout switching A to B before async bearer lookup cannot dispatch A or B logout',async()=>{
+ const codeB='B'.repeat(43),urlB=app+'#handoff='+codeB;
+ const bearerB='v1.'+'q'.repeat(40)+'.'+'r'.repeat(43);
+ const revoked=[];
+ const h=harness({config:{fetchImpl:async(raw,init)=>{
+  const path=new globalThis.URL(raw).pathname;
+  if(path==='/v1/starry-id/sessions/exchange'){
+   const code=JSON.parse(init.body).handoff_code;
+   return new Response(JSON.stringify({
+    access_token:code===codeB?bearerB:bearer,
+    token_type:'Bearer',expires_at:now+300,
+   }),{status:200,headers:{
+    'content-type':'application/json','cache-control':'no-store',
+   }});
+  }
+  if(path==='/v1/starry-id/sessions/logout'){
+   revoked.push(init.headers.authorization);
+   return new Response(null,{status:204,headers:{'cache-control':'no-store'}});
+  }
+  throw Error('UNEXPECTED_ASYNC_LOGOUT_NETWORK');
+ }}});
+ h.root.start();h.emit(url);await settled();
+ const oldARevision=h.root.sessionRevision();
+ const pendingA=h.root.profile.logout(oldARevision);
+ // Attach the rejection observer BEFORE switching OS Auth; a genuine
+ // immediate fail-closed rejection must not become a Node unhandledRejection.
+ const rejectedA=assert.rejects(pendingA,
+  /STARRY_SELF_SESSION_REQUIRED|STARRY_SELF_IDENTITY_CHANGED/);
+ h.emit(urlB);await settled();
+ await rejectedA;
+ assert.deepEqual(revoked,[],
+  'an A logout not yet dispatched cannot revoke either signed Session');
+ assert.equal(h.root.sessionExpiresAt(),now+300);
  h.root.stop();
 });

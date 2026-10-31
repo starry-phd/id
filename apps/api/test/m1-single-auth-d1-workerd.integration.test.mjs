@@ -1003,7 +1003,7 @@ test('native Expo root consumes real workerd/D1 OAuth handoff through OS URL eve
    method:'POST',headers:{'content-type':'application/json'},
    body:JSON.stringify({handoff_code:code}),
   })).status,401,'native duplicate callback cannot create a second Session');
-  await root.profile.logout();
+  await root.profile.logout(root.sessionRevision());
   assert.equal(root.sessionExpiresAt(),null);
   assert.equal((await db.prepare(
    "SELECT count(*) AS n FROM starry_sessions WHERE s_user_id='u1' AND revoked_at IS NOT NULL"
@@ -1086,6 +1086,12 @@ test('cached native A deletion UI cannot use new B Session for SAME MEMBER on ge
   assert.equal((await db.prepare(
    'SELECT count(*) AS n FROM starry_m2_deletion_requests'
   ).first()).n,0);
+  // A stale profile button is not authorized to revoke B's signed Session.
+  await assert.rejects(root.profile.logout(oldARevision),
+   /STARRY_SELF_IDENTITY_CHANGED/);
+  assert.equal((await db.prepare(
+   'SELECT count(*) AS n FROM starry_sessions WHERE revoked_at IS NOT NULL'
+  ).first()).n,0,'stale A logout cannot revoke A or B');
   const newBScreen=root.deletionForUser('u1',root.sessionRevision());
   const confirmed=await newBScreen.requestDeletion();
   assert.equal(confirmed.status,'awaiting_second_confirmation');
@@ -1098,6 +1104,10 @@ test('cached native A deletion UI cannot use new B Session for SAME MEMBER on ge
   assert.equal((await db.prepare(
    'SELECT count(*) AS n FROM starry_m2_deletion_request_audit'
   ).first()).n,1);
+  await root.profile.logout(root.sessionRevision());
+  assert.equal((await db.prepare(
+   'SELECT count(*) AS n FROM starry_sessions WHERE revoked_at IS NOT NULL'
+  ).first()).n,1,'only B explicitly logs out');
   root.stop();
   assert.equal(receiver,null);
  });

@@ -175,6 +175,8 @@ test('M1 profile UI always erases stale PII on refresh and session loss, while p
  assert.match(source,/setPhase\(isM1SessionLost\(error\)\?'reauth_required':'error'\)/);
  assert.match(source,/const failure=failedM1SaveScreenState\(error\);[\s\S]*?if\(!failure\.keepDraft\)clearProfile\(\);\s*setPhase\(failure\.phase\);\s*setNotice\(failure\.notice\);/,
   'failed PATCH must hide stale privacy toggles unless fields are rejected');
+ assert.match(source,/await port\.logout\(sessionRevision\)/,
+  'logout must carry exactly the rendered Auth generation');
  assert.match(source,/const failure=failedM1LogoutScreenState\(error\);\s*clearProfile\(\);\s*setPhase\(failure\.phase\);\s*setNotice\(failure\.notice\);/,
   'ambiguous logout must hide PII before offering an authenticated refresh');
  assert.match(source,/phase==='error'\?button\('重新讀取'/,

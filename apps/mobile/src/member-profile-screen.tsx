@@ -12,11 +12,13 @@ import type {MemberProfilePreview} from './member-profile-preview.ts';
 
 export const M1_MEMBER_PROFILE_SCREEN_LIVE_ENABLED=false as const;
 export type MemberProfilePort=Pick<ReturnType<typeof createM1StagingSelfClient>,
- 'getSelf'|'logout'>&Readonly<{
+ 'getSelf'>&Readonly<{
  /** Native Auth checks this token-free render generation before any CAS.
   * Preview fixtures may ignore the additional parameter. */
  patchSelfForUser:(userId:string,profileRevision:number,patch:M1SelfPatch,
   displayedSessionRevision?:number)=>Promise<M1StagingSelf>;
+ /** No stale A screen may revoke a newly signed-in B's Session. */
+ logout:(displayedSessionRevision?:number)=>Promise<void>;
  /** Optional only for still-offline preview; native Auth owner supplies both. */
  getSessionRevision?:()=>number;
  subscribeSessionRevision?:(callback:()=>void)=>()=>void;
@@ -209,7 +211,7 @@ export function MemberProfileScreen({port,enabled,preview=false,previewTools}:Me
   const serial=++generation.current;
   setPhase('logging_out');setNotice('');
   try{
-   await port.logout();
+   await port.logout(sessionRevision);
    if(generation.current===serial){
     clearProfile();
     setPhase('logged_out');setNotice('目前的登入工作階段已登出。');
