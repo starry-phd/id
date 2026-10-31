@@ -109,7 +109,7 @@ test('OS-delivered newer link fences an older pending browser but malformed link
  const stale=owner.startGoogleLogin();
  await owner.acceptReturnUrl(appReturn+'#handoff='+code);
  assert.equal(await owner.getSessionBearer(),bearer);
- await assert.rejects(owner.acceptReturnUrl('https://evil.invalid/oauth/complete#handoff='+code),
+ assert.throws(()=>owner.acceptReturnUrl('https://evil.invalid/oauth/complete#handoff='+code),
   /M1_HANDOFF_RETURN_URL_DENIED/);
  assert.equal(await owner.getSessionBearer(),bearer,'malformed link cannot force logout');
  pending[0]({type:'success',url:appReturn+'#handoff='+code});
