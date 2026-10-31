@@ -2,7 +2,7 @@
  * No public Auth, test bearer, credential storage or fake member data.
  * Receives only the existing, Auth-owned, scoped M1 SDK port.
  */
-import {useCallback,useEffect,useRef,useState} from 'react';
+import {useCallback,useEffect,useRef,useState,useSyncExternalStore} from 'react';
 import {
  ActivityIndicator,Pressable,ScrollView,StyleSheet,Switch,Text,TextInput,View,
 } from 'react-native';
@@ -12,11 +12,13 @@ import type {MemberProfilePreview} from './member-profile-preview.ts';
 
 export const M1_MEMBER_PROFILE_SCREEN_LIVE_ENABLED=false as const;
 export type MemberProfilePort=Pick<ReturnType<typeof createM1StagingSelfClient>,
- 'getSelf'|'patchSelfForUser'|'logout'>;
+ 'getSelf'|'patchSelfForUser'|'logout'>&Readonly<{
+ /** Optional only for still-offline preview; native Auth owner supplies both. */
+ getSessionRevision?:()=>number;
+ subscribeSessionRevision?:(callback:()=>void)=>()=>void;
+ }>;
 export type MemberProfileScreenProps=Readonly<{
  port:MemberProfilePort;enabled:boolean;
- /** Token-free revision from ONE trusted native Auth owner, never a bearer. */
- sessionRevision?:number;
  preview?:boolean;previewTools?:MemberProfilePreview;
 }>;
 type Phase='disabled'|'loading'|'ready'|'saving'|'logging_out'|'logged_out'|'reauth_required'|'error';
@@ -89,7 +91,18 @@ export function isM1CurrentProfileAuthority(
   loaded!==null&&loaded.port===port&&loaded.revision===revision;
 }
 
-export function MemberProfileScreen({port,enabled,sessionRevision=0,preview=false,previewTools}:MemberProfileScreenProps){
+const emptyRevision=()=>0;
+const emptySubscribe=()=>()=>{};
+export function MemberProfileScreen({port,enabled,preview=false,previewTools}:MemberProfileScreenProps){
+ // One port owns both Auth actions and session invalidation. Do not require
+ // the caller to wire a separate notification prop that could be forgotten.
+ const hasRevisionPort=typeof port.getSessionRevision==='function'&&
+  typeof port.subscribeSessionRevision==='function';
+ const sessionRevision=useSyncExternalStore(
+  hasRevisionPort?port.subscribeSessionRevision!:emptySubscribe,
+  hasRevisionPort?port.getSessionRevision!:emptyRevision,
+  hasRevisionPort?port.getSessionRevision!:emptyRevision,
+ );
  const generation=useRef(0);
  const busy=useRef(false);
  const [phase,setPhase]=useState<Phase>(enabled?'loading':'disabled');
