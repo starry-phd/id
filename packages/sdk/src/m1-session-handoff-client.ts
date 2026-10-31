@@ -99,6 +99,11 @@ export function createM1SessionHandoffClient(config:M1SessionHandoffConfig){
  const endpoint=new URL(M1_SESSION_HANDOFF_EXCHANGE_PATH,origin).toString();
  const transport=config.fetchImpl??fetch;
  const now=config.now??(()=>Math.floor(Date.now()/1000));
+ const safeNow=():number=>{
+  const value=now();
+  if(!Number.isSafeInteger(value)||value<0)throw Error('M1_HANDOFF_CLOCK_INVALID');
+  return value;
+ };
  let current:SessionResponse|null=null;
  async function exchange(code:string):Promise<SessionResponse>{
   if(!enabled)throw Error('M1_HANDOFF_DISABLED');
@@ -126,7 +131,7 @@ export function createM1SessionHandoffClient(config:M1SessionHandoffConfig){
     !(response.headers.get('cache-control')??'').toLowerCase()
       .split(',').some(x=>x.trim()==='no-store'))
    throw Error('M1_HANDOFF_RESPONSE_INVALID');
-  const session=validateResponse(await boundedJson(response),now());
+  const session=validateResponse(await boundedJson(response),safeNow());
   return session;
  }
  return Object.freeze({
@@ -147,14 +152,16 @@ export function createM1SessionHandoffClient(config:M1SessionHandoffConfig){
   /** Auth-owned volatile credential supplier; expired tokens are cleared. */
   async getSessionBearer():Promise<string|null>{
    if(!enabled||!current)return null;
-   if(current.expires_at<=now()){current=null;return null;}
+   let timestamp:number;try{timestamp=safeNow();}catch{current=null;return null;}
+   if(current.expires_at<=timestamp){current=null;return null;}
    return current.access_token;
   },
   /** Call only after server logout or explicit account-switch/cancel handling. */
   clearSession():void{current=null;},
   sessionExpiresAt():number|null{
    if(!enabled||!current)return null;
-   if(current.expires_at<=now()){current=null;return null;}
+   let timestamp:number;try{timestamp=safeNow();}catch{current=null;return null;}
+   if(current.expires_at<=timestamp){current=null;return null;}
    return current.expires_at;
   },
  });
