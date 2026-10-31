@@ -1068,19 +1068,25 @@ test('cached native A deletion UI cannot use new B Session for SAME MEMBER on ge
   const aReady=nextStatus();
   receiver({url:appReturn+'#handoff='+codeA});
   assert.deepEqual(await aReady,{type:'authenticated',expires_at:NOW+300});
-  const oldAScreen=root.deletionForUser('u1');
+  const oldARevision=root.sessionRevision();
+  const oldAScreen=root.deletionForUser('u1',oldARevision);
   const bReady=nextStatus();
   receiver({url:appReturn+'#handoff='+codeB});
   assert.deepEqual(await bReady,{type:'authenticated',expires_at:NOW+300});
   // Both local server Sessions are genuinely valid for u1, so merely
   // checking member ID is NOT enough to protect old screen controls.
+  assert.throws(()=>root.deletionForUser('u1',oldARevision),
+   e=>e instanceof M2DeletionClientError&&e.code==='UNAUTHORIZED',
+   'stale A render must not capture B as a new deletion port');
+  assert.throws(()=>root.deletionForUser('u1'),
+   e=>e instanceof M2DeletionClientError&&e.code==='UNAUTHORIZED');
   await assert.rejects(oldAScreen.requestDeletion(),
    e=>e instanceof M2DeletionClientError&&e.code==='UNAUTHORIZED');
   assert.equal(m2Posts,0);
   assert.equal((await db.prepare(
    'SELECT count(*) AS n FROM starry_m2_deletion_requests'
   ).first()).n,0);
-  const newBScreen=root.deletionForUser('u1');
+  const newBScreen=root.deletionForUser('u1',root.sessionRevision());
   const confirmed=await newBScreen.requestDeletion();
   assert.equal(confirmed.status,'awaiting_second_confirmation');
   assert.equal(confirmed.physical_erasure_completed,false);
