@@ -195,3 +195,56 @@ test('expired provider never uses stale JWKS when official HTTP fails; explicit 
  assert.equal(await f.source.getProvider(),null,'no stale-while-error on expired signing keys');
  assert.equal(await f.source.getProvider(),null,'repeated unavailable cannot resurrect key cache');
 });
+
+
+test('Google JWKS body stalled beyond response max-age cannot renew expired signing authority',async()=>{
+ const pair=await signingPair('delayed-key');
+ let unlockBody=null;
+ let bodyRequested;
+ const awaitingBody=new Promise(resolve=>{bodyRequested=resolve;});
+ let requests=0;
+ const source=fixture({keys:[],override:async(url)=>{
+  if(url===M1_GOOGLE_DISCOVERY_URL)return response(discovery);
+  if(url!==M1_GOOGLE_JWKS_URL)throw Error('UNEXPECTED_JWKS_SOURCE');
+  requests++;
+  if(requests>1)return response({keys:[pair.publicKey]},
+   {'cache-control':'public, max-age=10'});
+  const content=new TextEncoder().encode(JSON.stringify({keys:[pair.publicKey]}));
+  const stream=new ReadableStream({
+   pull(controller){
+    bodyRequested();
+    return new Promise(resolve=>{
+     unlockBody=()=>{
+      controller.enqueue(content);
+      controller.close();
+      resolve();
+     };
+    });
+   },
+  },{highWaterMark:0});
+  return new Response(stream,{status:200,headers:{
+   'content-type':'application/json; charset=utf-8',
+   'cache-control':'public, max-age=10',
+  }});
+ }});
+ const stale=source.source.getProvider();
+ await awaitingBody; // The response headers have arrived, but body is pending.
+ assert.equal(typeof unlockBody,'function');
+ source.setTime(start+11); // Google response max-age elapsed before body arrives.
+ unlockBody();
+ assert.equal(await stale,null,
+  'a delayed body must NOT restart a past upstream JWKS TTL');
+ assert.equal(requests,1);
+ const fresh=await source.source.getProvider();
+ assert.equal(fresh?.jwks[0].kid,'delayed-key',
+  'expired result is discarded; a NEW official fetch is necessary');
+ assert.equal(requests,2);
+ source.setTime(start+21);
+ assert.ok(await source.source.getProvider(),
+  'the new response expires only at its own original max-age deadline if within TTL');
+ source.setTime(start+22);
+ assert.ok(await source.source.getProvider(),
+  'another successful fresh source may be obtained after timeout');
+ assert.equal(requests,3,
+  'new response cache ends at its acquisition time plus 10 seconds');
+});
