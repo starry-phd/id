@@ -17,6 +17,7 @@ import {createM1LocalMemberPlatformBridge} from
 import {createM2LocalDeletionRequestHandler} from
   '../../../modules/starry-id-v1/src/m2-local-deletion-request.ts';
 import {createM1GoogleSessionHandoffHttp} from './m1-google-session-handoff-http.ts';
+import {createM1GoogleStartHttp} from './m1-google-start-http.ts';
 
 export const M1_SINGLE_AUTH_HTTP_LIVE_ENABLED = false as const;
 export const M1_SINGLE_AUTH_HTTP_CONTRACT =
@@ -25,6 +26,8 @@ export const M1_SINGLE_AUTH_HTTP_CONTRACT =
 type GoogleDeps = Parameters<typeof createM1M2LocalGoogleFlow>[0] & Readonly<{
   /** Owner-verified HTTPS Universal Link; source-only until app association is proven. */
   appReturnUri?:string;
+  /** Trusted tester admission / Access verifier, invoked BEFORE OAuth state writes. */
+  authStartAdmission?:(request:Request)=>Promise<boolean>;
 }>;
 
 export function createM1SingleAuthHttpComposition(deps:GoogleDeps) {
@@ -44,6 +47,9 @@ export function createM1SingleAuthHttpComposition(deps:GoogleDeps) {
   if(deps.sessionHandoffEnabled!==undefined&&typeof deps.sessionHandoffEnabled!=='boolean')
     throw Error('M1_SINGLE_AUTH_HANDOFF_CONFIGURATION_DENIED');
   const sessionHandoffEnabled=deps.sessionHandoffEnabled===true;
+  const authStartAdmission=deps.authStartAdmission;
+  if(authStartAdmission!==undefined&&typeof authStartAdmission!=='function')
+    throw Error('M1_SINGLE_AUTH_START_ADMISSION_DENIED');
   if(sessionHandoffEnabled&&(!deps.appReturnUri||
     (enabled&&scope.environment!=='staging')))
     throw Error('M1_SINGLE_AUTH_HANDOFF_CONFIGURATION_DENIED');
@@ -78,6 +84,14 @@ export function createM1SingleAuthHttpComposition(deps:GoogleDeps) {
     completeGoogleLoginForApp:auth.completeGoogleLoginForApp,
     redeemSessionHandoff:auth.redeemSessionHandoff,
   }):null;
+  // Start is independently denied unless a trusted admission checker exists.
+  // Never attach this to apps/api/src/index.ts before real staging approval.
+  const startHttp=authStartAdmission&&sessionHandoffEnabled?
+    createM1GoogleStartHttp({enabled,environment:'staging',
+      expectedOrigin,callbackUri:deps.redirectUri,
+      googleClientId:deps.googleProvider.clientId,
+      admitTestRequest:authStartAdmission,beginGoogleLogin:auth.beginGoogleLogin,
+    }):null;
   const handoffDisabled=()=>new Response(JSON.stringify({error:{code:'FEATURE_DISABLED'}}),{
     status:503,headers:{'content-type':'application/json; charset=utf-8',
       'cache-control':'no-store','x-content-type-options':'nosniff'},
@@ -96,6 +110,8 @@ export function createM1SingleAuthHttpComposition(deps:GoogleDeps) {
     public_worker_route_registered:false as const,
     // Server-only primitives. The app-facing callback exposes only a one-time code.
     beginGoogleLogin:()=>auth.beginGoogleLogin(),
+    handleOAuthStart:(request:Request)=>startHttp?
+      startHttp.handle(request):Promise.resolve(handoffDisabled()),
     completeGoogleLogin:(input:unknown)=>auth.completeGoogleLogin(input),
     completeGoogleLoginForApp:(input:unknown)=>auth.completeGoogleLoginForApp(input),
     redeemSessionHandoff:(input:unknown)=>auth.redeemSessionHandoff(input),
