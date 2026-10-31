@@ -45,7 +45,7 @@ export function createM1SingleAuthHttpComposition(deps:GoogleDeps) {
     throw Error('M1_SINGLE_AUTH_HANDOFF_CONFIGURATION_DENIED');
   const sessionHandoffEnabled=deps.sessionHandoffEnabled===true;
   if(sessionHandoffEnabled&&(!deps.appReturnUri||
-    (enabled&&(scope.environment!=='staging'||!deps.googleJwksSource))))
+    (enabled&&scope.environment!=='staging')))
     throw Error('M1_SINGLE_AUTH_HANDOFF_CONFIGURATION_DENIED');
 
   // Capture the trusted configuration once; both handlers are built from the
