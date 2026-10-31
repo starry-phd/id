@@ -35,7 +35,7 @@ export function createM1MobileSessionAuthOwner(config:M1MobileSessionAuthOwnerCo
   baseUrl:config.baseUrl,appReturnUri:config.appReturnUri,
   openLoginBrowser:config.openLoginBrowser,
   acceptReturnUrl:handoff.acceptReturnUrl,
-  clearSession,
+  clearSession:handoff.clearSession,
  });
  // A server-confirmed logout must also cancel an in-flight browser attempt.
  const clearSession=()=>launcher.cancelPendingLogin();
@@ -50,7 +50,7 @@ export function createM1MobileSessionAuthOwner(config:M1MobileSessionAuthOwnerCo
   enabled:config.enabled,appId:config.appId,environment:config.environment,
   baseUrl:config.baseUrl,fetchImpl:config.fetchImpl,
   getSessionBearer:handoff.getSessionBearer,
-  clearSession:handoff.clearSession,
+  clearSession,
  });
  return Object.freeze({
   contract:'starry.ai0.m1.mobile-session-auth-owner.v1' as const,
