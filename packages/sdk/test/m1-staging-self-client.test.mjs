@@ -334,12 +334,13 @@ test('owner-fenced CAS rejects foreign current signed member or stale revision B
  }
 });
 
-test('owner-fenced GET and CAS PATCH use the exact SAME captured bearer, even if Auth owner later rotates',async()=>{
+test('owner-fenced GET and CAS PATCH keep the exact A bearer when Auth owner remains selected',async()=>{
  let reads=0;
  const calls=[];
+ const aBearer='a'.repeat(48);
  const client=createM1StagingSelfClient({
   enabled:true,baseUrl:origin,appId:'starry-id',
-  getSessionBearer:async()=>{reads++;return reads===1?'a'.repeat(48):'b'.repeat(48);},
+  getSessionBearer:async()=>{reads++;return aBearer;},
   fetchImpl:async(url,init)=>{
    calls.push({url,init});
    return new Response(JSON.stringify(init.method==='GET'?dto:{
@@ -352,13 +353,38 @@ test('owner-fenced GET and CAS PATCH use the exact SAME captured bearer, even if
  const changed=await client.patchSelfForUser(dto.s_user_id,2,{display_name:'Safe Change'});
  assert.equal(changed.display_name,'Safe Change');
  assert.equal(changed.profile_revision,3);
- assert.equal(reads,1,'credential supplier must be read only once per fenced mutation');
+ assert.equal(reads,2,'one original Auth owner must be rechecked after the preflight');
  assert.deepEqual(calls.map(x=>x.init.method),['GET','PATCH']);
- assert.equal(calls[0].init.headers.authorization,calls[1].init.headers.authorization);
+ assert.equal(calls[0].init.headers.authorization,'Bearer '+aBearer);
+ assert.equal(calls[1].init.headers.authorization,'Bearer '+aBearer);
  assert.equal(calls[1].init.headers['if-match'],'"rev-2"');
  assert.equal(calls[0].init.credentials,'omit');
  assert.equal(calls[0].init.redirect,'error');
  assert.equal(calls[0].init.cache,'no-store');
+});
+
+test('owner-fenced CAS refuses Session B selected during A GET with zero stale PATCH',async()=>{
+ let reads=0;
+ const calls=[];
+ const client=createM1StagingSelfClient({
+  enabled:true,baseUrl:origin,appId:'starry-id',
+  getSessionBearer:async()=>{reads++;return reads===1?'a'.repeat(48):'b'.repeat(48);},
+  fetchImpl:async(url,init)=>{
+   calls.push({url,init});
+   assert.equal(init.method,'GET','a switched Session cannot send a stale PATCH');
+   return new Response(JSON.stringify(dto),{
+    status:200,headers:{
+     'content-type':'application/json','cache-control':'no-store',
+    },
+   });
+  },
+ });
+ await assert.rejects(client.patchSelfForUser(dto.s_user_id,2,{
+  display_name:'MUST_NOT_DISPATCH',
+ }),error=>error?.message==='STARRY_SELF_IDENTITY_CHANGED');
+ assert.equal(reads,2);
+ assert.deepEqual(calls.map(x=>x.init.method),['GET']);
+ assert.equal(calls[0].init.headers.authorization,'Bearer '+'a'.repeat(48));
 });
 
 test('owner-fenced preflight denies unauthorized and tainted GET before writing',async()=>{
