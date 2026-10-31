@@ -217,10 +217,19 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
      userId,profileRevision,patch,bearer),
     expectedSessionRevision);
   },
-  async logout():Promise<void>{
+  async logout(displayedSessionRevision?:number):Promise<void>{
    if(!enabled)return owner.profile.logout();
    if(!active())throw Error('STARRY_SELF_SESSION_REQUIRED');
-   try{await owner.profile.logout();}
+   // A stale A screen may call logout AFTER new same-member B has logged in.
+   // Member ID and a fresh volatile bearer do not identify A's old render.
+   if(!Number.isSafeInteger(displayedSessionRevision)||
+      displayedSessionRevision!==revision)
+    throw Error('STARRY_SELF_IDENTITY_CHANGED');
+   const originalRevision=revision;
+   const originalBearer=await selected();
+   if(originalRevision!==revision)
+    throw Error('STARRY_SELF_IDENTITY_CHANGED');
+   try{await owner.profile.logout(originalBearer);}
    finally{
     // Whether success or an ambiguous lost 204, the old UI must re-check
     // the only Auth owner before showing any member again.
