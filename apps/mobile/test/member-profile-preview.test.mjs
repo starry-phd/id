@@ -99,7 +99,7 @@ test('simulated authentication loss clears access; logout permanently rejects ol
 });
 
 test('Expo route gates fixture behind __DEV__, preserving production disabled port',()=>{
- const url=new URL('../app/profile.tsx',import.meta.url);
+ const url=new globalThis.URL('../app/profile.tsx',import.meta.url);
  const source=readFileSync(fileURLToPath(url),'utf8');
  assert.match(source,/const preview=__DEV__===true/);
  assert.match(source,/preview\?createMemberProfilePreview\(\):null/);
@@ -107,7 +107,7 @@ test('Expo route gates fixture behind __DEV__, preserving production disabled po
  assert.match(source,/enabled=\{fixture!==null\}/);
  assert.match(source,/STARRY_SELF_DISABLED/);
  const fixtureSource=readFileSync(fileURLToPath(
-  new URL('../src/member-profile-preview.ts',import.meta.url)),'utf8');
+  new globalThis.URL('../src/member-profile-preview.ts',import.meta.url)),'utf8');
  assert.doesNotMatch(fixtureSource,/\bfetch\s*\(/);
  assert.doesNotMatch(fixtureSource,/AsyncStorage|SecureStore|localStorage/);
 });
