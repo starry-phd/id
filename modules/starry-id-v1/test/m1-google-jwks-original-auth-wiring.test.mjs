@@ -170,7 +170,7 @@ test('OAuth browser callback returns only a fragment-bound one-time code; native
   assert.equal(callback.headers.get('referrer-policy'),'no-referrer');
   const location=callback.headers.get('location');
   assert.ok(location?.startsWith(APP_RETURN+'#handoff='));
-  assert.doesNotMatch(location,/v1\\./,'signed bearer must never appear in redirect');
+  assert.doesNotMatch(location,/v1\./,'signed bearer must never appear in redirect');
   const code=new URL(location).hash.slice('#handoff='.length);
   assert.match(code,/^[A-Za-z0-9_-]{43}$/);
   const stored=f.db.prepare('SELECT handoff_hash,session_id,provider,provider_subject,app_id,environment,created_at,expires_at,consumed_at FROM starry_m1_session_handoffs').get();
@@ -185,7 +185,7 @@ test('OAuth browser callback returns only a fragment-bound one-time code; native
   const payload=await response.json();
   assert.deepEqual(Object.keys(payload).sort(),['access_token','expires_at','token_type']);
   assert.equal(payload.token_type,'Bearer');
-  assert.match(payload.access_token,/^v1\\./);
+  assert.match(payload.access_token,/^v1\./);
   assert.equal(payload.expires_at,NOW+300);
   const member=await f.flow.handleMember(new Request(origin+SELF,{
    headers:{authorization:'Bearer '+payload.access_token},
