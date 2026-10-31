@@ -56,12 +56,47 @@ test('real React Native Web profile screen renders owner-safe disabled view, nev
  }
  // SSR never starts a real credential lookup; the profile remains guarded
  // even when a future authorized port explicitly opts into loading.
- const loading=renderToStaticMarkup(React.createElement(
+ const authorized=compiled.exports.isM1ProfilePortAuthorized;
+ assert.equal(authorized(never,true,false,undefined),false,
+  'a bare SDK without Auth revision stream must never read private data');
+ const partial={...never,getSessionRevision:()=>1};
+ assert.equal(authorized(partial,true,false,undefined),false,
+  'missing subscription silently falling back to epoch 0 is forbidden');
+ const partialOther={...never,subscribeSessionRevision:()=>()=>{}};
+ assert.equal(authorized(partialOther,true,false,undefined),false);
+ const native={...never,getSessionRevision:()=>7,
+  subscribeSessionRevision:()=>()=>{}};
+ assert.equal(authorized(native,true,false,undefined),true,
+  'original Auth-owned revision pair enables safe screen');
+ assert.equal(authorized(native,false,false,undefined),false);
+ const local={...never,failNext:()=>{}};
+ assert.equal(authorized(local,true,true,local),true,
+  'only the exact local fixture may omit native Auth subscriptions');
+ assert.equal(authorized(never,true,true,local),false,
+  'a preview label cannot turn an unrelated SDK into a trusted preview');
+ assert.equal(authorized(local,true,false,local),false,
+  'local fixture must not silently become a live member provider');
+ const missingOwner=renderToStaticMarkup(React.createElement(
   compiled.exports.MemberProfileScreen,{port:never,enabled:true},
  ));
+ assert.match(missingOwner,/未取得原登入系統的身分變更通知/);
+ assert.doesNotMatch(missingOwner,/正在安全處理|PRIVATE_USER|PRIVATE_TOKEN|Bearer /);
+ const partialOwner=renderToStaticMarkup(React.createElement(
+  compiled.exports.MemberProfileScreen,{port:partial,enabled:true},
+ ));
+ assert.match(partialOwner,/未取得原登入系統的身分變更通知/);
+ const loading=renderToStaticMarkup(React.createElement(
+  compiled.exports.MemberProfileScreen,{port:native,enabled:true},
+ ));
  assert.match(loading,/正在安全處理/);
- assert.doesNotMatch(loading,/PRIVATE_USER|PRIVATE_TOKEN|Bearer |u1/);
- assert.equal(invoked,0);
+ const previewLoading=renderToStaticMarkup(React.createElement(
+  compiled.exports.MemberProfileScreen,{
+   port:local,enabled:true,preview:true,previewTools:local,
+  },
+ ));
+ assert.match(previewLoading,/正在安全處理/);
+ assert.equal(invoked,0,
+  'neither untrusted live wiring nor SSR may invoke bearer or private GET');
  const logoutFailure=compiled.exports.failedM1LogoutScreenState;
  const ambiguous=logoutFailure(Error('STARRY_SELF_UNAVAILABLE'));
  assert.equal(ambiguous.phase,'error');
@@ -124,12 +159,18 @@ test('M1 profile UI always erases stale PII on refresh and session loss, while p
   'the event source must be the same port as GET/CAS/logout');
  assert.match(source,/port\.getSessionRevision!:emptyRevision/,
   'the current version comes from the same Auth owner');
- assert.match(source,/const profile=isM1CurrentProfileAuthority\(\s*loadedAuthority,port,sessionRevision,enabled\)\?storedProfile:null/,
+ assert.match(source,/const authorized=isM1ProfilePortAuthorized\(port,enabled,preview,previewTools\)/,
+  'screen refuses any unowned port rather than silently using epoch zero');
+ assert.match(source,/const profile=isM1CurrentProfileAuthority\(\s*loadedAuthority,port,sessionRevision,authorized\)\?storedProfile:null/,
   'render-time owner/epoch check prevents one-frame display of A');
  assert.match(source,/setLoadedAuthority\(\{port,revision:sessionRevision\}\)/,
   'loaded data is tagged with exact Auth owner generation');
- assert.match(source,/\},\[enabled,port,sessionRevision,clearProfile\]\)/,
+ assert.match(source,/\},\[authorized,port,sessionRevision,clearProfile\]\)/,
   'fresh verified GET must run after Session revision change');
+ assert.match(source,/if\(!authorized\|\|busy\.current\)return/,
+  'unowned port cannot dispatch private GET');
+ assert.match(source,/if\(!authorized\|\|busy\.current\|\|!profile\|\|phase!=='ready'\)return/,
+  'unowned port cannot dispatch CAS');
  assert.match(source,/clearProfile\(\);\s*setPhase\('loading'\)/);
  assert.match(source,/setPhase\(isM1SessionLost\(error\)\?'reauth_required':'error'\)/);
  assert.match(source,/const failure=failedM1SaveScreenState\(error\);[\s\S]*?if\(!failure\.keepDraft\)clearProfile\(\);\s*setPhase\(failure\.phase\);\s*setNotice\(failure\.notice\);/,
