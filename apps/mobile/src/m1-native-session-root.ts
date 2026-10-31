@@ -31,6 +31,17 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
    (config.enabled===true&&typeof config.openLoginBrowser!=='function'))
   throw Error('M1_NATIVE_ROOT_CONFIG_DENIED');
  const enabled=config.enabled===true;
+ // A stable, token-free revision stream for a mounted member screen.
+ // Every Auth owner switch invalidates its previously rendered profile even
+ // when the member screen's scoped SDK port object stays referentially equal.
+ let revision=0;
+ const revisionListeners=new Set<()=>void>();
+ const advanceRevision=()=>{
+  revision++;
+  for(const callback of revisionListeners){
+   try{callback();}catch{/* observation is not Auth authority */}
+  }
+ };
  const owner=createM1MobileSessionAuthOwner({
   enabled:config.enabled,appId:'starry-id',environment:'staging',
   baseUrl:config.baseUrl,appReturnUri:config.appReturnUri,
@@ -40,7 +51,14 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
  const receiver=createM1NativeLinkReceiver({
   enabled:config.enabled,appId:'starry-id',environment:'staging',
   appReturnUri:config.appReturnUri,
-  owner,linking:config.linking,onStatus:config.onStatus,
+  owner,linking:config.linking,
+  onHandoffStart:advanceRevision,
+  onStatus:status=>{
+   // The new authenticated owner must be re-read from the server; after a
+   // failed exchange the earlier revision already hid the old profile.
+   if(status.type==='authenticated')advanceRevision();
+   try{config.onStatus?.(status);}catch{/* UI callback is not Auth */}
+  },
  });
  let started=false;
  let closed=false;
@@ -104,7 +122,12 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
   async logout():Promise<void>{
    if(!enabled)return owner.profile.logout();
    if(!active())throw Error('STARRY_SELF_SESSION_REQUIRED');
-   await owner.profile.logout();
+   try{await owner.profile.logout();}
+   finally{
+    // Whether success or an ambiguous lost 204, the old UI must re-check
+    // the only Auth owner before showing any member again.
+    if(active())advanceRevision();
+   }
    if(!active())throw Error('STARRY_SELF_SESSION_REQUIRED');
   },
  });
@@ -126,13 +149,29 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
   stop():void{
    if(closed)return;
    closed=true;
+   // Hide any displayed private profile synchronously before the owner is
+   // disposed. Late subscriber exceptions must never stop the teardown.
+   advanceRevision();
    if(started)receiver.stop();
    else owner.clearSession();
    started=false;
+   revisionListeners.clear();
   },
   async startGoogleLogin(){
    if(!active())throw Error('M1_NATIVE_ROOT_INACTIVE');
-   return owner.startGoogleLogin();
+   // A browser switch clears the old bearer BEFORE the browser is opened.
+   // The UI must stop rendering A before B's remote OAuth can resolve.
+   advanceRevision();
+   const outcome=await owner.startGoogleLogin();
+   if(active()&&outcome.status==='authenticated')advanceRevision();
+   return outcome;
+  },
+  /** useSyncExternalStore-compatible, no tokens/PII exposed to UI. */
+  sessionRevision:()=>revision,
+  subscribeSessionRevision(listener:()=>void){
+   if(typeof listener!=='function'||closed)return ()=>{};
+   revisionListeners.add(listener);
+   return ()=>{revisionListeners.delete(listener);};
   },
   /** Only the already-Auth-owned scoped member SDK ports reach the UI. */
   profile,
