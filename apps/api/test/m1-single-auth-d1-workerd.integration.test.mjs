@@ -765,12 +765,13 @@ test('SOURCE-ONLY true local vertical flow: admitted browser start → signed Go
   assert.equal((await db.prepare('SELECT count(*) AS n FROM starry_m1_oauth_attempts').first()).n,0,
    'unauthorized/malformed starts must NOT allocate any D1 OAuth attempt');
   const appReturn='https://app.starry.invalid/oauth/complete';
-  let browserStarts=0,returnedLink=null;
+  let browserStarts=0,returnedLink=null,browserFailure=null;
   const owner=createM1MobileSessionAuthOwner({
    enabled:true,appId:'starry-id',environment:'staging',
    baseUrl:origin,appReturnUri:appReturn,now:()=>NOW,
    fetchImpl:(url,init)=>mf.dispatchFetch(url,init),
    openLoginBrowser:async(startUri,returnUri)=>{
+    try{
     browserStarts++;
     assert.equal(startUri,origin+startPath);
     assert.equal(returnUri,appReturn);
@@ -798,13 +799,15 @@ test('SOURCE-ONLY true local vertical flow: admitted browser start → signed Go
     assert.doesNotMatch(result.location,/v1\./,'Session bearer never in URL');
     returnedLink=result.location;
     return {type:'success',url:returnedLink};
+    }catch(error){browserFailure=error;throw error;}
    },
   });
   assert.equal(owner.source_only,true);
   assert.equal(owner.live_enabled,false);
-  assert.deepEqual(await owner.startGoogleLogin(),{
-   status:'authenticated',expires_at:NOW+300,
-  });
+  let finished;
+  try{finished=await owner.startGoogleLogin();}
+  catch(error){throw browserFailure??error;}
+  assert.deepEqual(finished,{status:'authenticated',expires_at:NOW+300});
   assert.equal(browserStarts,1);
   const bearer=await owner.getSessionBearer();
   assert.match(bearer,/^v1\./);
