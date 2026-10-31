@@ -54,11 +54,15 @@ function trustedUrl(raw:string,kind:'origin'|'callback'|'app'):URL{
  let value:URL;
  try{value=new URL(raw);}catch{throw Error('M1_HANDOFF_URL_DENIED');}
  if(value.protocol!=='https:'||value.username||value.password||
-   value.search||value.hash||value.href!==raw)
+   value.search||value.hash)
   throw Error('M1_HANDOFF_URL_DENIED');
- if(kind==='origin'&&(value.pathname!=='/'||value.href!==value.origin+'/'))
-  throw Error('M1_HANDOFF_URL_DENIED');
- if(kind==='callback'&&(value.pathname!==CALLBACK_PATH))
+ if(kind==='origin'){
+  if(value.pathname!=='/'||(raw!==value.origin&&raw!==value.origin+'/'))
+   throw Error('M1_HANDOFF_URL_DENIED');
+  return value;
+ }
+ if(value.href!==raw)throw Error('M1_HANDOFF_URL_DENIED');
+ if(kind==='callback'&&value.pathname!==CALLBACK_PATH)
   throw Error('M1_HANDOFF_URL_DENIED');
  if(kind==='app'&&value.pathname==='/')
   throw Error('M1_HANDOFF_URL_DENIED');
