@@ -168,6 +168,6 @@ test('valid code shape is checked before network; expiry supplier errors never r
  await assert.rejects(client.acceptReturnUrl(returnUrl('short')),/M1_HANDOFF_RETURN_URL_DENIED/);
  assert.equal(count(),0);
  const badClock=make({now:()=>Number.NaN});
- await badClock.client.acceptReturnUrl(returnUrl());
+ await assert.rejects(badClock.client.acceptReturnUrl(returnUrl()),/M1_HANDOFF_CLOCK_INVALID/);
  assert.equal(await badClock.client.getSessionBearer(),null);
 });
