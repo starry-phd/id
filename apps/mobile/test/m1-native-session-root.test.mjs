@@ -330,3 +330,75 @@ test('native A logout late 204 cannot show logged-out success on B screen or cle
  });
  h.root.stop();
 });
+
+
+test('cached A deletion port cannot submit as B even when both Sessions share SAME member id',async()=>{
+ const codeB='B'.repeat(43);
+ const urlB=app+'#handoff='+codeB;
+ const bearerB='v1.'+'q'.repeat(40)+'.'+'r'.repeat(43);
+ const receipt={request_id:'m2del-'+'e'.repeat(48),
+  status:'awaiting_second_confirmation',first_confirmed_at:now,
+  second_confirmed_at:null,physical_erasure_completed:false,
+  execution_authorized:false};
+ let memberReads=0,deletionPosts=0;
+ const h=harness({config:{fetchImpl:async(raw,init)=>{
+  const path=new globalThis.URL(raw).pathname;
+  if(path==='/v1/starry-id/sessions/exchange'){
+   const code=JSON.parse(init.body).handoff_code;
+   return new Response(JSON.stringify({access_token:code===codeB?bearerB:bearer,
+    token_type:'Bearer',expires_at:now+300}),{status:200,headers:{
+     'content-type':'application/json','cache-control':'no-store',
+   }});
+  }
+  if(path==='/v1/starry-id/members/me'&&init.method==='GET'){
+   memberReads++;
+   assert.equal(init.headers.authorization,'Bearer '+bearerB);
+   return new Response(JSON.stringify(profile),{status:200,headers:{
+    'content-type':'application/json','cache-control':'no-store',
+   }});
+  }
+  if(path==='/v1/starry-id/members/me/deletion-requests'&&init.method==='POST'){
+   deletionPosts++;
+   assert.equal(init.headers.authorization,'Bearer '+bearerB);
+   return new Response(JSON.stringify(receipt),{status:202,headers:{
+    'content-type':'application/json','cache-control':'no-store',
+   }});
+  }
+  throw Error('WRONG_SESSION_OR_UNEXPECTED_M2_NETWORK');
+ }}});
+ h.root.start();h.emit(url);await settled();
+ const staleA=h.root.deletionForUser(profile.s_user_id);
+ assert.equal('getSessionBearer' in staleA,false);
+ h.emit(urlB);await settled();
+ // A and B are distinct signed Sessions for the *same* profile.
+ await assert.rejects(staleA.getStatus(),/UNAUTHORIZED/);
+ await assert.rejects(staleA.requestDeletion(),/UNAUTHORIZED/);
+ await assert.rejects(staleA.confirmDeletion('m2del-'+'e'.repeat(48)),/UNAUTHORIZED/);
+ assert.equal(memberReads,0,'old A port cannot even preflight with B bearer');
+ assert.equal(deletionPosts,0,'old A screen must not trigger any B deletion');
+ const freshB=h.root.deletionForUser(profile.s_user_id);
+ assert.deepEqual(await freshB.requestDeletion(),receipt);
+ assert.equal(memberReads,1);
+ assert.equal(deletionPosts,1);
+ h.root.stop();
+});
+
+test('deletion port taken before login never becomes authorized after a later login',async()=>{
+ let memberRequests=0;
+ const h=harness({config:{fetchImpl:async(raw)=>{
+  const path=new globalThis.URL(raw).pathname;
+  if(path==='/v1/starry-id/sessions/exchange')
+   return new Response(JSON.stringify({access_token:bearer,
+    token_type:'Bearer',expires_at:now+300}),{status:200,headers:{
+     'content-type':'application/json','cache-control':'no-store',
+   }});
+  memberRequests++;
+  throw Error('UNAUTHENTICATED_SCREEN_SHOULD_NEVER_CALL_M2');
+ }}});
+ h.root.start();
+ const beforeLogin=h.root.deletionForUser(profile.s_user_id);
+ h.emit(url);await settled();
+ await assert.rejects(beforeLogin.requestDeletion(),/SESSION_REQUIRED/);
+ assert.equal(memberRequests,0);
+ h.root.stop();
+});

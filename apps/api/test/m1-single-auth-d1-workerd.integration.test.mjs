@@ -950,3 +950,82 @@ test('native Expo root consumes real workerd/D1 OAuth handoff through OS URL eve
   await assert.rejects(root.startGoogleLogin(),/M1_NATIVE_ROOT_INACTIVE/);
  });
 });
+
+
+test('cached native A deletion UI cannot use new B Session for SAME MEMBER on genuine signed Workerd D1',async()=>{
+ await withRealD1(async({mf,db})=>{
+  const a=await finish(mf,await start(mf,'native-cache-A','known-subject'));
+  const b=await finish(mf,await start(mf,'native-cache-B','known-subject'));
+  assert.equal(a.s_user_id,'u1');
+  assert.equal(b.s_user_id,'u1','different Sessions share original server member');
+  assert.notEqual(a.bearer,b.bearer,'signed Session authorities differ');
+  const appReturn='https://app.starry.invalid/oauth/complete';
+  const codeA='A'.repeat(43),codeB='B'.repeat(43);
+  let receiver=null;
+  let statusWake=null;
+  const nextStatus=()=>new Promise(resolve=>{statusWake=resolve;});
+  let m2Posts=0;
+  const root=createM1NativeSessionRoot({
+   enabled:true,appId:'starry-id',environment:'staging',
+   baseUrl:origin,appReturnUri:appReturn,now:()=>NOW,
+   fetchImpl:(url,init)=>{
+    const path=new URL(url).pathname;
+    if(path==='/v1/starry-id/sessions/exchange'){
+     // Local test-only OS-link injection: use original AUTH-signed Workerd
+     // Sessions A/B, not a new mock Auth or any public network handler.
+     const code=JSON.parse(init.body).handoff_code;
+     const signed=code===codeA?a.bearer:code===codeB?b.bearer:null;
+     assert.ok(signed,'unknown local test handoff denied');
+     return Promise.resolve(new Response(JSON.stringify({
+      access_token:signed,token_type:'Bearer',expires_at:NOW+300,
+     }),{status:200,headers:{
+      'content-type':'application/json','cache-control':'no-store',
+     }}));
+    }
+    if(path==='/v1/starry-id/members/me/deletion-requests'&&
+       init.method==='POST')m2Posts++;
+    return mf.dispatchFetch(url,init);
+   },
+   openLoginBrowser:async()=>({type:'cancel'}),
+   linking:{
+    addEventListener(kind,callback){
+     assert.equal(kind,'url');receiver=callback;
+     return {remove(){receiver=null;}};
+    },
+    async getInitialURL(){return null;},
+   },
+   onStatus:status=>{statusWake?.(status);statusWake=null;},
+  });
+  assert.equal(root.live_enabled,false);
+  root.start();
+  const aReady=nextStatus();
+  receiver({url:appReturn+'#handoff='+codeA});
+  assert.deepEqual(await aReady,{type:'authenticated',expires_at:NOW+300});
+  const oldAScreen=root.deletionForUser('u1');
+  const bReady=nextStatus();
+  receiver({url:appReturn+'#handoff='+codeB});
+  assert.deepEqual(await bReady,{type:'authenticated',expires_at:NOW+300});
+  // Both local server Sessions are genuinely valid for u1, so merely
+  // checking member ID is NOT enough to protect old screen controls.
+  await assert.rejects(oldAScreen.requestDeletion(),
+   e=>e instanceof M2DeletionClientError&&e.code==='UNAUTHORIZED');
+  assert.equal(m2Posts,0);
+  assert.equal((await db.prepare(
+   'SELECT count(*) AS n FROM starry_m2_deletion_requests'
+  ).first()).n,0);
+  const newBScreen=root.deletionForUser('u1');
+  const confirmed=await newBScreen.requestDeletion();
+  assert.equal(confirmed.status,'awaiting_second_confirmation');
+  assert.equal(confirmed.physical_erasure_completed,false);
+  assert.equal(confirmed.execution_authorized,false);
+  assert.equal(m2Posts,1);
+  assert.equal((await db.prepare(
+   "SELECT count(*) AS n FROM starry_m2_deletion_requests WHERE s_user_id='u1'"
+  ).first()).n,1);
+  assert.equal((await db.prepare(
+   'SELECT count(*) AS n FROM starry_m2_deletion_request_audit'
+  ).first()).n,1);
+  root.stop();
+  assert.equal(receiver,null);
+ });
+});
