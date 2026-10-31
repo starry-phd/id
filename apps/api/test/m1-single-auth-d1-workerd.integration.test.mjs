@@ -778,7 +778,7 @@ test('SOURCE-ONLY true local vertical flow: admitted browser start → signed Go
     // This header is only a synthetic fixture substitute for a NOT-YET-
     // AVAILABLE independently verified Cloudflare Access/tester gate.
     const browser=await request(mf,startPath,{
-     headers:{'x-test-only-admission':'admitted',
+     redirect:'manual',headers:{'x-test-only-admission':'admitted',
       'x-local-test-oauth-code':'browser-login-code'},
     });
     assert.equal(browser.status,303);
