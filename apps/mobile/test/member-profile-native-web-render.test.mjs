@@ -55,14 +55,16 @@ test('real React Native Web profile screen renders owner-safe disabled view, nev
  assert.doesNotMatch(html,/PRIVATE_USER|PRIVATE_TOKEN|Bearer |local-test-kid|u1|已儲存/);
 });
 
-test('mobile route is explicitly disabled, no dummy Auth or real callback; homepage links the implemented screen',()=>{
+test('mobile route is offline preview in __DEV__ but remains disabled in production; no dummy Auth',()=>{
  const route=readFileSync(new URL('../app/profile.tsx',import.meta.url),'utf8');
  const home=readFileSync(new URL('../app/index.tsx',import.meta.url),'utf8');
- assert.match(route,/enabled=\{false\}/);
+ assert.match(route,/const preview=__DEV__===true/);
+ assert.match(route,/preview\?createMemberProfilePreview\(\):null/);
+ assert.match(route,/port=\{fixture\?\?disabledPort\} enabled=\{fixture!==null\}/);
  assert.match(route,/STARRY_SELF_DISABLED/);
  assert.doesNotMatch(route,/enabled=\{true\}|Bearer v1|test-only-client|localhost|createM1StagingSelfClient/);
  assert.match(home,/href="\/profile"/);
- assert.match(home,/服務尚未啟用/);
+ assert.match(home,/僅開發模式離線演示/);
 });
 
 test('M1 profile UI always erases stale PII on refresh and session loss, while public route remains OFF',()=>{
@@ -75,7 +77,9 @@ test('M1 profile UI always erases stale PII on refresh and session loss, while p
  assert.match(source,/phase==='ready'\?<View style=\{styles.card\}>/);
  assert.match(source,/clearProfile\(\);setNotice\(''\);setPhase\('disabled'\)/);
  const route=readFileSync(new URL('../app/profile.tsx',import.meta.url),'utf8');
- assert.match(route,/enabled=\{false\}/);
+ assert.match(route,/const preview=__DEV__===true/);
+ assert.match(route,/preview\?createMemberProfilePreview\(\):null/);
+ assert.match(route,/port=\{fixture\?\?disabledPort\} enabled=\{fixture!==null\}/);
 });
 
 test('profile SAVE uses owner-fenced SDK only; account switch must erase stale private form',()=>{
@@ -86,5 +90,7 @@ test('profile SAVE uses owner-fenced SDK only; account switch must erase stale p
  assert.match(source,/error\.message==='STARRY_SELF_IDENTITY_CHANGED'/);
  assert.match(source,/if\(isM1SessionLost\(error\)\)\{clearProfile\(\);setPhase\('reauth_required'\);\}/);
  assert.match(route,/async patchSelfForUser\(/);
- assert.match(route,/enabled=\{false\}/);
+ assert.match(route,/const preview=__DEV__===true/);
+ assert.match(route,/preview\?createMemberProfilePreview\(\):null/);
+ assert.match(route,/port=\{fixture\?\?disabledPort\} enabled=\{fixture!==null\}/);
 });
