@@ -185,7 +185,12 @@ export function createM1CloudflareAccessAdmission(config:M1CfAccessAdmissionConf
     const verified=await crypto.subtle.verify('RSASSA-PKCS1-v1_5',
       key,signature,encoder.encode(parts[0]+'.'+parts[1]));
     if(!verified)return false;
-    return validClaims(parsed(parts[1],6144),issuer,aud,subjects,clock);
+    // The Access JWT can expire while awaiting remote certs/RSA verification.
+    // Entry time is NEVER authority for admission after an async operation.
+    // Reject a rollback too: a faulty clock must not extend an old token.
+    const verifiedAt=now();
+    if(!validClock(verifiedAt)||verifiedAt<clock)return false;
+    return validClaims(parsed(parts[1],6144),issuer,aud,subjects,verifiedAt);
    }catch{return false;} // No network/secret/provider errors returned to HTTP.
   },
  });

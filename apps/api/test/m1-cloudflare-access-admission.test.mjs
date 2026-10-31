@@ -204,3 +204,65 @@ test('only signed Access admission unlocks existing Google browser START and nev
  assert.equal(attempts,1);
  assert.equal(await success.text(),'');
 });
+
+
+test('Access JWT expiring during JWKS fetch cannot open Google OAuth start or persist an attempt',async()=>{
+ const value=await fixture();
+ const shortLived=await value.sign({...base,exp:NOW+2});
+ let clock=NOW,certReads=0,oauthAttempts=0;
+ const {admission}=harness({
+  now:()=>clock,
+  transport:async(url)=>{
+   assert.equal(url,certUrl);
+   certReads++;clock=NOW+3; // Still valid at entry, EXPIRED at signature check.
+   return new Response(JSON.stringify({keys:[value.pub]}),{
+    status:200,headers:{'content-type':'application/json'},
+   });
+  },
+ });
+ const google=createM1GoogleAuthorizeUrl({
+  clientId:'staging-test-client',
+  redirectUri:'https://staging.starry.invalid/v1/starry-id/oauth/google/callback',
+  state:'S'.repeat(43),nonce:'N'.repeat(32),codeChallenge:'C'.repeat(43),
+ });
+ const start=createM1GoogleStartHttp({
+  enabled:true,environment:'staging',expectedOrigin:'https://staging.starry.invalid',
+  callbackUri:'https://staging.starry.invalid/v1/starry-id/oauth/google/callback',
+  googleClientId:'staging-test-client',
+  admitTestRequest:admission.verify,
+  beginGoogleLogin:async()=>{oauthAttempts++;return google;},
+ });
+ const result=await start.handle(req(shortLived));
+ assert.equal(result.status,403,
+  'Google start MUST NOT use an Access JWT expired during remote cert download');
+ assert.deepEqual(await result.json(),{error:{code:'TESTER_ACCESS_DENIED'}});
+ assert.equal(result.headers.get('location'),null);
+ assert.equal(oauthAttempts,0,'no OAuth state/PKCE write after stale Access admission');
+ assert.equal(certReads,1,'real pinned Access public JWKS was fetched exactly once');
+});
+
+test('Access admission rejects clock rollback after JWKS await, accepts only still-current JWT',async()=>{
+ const value=await fixture();
+ const shortLived=await value.sign({...base,exp:NOW+2});
+ let clock=NOW;
+ const {admission}=harness({
+  now:()=>clock,
+  transport:async()=>{
+   clock=NOW-1;
+   return new Response(JSON.stringify({keys:[value.pub]}),{
+    status:200,headers:{'content-type':'application/json'},
+   });
+  },
+ });
+ assert.equal(await admission.verify(req(shortLived)),false,
+  'a rolled-back server clock cannot extend signed tester access');
+ const valid=harness({
+  now:()=>clock,
+  transport:async()=>new Response(JSON.stringify({keys:[value.pub]}),{
+   status:200,headers:{'content-type':'application/json'},
+  }),
+ });
+ clock=NOW+1;
+ assert.equal(await valid.admission.verify(req(shortLived)),true,
+  'same verified short-lived token remains accepted before exp');
+});
