@@ -37,6 +37,8 @@ export type M1NativeLinkReceiverConfig=Readonly<{
  linking:LinkingPort;
  /** UI-only status, never the handoff fragment or bearer. */
  onStatus?:(result:Status)=>void;
+ /** Fired synchronously for one freshly accepted, valid URL BEFORE Auth changes. */
+ onHandoffStart?:()=>void;
 }>;
 export function createM1NativeLinkReceiver(config:M1NativeLinkReceiverConfig){
  if(!config||config.appId!=='starry-id'||config.environment!=='staging'||
@@ -45,7 +47,8 @@ export function createM1NativeLinkReceiver(config:M1NativeLinkReceiverConfig){
     typeof config.owner.clearSession!=='function'||
     !config.linking||typeof config.linking.addEventListener!=='function'||
     typeof config.linking.getInitialURL!=='function'||
-    (config.onStatus!==undefined&&typeof config.onStatus!=='function'))
+    (config.onStatus!==undefined&&typeof config.onStatus!=='function')||
+    (config.onHandoffStart!==undefined&&typeof config.onHandoffStart!=='function'))
   throw Error('M1_NATIVE_LINK_CONFIG_DENIED');
  let returnUrl:URL;
  try{returnUrl=new URL(config.appReturnUri);}
@@ -58,6 +61,7 @@ export function createM1NativeLinkReceiver(config:M1NativeLinkReceiverConfig){
  const owner=config.owner;
  const linking=config.linking;
  const notify=config.onStatus;
+ const onHandoffStart=config.onHandoffStart;
  const enabled=config.enabled===true;
  let active=false;
  let epoch=0;
@@ -78,6 +82,9 @@ export function createM1NativeLinkReceiver(config:M1NativeLinkReceiverConfig){
   if(seen.size>=64)seen.clear(); // bounded ephemeral duplicate suppression
   seen.add(code);
   if(foreground)foregroundSeen=true;
+  // Clear already-rendered A before accepting B (including network errors).
+  // The callback is UI-only: never hand it a URL, code, bearer or identity.
+  try{onHandoffStart?.();}catch{/* no UI callback can change Auth authority */}
   const token=++currentResult;
   // No unhandled rejection, no return URL/body/token emitted to UI.
   void owner.acceptReturnUrl(raw).then(reply=>{
