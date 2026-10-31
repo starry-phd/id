@@ -260,7 +260,7 @@ test('late CAS response after unmount cannot return or display private profile d
 
 test('cached deletion request port fails closed after native unmount with zero mutation calls',async()=>{
  let writes=0;
- const h=harness({config:{fetchImpl:async(raw,init)=>{
+ const h=harness({config:{fetchImpl:async(raw)=>{
   const pathname=new globalThis.URL(raw).pathname;
   if(pathname==='/v1/starry-id/sessions/exchange')
    return new Response(JSON.stringify({access_token:bearer,
