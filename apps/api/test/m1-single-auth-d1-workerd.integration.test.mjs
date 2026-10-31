@@ -672,3 +672,43 @@ test('owner-fenced deletion refuses stale A screen under B signed Session on rea
   assert.ok(reads>=4);
  });
 });
+
+
+test('Google callback-to-mobile handoff uses real Workerd D1 hash-only CAS and one-time Session re-sign',async()=>{
+ await withRealD1(async({mf,db})=>{
+  const started=await start(mf,'handoff-workerd','known-subject');
+  const callback=await request(mf,'/__localtest/callback',{
+   method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(started),
+  });
+  assert.equal(callback.status,200);
+  const redirect=await callback.json();
+  assert.equal(redirect.status,303);
+  assert.ok(redirect.location.startsWith('https://app.starry.invalid/oauth/complete#handoff='));
+  assert.doesNotMatch(redirect.location,/v1\./);
+  const handoffCode=new URL(redirect.location).hash.slice('#handoff='.length);
+  assert.match(handoffCode,/^[A-Za-z0-9_-]{43}$/);
+  const stored=await db.prepare('SELECT handoff_hash,environment,expires_at,consumed_at FROM starry_m1_session_handoffs').first();
+  assert.match(stored.handoff_hash,/^[a-f0-9]{64}$/);
+  assert.equal(stored.environment,'staging');
+  assert.equal(stored.expires_at,NOW+60);
+  assert.equal(stored.consumed_at,null);
+  const exchanged=await request(mf,'/__localtest/exchange',{
+   method:'POST',headers:{'content-type':'application/json'},
+   body:JSON.stringify({handoff_code:handoffCode}),
+  });
+  assert.equal(exchanged.status,200);
+  assert.equal(exchanged.headers.get('cache-control'),'no-store');
+  const payload=await exchanged.json();
+  assert.deepEqual(Object.keys(payload).sort(),['access_token','expires_at','token_type']);
+  assert.match(payload.access_token,/^v1\./);
+  const self=await request(mf,member,authorized(payload.access_token));
+  assert.equal(self.status,200);
+  assert.equal((await self.json()).s_user_id,'u1');
+  const replay=await request(mf,'/__localtest/exchange',{
+   method:'POST',headers:{'content-type':'application/json'},
+   body:JSON.stringify({handoff_code:handoffCode}),
+  });
+  assert.equal(replay.status,401);
+  assert.equal((await db.prepare('SELECT consumed_at FROM starry_m1_session_handoffs').first()).consumed_at,NOW);
+ });
+});
