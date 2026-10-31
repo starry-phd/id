@@ -91,13 +91,28 @@ export function isM1CurrentProfileAuthority(
   loaded!==null&&loaded.port===port&&loaded.revision===revision;
 }
 
+/** Fail closed on accidental wiring of the raw self SDK without the
+ * original native Auth owner's session-revision observer. Only the exact
+ * local preview port may opt out; merely setting preview=true is insufficient.
+ */
+export function isM1ProfilePortAuthorized(
+ port:MemberProfilePort,enabled:boolean,preview:boolean,
+ previewTools:MemberProfilePreview|undefined,
+):boolean{
+ if(enabled!==true||!port||typeof port!=='object')return false;
+ if(preview===true&&previewTools===port)return true;
+ return typeof port.getSessionRevision==='function'&&
+  typeof port.subscribeSessionRevision==='function';
+}
+
 const emptyRevision=()=>0;
 const emptySubscribe=()=>()=>{};
 export function MemberProfileScreen({port,enabled,preview=false,previewTools}:MemberProfileScreenProps){
  // One port owns both Auth actions and session invalidation. Do not require
  // the caller to wire a separate notification prop that could be forgotten.
- const hasRevisionPort=typeof port.getSessionRevision==='function'&&
+ const hasRevisionPort=!!port&&typeof port.getSessionRevision==='function'&&
   typeof port.subscribeSessionRevision==='function';
+ const authorized=isM1ProfilePortAuthorized(port,enabled,preview,previewTools);
  const sessionRevision=useSyncExternalStore(
   hasRevisionPort?port.subscribeSessionRevision!:emptySubscribe,
   hasRevisionPort?port.getSessionRevision!:emptyRevision,
@@ -105,14 +120,14 @@ export function MemberProfileScreen({port,enabled,preview=false,previewTools}:Me
  );
  const generation=useRef(0);
  const busy=useRef(false);
- const [phase,setPhase]=useState<Phase>(enabled?'loading':'disabled');
+ const [phase,setPhase]=useState<Phase>(authorized?'loading':'disabled');
  const [storedProfile,setStoredProfile]=useState<M1StagingSelf|null>(null);
  const [loadedAuthority,setLoadedAuthority]=useState<
   Readonly<{port:MemberProfilePort;revision:number}>|null>(null);
  // React renders may arrive before effect cleanup on an OS Auth switch.
  // Never expose a prior member, even for a one-frame port/epoch mismatch.
  const profile=isM1CurrentProfileAuthority(
-  loadedAuthority,port,sessionRevision,enabled)?storedProfile:null;
+  loadedAuthority,port,sessionRevision,authorized)?storedProfile:null;
  const [displayName,setDisplayName]=useState('');
  const [directory,setDirectory]=useState(false);
  const [publicName,setPublicName]=useState(false);
@@ -132,7 +147,7 @@ export function MemberProfileScreen({port,enabled,preview=false,previewTools}:Me
   setPublicName(data.display_name_public);
  };
  const refresh=useCallback(async()=>{
-  if(!enabled||busy.current)return;
+  if(!authorized||busy.current)return;
   busy.current=true;
   const serial=++generation.current;
   // Fail closed before any refresh, including when an Auth owner/port changes.
@@ -149,17 +164,17 @@ export function MemberProfileScreen({port,enabled,preview=false,previewTools}:Me
     setNotice(explanation(error));
    }
   }finally{if(generation.current===serial)busy.current=false;}
- },[enabled,port,sessionRevision,clearProfile]);
+ },[authorized,port,sessionRevision,clearProfile]);
  useEffect(()=>{
-  if(enabled){void refresh();}
+  if(authorized){void refresh();}
   else{
    generation.current++;busy.current=false;
    clearProfile();setNotice('');setPhase('disabled');
   }
   return()=>{generation.current++;busy.current=false;};
- },[enabled,refresh,clearProfile]);
+ },[authorized,refresh,clearProfile]);
  const save=async()=>{
-  if(!enabled||busy.current||!profile||phase!=='ready')return;
+  if(!authorized||busy.current||!profile||phase!=='ready')return;
   busy.current=true;
   const serial=++generation.current;
   setPhase('saving');setNotice('');
@@ -185,7 +200,7 @@ export function MemberProfileScreen({port,enabled,preview=false,previewTools}:Me
   }finally{if(generation.current===serial)busy.current=false;}
  };
  const logout=async()=>{
-  if(!enabled||busy.current||phase!=='ready')return;
+  if(!authorized||busy.current||phase!=='ready')return;
   busy.current=true;
   const serial=++generation.current;
   setPhase('logging_out');setNotice('');
@@ -221,8 +236,10 @@ export function MemberProfileScreen({port,enabled,preview=false,previewTools}:Me
   {preview?<View style={styles.warning}>
    <Text style={styles.warningText}>開發模式｜這是完全離線的示範會員，姓名及設定只保留在此畫面記憶體。並未 Google 登入、連線、建立會員或修改真實資料。</Text>
   </View>:null}
-  {!enabled?<View style={styles.warning}>
-   <Text style={styles.warningText}>正式登入與會員資料服務尚未開放。需要獨立的安全測試環境與真正的 Google 登入，才能啟用本頁。</Text>
+  {!authorized?<View style={styles.warning}>
+   <Text style={styles.warningText}>{enabled?
+    '此畫面未取得原登入系統的身分變更通知，已拒絕載入會員資料。':
+    '正式登入與會員資料服務尚未開放。需要獨立的安全測試環境與真正的 Google 登入，才能啟用本頁。'}</Text>
   </View>:null}
   {phase==='loading'||phase==='saving'||phase==='logging_out'?
    <View style={styles.row}><ActivityIndicator accessibilityLabel="處理中"/><Text style={styles.muted}>正在安全處理…</Text></View>:null}
@@ -247,7 +264,7 @@ export function MemberProfileScreen({port,enabled,preview=false,previewTools}:Me
    {button('重新讀取會員資料',()=>{void refresh();},locked,true)}
    {button('登出目前的工作階段',()=>{void logout();},locked,true)}
   </View>:null}
-  {enabled&&(phase==='error'||phase==='logged_out'||phase==='reauth_required')?
+  {authorized&&(phase==='error'||phase==='logged_out'||phase==='reauth_required')?
    <View style={styles.card}>
     <Text style={styles.muted}>{phase==='logged_out'?'已登出，請透過正式登入流程重新登入。':
      phase==='reauth_required'?'登入狀態失效，私人資料已從畫面清除。請重新登入。':'無法取得會員資料。'}</Text>
