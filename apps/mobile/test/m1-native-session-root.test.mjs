@@ -279,3 +279,54 @@ test('cached deletion request port fails closed after native unmount with zero m
   /SESSION_REQUIRED/);
  assert.equal(writes,0);
 });
+
+
+test('native A logout late 204 cannot show logged-out success on B screen or clear B',async()=>{
+ const codeB='B'.repeat(43);
+ const urlB=app+'#handoff='+codeB;
+ const bearerB='v1.'+'q'.repeat(40)+'.'+'r'.repeat(43);
+ let finishRevoke;
+ let reached;
+ const pendingRevoke=new Promise(resolve=>{reached=resolve;});
+ let revocations=0;
+ const h=harness({config:{fetchImpl:async(raw,init)=>{
+  const path=new globalThis.URL(raw).pathname;
+  if(path==='/v1/starry-id/sessions/exchange'){
+   const code=JSON.parse(init.body).handoff_code;
+   return new Response(JSON.stringify({access_token:code===codeB?bearerB:bearer,
+    token_type:'Bearer',expires_at:now+300}),{status:200,headers:{
+     'content-type':'application/json','cache-control':'no-store',
+   }});
+  }
+  if(path==='/v1/starry-id/sessions/logout'){
+   assert.equal(init.headers.authorization,'Bearer '+bearer);
+   revocations++;
+   reached();
+   return new Promise(resolve=>{finishRevoke=resolve;});
+  }
+  if(path==='/v1/starry-id/members/me'&&init.method==='GET'){
+   assert.equal(init.headers.authorization,'Bearer '+bearerB);
+   return new Response(JSON.stringify({...profile,
+    s_user_id:'su-native-B',display_name:'B is still logged in',
+   }),{status:200,headers:{
+    'content-type':'application/json','cache-control':'no-store',
+   }});
+  }
+  throw Error('UNEXPECTED_NATIVE_NETWORK');
+ }}});
+ h.root.start();
+ h.emit(url);await settled();
+ const oldLogout=h.root.profile.logout();
+ await pendingRevoke;
+ h.emit(urlB);await settled();
+ finishRevoke(new Response(null,{status:204,headers:{'cache-control':'no-store'}}));
+ await assert.rejects(oldLogout,/STARRY_SELF_IDENTITY_CHANGED/,
+  'A logout completion cannot tell the current B screen it was logged out');
+ assert.equal(revocations,1);
+ assert.equal(h.root.sessionExpiresAt(),now+300,
+  'the only Auth owner must keep the newer B session');
+ assert.deepEqual(await h.root.profile.getSelf(),{
+  ...profile,s_user_id:'su-native-B',display_name:'B is still logged in',
+ });
+ h.root.stop();
+});
