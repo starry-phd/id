@@ -850,6 +850,23 @@ test('SOURCE-ONLY true local vertical flow: admitted browser start → signed Go
 });
 
 
+/** Local React Native AppState injection. The M1 source-only native root
+ * requires a removable foreground observer even during real Workerd/D1
+ * integration tests; no OS AppState or credential is claimed here.
+ */
+function localNativeAppState(){
+ let listener=null;
+ return Object.freeze({
+  addEventListener(kind,callback){
+   assert.equal(kind,'change');
+   assert.equal(typeof callback,'function');
+   assert.equal(listener,null);
+   listener=callback;
+   return {remove(){listener=null;}};
+  },
+ });
+}
+
 test('native Expo root consumes real workerd/D1 OAuth handoff through OS URL event once and revokes same signed Session',async()=>{
  await withRealD1(async({mf,db})=>{
   const appReturn='https://app.starry.invalid/oauth/complete';
@@ -862,6 +879,7 @@ test('native Expo root consumes real workerd/D1 OAuth handoff through OS URL eve
   const root=createM1NativeSessionRoot({
    enabled:true,appId:'starry-id',environment:'staging',
    baseUrl:origin,appReturnUri:appReturn,now:()=>NOW,
+   appState:localNativeAppState(),
    fetchImpl:(url,init)=>mf.dispatchFetch(url,init),
    linking:{
     addEventListener(kind,callback){
@@ -968,6 +986,7 @@ test('cached native A deletion UI cannot use new B Session for SAME MEMBER on ge
   const root=createM1NativeSessionRoot({
    enabled:true,appId:'starry-id',environment:'staging',
    baseUrl:origin,appReturnUri:appReturn,now:()=>NOW,
+   appState:localNativeAppState(),
    fetchImpl:(url,init)=>{
     const path=new URL(url).pathname;
     if(path==='/v1/starry-id/sessions/exchange'){
