@@ -137,12 +137,19 @@ export function createM1GoogleJwksSource(config:M1GoogleJwksConfig){
    const keysResponse=await transport(M1_GOOGLE_JWKS_URL,opts);
    const ttl=remainingSeconds(keysResponse);
    if(ttl===null)return null;
+   // Start the upstream cache lifetime when the JWKS response HEADERS are
+   // received, never after an arbitrarily delayed body read/JWK import.
+   // Otherwise a response stalled past max-age could resurrect stale keys.
+   const receivedAt=now();
+   if(!safeTime(receivedAt)||receivedAt>Number.MAX_SAFE_INTEGER-ttl)return null;
+   const expiresAt=receivedAt+ttl;
    const keys=await validatedKeys(await boundedJson(keysResponse,M1_GOOGLE_JWKS_URL,32768));
    if(!keys)return null;
-   const time=now();
-   if(!safeTime(time)||time>Number.MAX_SAFE_INTEGER-ttl)return null;
+   const currentTime=now();
+   if(!safeTime(currentTime)||currentTime<receivedAt||currentTime>=expiresAt)
+    return null; // No elapsed/rolled-back clock can renew expired authority.
    const provider=Object.freeze({provider:'google' as const,clientId,issuer,jwks:keys});
-   cached=Object.freeze({provider,expiresAt:time+ttl});
+   cached=Object.freeze({provider,expiresAt});
    return provider;
   }catch{return null;} // Never echo transport failures, keys or upstream internals.
  }
