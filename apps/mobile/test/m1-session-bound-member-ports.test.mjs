@@ -102,14 +102,14 @@ test('M2 first confirmation refuses a stale A screen after Auth switched to B',a
  assert.ok(calls.every(c=>c.init.headers.authorization==='Bearer '+signedB));
 });
 
-test('M2 member owner preflight and mutation reuse exactly ONE volatile bearer',async()=>{
+test('M2 preflight never dispatches an A deletion if Auth switched to B after capture',async()=>{
  let reads=0;let currentBearer=signedA;const calls=[];
  const ports=make({
   enabled:true,
   getSessionBearer:async()=>{
    reads++;
    const captured=currentBearer;
-   currentBearer=signedB; // another account becomes active after this read
+   if(reads===1)currentBearer=signedB;
    return captured;
   },
   fetchImpl:async(url,init)=>{
@@ -118,21 +118,19 @@ test('M2 member owner preflight and mutation reuse exactly ONE volatile bearer',
    if(path==='/v1/starry-id/members/me')
     return json(selfOf(init.headers.authorization==='Bearer '+signedA?
      memberIdA:memberIdB));
-   if(path.endsWith('/deletion-requests'))return json(receipt,202);
-   throw Error('UNEXPECTED_PATH');
+   throw Error('DELETION_WRITE_MUST_NOT_RUN');
   },
  });
- const safe=ports.deletionForUser(memberIdA);
- assert.deepEqual(await safe.requestDeletion(),receipt);
- assert.equal(reads,1);
- assert.deepEqual(calls.map(c=>c.init.method),['GET','POST']);
- assert.ok(calls.every(c=>c.init.headers.authorization==='Bearer '+signedA));
- assert.ok(calls.every(c=>c.init.credentials==='omit'&&
-  c.init.redirect==='error'&&c.init.cache==='no-store'));
- // A is still on screen but B is now signed in: no repeat POST.
- await rejectsM2(()=>safe.requestDeletion(),'UNAUTHORIZED');
+ const oldAScreen=ports.deletionForUser(memberIdA);
+ await rejectsM2(()=>oldAScreen.requestDeletion(),'UNAUTHORIZED');
  assert.equal(reads,2);
- assert.deepEqual(calls.map(c=>c.init.method),['GET','POST','GET']);
+ assert.deepEqual(calls.map(c=>c.init.method),['GET']);
+ assert.equal(calls[0].init.headers.authorization,'Bearer '+signedA);
+ // Later B calls remain B-only, without any mutation to A or B.
+ await rejectsM2(()=>oldAScreen.requestDeletion(),'UNAUTHORIZED');
+ assert.equal(reads,3);
+ assert.deepEqual(calls.map(c=>c.init.method),['GET','GET']);
+ assert.equal(calls[1].init.headers.authorization,'Bearer '+signedB);
 });
 
 test('M2 owner-fenced status/second confirmation fail closed on wrong member and bad preflight',async()=>{
@@ -309,4 +307,125 @@ test('A logout 204 after native unmount reports session loss and cannot clear an
  assert.equal(cleared,0);
  assert.equal(calls.length,1);
  assert.equal(calls[0].init.headers.authorization,'Bearer '+signedA);
+});
+
+
+test('M2 stale A preflight response cannot dispatch any first/second confirmation or status under B',async()=>{
+ for(const action of ['request','confirm','status']){
+  let current=signedA,finishGet,trigger;
+  const reached=new Promise(resolve=>{trigger=resolve;});
+  const calls=[];
+  const port=make({
+   enabled:true,getSessionBearer:async()=>current,
+   fetchImpl:async(url,init)=>{
+    calls.push({path:new globalThis.URL(url).pathname,init});
+    if(init.method==='GET'&&new globalThis.URL(url).pathname==='/v1/starry-id/members/me'){
+     trigger();
+     return new Promise(resolve=>{finishGet=resolve;});
+    }
+    throw Error('M2_MUST_NOT_DISPATCH_ANY_REQUEST_AFTER_OWNER_CHANGED');
+   },
+  }).deletionForUser(memberIdA);
+  const pending=action==='request'?port.requestDeletion():
+   action==='confirm'?port.confirmDeletion(requestId):port.getStatus();
+  await reached;
+  current=signedB;
+  // Same signed A preflight member data can still be valid, but the
+  // CURRENT owner is B by the time it comes back.
+  finishGet(json(selfOf(memberIdA)));
+  await rejectsM2(()=>pending,'UNAUTHORIZED');
+  assert.equal(calls.length,1,action+' must dispatch only original A GET');
+  assert.equal(calls[0].init.headers.authorization,'Bearer '+signedA);
+ }
+});
+
+test('M2 checks current Auth at transport dispatch, even if it changed just after preflight gate',async()=>{
+ let current=signedA,reads=0,transmitted=0;
+ const port=make({
+  enabled:true,
+  getSessionBearer:async()=>{
+   reads++;
+   const captured=current;
+   if(reads===2)queueMicrotask(()=>{current=signedB;});
+   return captured;
+  },
+  fetchImpl:async(url,init)=>{
+   if(new globalThis.URL(url).pathname==='/v1/starry-id/members/me')
+    return json(selfOf(memberIdA));
+   transmitted++;
+   throw Error('PRIVATE_SECOND_CONFIRMATION_NOT_ALLOWED');
+  },
+ }).deletionForUser(memberIdA);
+ await rejectsM2(()=>port.confirmDeletion(requestId),'UNAUTHORIZED');
+ assert.ok(reads>=3,'Auth is checked again before real mutation dispatch');
+ assert.equal(transmitted,0);
+});
+
+test('M2 valid A request preserves ONE original signed Session across GET and POST',async()=>{
+ let reads=0;
+ const sent=[];
+ const port=make({
+  enabled:true,getSessionBearer:async()=>{reads++;return signedA;},
+  fetchImpl:async(url,init)=>{
+   sent.push({path:new globalThis.URL(url).pathname,init});
+   if(init.method==='GET')return json(selfOf(memberIdA));
+   return json(receipt,202);
+  },
+ }).deletionForUser(memberIdA);
+ assert.deepEqual(await port.requestDeletion(),receipt);
+ assert.deepEqual(sent.map(x=>x.init.method),['GET','POST']);
+ assert.equal(sent[0].init.headers.authorization,'Bearer '+signedA);
+ assert.equal(sent[1].init.headers.authorization,'Bearer '+signedA);
+ assert.equal(sent[1].path,'/v1/starry-id/members/me/deletion-requests');
+ assert.ok(reads>=4,'capture, after-preflight, dispatch, completion checks');
+ assert.ok(sent.every(x=>x.init.cache==='no-store'&&
+  x.init.redirect==='error'&&x.init.credentials==='omit'));
+});
+
+test('M2 already-dispatched A request cannot undo A server effect, but B never receives its late receipt',async()=>{
+ let current=signedA,finishPost,reach;
+ const pendingPost=new Promise(resolve=>{reach=resolve;});
+ let posts=0;
+ const port=make({
+  enabled:true,getSessionBearer:async()=>current,
+  fetchImpl:async(url,init)=>{
+   if(init.method==='GET')return json(selfOf(memberIdA));
+   posts++;
+   assert.equal(init.headers.authorization,'Bearer '+signedA);
+   reach();
+   return new Promise(resolve=>{finishPost=resolve;});
+  },
+ }).deletionForUser(memberIdA);
+ const pending=port.requestDeletion();
+ await pendingPost;
+ // A POST has already reached the server; we must not pretend it was
+ // cancelled. We can, however, prevent B from seeing A's receipt.
+ current=signedB;
+ finishPost(json(receipt,202));
+ await rejectsM2(()=>pending,'UNAUTHORIZED');
+ assert.equal(posts,1);
+});
+
+test('M2 Auth loss during preflight refuses to dispatch, even for the same member',async()=>{
+ for(const failure of ['missing','error']){
+  let reads=0,writes=0;
+  const port=make({
+   enabled:true,
+   getSessionBearer:async()=>{
+    reads++;
+    if(reads===1)return signedA;
+    if(failure==='error')throw Error('PRIVATE_AUTH');
+    return null;
+   },
+   fetchImpl:async(url)=>{
+    if(new globalThis.URL(url).pathname==='/v1/starry-id/members/me')
+     return json(selfOf(memberIdA));
+    writes++;
+    throw Error('SHOULD_NOT_MUTATE');
+   },
+  }).deletionForUser(memberIdA);
+  await rejectsM2(()=>port.requestDeletion(),'SESSION_REQUIRED');
+  assert.equal(writes,0);
+  assert.equal(reads,2);
+ }
 });
