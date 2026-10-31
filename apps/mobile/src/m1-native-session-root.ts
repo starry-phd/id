@@ -142,16 +142,25 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
   const current=await selected();
   if(current!==bearer)throw Error('STARRY_SELF_IDENTITY_CHANGED');
  };
- const profileOperation=async <T>(run:()=>Promise<T>):Promise<T>=>{
-  if(!enabled)return run(); // Preserve the original explicit OFF error.
+ const profileOperation=async <T>(
+  run:(bearer:string)=>Promise<T>,expectedRevision?:number,
+ ):Promise<T>=>{
+  if(!enabled)return run(''); // Preserve the original explicit OFF error.
+  if(expectedRevision!==undefined&&revision!==expectedRevision)
+   throw Error('STARRY_SELF_IDENTITY_CHANGED');
   const bearer=await selected();
+  // Reject a stale render generation BEFORE creating any network request.
+  if(expectedRevision!==undefined&&revision!==expectedRevision)
+   throw Error('STARRY_SELF_IDENTITY_CHANGED');
   // Verify even if the HTTP request failed: a late failure must not override
   // a new member's screen with the old request's status.
-  const result=await run().then(
+  const result=await run(bearer).then(
    value=>({ok:true as const,value}),
    error=>({ok:false as const,error}),
   );
   await sameMember(bearer);
+  if(expectedRevision!==undefined&&revision!==expectedRevision)
+   throw Error('STARRY_SELF_IDENTITY_CHANGED');
   if(!result.ok)throw result.error;
   return result.value;
  };
@@ -189,9 +198,22 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
   // Deliberately OMIT unfenced patchSelf: UI may mutate only the confirmed
   // member id via the existing server CAS + preflight owner check.
   getSelf:()=>profileOperation(()=>owner.profile.getSelf()),
-  patchSelfForUser:(userId:string,revision:number,
-   patch:Parameters<typeof owner.profile.patchSelfForUser>[2])=>
-   profileOperation(()=>owner.profile.patchSelfForUser(userId,revision,patch)),
+  patchSelfForUser:(userId:string,profileRevision:number,
+   patch:Parameters<typeof owner.profile.patchSelfForUser>[2],
+   expectedSessionRevision?:number)=>{
+   if(!enabled)return owner.profile.patchSelfForUser(
+    userId,profileRevision,patch);
+   // The screen must carry the token-free Session revision of the profile
+   // it actually rendered; a stale same-member callback cannot borrow B.
+   if(typeof expectedSessionRevision!=='number'||
+      !Number.isSafeInteger(expectedSessionRevision)||
+      expectedSessionRevision!==revision)
+    return Promise.reject(Error('STARRY_SELF_IDENTITY_CHANGED'));
+   return profileOperation(
+    bearer=>owner.profile.patchSelfForCapturedSession(
+     userId,profileRevision,patch,bearer),
+    expectedSessionRevision);
+  },
   async logout():Promise<void>{
    if(!enabled)return owner.profile.logout();
    if(!active())throw Error('STARRY_SELF_SESSION_REQUIRED');
