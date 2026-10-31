@@ -2,7 +2,7 @@
  * SOURCE-ONLY binding adapter for a future, separately approved Starry M1
  * Staging Worker. Never import into apps/api/src/index.ts or Wrangler.
  *
- * Distinct Starry-only D1, Access app/tester policy, official Google OAuth,
+ * Dedicated STARRY_SESSION_DB (never AUTH_DB or Echo/legacy), Access testers, Google OAuth,
  * Worker Secrets, app associations, cost/rollback and independent review
  * must be established AND independently verified before any public routing.
  * An env toggle is never release authorization.
@@ -68,7 +68,11 @@ export async function createM1StagingBoundRuntime(raw:unknown) {
  if(env.STARRY_ENVIRONMENT!=='staging'||env.STARRY_APP_ID!=='starry-id'||
     env.M1_STAGING_SOURCE_ASSEMBLY_ENABLED!=='true')
   throw Error('M1_STAGING_BINDINGS_DENIED');
- const db=env.AUTH_DB;
+ // The staging resource contract owns exactly STARRY_SESSION_DB.
+ // Refuse the historical AUTH_DB alias even if both bindings are present:
+ // an older fixture or a foreign database must not silently become authority.
+ if('AUTH_DB' in env)throw Error('M1_STAGING_BINDINGS_DENIED');
+ const db=env.STARRY_SESSION_DB;
  if(!db||typeof db!=='object'||
     typeof (db as {prepare?:unknown}).prepare!=='function'||
     typeof (db as {batch?:unknown}).batch!=='function')
