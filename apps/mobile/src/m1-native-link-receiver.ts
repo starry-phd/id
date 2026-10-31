@@ -69,12 +69,30 @@ export function createM1NativeLinkReceiver(config:M1NativeLinkReceiverConfig){
  let seen=new Set<string>();
  let foregroundSeen=false;
  let currentResult=0;
+ // Track only a CURRENT in-flight exchange. An OAuth denial can cancel
+ // this pending exchange without revoking an already settled B Session.
+ let pendingResult=0;
  function safeStatus(status:Status){
   try{notify?.(status);}catch{/* UI callback is not an Auth authority. */}
  }
  /** Only exact HTTPS pin and one-time opaque code are forwarded. */
  function acceptLink(raw:unknown,serial:number,foreground=false):boolean{
   if(!active||serial!==epoch||typeof raw!=='string')return false;
+  // An exact, server-sanitized OAuth error is a valid return to this App.
+  // It carries NO handoff code and can NEVER grant a signed Session. A
+  // foreground denial must outrank a delayed getInitialURL from an older
+  // launch, or the old URL could unexpectedly sign in after denial.
+  if(raw===expected+'#error=oauth_failed'){
+   if(foreground)foregroundSeen=true;
+   if(pendingResult!==0){
+    // Cancel only the *in-flight* OS handoff. Do not clear a settled
+    // Session on an unsolicited error-only link (which has no secret).
+    ++currentResult;pendingResult=0;
+    try{owner.clearSession();}catch{/* no UI failure can grant Auth */}
+   }
+   safeStatus({type:'failed'});
+   return true;
+  }
   let code:string;
   try{code=parseM1SessionHandoffReturnUrl(raw,expected);}
   catch{return false;}
@@ -85,15 +103,17 @@ export function createM1NativeLinkReceiver(config:M1NativeLinkReceiverConfig){
   // Clear already-rendered A before accepting B (including network errors).
   // The callback is UI-only: never hand it a URL, code, bearer or identity.
   try{onHandoffStart?.();}catch{/* no UI callback can change Auth authority */}
-  const token=++currentResult;
+  const token=++currentResult;pendingResult=token;
   // No unhandled rejection, no return URL/body/token emitted to UI.
   void owner.acceptReturnUrl(raw).then(reply=>{
+   if(pendingResult===token)pendingResult=0;
    if(active&&serial===epoch&&token===currentResult){
     if(!reply||!Number.isSafeInteger(reply.expires_at))
      safeStatus({type:'failed'});
     else safeStatus({type:'authenticated',expires_at:reply.expires_at});
    }
   }).catch(()=>{
+   if(pendingResult===token)pendingResult=0;
    if(active&&serial===epoch&&token===currentResult)
     safeStatus({type:'failed'});
   });
@@ -128,7 +148,7 @@ export function createM1NativeLinkReceiver(config:M1NativeLinkReceiverConfig){
   /** Disposing a root revokes the volatile owner, including a pending POST. */
   stop():void{
    if(!active)return;
-   active=false;epoch++;currentResult++;
+   active=false;epoch++;currentResult++;pendingResult=0;
    try{listener?.remove();}catch{/* already removed */}
    listener=null;seen.clear();foregroundSeen=false;
    owner.clearSession();

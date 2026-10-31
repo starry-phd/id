@@ -73,7 +73,9 @@ test('reject forged and cross-brand URL events without consuming codes or notify
   root+'?secret=PRIVATE#handoff='+'A'.repeat(43),
   root+'#access_token=PRIVATE',root+'#handoff=short',
   root+'#handoff='+'A'.repeat(43)+'&other=value',
-  root+'#error=oauth_failed',root,
+  root+'#error=oauth_failed&state=PRIVATE',
+  root+'?state=PRIVATE#error=oauth_failed',
+  root,
  ]){
   f.emit(uri);
  }
@@ -252,4 +254,88 @@ test('throwing visual invalidation observer cannot block Auth or leak handoff co
  f.receiver.stop();
  assert.throws(()=>fake({config:{onHandoffStart:'untrusted'}}),
   /M1_NATIVE_LINK_CONFIG_DENIED/);
+});
+
+test('exact native OAuth-denial return outranks delayed old initial handoff without issuing Auth',async()=>{
+ let resolveInitial;
+ const initial=new Promise(resolve=>{resolveInitial=resolve;});
+ const f=fake({linking:{getInitialURL(){f.calls.push(['initial']);return initial;}}});
+ f.receiver.start();await later();
+ f.emit(root+'#error=oauth_failed');
+ resolveInitial(url1);
+ await later();
+ assert.deepEqual(f.calls.filter(c=>c[0]==='exchange'),[],
+  'the old initial success URL must never redeem after a newer foreground denial');
+ assert.deepEqual(f.statuses,[{type:'failed'}]);
+ assert.equal(f.clearCount(),0,
+  'a failure-only URL cannot revoke a settled or absent Session');
+ f.receiver.stop();
+});
+
+test('native OAuth denial cancels an in-flight handoff and suppresses its late success',async()=>{
+ const pend=[];
+ const f=fake({owner:{acceptReturnUrl(uri){
+  f.calls.push(['exchange',uri]);
+  return new Promise(resolve=>pend.push(resolve));
+ }}});
+ f.receiver.start();await later();
+ f.emit(url1);
+ assert.equal(pend.length,1);
+ f.emit(root+'#error=oauth_failed');
+ assert.deepEqual(f.statuses,[{type:'failed'}]);
+ assert.equal(f.clearCount(),1,'only an in-flight handoff is invalidated');
+ pend[0]({expires_at:1793000300});
+ await later();
+ assert.deepEqual(f.statuses,[{type:'failed'}],
+  'a stale previously started exchange must not repaint authenticated');
+ f.receiver.stop();
+});
+
+test('unsolicited native OAuth error after a settled Session never clears that Session',async()=>{
+ const f=fake();
+ f.receiver.start();await later();
+ f.emit(url2);await later();
+ assert.deepEqual(f.statuses,[{type:'authenticated',expires_at:1793000300}]);
+ f.emit(root+'#error=oauth_failed');
+ assert.deepEqual(f.statuses,[
+  {type:'authenticated',expires_at:1793000300},{type:'failed'},
+ ]);
+ assert.equal(f.clearCount(),0,
+  'unsigned failure-only links cannot log out a settled valid Session');
+ f.receiver.stop();
+});
+
+test('real volatile Auth owner will not resurrect a late exchange after native OAuth denial',async()=>{
+ const bearer='v1.'+'x'.repeat(40)+'.'+'y'.repeat(43);
+ let deliver;
+ const waiting=new Promise(resolve=>{deliver=resolve;});
+ let requests=0;
+ const owner=createM1MobileSessionAuthOwner({
+  enabled:true,appId:'starry-id',environment:'staging',
+  baseUrl:api,appReturnUri:root,now:()=>1793000000,
+  fetchImpl:async()=>{requests++;return waiting;},
+ });
+ const statuses=[];let event=null;
+ const receiver=createM1NativeLinkReceiver({
+  enabled:true,appId:'starry-id',environment:'staging',
+  appReturnUri:root,owner,
+  linking:{
+   addEventListener(_kind,fn){event=fn;return {remove(){event=null;}};},
+   async getInitialURL(){return null;},
+  },
+  onStatus:s=>statuses.push(s),
+ });
+ receiver.start();await later();
+ event({url:url1});await later();
+ assert.equal(requests,1);
+ event({url:root+'#error=oauth_failed'});
+ deliver(new Response(JSON.stringify({access_token:bearer,
+  token_type:'Bearer',expires_at:1793000300}),{
+  status:200,headers:{'content-type':'application/json','cache-control':'no-store'},
+ }));
+ await later();await later();
+ assert.equal(await owner.getSessionBearer(),null,
+  'the cancelled pending handoff can never revive the old signed-shaped bearer');
+ assert.deepEqual(statuses,[{type:'failed'}]);
+ receiver.stop();
 });
