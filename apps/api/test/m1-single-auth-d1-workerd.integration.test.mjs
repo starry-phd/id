@@ -16,6 +16,7 @@ import {Miniflare} from 'miniflare';
 import {createM1StagingSelfClient} from '../../../packages/sdk/src/m1-staging-self-client.ts';
 import {createM1SessionBoundMemberPorts} from '../../mobile/src/m1-session-bound-member-ports.ts';
 import {createM1MobileSessionAuthOwner} from '../../mobile/src/m1-session-auth-owner.ts';
+import {createM1NativeSessionRoot} from '../../mobile/src/m1-native-session-root.ts';
 import {
  createM2DeletionRequestClient,M2DeletionClientError,
 } from '../../../packages/sdk/src/m2-local-deletion-request-client.ts';
@@ -836,5 +837,107 @@ test('SOURCE-ONLY true local vertical flow: admitted browser start → signed Go
    'replayed old signed bearer must be revoked in same D1');
   assert.equal((await db.prepare("SELECT revoked_at FROM starry_sessions WHERE s_user_id='u1'").first()).revoked_at,NOW);
   await assert.rejects(owner.profile.getSelf(),/STARRY_SELF_SESSION_REQUIRED/);
+ });
+});
+
+
+test('native Expo root consumes real workerd/D1 OAuth handoff through OS URL event once and revokes same signed Session',async()=>{
+ await withRealD1(async({mf,db})=>{
+  const appReturn='https://app.starry.invalid/oauth/complete';
+  let receiver=null;
+  let subscriptions=0,unsubscriptions=0,initialReads=0,platformStarts=0;
+  const statusEvents=[];
+  let wakeStatus;
+  const completed=new Promise(resolve=>{wakeStatus=resolve;});
+  let redirected=null;
+  const root=createM1NativeSessionRoot({
+   enabled:true,appId:'starry-id',environment:'staging',
+   baseUrl:origin,appReturnUri:appReturn,now:()=>NOW,
+   fetchImpl:(url,init)=>mf.dispatchFetch(url,init),
+   linking:{
+    addEventListener(kind,callback){
+     assert.equal(kind,'url');subscriptions++;receiver=callback;
+     return {remove(){unsubscriptions++;receiver=null;}};
+    },
+    async getInitialURL(){initialReads++;return null;},
+   },
+   onStatus:state=>{statusEvents.push(state);wakeStatus(state);},
+   openLoginBrowser:async(startUri,returnUri)=>{
+    platformStarts++;
+    assert.equal(startUri,origin+'/v1/starry-id/oauth/google/start');
+    assert.equal(returnUri,appReturn);
+    const browser=await request(mf,'/v1/starry-id/oauth/google/start',{
+     redirect:'manual',
+     headers:{'x-test-only-admission':'admitted',
+      'x-local-test-oauth-code':'native-os-code'},
+    });
+    assert.equal(browser.status,303);
+    const google=new URL(browser.headers.get('location'));
+    assert.equal(google.origin,'https://accounts.google.com');
+    const callback=await request(mf,'/__localtest/callback',{
+     method:'POST',headers:{'content-type':'application/json'},
+     body:JSON.stringify({state:google.searchParams.get('state'),
+      code:'native-os-code'}),
+    });
+    const result=await callback.json();
+    assert.equal(result.status,303);
+    assert.match(result.location,/^https:\/\/app\.starry\.invalid\/oauth\/complete#handoff=[A-Za-z0-9_-]{43}$/);
+    redirected=result.location;
+    // Native Linking may deliver the same real redirect before the OS browser
+    // Promise settles. Only the native owner must exchange the D1 handoff.
+    assert.ok(receiver,'native listener must be installed before browser start');
+    receiver({url:redirected});
+    receiver({url:redirected});
+    return {type:'success',url:redirected};
+   },
+  });
+  assert.equal(root.source_only,true);
+  assert.equal(root.live_enabled,false);
+  assert.equal('getSessionBearer' in root,false);
+  root.start();
+  assert.equal(subscriptions,1);
+  const staleBrowser=root.startGoogleLogin();
+  await assert.rejects(staleBrowser,/M1_LOGIN_SUPERSEDED/,
+   'OS-delivered return must fence the pending browser Promise');
+  const result=await completed;
+  assert.deepEqual(result,{type:'authenticated',expires_at:NOW+300});
+  assert.equal(platformStarts,1);
+  assert.equal(initialReads,1);
+  assert.deepEqual(statusEvents,[result]);
+  assert.equal(root.sessionExpiresAt(),NOW+300);
+  assert.equal((await db.prepare(
+   'SELECT count(*) AS n FROM starry_m1_session_handoffs WHERE consumed_at IS NOT NULL'
+  ).first()).n,1);
+  assert.equal((await db.prepare(
+   'SELECT count(*) AS n FROM starry_sessions'
+  ).first()).n,1);
+  const memberBefore=await root.profile.getSelf();
+  assert.deepEqual(memberBefore,{
+   s_user_id:'u1',display_name:'Test Member',
+   directory_opt_in:false,display_name_public:false,profile_revision:1,
+  });
+  const changed=await root.profile.patchSelfForUser('u1',1,{
+   display_name:'Native D1 Member',directory_opt_in:true,
+  });
+  assert.equal(changed.profile_revision,2);
+  assert.deepEqual(await db.prepare(
+   "SELECT profile_revision,display_name,directory_opt_in FROM starry_members WHERE s_user_id='u1'"
+  ).first(),{profile_revision:2,display_name:'Native D1 Member',directory_opt_in:1});
+  const code=new URL(redirected).hash.slice('#handoff='.length);
+  assert.equal((await request(mf,'/v1/starry-id/sessions/exchange',{
+   method:'POST',headers:{'content-type':'application/json'},
+   body:JSON.stringify({handoff_code:code}),
+  })).status,401,'native duplicate callback cannot create a second Session');
+  await root.profile.logout();
+  assert.equal(root.sessionExpiresAt(),null);
+  assert.equal((await db.prepare(
+   "SELECT count(*) AS n FROM starry_sessions WHERE s_user_id='u1' AND revoked_at IS NOT NULL"
+  ).first()).n,1);
+  await assert.rejects(root.profile.getSelf(),/STARRY_SELF_SESSION_REQUIRED/);
+  root.stop();root.stop();
+  assert.equal(unsubscriptions,1);
+  assert.equal(receiver,null);
+  assert.equal(root.sessionExpiresAt(),null);
+  await assert.rejects(root.startGoogleLogin(),/M1_NATIVE_ROOT_INACTIVE/);
  });
 });
