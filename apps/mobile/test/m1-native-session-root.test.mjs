@@ -845,9 +845,12 @@ test('native logout switching A to B before async bearer lookup cannot dispatch 
  h.root.start();h.emit(url);await settled();
  const oldARevision=h.root.sessionRevision();
  const pendingA=h.root.profile.logout(oldARevision);
- h.emit(urlB);await settled();
- await assert.rejects(pendingA,
+ // Attach the rejection observer BEFORE switching OS Auth; a genuine
+ // immediate fail-closed rejection must not become a Node unhandledRejection.
+ const rejectedA=assert.rejects(pendingA,
   /STARRY_SELF_SESSION_REQUIRED|STARRY_SELF_IDENTITY_CHANGED/);
+ h.emit(urlB);await settled();
+ await rejectedA;
  assert.deepEqual(revoked,[],
   'an A logout not yet dispatched cannot revoke either signed Session');
  assert.equal(h.root.sessionExpiresAt(),now+300);
