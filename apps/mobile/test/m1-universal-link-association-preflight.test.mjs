@@ -133,3 +133,57 @@ test('AASA preserves ordered explicit allows before exclusions and unrelated ear
   assert.equal(result.release_gate_satisfied,false);
  }
 });
+
+test('Android 15 dynamic assetlinks cannot exclude or ambiguously constrain handoff',()=>{
+ const f=fixture();
+ const relation='delegate_permission/common.handle_all_urls';
+ const withDynamic=rules=>({
+  ...f.androidAssetLinks[0],
+  relation_extensions:{[relation]:{dynamic_app_link_components:rules}},
+ });
+ const denied=[
+  [{'/':'*',exclude:true},{'/':path}],
+  [{'/':'/oauth/*',exclude:true},{'/':path}],
+  [{'/':'/not-our-callback'}],
+  [{'/':path,'#':'handoff=*'}],
+  [{'#':'handoff=*',exclude:true},{'/':path}],
+  [],
+ ];
+ for(const rules of denied){
+  const result=run({androidAssetLinks:[withDynamic(rules)]});
+  assert.equal(result.source_config_consistent,false);
+  assert.ok(result.reasons.includes('ASSETLINKS_EXACT_APP_MISSING'));
+  assert.equal(result.release_gate_satisfied,false);
+ }
+ for(const relation_extensions of [null,{[relation]:{}},[]]){
+  const result=run({androidAssetLinks:[{
+   ...f.androidAssetLinks[0],relation_extensions,
+  }]});
+  assert.ok(result.reasons.includes('ASSETLINKS_EXACT_APP_MISSING'));
+ }
+});
+test('Android 15 allows ordered positive rules within a statically exact callback and rejects duplicate dynamic declarations',()=>{
+ const f=fixture();
+ const relation='delegate_permission/common.handle_all_urls';
+ const withDynamic=rules=>({
+  ...f.androidAssetLinks[0],
+  relation_extensions:{[relation]:{dynamic_app_link_components:rules}},
+ });
+ const valid=[
+  [{'/':path},{'/':'*',exclude:true}],
+  [{'/':'/unrelated',exclude:true},{'/':path}],
+  [{'/':'*'}],
+ ];
+ for(const rules of valid){
+  const result=run({androidAssetLinks:[withDynamic(rules)]});
+  assert.equal(result.source_config_consistent,true);
+  assert.deepEqual(result.reasons,[]);
+  assert.equal(result.android_device_verified,false);
+  assert.equal(result.remote_https_verified,false);
+ }
+ const duplicate=run({androidAssetLinks:[
+  withDynamic([{'/':path}]),f.androidAssetLinks[0],
+ ]});
+ assert.ok(duplicate.reasons.includes('ASSETLINKS_EXACT_APP_MISSING'));
+ assert.equal(duplicate.release_gate_satisfied,false);
+});
