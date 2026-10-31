@@ -15,6 +15,7 @@ import {build} from 'esbuild';
 import {Miniflare} from 'miniflare';
 import {createM1StagingSelfClient} from '../../../packages/sdk/src/m1-staging-self-client.ts';
 import {createM1SessionBoundMemberPorts} from '../../mobile/src/m1-session-bound-member-ports.ts';
+import {createM1MobileSessionAuthOwner} from '../../mobile/src/m1-session-auth-owner.ts';
 import {
  createM2DeletionRequestClient,M2DeletionClientError,
 } from '../../../packages/sdk/src/m2-local-deletion-request-client.ts';
@@ -77,6 +78,8 @@ function testWorkerSource(){
   "  authDb:env.AUTH_DB,googleProvider:provider,googleJwksSource:jwks,verifierCustody:custody,",
   "  allowedGoogleTestSubjects:['known-subject','new-subject','foreign-subject','another-subject','m2-foreign-subject'],",
   "  sessionHandoffEnabled:true,appReturnUri:'https://app.starry.invalid/oauth/complete',",
+  "  // SYNTHETIC test admission; NOT real Cloudflare Access or tester authorization.",
+  "  authStartAdmission:async req=>req.headers.get('x-test-only-admission')==='admitted',",
   "  activeKey:async()=>({kid:'local-workerd-hmac',key:hmac}),",
   "  getVerificationKey:async kid=>kid==='local-workerd-hmac'?hmac:null,",
   "  readGoogleClientSecret:async()=> 'ephemeral-test-only-not-a-real-key',",
@@ -96,6 +99,27 @@ function testWorkerSource(){
   " const u=new URL(req.url);",
   " // Synthetic test driver exists ONLY inside this dynamically bundled",
   " // ephemeral Miniflare instance, never inside apps/api/src/index.ts.",
+  " // These routes exist ONLY in this dynamically bundled test worker,",
+  " // NEVER in deployed apps/api/src/index.ts (which remains health-only).",
+  " if(u.pathname==='/v1/starry-id/oauth/google/start'){",
+  "  const r=await current(env);",
+  "  const headers={'x-test-only-admission':req.headers.get('x-test-only-admission')||''};",
+  "  const source=new Request(origin+u.pathname+u.search,{method:req.method,headers});",
+  "  const response=await r.flow.handleOAuthStart(source);",
+  "  if(response.status===303){",
+  "   const auth=new URL(response.headers.get('location'));",
+  "   const code=req.headers.get('x-local-test-oauth-code')||'simulated-code';",
+  "   r.pending.set(code,{nonce:auth.searchParams.get('nonce'),subject:'known-subject'});",
+  "  }",
+  "  return response;",
+  " }",
+  " if(u.pathname==='/v1/starry-id/sessions/exchange'){",
+  "  const r=await current(env);",
+  "  const body=req.method==='POST'?await req.text():undefined;",
+  "  return r.flow.handleSessionExchange(new Request(origin+u.pathname+u.search,{",
+  "   method:req.method,headers:{'content-type':req.headers.get('content-type')||''},body,",
+  "  }));",
+  " }"
   " if(u.pathname==='/__localtest/start'&&req.method==='POST'){",
   "  const r=await current(env);",
   "  const auth=await r.flow.beginGoogleLogin();",
