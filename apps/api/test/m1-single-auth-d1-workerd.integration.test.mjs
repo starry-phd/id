@@ -74,7 +74,9 @@ function testWorkerSource(){
   " }",
   " const flow=createM1SingleAuthHttpComposition({",
   "  enabled:true,serverScope:scope,expectedOrigin:origin,redirectUri:origin+endpoint,",
-  "  authDb:env.AUTH_DB,googleProvider:provider,verifierCustody:custody,",
+  "  authDb:env.AUTH_DB,googleProvider:provider,googleJwksSource:jwks,verifierCustody:custody,",
+  "  allowedGoogleTestSubjects:['known-subject','new-subject','foreign-subject','another-subject','m2-foreign-subject'],",
+  "  sessionHandoffEnabled:true,appReturnUri:'https://app.starry.invalid/oauth/complete',"
   "  activeKey:async()=>({kid:'local-workerd-hmac',key:hmac}),",
   "  getVerificationKey:async kid=>kid==='local-workerd-hmac'?hmac:null,",
   "  readGoogleClientSecret:async()=> 'ephemeral-test-only-not-a-real-key',",
