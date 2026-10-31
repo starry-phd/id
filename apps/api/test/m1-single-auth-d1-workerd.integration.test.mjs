@@ -665,21 +665,30 @@ test('owner-fenced deletion refuses stale A screen under B signed Session on rea
    'SELECT count(*) AS n FROM starry_m2_deletion_requests WHERE s_user_id=?'
   ).bind(b.s_user_id).first()).n,0);
 
-  // Auth switches to B AFTER a single signed A Session was captured.
-  // Owner preflight and first-confirmation must still use A, never B.
+  // Auth switches to B AFTER the single signed A Session was captured.
+  // Before this fix the App could still send A first-confirmation under
+  // that stale Session. Deny at owner preflight BEFORE D1 mutation.
   selected=a.bearer;swapAfterRead=true;
-  const first=await screen.requestDeletion();
-  assert.equal(first.status,'awaiting_second_confirmation');
-  assert.equal(postCount,1);
+  await assert.rejects(screen.requestDeletion(),
+   e=>e instanceof M2DeletionClientError&&e.code==='UNAUTHORIZED');
   assert.equal(selected,b.bearer);
+  assert.equal(postCount,0,'never dispatch A deletion after B becomes active');
   assert.equal((await db.prepare(
    'SELECT count(*) AS n FROM starry_m2_deletion_requests WHERE s_user_id=?'
-  ).bind(a.s_user_id).first()).n,1);
+  ).bind(a.s_user_id).first()).n,0);
   assert.equal((await db.prepare(
    'SELECT count(*) AS n FROM starry_m2_deletion_requests WHERE s_user_id=?'
   ).bind(b.s_user_id).first()).n,0);
 
-  swapAfterRead=false; // B is now current while A's receipt is on screen.
+  // Re-select A explicitly for an intentional deletion request.
+  swapAfterRead=false;selected=a.bearer;
+  const first=await screen.requestDeletion();
+  assert.equal(first.status,'awaiting_second_confirmation');
+  assert.equal(postCount,1);
+  assert.equal((await db.prepare(
+   'SELECT count(*) AS n FROM starry_m2_deletion_requests WHERE s_user_id=?'
+  ).bind(a.s_user_id).first()).n,1);
+  selected=b.bearer; // B is now current while A receipt remains on screen.
   await assert.rejects(screen.confirmDeletion(first.request_id),
    e=>e instanceof M2DeletionClientError&&e.code==='UNAUTHORIZED');
   assert.equal(postCount,1,'B must not receive second confirmation for A');
