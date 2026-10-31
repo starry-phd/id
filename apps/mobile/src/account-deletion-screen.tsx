@@ -18,6 +18,18 @@ function readableError(view:DeletionView):string{
  if(view.error==='NO_REQUEST'||view.error==='CONFLICT')return '申請狀態可能已變更，請重新查詢進度。';
  return '連線或服務暫時無法使用。可重新查詢或重試上一次操作。';
 }
+/** A cached receipt is not a current server confirmation after timeout.
+ * Only a settled successful controller state can assert either milestone. */
+export function settledDeletionProgress(view:DeletionView):
+ 'awaiting_second_confirmation'|'pending_processing'|null{
+ if(view.phase==='awaiting_second_confirmation'&&
+    view.receipt?.status==='awaiting_second_confirmation')
+  return 'awaiting_second_confirmation';
+ if(view.phase==='pending_processing'&&
+    view.receipt?.status==='pending_processing')
+  return 'pending_processing';
+ return null;
+}
 export function AccountDeletionScreen({port,preview,previewTools}:AccountDeletionScreenProps){
  const flow=useMemo(()=>createDeletionFlow(port),[port]);
  const view=useSyncExternalStore(flow.subscribe,flow.snapshot,flow.snapshot);
@@ -30,8 +42,9 @@ export function AccountDeletionScreen({port,preview,previewTools}:AccountDeletio
   return ()=>flow.invalidate();
  },[flow]);
  const loading=view.phase==='loading';
- const waiting=view.receipt?.status==='awaiting_second_confirmation';
- const pending=view.receipt?.status==='pending_processing';
+ const progress=settledDeletionProgress(view);
+ const waiting=progress==='awaiting_second_confirmation';
+ const pending=progress==='pending_processing';
  const issue=view.phase==='error'||view.phase==='unauthorized';
  const canInteract=preview||view.error!=='DISABLED';
  const action=(label:string,run:()=>Promise<void>,disabled=false,secondary=false)=>(
