@@ -636,6 +636,54 @@ test('M1 owner-fenced UI CAS refuses account A form under account B signed Sessi
  });
 });
 
+test('M1 CAS rejects same-member A→B Auth switch WHILE original A preflight GET is pending, with zero PATCH on Workerd D1',async()=>{
+ await withRealD1(async({mf,db})=>{
+  const a=await finish(mf,await start(mf,'cas-race-A','known-subject'));
+  const b=await finish(mf,await start(mf,'cas-race-B','known-subject'));
+  assert.equal(a.s_user_id,'u1');
+  assert.equal(b.s_user_id,a.s_user_id,
+   'B is another signed Session for the SAME member');
+  assert.notEqual(a.bearer,b.bearer);
+  let selected=a.bearer,reads=0,patches=0;
+  let releasePreflight,reachedPreflight;
+  const gate=new Promise(resolve=>{releasePreflight=resolve;});
+  const reached=new Promise(resolve=>{reachedPreflight=resolve;});
+  const client=createM1StagingSelfClient({
+   enabled:true,baseUrl:origin,appId:'starry-id',
+   getSessionBearer:async()=>{reads++;return selected;},
+   fetchImpl:async(url,init)=>{
+    if(init.method==='GET'){
+     // Let the genuine signed A Session authorize the real Workerd D1 GET,
+     // then hold its valid response while the mobile Auth owner becomes B.
+     const response=await mf.dispatchFetch(url,init);
+     reachedPreflight();
+     await gate;
+     return response;
+    }
+    if(init.method==='PATCH')patches++;
+    return mf.dispatchFetch(url,init);
+   },
+  });
+  const pending=client.patchSelfForUser(a.s_user_id,1,{
+   display_name:'MUST_NOT_COMMIT_AFTER_A_TO_B',
+  });
+  await reached;
+  selected=b.bearer;
+  releasePreflight();
+  await assert.rejects(pending,
+   e=>e?.message==='STARRY_SELF_IDENTITY_CHANGED',
+   'owner revalidation must reject before dispatching a stale A PATCH');
+  assert.equal(patches,0,
+   'no mutation reaches Workerd after the owner switched during A GET');
+  assert.ok(reads>=2,'SDK must re-read the one current bearer after GET');
+  const row=await db.prepare(
+   'SELECT display_name,profile_revision FROM starry_members WHERE s_user_id=?'
+  ).bind(a.s_user_id).first();
+  assert.equal(row.display_name,'Test Member');
+  assert.equal(row.profile_revision,1);
+ });
+});
+
 test('owner-fenced deletion refuses stale A screen under B signed Session on real workerd D1',async()=>{
  await withRealD1(async({mf,db})=>{
   const a=await finish(mf,await start(mf,'m2-owner-A','known-subject'));
