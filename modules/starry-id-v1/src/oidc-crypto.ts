@@ -127,6 +127,10 @@ export function createVerifiedOidcCallback(deps:Readonly<{
   config:PinnedOidcProvider; appId:string; environment:OAuthAttempt['environment']; backend:TrustedOAuthBackend;
   /** Server-owned JWKS; fetch only after durable OAuth state + PKCE checks. */
   getVerificationProvider?:()=>Promise<PinnedOidcProvider|null>;
+  /** Read the SAME trusted server clock after awaited JWKS/DB/token calls.
+   * A fixed timestamp captured at callback entry cannot validate a later
+   * Google token or authorize consumption of an expired OAuth attempt. */
+  getTrustedNow?:()=>number;
 }>) {
   // Capture the caller's pinned provider, JWKS and trusted backend functions
   // ONCE at construction; no await may shift an authorized issuer or CAS port.
@@ -142,6 +146,9 @@ export function createVerifiedOidcCallback(deps:Readonly<{
   const appId=deps.appId,environment=deps.environment;
   const backend=deps.backend;
   const getVerificationProvider=deps.getVerificationProvider;
+  const getTrustedNow=deps.getTrustedNow;
+  if(getTrustedNow!==undefined&&typeof getTrustedNow!=='function')
+    throw Error('OIDC_CALLBACK_CONFIGURATION_DENIED');
   if(getVerificationProvider!==undefined&&
     (typeof getVerificationProvider!=='function'||config.provider!=='google'))
     throw Error('OIDC_CALLBACK_CONFIGURATION_DENIED');
@@ -191,14 +198,25 @@ export function createVerifiedOidcCallback(deps:Readonly<{
           jwks:fresh.jwks.map(jwk=>({...jwk,key_ops:jwk.key_ops?[...jwk.key_ops]:undefined})),
         };
       }
+      // OIDC Discovery/JWKS and PKCE may have awaited long enough to expire
+      // this OAuth attempt. Never consume it using the callback-entry clock.
+      const beforeConsume=getTrustedNow?getTrustedNow():now;
+      if(!Number.isSafeInteger(beforeConsume)||beforeConsume<now||
+         beforeConsume>=tx.expiresAt)return null;
       // One-winner atomic consume before exchanging. Use exactly the state,
       // provider, verifier and code that were just checked (never re-read).
-      if(!await consumeAttemptCAS(tx.state,tx.provider,now))return null;
+      if(!await consumeAttemptCAS(tx.state,tx.provider,beforeConsume))return null;
       const exchange=await exchangeCode({
         provider:tx.provider,code,clientId:tx.clientId,verifier:tx.codeVerifier,
       });
+      // Google may take seconds to return its ID Token. A token expired
+      // during that await MUST NOT be checked against the original time.
+      const atVerification=getTrustedNow?getTrustedNow():now;
+      if(!Number.isSafeInteger(atVerification)||
+         atVerification<beforeConsume||atVerification>=tx.expiresAt)
+        return null;
       return exchange && await verifySignedOidcIdToken(exchange.idToken,{
-        issuer:verificationProvider,nonce:tx.nonce,now,
+        issuer:verificationProvider,nonce:tx.nonce,now:atVerification,
       });
     }catch{return null;}
   };
