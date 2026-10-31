@@ -118,6 +118,12 @@ test('mobile route is offline preview in __DEV__ but remains disabled in product
 
 test('M1 profile UI always erases stale PII on refresh and session loss, while public route remains OFF',()=>{
  const source=readFileSync(new URL('../src/member-profile-screen.tsx',import.meta.url),'utf8');
+ assert.match(source,/const sessionRevision=useSyncExternalStore\(/,
+  'the profile itself subscribes to the Auth-owned token-free version');
+ assert.match(source,/port\.subscribeSessionRevision!:emptySubscribe/,
+  'the event source must be the same port as GET/CAS/logout');
+ assert.match(source,/port\.getSessionRevision!:emptyRevision/,
+  'the current version comes from the same Auth owner');
  assert.match(source,/const profile=isM1CurrentProfileAuthority\(\s*loadedAuthority,port,sessionRevision,enabled\)\?storedProfile:null/,
   'render-time owner/epoch check prevents one-frame display of A');
  assert.match(source,/setLoadedAuthority\(\{port,revision:sessionRevision\}\)/,
