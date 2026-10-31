@@ -323,3 +323,96 @@ test('AI-0 StrictMode replay supports subscribe before activate and does not orp
  assert.ok(states.includes('replay:awaiting_second_confirmation'));
  assert.equal(flow.snapshot().phase,'awaiting_second_confirmation');
 });
+
+
+test('uncertain first POST: original first button must GET before another mutation',async()=>{
+ const calls=[];
+ const receipt={request_id:'m2del-'+'9'.repeat(48),
+  status:'awaiting_second_confirmation',first_confirmed_at:1793000000,
+  second_confirmed_at:null,physical_erasure_completed:false,execution_authorized:false};
+ let saved=null;
+ const flow=createDeletionFlow({
+  async getStatus(){calls.push('GET');return saved;},
+  async requestDeletion(){
+   calls.push('POST1');
+   saved=receipt; // The server committed, but response disappeared.
+   throw new M2DeletionClientError('UNAVAILABLE');
+  },
+  async confirmDeletion(){calls.push('POST2');throw Error('unexpected second');},
+ });
+ await flow.requestFirst();
+ assert.equal(flow.snapshot().phase,'error');
+ assert.equal(flow.snapshot().intent,'first');
+ await flow.requestFirst(); // bypass attempt: caller does NOT press retry.
+ assert.deepEqual(calls,['POST1','GET']);
+ assert.equal(flow.snapshot().phase,'awaiting_second_confirmation');
+ assert.equal(flow.snapshot().receipt.request_id,receipt.request_id);
+});
+
+test('uncertain second POST: old confirmation button must GET; never auto-confirm twice',async()=>{
+ const calls=[];
+ const first={request_id:'m2del-'+'a'.repeat(48),
+  status:'awaiting_second_confirmation',first_confirmed_at:1793000000,
+  second_confirmed_at:null,physical_erasure_completed:false,execution_authorized:false};
+ let saved=first;
+ let posts=0;
+ const flow=createDeletionFlow({
+  async getStatus(){calls.push('GET');return saved;},
+  async requestDeletion(){calls.push('POST1');throw Error('unexpected first');},
+  async confirmDeletion(){
+   calls.push('POST2');posts++;
+   saved={...first,status:'pending_processing',second_confirmed_at:1793000010};
+   throw new M2DeletionClientError('UNAVAILABLE');
+  },
+ });
+ await flow.refresh();
+ await flow.confirmSecond();
+ assert.equal(flow.snapshot().phase,'error');
+ assert.equal(flow.snapshot().intent,'second');
+ await flow.confirmSecond(); // old UI button/direct API must not bypass recovery.
+ assert.deepEqual(calls,['GET','POST2','GET']);
+ assert.equal(posts,1);
+ assert.equal(flow.snapshot().phase,'pending_processing');
+ assert.equal(flow.snapshot().receipt.physical_erasure_completed,false);
+});
+
+test('failed status GET cannot be bypassed with direct first button; recheck fails safely',async()=>{
+ const calls=[];
+ const flow=createDeletionFlow({
+  async getStatus(){calls.push('GET');throw new M2DeletionClientError('UNAVAILABLE');},
+  async requestDeletion(){calls.push('POST1');throw Error('not allowed');},
+  async confirmDeletion(){calls.push('POST2');throw Error('not allowed');},
+ });
+ await flow.refresh();
+ assert.equal(flow.snapshot().phase,'error');
+ await flow.requestFirst();
+ assert.deepEqual(calls,['GET','GET']);
+ assert.equal(flow.snapshot().phase,'error');
+ assert.equal(flow.snapshot().intent,'first');
+});
+
+test('lost second response still awaiting requires NEW human second press after GET',async()=>{
+ const calls=[];
+ const first={request_id:'m2del-'+'b'.repeat(48),
+  status:'awaiting_second_confirmation',first_confirmed_at:1793000000,
+  second_confirmed_at:null,physical_erasure_completed:false,execution_authorized:false};
+ let attempts=0;
+ const flow=createDeletionFlow({
+  async getStatus(){calls.push('GET');return first;},
+  async requestDeletion(){throw Error('unexpected');},
+  async confirmDeletion(){
+   calls.push('POST2');
+   if(attempts++===0)throw new M2DeletionClientError('UNAVAILABLE');
+   return {...first,status:'pending_processing',second_confirmed_at:1793000010};
+  },
+ });
+ await flow.refresh();
+ await flow.confirmSecond();
+ assert.equal(flow.snapshot().phase,'error');
+ await flow.confirmSecond();
+ assert.deepEqual(calls,['GET','POST2','GET']);
+ assert.equal(flow.snapshot().phase,'awaiting_second_confirmation');
+ await flow.confirmSecond(); // deliberate third user action after rechecking
+ assert.deepEqual(calls,['GET','POST2','GET','POST2']);
+ assert.equal(flow.snapshot().phase,'pending_processing');
+});

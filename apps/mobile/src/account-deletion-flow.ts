@@ -51,7 +51,11 @@ export function createDeletionFlow(port:M2DeletionPort):DeletionFlow{
   set({...previous,phase:'loading',intent,error:null});
   try{
    let record:M2DeletionReceipt|null;
-   if(recovery&&intent!=='status'){
+   // An ambiguous previous operation (including a failed status GET)
+   // must recover the server's authoritative state before any new POST,
+   // even when the user taps the ORIGINAL first/second button rather than
+   // the explicit retry control. A second confirmation is NEVER implicit.
+   if((recovery||previous.phase==='error')&&intent!=='status'){
     // A lost POST response is ambiguous. Re-read the authoritative current
     // member request BEFORE repeating a mutation.
     const authoritative=await port.getStatus();
