@@ -53,6 +53,29 @@ export function failedM1LogoutScreenState(error:unknown):Readonly<{
  });
 }
 
+/** A failed PATCH can have committed its CAS before the response was lost.
+ * Never reuse a potentially old version or show unconfirmed privacy toggles.
+ * Only input rejection is safe to leave editable without a fresh server GET.
+ */
+export function failedM1SaveScreenState(error:unknown):Readonly<{
+ phase:'ready'|'reauth_required'|'error';keepDraft:boolean;notice:string;
+}>{
+ if(isM1SessionLost(error))return Object.freeze({
+  phase:'reauth_required' as const,keepDraft:false,notice:explanation(error),
+ });
+ if(error instanceof Error&&error.message==='STARRY_SELF_FIELDS_DENIED')
+  return Object.freeze({
+   phase:'ready' as const,keepDraft:true,notice:explanation(error),
+  });
+ const conflict=error instanceof Error&&error.message==='STARRY_SELF_CONFLICT';
+ return Object.freeze({
+  phase:'error' as const,keepDraft:false,
+  notice:conflict?
+   '會員資料已在其他地方更新，原顯示內容已隱藏。請重新讀取。':
+   '儲存結果尚無法確認，個人資料已隱藏。請重新讀取，確認隱私設定是否已套用。',
+ });
+}
+
 export function MemberProfileScreen({port,enabled,preview=false,previewTools}:MemberProfileScreenProps){
  const generation=useRef(0);
  const busy=useRef(false);
@@ -118,9 +141,12 @@ export function MemberProfileScreen({port,enabled,preview=false,previewTools}:Me
    if(generation.current===serial){apply(updated);setPhase('ready');setNotice('會員資料已儲存。');}
   }catch(error){
    if(generation.current===serial){
-    if(isM1SessionLost(error)){clearProfile();setPhase('reauth_required');}
-    else setPhase('ready');
-    setNotice(explanation(error));
+    const failure=failedM1SaveScreenState(error);
+    // Unknown POST outcome, stale CAS or identity loss: never display the
+    // old member's version/privacy toggles as if the write were settled.
+    if(!failure.keepDraft)clearProfile();
+    setPhase(failure.phase);
+    setNotice(failure.notice);
    }
   }finally{if(generation.current===serial)busy.current=false;}
  };

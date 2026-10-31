@@ -60,6 +60,29 @@ test('real React Native Web profile screen renders owner-safe disabled view, nev
  assert.equal(privateFailure.phase,'error');
  assert.doesNotMatch(privateFailure.notice,/PRIVATE_BEARER|PRIVATE_SQL|Bearer /);
  assert.equal(Object.isFrozen(privateFailure),true);
+ const saveFailure=compiled.exports.failedM1SaveScreenState;
+ for(const code of ['STARRY_SELF_UNAVAILABLE','STARRY_SELF_RESPONSE_INVALID',
+  'STARRY_SELF_REVISION_REQUIRED','PRIVATE_SQL_BEARER']){
+  const outcome=saveFailure(Error(code));
+  assert.equal(outcome.phase,'error');
+  assert.equal(outcome.keepDraft,false);
+  assert.match(outcome.notice,/儲存結果尚無法確認/);
+  assert.doesNotMatch(outcome.notice,/PRIVATE_SQL|BEARER/);
+  assert.equal(Object.isFrozen(outcome),true);
+ }
+ const conflict=saveFailure(Error('STARRY_SELF_CONFLICT'));
+ assert.equal(conflict.phase,'error');
+ assert.equal(conflict.keepDraft,false);
+ assert.match(conflict.notice,/重新讀取/);
+ const invalid=saveFailure(Error('STARRY_SELF_FIELDS_DENIED'));
+ assert.equal(invalid.phase,'ready');
+ assert.equal(invalid.keepDraft,true);
+ for(const code of ['STARRY_SELF_UNAUTHORIZED','STARRY_SELF_SESSION_REQUIRED',
+  'STARRY_SELF_IDENTITY_CHANGED']){
+  const outcome=saveFailure(Error(code));
+  assert.equal(outcome.phase,'reauth_required');
+  assert.equal(outcome.keepDraft,false);
+ }
  assert.match(html,/我的會員資料/);
  assert.match(html,/正式登入與會員資料服務尚未開放/);
  assert.match(html,/不會取得任何身分憑證/);
@@ -83,8 +106,8 @@ test('M1 profile UI always erases stale PII on refresh and session loss, while p
  const source=readFileSync(new URL('../src/member-profile-screen.tsx',import.meta.url),'utf8');
  assert.match(source,/clearProfile\(\);\s*setPhase\('loading'\)/);
  assert.match(source,/setPhase\(isM1SessionLost\(error\)\?'reauth_required':'error'\)/);
- assert.equal((source.match(/if\(isM1SessionLost\(error\)\)\{clearProfile\(\);setPhase\('reauth_required'\);\}/g)||[]).length,1,
-  'PATCH unauthorized must clear stale member data');
+ assert.match(source,/const failure=failedM1SaveScreenState\(error\);[\s\S]*?if\(!failure\.keepDraft\)clearProfile\(\);\s*setPhase\(failure\.phase\);\s*setNotice\(failure\.notice\);/,
+  'failed PATCH must hide stale privacy toggles unless fields are rejected');
  assert.match(source,/const failure=failedM1LogoutScreenState\(error\);\s*clearProfile\(\);\s*setPhase\(failure\.phase\);\s*setNotice\(failure\.notice\);/,
   'ambiguous logout must hide PII before offering an authenticated refresh');
  assert.match(source,/phase==='error'\?button\('重新讀取'/,
@@ -104,7 +127,9 @@ test('profile SAVE uses owner-fenced SDK only; account switch must erase stale p
  assert.match(source,/port\.patchSelfForUser\(profile\.s_user_id,profile\.profile_revision,payload\)/);
  assert.doesNotMatch(source,/port\.patchSelf\(/);
  assert.match(source,/error\.message==='STARRY_SELF_IDENTITY_CHANGED'/);
- assert.match(source,/if\(isM1SessionLost\(error\)\)\{clearProfile\(\);setPhase\('reauth_required'\);\}/);
+ assert.match(source,/const failure=failedM1SaveScreenState\(error\);/,
+  'save uses authoritative recovery classification, not stale-ready fallback');
+ assert.match(source,/if\(!failure\.keepDraft\)clearProfile\(\);/);
  assert.match(route,/async patchSelfForUser\(/);
  assert.match(route,/const preview=__DEV__===true/);
  assert.match(route,/preview\?createMemberProfilePreview\(\):null/);
