@@ -7,7 +7,10 @@
 CREATE TABLE IF NOT EXISTS starry_m1_session_handoffs (
   handoff_hash TEXT PRIMARY KEY
     CHECK(length(handoff_hash)=64 AND handoff_hash NOT GLOB '*[^0-9a-f]*'),
-  session_id TEXT NOT NULL REFERENCES starry_sessions(session_id),
+  -- Deliberately no FK to mutable Session/identity rows: unlink or account
+  -- erasure must never be blocked by an outstanding short-lived handoff.
+  -- Redemption re-joins both authorities and fails closed if either vanished.
+  session_id TEXT NOT NULL,
   provider TEXT NOT NULL CHECK(provider IN ('apple','google')),
   provider_subject TEXT NOT NULL
     CHECK(length(provider_subject)>=1 AND length(provider_subject)<=180),
@@ -15,9 +18,7 @@ CREATE TABLE IF NOT EXISTS starry_m1_session_handoffs (
   environment TEXT NOT NULL CHECK(environment='staging'),
   created_at INTEGER NOT NULL CHECK(created_at>=0),
   expires_at INTEGER NOT NULL CHECK(expires_at>created_at),
-  consumed_at INTEGER CHECK(consumed_at IS NULL OR consumed_at>=created_at),
-  FOREIGN KEY(provider,provider_subject)
-    REFERENCES starry_identities(provider,subject)
+  consumed_at INTEGER CHECK(consumed_at IS NULL OR consumed_at>=created_at)
 );
 CREATE INDEX IF NOT EXISTS idx_starry_m1_session_handoffs_expiry
   ON starry_m1_session_handoffs(expires_at);
