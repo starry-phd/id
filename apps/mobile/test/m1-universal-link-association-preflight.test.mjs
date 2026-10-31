@@ -39,7 +39,7 @@ test('static association match is NOT device, HTTPS or release proof, and always
   'android_device_verified','release_gate_satisfied'])assert.equal(result[field],false);
 });
 test('current Expo54 checked-in app has no iOS/Android association and must fail closed',()=>{
- const current=JSON.parse(readFileSync(new URL('../app.json',import.meta.url),'utf8'));
+ const current=JSON.parse(readFileSync(new globalThis.URL('../app.json',import.meta.url),'utf8'));
  const result=run({expoConfig:current});
  assert.equal(result.source_config_consistent,false);
  assert.ok(result.reasons.includes('EXPO_IOS_ASSOCIATED_DOMAIN_MISSING'));
