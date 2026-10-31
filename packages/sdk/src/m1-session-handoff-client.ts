@@ -100,11 +100,14 @@ export function createM1SessionHandoffClient(config:M1SessionHandoffConfig){
  const transport=config.fetchImpl??fetch;
  const now=config.now??(()=>Math.floor(Date.now()/1000));
  const safeNow=():number=>{
-  const value=now();
+  let value:number;
+  try{value=now();}catch{throw Error('M1_HANDOFF_CLOCK_INVALID');}
   if(!Number.isSafeInteger(value)||value<0)throw Error('M1_HANDOFF_CLOCK_INVALID');
   return value;
  };
  let current:SessionResponse|null=null;
+ // A superseded login or logout must never be overwritten by a late callback.
+ let generation=0;
  async function exchange(code:string):Promise<SessionResponse>{
   if(!enabled)throw Error('M1_HANDOFF_DISABLED');
   if(!CODE.test(code))throw Error('M1_HANDOFF_CODE_DENIED');
@@ -131,8 +134,13 @@ export function createM1SessionHandoffClient(config:M1SessionHandoffConfig){
     !(response.headers.get('cache-control')??'').toLowerCase()
       .split(',').some(x=>x.trim()==='no-store'))
    throw Error('M1_HANDOFF_RESPONSE_INVALID');
-  const session=validateResponse(await boundedJson(response),safeNow());
-  return session;
+  // Upstream streams and injected clocks may throw opaque provider errors.
+  // Never surface those to the app or persist a partially validated bearer.
+  try{return validateResponse(await boundedJson(response),safeNow());}
+  catch(error){
+   if(error instanceof Error&&error.message==='M1_HANDOFF_CLOCK_INVALID')throw error;
+   throw Error('M1_HANDOFF_RESPONSE_INVALID');
+  }
  }
  return Object.freeze({
   contract:M1_SESSION_HANDOFF_CLIENT_CONTRACT,
@@ -144,8 +152,10 @@ export function createM1SessionHandoffClient(config:M1SessionHandoffConfig){
    const code=parseM1SessionHandoffReturnUrl(raw,appReturn.toString());
    // A new valid login attempt switches the in-memory owner. Clear the old
    // account before network I/O so a failed exchange cannot leave stale A live.
+   const myGeneration=++generation;
    current=null;
    const session=await exchange(code);
+   if(myGeneration!==generation)throw Error('M1_HANDOFF_SUPERSEDED');
    current=session;
    return Object.freeze({expires_at:session.expires_at});
   },
@@ -157,7 +167,7 @@ export function createM1SessionHandoffClient(config:M1SessionHandoffConfig){
    return current.access_token;
   },
   /** Call only after server logout or explicit account-switch/cancel handling. */
-  clearSession():void{current=null;},
+  clearSession():void{generation++;current=null;},
   sessionExpiresAt():number|null{
    if(!enabled||!current)return null;
    let timestamp:number;try{timestamp=safeNow();}catch{current=null;return null;}
