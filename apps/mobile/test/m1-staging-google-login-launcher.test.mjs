@@ -90,7 +90,7 @@ test('staging scope, HTTPS pinned origins and required owner closures are verifi
   {appReturnUri:'starryid://oauth/complete'},
   {appReturnUri:returnUri+'#handoff=PRIVATE'},
   {appReturnUri:'https://user:pass@app.starry.invalid/oauth/complete'},
-  {openLoginBrowser:()=>false},{acceptReturnUrl:null},{clearSession:null},
+  {openLoginBrowser:'untrusted'},{acceptReturnUrl:null},{clearSession:null},
   {enabled:'yes'},
  ])assert.throws(()=>make(changes),/M1_LOGIN_CONFIG_DENIED/);
 });
