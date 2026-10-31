@@ -2,7 +2,8 @@
  * One REAL local Miniflare/workerd/SQLite D1 vertical M1 test through:
  * #320 RSA-verified Cloudflare Access JWT -> #321 nonextractable HMAC+AES
  * Worker Secret keyring -> #322 original unique Starry Auth factory ->
- * #325 exact HTTPS dispatcher -> original M1 profile GET/CAS/logout.
+ * #325 exact HTTPS dispatcher -> #327/#328 real canonical bound-runtime
+ * STARRY_SESSION_DB config -> original M1 profile GET/CAS/logout.
  *
  * Google token and Access certs are cryptographically signed TEST FIXTURES,
  * and Worker+D1 resources are ephemeral LOCAL ONLY. Not remote acceptance,
@@ -17,7 +18,7 @@ import {Miniflare} from 'miniflare';
 
 const origin='https://staging.starry.invalid';
 const app='https://app.starry.invalid/oauth/complete';
-const NOW=1793000000;
+const NOW=Math.floor(Date.now()/1000);
 const dbId='98765432-aaaa-4bbb-8ccc-123456789abc';
 const paths=[
  '../../../modules/starry-id-v1/schema/001_starry_identity.DRAFT.sql',
@@ -29,17 +30,14 @@ const paths=[
 
 function testWorkerSource(){
  return [
-  "import {createM1StagingSecureAuthComposition} from './m1-staging-secure-auth-composition.ts';",
-  "import {createM1StagingHttpBoundary} from './m1-staging-http-boundary.ts';",
-  "import {createM1GoogleJwksSource,M1_GOOGLE_DISCOVERY_URL,M1_GOOGLE_JWKS_URL} from '../../../modules/starry-id-v1/src/m1-google-jwks-source.ts';",
+  "import {createM1StagingBoundRuntime} from './m1-staging-bound-runtime.ts';",
+  "import {M1_GOOGLE_DISCOVERY_URL,M1_GOOGLE_JWKS_URL} from '../../../modules/starry-id-v1/src/m1-google-jwks-source.ts';",
   "import {bytesToBase64url} from '../../../modules/starry-id-v1/src/oidc-crypto.ts';",
-  "const origin="+JSON.stringify(origin)+";",
-  "const app="+JSON.stringify(app)+";",
+  "const origin=\"https://staging.starry.invalid\";",
+  "const app=\"https://app.starry.invalid/oauth/complete\";",
   "const NOW="+JSON.stringify(NOW)+";",
-  "const scope={brand_id:'starry',app_id:'starry-id',environment:'staging'};",
   "const accessIssuer='https://m1-e2e-test.cloudflareaccess.com';",
   "const accessAud='signed-access-staging-audience-123456';",
-  "const endpoint='/v1/starry-id/oauth/google/callback';",
   "const utf=x=>new TextEncoder().encode(x);",
   "const b64=x=>bytesToBase64url(x);",
   "const keyPair=async()=>crypto.subtle.generateKey({name:'RSASSA-PKCS1-v1_5',hash:'SHA-256',modulusLength:2048,publicExponent:new Uint8Array([1,0,1])},true,['sign','verify']);",
@@ -48,15 +46,6 @@ function testWorkerSource(){
   " const googleRsa=await keyPair();const accessRsa=await keyPair();",
   " const googlePub=await crypto.subtle.exportKey('jwk',googleRsa.publicKey);",
   " const accessPub=await crypto.subtle.exportKey('jwk',accessRsa.publicKey);",
-  " const provider={provider:'google',issuer:'https://accounts.google.com',clientId:'local-starry-secure-e2e-client',jwks:[]};",
-  " const googleJwksSource=createM1GoogleJwksSource({enabled:true,clientId:provider.clientId,issuer:provider.issuer,now:()=>NOW,",
-  "   transport:async(url,init)=>{",
-  "    if(init.method!=='GET'||init.redirect!=='error'||init.credentials!=='omit')throw Error('TEST_GOOGLE_JWKS_DENIED');",
-  "    if(url===M1_GOOGLE_DISCOVERY_URL)return new Response(JSON.stringify({issuer:provider.issuer,jwks_uri:M1_GOOGLE_JWKS_URL}),{status:200,headers:{'content-type':'application/json'}});",
-  "    if(url===M1_GOOGLE_JWKS_URL)return new Response(JSON.stringify({keys:[{...googlePub,kid:'local-google-rsa',alg:'RS256',use:'sig'}]}),{status:200,headers:{'content-type':'application/json','cache-control':'public, max-age=300'}});",
-  "    throw Error('TEST_GOOGLE_JWKS_DENIED');",
-  "   },",
-  " });",
   " async function signedJwt(privateKey,head,body){",
   "  const signed=b64(utf(JSON.stringify(head)))+'.'+b64(utf(JSON.stringify(body)));",
   "  const sig=await crypto.subtle.sign('RSASSA-PKCS1-v1_5',privateKey,utf(signed));",
@@ -65,33 +54,38 @@ function testWorkerSource(){
   " async function signAccess(sub){return signedJwt(accessRsa.privateKey,{alg:'RS256',kid:'local-access-rsa',typ:'JWT'},",
   "   {iss:accessIssuer,aud:[accessAud],type:'app',sub,iat:NOW-10,exp:NOW+300});}",
   " async function signGoogle(nonce,sub){return signedJwt(googleRsa.privateKey,{alg:'RS256',kid:'local-google-rsa',typ:'JWT'},",
-  "   {iss:provider.issuer,aud:provider.clientId,sub,nonce,iat:NOW-10,exp:NOW+300});}",
+  "   {iss:'https://accounts.google.com',aud:'local-starry-secure-e2e-client',sub,nonce,iat:NOW-10,exp:NOW+300});}",
   " const pending=new Map();let tokenCalls=0;",
   " const first=crypto.getRandomValues(new Uint8Array(32));",
   " const second=crypto.getRandomValues(new Uint8Array(32));",
-  " const auth=await createM1StagingSecureAuthComposition({",
-  "  enabled:true,serverScope:scope,expectedOrigin:origin,redirectUri:origin+endpoint,",
-  "  appReturnUri:app,authDb:env.AUTH_DB,googleProvider:provider,googleJwksSource,",
-  "  allowedGoogleTestSubjects:['known-subject'],",
-  "  keyMaterial:{sessionActive:{kid:'local-session-hmac',secretB64url:b64(first)},",
-  "    pkceActive:{kid:'local-pkce-aes',secretB64url:b64(second)}},",
-  "  cloudflareAccessAdmission:{enabled:true,environment:'staging',",
-  "   teamDomain:accessIssuer,applicationAud:accessAud,allowedSubjects:['invited-tester'],",
-  "   now:()=>NOW,transport:async(url,init)=>{",
-  "    if(url!==accessIssuer+'/cdn-cgi/access/certs'||init.method!=='GET'||init.credentials!=='omit'||init.redirect!=='error')throw Error('TEST_ACCESS_JWKS_DENIED');",
-  "    return new Response(JSON.stringify({keys:[{...accessPub,kid:'local-access-rsa',alg:'RS256',use:'sig'}]}),{status:200,headers:{'content-type':'application/json'}});",
-  "   },",
-  "  },",
-  "  readGoogleClientSecret:async()=> 'test-only-in-memory-google-secret',",
-  "  googleTransport:async(url,init)=>{",
-  "   if(url!=='https://oauth2.googleapis.com/token'||init.method!=='POST')throw Error('TEST_GOOGLE_TOKEN_DENIED');",
+  " // Only the ephemeral local Workerd fixture intercepts the OFFICIAL pinned",
+  " // Google and Cloudflare endpoints. Production factory cannot inject hosts.",
+  " globalThis.fetch=async(url,init)=>{",
+  "  if(init.method==='GET'&&init.credentials==='omit'&&init.redirect==='error'){",
+  "   if(url===M1_GOOGLE_DISCOVERY_URL)return new Response(JSON.stringify({issuer:'https://accounts.google.com',jwks_uri:M1_GOOGLE_JWKS_URL}),{status:200,headers:{'content-type':'application/json'}});",
+  "   if(url===M1_GOOGLE_JWKS_URL)return new Response(JSON.stringify({keys:[{...googlePub,kid:'local-google-rsa',alg:'RS256',use:'sig'}]}),{status:200,headers:{'content-type':'application/json','cache-control':'public, max-age=300'}});",
+  "   if(url===accessIssuer+'/cdn-cgi/access/certs')return new Response(JSON.stringify({keys:[{...accessPub,kid:'local-access-rsa',alg:'RS256',use:'sig'}]}),{status:200,headers:{'content-type':'application/json'}});",
+  "  }",
+  "  if(url==='https://oauth2.googleapis.com/token'&&init.method==='POST'){",
   "   const code=new URLSearchParams(init.body).get('code');",
   "   const item=pending.get(code);if(!item)return new Response('{}',{status:400});",
   "   pending.delete(code);tokenCalls++;",
   "   return new Response(JSON.stringify({id_token:await signGoogle(item.nonce,item.sub)}),{status:200,headers:{'content-type':'application/json'}});",
-  "  },now:()=>NOW,",
+  "  }",
+  "  throw Error('TEST_LOCAL_NETWORK_DENIED');",
+  " };",
+  " const router=await createM1StagingBoundRuntime({",
+  "  ...env,STARRY_ENVIRONMENT:'staging',STARRY_APP_ID:'starry-id',",
+  "  M1_STAGING_SOURCE_ASSEMBLY_ENABLED:'true',",
+  "  M1_STAGING_HTTPS_ORIGIN:origin+'/',M1_STAGING_APP_RETURN_URI:app,",
+  "  M1_GOOGLE_CLIENT_ID:'local-starry-secure-e2e-client',",
+  "  M1_GOOGLE_CLIENT_SECRET:'LOCAL_FIXTURE_NEVER_REAL',",
+  "  M1_GOOGLE_TEST_SUBJECTS_JSON:JSON.stringify(['known-subject']),",
+  "  M1_ACCESS_TEAM_DOMAIN:accessIssuer+'/',M1_ACCESS_APP_AUD:accessAud,",
+  "  M1_ACCESS_TEST_SUBJECTS_JSON:JSON.stringify(['invited-tester']),",
+  "  M1_SESSION_ACTIVE_KID:'local-session-hmac',M1_SESSION_ACTIVE_SECRET:b64(first),",
+  "  M1_PKCE_ACTIVE_KID:'local-pkce-aes',M1_PKCE_ACTIVE_SECRET:b64(second),",
   " });",
-  " const router=createM1StagingHttpBoundary({enabled:true,appId:'starry-id',environment:'staging',expectedOrigin:origin,appReturnUri:app,auth});",
   " return {router,pending,tokenCalls:()=>tokenCalls,signAccess};",
   "}",
   "async function current(env){return runtime??=(initialize(env));}",
@@ -107,12 +101,10 @@ function testWorkerSource(){
   " }",
   " if(u.pathname==='/__test/count'){",
   "  const data=await current(env);",
-  "  const row=await env.AUTH_DB.prepare('SELECT count(*) AS n FROM starry_m1_oauth_attempts').first();",
+  "  const row=await env.STARRY_SESSION_DB.prepare('SELECT count(*) AS n FROM starry_m1_oauth_attempts').first();",
   "  return Response.json({attempts:row.n,tokenCalls:data.tokenCalls()},{headers:{'cache-control':'no-store'}});",
   " }",
   " const data=await current(env);",
-  " // Workerd simulator uses a synthetic proxy Host. Strip ONLY this fixture",
-  " // header: the actual source HTTP boundary still validates untrusted Host.",
   " const headers=new Headers(request.headers);headers.delete('host');",
   " const body=request.method==='GET'||request.method==='HEAD'?undefined:await request.text();",
   " const proxied=new Request(origin+u.pathname+u.search,{method:request.method,headers,body});",
@@ -138,10 +130,10 @@ async function withLocalD1(callback){
   manifest:{mainModule:'index.js',modules:{
    'index.js':{type:'esm',contents:output.outputFiles[0].text},
   }},
-  env:{AUTH_DB:{type:'d1',id:dbId}},
+  env:{STARRY_SESSION_DB:{type:'d1',id:dbId}},
  }}]});
  try{
-  const db=await mf.getD1Database('AUTH_DB');
+  const db=await mf.getD1Database('STARRY_SESSION_DB');
   for(const p of paths){
    const sql=readFileSync(new URL(p,import.meta.url),'utf8')
     .replace(/^\s*--[^\n]*$/gm,'').trim();
@@ -247,7 +239,10 @@ test('genuine local workerd/SQLite D1 verifies signed Access + nonextractable Wo
   assert.equal((await call(mf,member,{headers:authHeader})).status,401);
   assert.equal((await call(mf,logout,{method:'POST',
    headers:authHeader})).status,401);
-  assert.equal((await db.prepare('SELECT revoked_at FROM starry_sessions').first()).revoked_at,NOW);
+  const revoked=(await db.prepare('SELECT revoked_at FROM starry_sessions').first()).revoked_at;
+  assert.equal(Number.isSafeInteger(revoked),true);
+  assert.ok(revoked>=NOW&&revoked<=Math.floor(Date.now()/1000)+2,
+   'real bound Worker uses wall-clock time, not the former injected frozen test time');
   const audit=(await db.prepare('SELECT event_type FROM starry_m2_member_mutation_audit').all()).results;
   assert.deepEqual(audit.map(x=>x.event_type).sort(),
    ['profile_updated','session_revoked']);
