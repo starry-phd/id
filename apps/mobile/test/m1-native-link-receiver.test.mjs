@@ -215,3 +215,41 @@ test('original volatile Auth owner is the ONLY bearer owner; native receiver nev
  assert.equal(await owner.getSessionBearer(),null);
  assert.equal('bearer' in statuses[0],false);
 });
+
+test('valid OS handoff synchronously invalidates rendered identity before exchange, never exposes URL',async()=>{
+ const calls=[],pending=[];
+ const f=fake({
+  owner:{acceptReturnUrl(uri){
+   calls.push('exchange');
+   assert.equal(uri,url1);
+   return new Promise(resolve=>pending.push(resolve));
+  }},
+  config:{onHandoffStart(){calls.push('invalidate-private-screen');}},
+ });
+ f.receiver.start();await later();
+ f.emit('https://evil.invalid/oauth/complete#handoff='+'A'.repeat(43));
+ assert.deepEqual(calls,[],'a foreign link cannot clear the current profile');
+ f.emit(url1);
+ assert.deepEqual(calls,['invalidate-private-screen','exchange'],
+  'private display must be hidden before owner processes the new login');
+ assert.equal(pending.length,1);
+ f.emit(url1);
+ assert.equal(calls.length,2,'duplicate handoff must not reset the UI again');
+ pending[0]({expires_at:1793000300});
+ await later();
+ assert.deepEqual(f.statuses,[{type:'authenticated',expires_at:1793000300}]);
+ f.receiver.stop();
+});
+test('throwing visual invalidation observer cannot block Auth or leak handoff code',async()=>{
+ let exchanges=0;
+ const f=fake({
+  owner:{async acceptReturnUrl(){exchanges++;return {expires_at:1793000300};}},
+  config:{onHandoffStart(){throw Error('PRIVATE_UI_CALLBACK');}},
+ });
+ f.receiver.start();await later();f.emit(url1);await later();
+ assert.equal(exchanges,1);
+ assert.deepEqual(f.statuses,[{type:'authenticated',expires_at:1793000300}]);
+ f.receiver.stop();
+ assert.throws(()=>fake({config:{onHandoffStart:'untrusted'}}),
+  /M1_NATIVE_LINK_CONFIG_DENIED/);
+});

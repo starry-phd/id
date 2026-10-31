@@ -2,7 +2,7 @@
  * No public Auth, test bearer, credential storage or fake member data.
  * Receives only the existing, Auth-owned, scoped M1 SDK port.
  */
-import {useCallback,useEffect,useRef,useState} from 'react';
+import {useCallback,useEffect,useRef,useState,useSyncExternalStore} from 'react';
 import {
  ActivityIndicator,Pressable,ScrollView,StyleSheet,Switch,Text,TextInput,View,
 } from 'react-native';
@@ -12,7 +12,11 @@ import type {MemberProfilePreview} from './member-profile-preview.ts';
 
 export const M1_MEMBER_PROFILE_SCREEN_LIVE_ENABLED=false as const;
 export type MemberProfilePort=Pick<ReturnType<typeof createM1StagingSelfClient>,
- 'getSelf'|'patchSelfForUser'|'logout'>;
+ 'getSelf'|'patchSelfForUser'|'logout'>&Readonly<{
+ /** Optional only for still-offline preview; native Auth owner supplies both. */
+ getSessionRevision?:()=>number;
+ subscribeSessionRevision?:(callback:()=>void)=>()=>void;
+ }>;
 export type MemberProfileScreenProps=Readonly<{
  port:MemberProfilePort;enabled:boolean;
  preview?:boolean;previewTools?:MemberProfilePreview;
@@ -76,23 +80,53 @@ export function failedM1SaveScreenState(error:unknown):Readonly<{
  });
 }
 
+/** A profile may render only for the exact original Session revision and
+ * owner port. A port or Auth generation change hides A on the FIRST render,
+ * before React's async effect cleanup can fetch B. */
+export function isM1CurrentProfileAuthority(
+ loaded:Readonly<{port:MemberProfilePort;revision:number}>|null,
+ port:MemberProfilePort,revision:number,enabled:boolean,
+):boolean{
+ return enabled===true&&Number.isSafeInteger(revision)&&revision>=0&&
+  loaded!==null&&loaded.port===port&&loaded.revision===revision;
+}
+
+const emptyRevision=()=>0;
+const emptySubscribe=()=>()=>{};
 export function MemberProfileScreen({port,enabled,preview=false,previewTools}:MemberProfileScreenProps){
+ // One port owns both Auth actions and session invalidation. Do not require
+ // the caller to wire a separate notification prop that could be forgotten.
+ const hasRevisionPort=typeof port.getSessionRevision==='function'&&
+  typeof port.subscribeSessionRevision==='function';
+ const sessionRevision=useSyncExternalStore(
+  hasRevisionPort?port.subscribeSessionRevision!:emptySubscribe,
+  hasRevisionPort?port.getSessionRevision!:emptyRevision,
+  hasRevisionPort?port.getSessionRevision!:emptyRevision,
+ );
  const generation=useRef(0);
  const busy=useRef(false);
  const [phase,setPhase]=useState<Phase>(enabled?'loading':'disabled');
- const [profile,setProfile]=useState<M1StagingSelf|null>(null);
+ const [storedProfile,setStoredProfile]=useState<M1StagingSelf|null>(null);
+ const [loadedAuthority,setLoadedAuthority]=useState<
+  Readonly<{port:MemberProfilePort;revision:number}>|null>(null);
+ // React renders may arrive before effect cleanup on an OS Auth switch.
+ // Never expose a prior member, even for a one-frame port/epoch mismatch.
+ const profile=isM1CurrentProfileAuthority(
+  loadedAuthority,port,sessionRevision,enabled)?storedProfile:null;
  const [displayName,setDisplayName]=useState('');
  const [directory,setDirectory]=useState(false);
  const [publicName,setPublicName]=useState(false);
  const [notice,setNotice]=useState('');
  const clearProfile=useCallback(()=>{
-  setProfile(null);
+  setStoredProfile(null);
+  setLoadedAuthority(null);
   setDisplayName('');
   setDirectory(false);
   setPublicName(false);
  },[]);
  const apply=(data:M1StagingSelf)=>{
-  setProfile(data);
+  setStoredProfile(data);
+  setLoadedAuthority({port,revision:sessionRevision});
   setDisplayName(data.display_name??'');
   setDirectory(data.directory_opt_in);
   setPublicName(data.display_name_public);
@@ -115,7 +149,7 @@ export function MemberProfileScreen({port,enabled,preview=false,previewTools}:Me
     setNotice(explanation(error));
    }
   }finally{if(generation.current===serial)busy.current=false;}
- },[enabled,port,clearProfile]);
+ },[enabled,port,sessionRevision,clearProfile]);
  useEffect(()=>{
   if(enabled){void refresh();}
   else{
