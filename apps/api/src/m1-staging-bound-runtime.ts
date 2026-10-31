@@ -21,7 +21,7 @@ type Pair=Readonly<{kid:string;secretB64url:string}>;
 type Env=Record<string,unknown>;
 const safeText=(v:unknown,max=512):v is string=>
  typeof v==='string'&&v.length>0&&v.length<=max&&
- !/[\r\n\u0000-\u001f\u007f]/.test(v)&&v===v.trim();
+ ![...v].some(c=>c.charCodeAt(0)<32||c.charCodeAt(0)===127)&&v===v.trim();
 const required=(env:Env,key:string,max=512):string=>{
  const value=env[key];
  if(!safeText(value,max))throw Error('M1_STAGING_BINDINGS_DENIED');
