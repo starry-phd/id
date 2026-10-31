@@ -21,14 +21,23 @@ export const M1_NATIVE_SESSION_ROOT_LIVE=false as const;
 export const M1_NATIVE_SESSION_ROOT_CONTRACT=
  'starry.ai0.m1.single-native-session-root.v1' as const;
 
+/** React Native AppState 'change' observer, injected from an approved Expo
+ * root: no new global state, navigation listener or independent Auth owner. */
+export type M1NativeAppStatePort=Readonly<{
+ addEventListener:(kind:'change',listener:(nextState:string)=>void)=>
+  Readonly<{remove:()=>void}>;
+}>;
 export type M1NativeSessionRootConfig=M1MobileSessionAuthOwnerConfig&
- Pick<M1NativeLinkReceiverConfig,'linking'|'onStatus'>;
+ Pick<M1NativeLinkReceiverConfig,'linking'|'onStatus'>&
+ Readonly<{appState:M1NativeAppStatePort}>;
 
 /** Explicit lifetime: start once, then stop permanently on App root unmount. */
 export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
  if(!config||config.appId!=='starry-id'||config.environment!=='staging'||
    (config.enabled!==undefined&&typeof config.enabled!=='boolean')||
-   (config.enabled===true&&typeof config.openLoginBrowser!=='function'))
+   (config.enabled===true&&typeof config.openLoginBrowser!=='function')||
+   (config.enabled===true&&(!config.appState||
+    typeof config.appState.addEventListener!=='function')))
   throw Error('M1_NATIVE_ROOT_CONFIG_DENIED');
  const enabled=config.enabled===true;
  // A stable, token-free revision stream for a mounted member screen.
@@ -51,6 +60,7 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
  let started=false;
  let closed=false;
  const active=()=>started&&!closed;
+ let appStateSubscription:Readonly<{remove:()=>void}>|null=null;
  let expiryTimer:ReturnType<typeof setTimeout>|null=null;
  const cancelExpiry=()=>{
   if(expiryTimer!==null)clearTimeout(expiryTimer);
@@ -93,6 +103,16 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
    // that might remain displayed beyond its deadline.
    owner.clearSession();advanceRevision();
   }
+ };
+ // JS timers may be delayed while iOS/Android suspends the app. The
+ // foreground event is a second deadline check; it never performs a GET,
+ // emits a bearer, restores an expired Session or claims background execution.
+ const checkForegroundExpiry=()=>{
+  if(!active()||expiryTimer===null)return;
+  if(owner.sessionExpiresAt()===null){
+   cancelExpiry();
+   advanceRevision();
+  }else scheduleExpiry();
  };
  const receiver=createM1NativeLinkReceiver({
   enabled:config.enabled,appId:'starry-id',environment:'staging',
@@ -195,8 +215,23 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
   start():void{
    if(!enabled)throw Error('M1_NATIVE_ROOT_DISABLED');
    if(closed||started)throw Error('M1_NATIVE_ROOT_ALREADY_STARTED');
-   try{receiver.start();started=true;}
-   catch{
+   try{
+    // Require an actual native foreground listener before accepting any
+    // Auth handoff. Otherwise a paused JS timer may leave old PII visible.
+    const subscription=config.appState.addEventListener('change',state=>{
+     if(state==='active')checkForegroundExpiry();
+    });
+    if(!subscription||typeof subscription.remove!=='function')
+     throw Error('M1_NATIVE_ROOT_APPSTATE_REGISTER_DENIED');
+    appStateSubscription=subscription;
+    receiver.start();started=true;
+   }catch{
+    try{appStateSubscription?.remove();}catch{/* UI cleanup cannot authorize */}
+    appStateSubscription=null;
+    // Receiver may have started before its registration failed; never leave
+    // an OS URL listener attached to an inactive or partially mounted root.
+    try{receiver.stop();}catch{/* fail closed regardless */}
+    cancelExpiry();
     owner.clearSession();
     throw Error('M1_NATIVE_ROOT_START_FAILED');
    }
@@ -206,6 +241,8 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
    if(closed)return;
    closed=true;
    cancelExpiry();
+   try{appStateSubscription?.remove();}catch{/* already removed */}
+   appStateSubscription=null;
    // Hide any displayed private profile synchronously before the owner is
    // disposed. Late subscriber exceptions must never stop the teardown.
    advanceRevision();
