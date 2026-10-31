@@ -58,7 +58,7 @@ function testWorkerSource(){
   "   if(url===M1_GOOGLE_JWKS_URL)return new Response(JSON.stringify({keys:[{...pub,kid:'local-workerd-rsa',alg:'RS256',use:'sig'}]}),{status:200,headers:{'content-type':'application/json','cache-control':'public, max-age=300'}});",
   "   throw Error('JWKS_URL_DENIED');",
   "  },",
-  " });";
+  " });",
   " const custody=createM1OAuthVerifierCustody({",
   "  activeKey:async()=>({kid:'local-workerd-aes',key:aes}),",
   "  findKey:async kid=>kid==='local-workerd-aes'?aes:null,",
