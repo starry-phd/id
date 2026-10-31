@@ -508,3 +508,81 @@ test('the exact Auth-owned member port is the UI revision source; no separate be
  assert.equal(h.root.profile.getSessionRevision(),3);
  assert.deepEqual(revisionChanges,[1,2]);
 });
+
+test('native expiry timer invalidates mounted profile without a GET, switch or button',async()=>{
+ let clock=now;
+ let profileGets=0;
+ const h=harness({config:{now:()=>clock,fetchImpl:async(raw,init)=>{
+  const path=new globalThis.URL(raw).pathname;
+  if(path==='/v1/starry-id/sessions/exchange')
+   return new Response(JSON.stringify({
+    access_token:bearer,token_type:'Bearer',expires_at:now+1,
+   }),{status:200,headers:{
+    'content-type':'application/json','cache-control':'no-store',
+   }});
+  if(path==='/v1/starry-id/members/me'){
+   profileGets++;
+   return new Response(JSON.stringify(profile),{status:200,headers:{
+    'content-type':'application/json','cache-control':'no-store',
+   }});
+  }
+  throw Error('UNEXPECTED_EXPIRY_NETWORK');
+ }}});
+ const revisions=[];
+ const unsubscribe=h.root.profile.subscribeSessionRevision(
+  ()=>revisions.push(h.root.profile.getSessionRevision()));
+ h.root.start();h.emit(url);await settled();
+ assert.deepEqual(revisions,[1,2]);
+ assert.deepEqual(await h.root.profile.getSelf(),profile);
+ assert.equal(profileGets,1);
+ // The server expiry has elapsed, but the user never pressed a button or
+ // asked the SDK for a new bearer. The root's scheduled fence must wake UI.
+ clock=now+2;
+ await new Promise(resolve=>setTimeout(resolve,1250));
+ assert.deepEqual(revisions,[1,2,3],
+  'a natural Session expiry must retire the already-rendered PII');
+ assert.equal(h.root.sessionExpiresAt(),null);
+ await assert.rejects(h.root.profile.getSelf(),/STARRY_SELF_SESSION_REQUIRED/);
+ assert.equal(profileGets,1,'expiry must not start a hidden member GET');
+ unsubscribe();h.root.stop();
+});
+test('superseded A expiry never clears a newer B Session or emits a false B logout',async()=>{
+ let clock=now;
+ const codeB='B'.repeat(43);
+ const urlB=app+'#handoff='+codeB;
+ const bearerB='v1.'+'q'.repeat(40)+'.'+'r'.repeat(43);
+ const profileB={...profile,s_user_id:'su-expiry-B',display_name:'Current B'};
+ const h=harness({config:{now:()=>clock,fetchImpl:async(raw,init)=>{
+  const path=new globalThis.URL(raw).pathname;
+  if(path==='/v1/starry-id/sessions/exchange'){
+   const code=JSON.parse(init.body).handoff_code;
+   const isB=code===codeB;
+   return new Response(JSON.stringify({
+    access_token:isB?bearerB:bearer,
+    token_type:'Bearer',expires_at:now+(isB?60:1),
+   }),{status:200,headers:{
+    'content-type':'application/json','cache-control':'no-store',
+   }});
+  }
+  if(path==='/v1/starry-id/members/me'){
+   assert.equal(init.headers.authorization,'Bearer '+bearerB);
+   return new Response(JSON.stringify(profileB),{status:200,headers:{
+    'content-type':'application/json','cache-control':'no-store',
+   }});
+  }
+  throw Error('UNEXPECTED_SWITCH_EXPIRY_NETWORK');
+ }}});
+ const revisions=[];
+ const off=h.root.profile.subscribeSessionRevision(
+  ()=>revisions.push(h.root.profile.getSessionRevision()));
+ h.root.start();h.emit(url);await settled();
+ h.emit(urlB);await settled();
+ assert.deepEqual(revisions,[1,2,3,4]);
+ clock=now+2;
+ await new Promise(resolve=>setTimeout(resolve,1250));
+ assert.deepEqual(revisions,[1,2,3,4],
+  'A deadline must not act as B deadline');
+ assert.equal(h.root.sessionExpiresAt(),now+60);
+ assert.deepEqual(await h.root.profile.getSelf(),profileB);
+ off();h.root.stop();
+});
