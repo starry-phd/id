@@ -30,6 +30,7 @@ const schemaPaths=[
  '../../../modules/starry-id-v1/schema/002_m1_local_oauth_attempts.DRAFT.sql',
  '../../../modules/starry-id-v1/schema/003_m2_local_member_self_mutations.DRAFT.sql',
  '../../../modules/starry-id-v1/schema/004_m2_local_deletion_request_receipt.DRAFT.sql',
+ '../../../modules/starry-id-v1/schema/005_m1_session_handoffs.DRAFT.sql',
 ];
 function testWorkerSource(){
  return [
