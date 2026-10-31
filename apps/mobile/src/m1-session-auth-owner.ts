@@ -5,7 +5,8 @@
  * profile and deletion-request SDK ports. No second Auth, persistence, refresh,
  * public route or live-enable switch is introduced.
  */
-import {createM1SessionHandoffClient} from '../../../packages/sdk/src/m1-session-handoff-client.ts';
+import {createM1SessionHandoffClient,parseM1SessionHandoffReturnUrl} from
+ '../../../packages/sdk/src/m1-session-handoff-client.ts';
 import {createM1SessionBoundMemberPorts} from './m1-session-bound-member-ports.ts';
 import {createM1MobileBrowserLoginLauncher} from './m1-staging-google-login-launcher.ts';
 
@@ -38,6 +39,13 @@ export function createM1MobileSessionAuthOwner(config:M1MobileSessionAuthOwnerCo
  });
  // A server-confirmed logout must also cancel an in-flight browser attempt.
  const clearSession=()=>launcher.cancelPendingLogin();
+ // An OS-delivered Universal Link can arrive before the browser Promise
+ // settles. Fence that old pending browser BEFORE accepting the new link.
+ const acceptReturnUrl=(uri:string)=>{
+  parseM1SessionHandoffReturnUrl(uri,config.appReturnUri);
+  launcher.cancelPendingLogin();
+  return handoff.acceptReturnUrl(uri);
+ };
  const ports=createM1SessionBoundMemberPorts({
   enabled:config.enabled,appId:config.appId,environment:config.environment,
   baseUrl:config.baseUrl,fetchImpl:config.fetchImpl,
@@ -48,7 +56,7 @@ export function createM1MobileSessionAuthOwner(config:M1MobileSessionAuthOwnerCo
   contract:'starry.ai0.m1.mobile-session-auth-owner.v1' as const,
   source_only:true as const,
   live_enabled:M1_MOBILE_SESSION_AUTH_OWNER_LIVE,
-  acceptReturnUrl:handoff.acceptReturnUrl,
+  acceptReturnUrl,
   startGoogleLogin:launcher.startGoogleLogin,
   getSessionBearer:handoff.getSessionBearer,
   sessionExpiresAt:handoff.sessionExpiresAt,
