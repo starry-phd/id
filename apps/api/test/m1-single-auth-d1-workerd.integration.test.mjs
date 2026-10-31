@@ -993,7 +993,7 @@ test('native Expo root consumes real workerd/D1 OAuth handoff through OS URL eve
   });
   const changed=await root.profile.patchSelfForUser('u1',1,{
    display_name:'Native D1 Member',directory_opt_in:true,
-  });
+  },root.sessionRevision());
   assert.equal(changed.profile_revision,2);
   assert.deepEqual(await db.prepare(
    "SELECT profile_revision,display_name,directory_opt_in FROM starry_members WHERE s_user_id='u1'"
