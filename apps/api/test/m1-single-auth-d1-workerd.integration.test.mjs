@@ -750,3 +750,88 @@ test('Google callback-to-mobile handoff uses real Workerd D1 hash-only CAS and o
   assert.equal(unlinked.status,401);
  });
 });
+
+
+test('SOURCE-ONLY true local vertical flow: admitted browser start → signed Google callback → mobile handoff → five-field GET → owner-fenced CAS → logout/replay deny on ONE workerd D1',async()=>{
+ await withRealD1(async({mf,db})=>{
+  const startPath='/v1/starry-id/oauth/google/start';
+  const handoffPath='/v1/starry-id/sessions/exchange';
+  const rejected=await request(mf,startPath);
+  assert.equal(rejected.status,403,'no trusted admission means no OAuth attempt');
+  const attacker=await request(mf,startPath+'?next=https://evil.invalid',{
+   headers:{'x-test-only-admission':'admitted'},
+  });
+  assert.equal(attacker.status,404);
+  assert.equal((await db.prepare('SELECT count(*) AS n FROM starry_m1_oauth_attempts').first()).n,0,
+   'unauthorized/malformed starts must NOT allocate any D1 OAuth attempt');
+  const appReturn='https://app.starry.invalid/oauth/complete';
+  let browserStarts=0,returnedLink=null;
+  const owner=createM1MobileSessionAuthOwner({
+   enabled:true,appId:'starry-id',environment:'staging',
+   baseUrl:origin,appReturnUri:appReturn,now:()=>NOW,
+   fetchImpl:(url,init)=>mf.dispatchFetch(url,init),
+   openLoginBrowser:async(startUri,returnUri)=>{
+    browserStarts++;
+    assert.equal(startUri,origin+startPath);
+    assert.equal(returnUri,appReturn);
+    // This header is only a synthetic fixture substitute for a NOT-YET-
+    // AVAILABLE independently verified Cloudflare Access/tester gate.
+    const browser=await request(mf,startPath,{
+     headers:{'x-test-only-admission':'admitted',
+      'x-local-test-oauth-code':'browser-login-code'},
+    });
+    assert.equal(browser.status,303);
+    assert.equal(browser.headers.get('cache-control'),'no-store');
+    const google=new URL(browser.headers.get('location'));
+    assert.equal(google.origin,'https://accounts.google.com');
+    assert.equal(google.searchParams.get('scope'),'openid');
+    assert.equal(google.searchParams.get('code_challenge_method'),'S256');
+    assert.equal(google.searchParams.get('redirect_uri'),
+     origin+'/v1/starry-id/oauth/google/callback');
+    const cb=await request(mf,'/__localtest/callback',{
+     method:'POST',headers:{'content-type':'application/json'},
+     body:JSON.stringify({state:google.searchParams.get('state'),code:'browser-login-code'}),
+    });
+    const result=await cb.json();
+    assert.equal(result.status,303);
+    assert.ok(result.location.startsWith(appReturn+'#handoff='));
+    assert.doesNotMatch(result.location,/v1\./,'Session bearer never in URL');
+    returnedLink=result.location;
+    return {type:'success',url:returnedLink};
+   },
+  });
+  assert.equal(owner.source_only,true);
+  assert.equal(owner.live_enabled,false);
+  assert.deepEqual(await owner.startGoogleLogin(),{
+   status:'authenticated',expires_at:NOW+300,
+  });
+  assert.equal(browserStarts,1);
+  const bearer=await owner.getSessionBearer();
+  assert.match(bearer,/^v1\./);
+  assert.equal((await db.prepare('SELECT count(*) AS n FROM starry_m1_oauth_attempts WHERE consumed_at IS NOT NULL').first()).n,1);
+  assert.equal((await db.prepare('SELECT count(*) AS n FROM starry_m1_session_handoffs WHERE consumed_at IS NOT NULL').first()).n,1);
+  const memberBefore=await owner.profile.getSelf();
+  assert.deepEqual(memberBefore,{
+   s_user_id:'u1',display_name:'Test Member',directory_opt_in:false,
+   display_name_public:false,profile_revision:1,
+  });
+  const updated=await owner.profile.patchSelfForUser('u1',1,{display_name:'Browser Verified'});
+  assert.equal(updated.s_user_id,'u1');
+  assert.equal(updated.display_name,'Browser Verified');
+  assert.equal(updated.profile_revision,2);
+  const dbUpdated=await db.prepare("SELECT profile_revision,display_name FROM starry_members WHERE s_user_id='u1'").first();
+  assert.deepEqual(dbUpdated,{profile_revision:2,display_name:'Browser Verified'});
+  const rawHandoff=new URL(returnedLink).hash.slice('#handoff='.length);
+  const replay=await request(mf,handoffPath,{
+   method:'POST',headers:{'content-type':'application/json'},
+   body:JSON.stringify({handoff_code:rawHandoff}),
+  });
+  assert.equal(replay.status,401,'already redeemed handoff cannot issue a second Session');
+  await owner.profile.logout();
+  assert.equal(await owner.getSessionBearer(),null);
+  assert.equal((await request(mf,member,authorized(bearer))).status,401,
+   'replayed old signed bearer must be revoked in same D1');
+  assert.equal((await db.prepare("SELECT revoked_at FROM starry_sessions WHERE s_user_id='u1'").first()).revoked_at,NOW);
+  await assert.rejects(owner.profile.getSelf(),/STARRY_SELF_SESSION_REQUIRED/);
+ });
+});
