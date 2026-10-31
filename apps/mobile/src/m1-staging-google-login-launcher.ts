@@ -67,7 +67,8 @@ export function createM1MobileBrowserLoginLauncher(config:Config){
    clear();
   },
   async startGoogleLogin():Promise<
-    Readonly<{status:'cancelled'}|{status:'authenticated';expires_at:number}>>{
+    Readonly<{status:'cancelled'}|{status:'failed'}|
+      {status:'authenticated';expires_at:number}>>{
    if(!enabled||!openBrowser)throw Error('M1_LOGIN_DISABLED');
    if(pending)throw Error('M1_LOGIN_ALREADY_PENDING');
    const own=++epoch;pending=true;
@@ -90,6 +91,13 @@ export function createM1MobileBrowserLoginLauncher(config:Config){
      return Object.freeze({status:'cancelled' as const});
     if(type!=='success'||typeof url!=='string')
      throw Error('M1_LOGIN_RETURN_DENIED');
+    // A Google consent denial is a FIRST-CLASS, fixed server-authored App
+    // result, not a malformed OAuth handoff. It can NEVER produce a bearer.
+    // The browser adapter is already tied to this login epoch, and an
+    // OS-delivered newer login has already superseded this old browser.
+    // Exact string matching rejects query/state/token/foreign URL variants.
+    if(url===returnUri+'#error=oauth_failed')
+     return Object.freeze({status:'failed' as const});
     // Refuse malicious browser redirects BEFORE consuming a one-time code.
     try{parseM1SessionHandoffReturnUrl(url,returnUri);}
     catch{throw Error('M1_LOGIN_RETURN_DENIED');}

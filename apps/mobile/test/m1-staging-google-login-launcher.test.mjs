@@ -59,6 +59,10 @@ test('reject malicious browser redirects and provider bearer URLs before any exc
   returnUri+'#access_token=PRIVATE_BEARER',
   returnUri+'#handoff='+'H'.repeat(43)+'&handoff='+'X'.repeat(43),
   returnUri+'#handoff=short',returnUri,
+  returnUri+'#error=oauth_failed&state=UNTRUSTED',
+  returnUri+'?code=PRIVATE#error=oauth_failed',
+  returnUri+'#error=oauth_failed&handoff='+'H'.repeat(43),
+  'https://evil.invalid/oauth/complete#error=oauth_failed',
  ]){
   let accepts=0;
   const {launcher}=make({
@@ -135,4 +139,50 @@ test('one browser A late after canceled switch to B never becomes authenticated'
  pending[0]({type:'success',url:valid});
  await assert.rejects(a,/M1_LOGIN_SUPERSEDED/);
  assert.deepEqual(accepted,[valid]);
+});
+
+test('Google consent denial in system browser returns a fixed failed result without Auth exchange',async()=>{
+ const response=returnUri+'#error=oauth_failed';
+ const {launcher,calls}=make({
+  openLoginBrowser:async()=>({type:'success',url:response}),
+ });
+ const result=await launcher.startGoogleLogin();
+ assert.deepEqual(result,{status:'failed'});
+ assert.deepEqual(calls,[['clear']],
+  'a browser rejection cannot POST a handoff or restore the old Session');
+ assert.equal('expires_at' in result,false);
+ assert.equal('access_token' in result,false);
+});
+
+test('a later browser attempt may succeed after a sanitized Google denial',async()=>{
+ let n=0;
+ const {launcher,calls}=make({
+  openLoginBrowser:async()=>{
+   n++;return {type:'success',url:n===1?
+    returnUri+'#error=oauth_failed':valid};
+  },
+ });
+ assert.deepEqual(await launcher.startGoogleLogin(),{status:'failed'});
+ assert.deepEqual(await launcher.startGoogleLogin(),
+  {status:'authenticated',expires_at:1793000300});
+ assert.equal(calls.filter(x=>x[0]==='clear').length,2);
+ assert.deepEqual(calls.filter(x=>x[0]==='accept'),[['accept',valid]],
+  'only the second authentic opaque handoff URL is redeemed');
+});
+
+test('an old delayed browser denial cannot overwrite a newer completed login',async()=>{
+ const resolveBrowser=[];
+ const {launcher,calls}=make({
+  openLoginBrowser:()=>new Promise(resolve=>resolveBrowser.push(resolve)),
+ });
+ const old=launcher.startGoogleLogin();
+ launcher.cancelPendingLogin();
+ const fresh=launcher.startGoogleLogin();
+ resolveBrowser[1]({type:'success',url:valid});
+ assert.deepEqual(await fresh,
+  {status:'authenticated',expires_at:1793000300});
+ resolveBrowser[0]({type:'success',url:returnUri+'#error=oauth_failed'});
+ await assert.rejects(old,/M1_LOGIN_SUPERSEDED/,
+  'late error-only browser results are not a new Auth decision');
+ assert.deepEqual(calls.filter(x=>x[0]==='accept'),[['accept',valid]]);
 });
