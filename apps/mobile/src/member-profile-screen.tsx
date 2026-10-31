@@ -8,11 +8,15 @@ import {
 } from 'react-native';
 import type {createM1StagingSelfClient,M1StagingSelf,M1SelfPatch}
  from '../../../packages/sdk/src/m1-staging-self-client.ts';
+import type {MemberProfilePreview} from './member-profile-preview.ts';
 
 export const M1_MEMBER_PROFILE_SCREEN_LIVE_ENABLED=false as const;
 export type MemberProfilePort=Pick<ReturnType<typeof createM1StagingSelfClient>,
  'getSelf'|'patchSelfForUser'|'logout'>;
-export type MemberProfileScreenProps=Readonly<{port:MemberProfilePort;enabled:boolean}>;
+export type MemberProfileScreenProps=Readonly<{
+ port:MemberProfilePort;enabled:boolean;
+ preview?:boolean;previewTools?:MemberProfilePreview;
+}>;
 type Phase='disabled'|'loading'|'ready'|'saving'|'logging_out'|'logged_out'|'reauth_required'|'error';
 /** Any signed Session loss must erase stale PII, not leave editable data. */
 export function isM1SessionLost(error:unknown):boolean{
@@ -34,7 +38,7 @@ const explanation=(error:unknown):string=>{
   default:return '服務暫時無法使用，請稍後重試。';
  }
 };
-export function MemberProfileScreen({port,enabled}:MemberProfileScreenProps){
+export function MemberProfileScreen({port,enabled,preview=false,previewTools}:MemberProfileScreenProps){
  const generation=useRef(0);
  const busy=useRef(false);
  const [phase,setPhase]=useState<Phase>(enabled?'loading':'disabled');
@@ -136,6 +140,9 @@ export function MemberProfileScreen({port,enabled}:MemberProfileScreenProps){
   <Text style={styles.eyebrow}>STARRY ID · 會員中心</Text>
   <Text accessibilityRole="header" style={styles.heading}>我的會員資料</Text>
   <Text style={styles.description}>此頁只會讀取登入會員本人資料，不支援切換他人帳號或修改會員身分。</Text>
+  {preview?<View style={styles.warning}>
+   <Text style={styles.warningText}>開發模式｜這是完全離線的示範會員，姓名及設定只保留在此畫面記憶體。並未 Google 登入、連線、建立會員或修改真實資料。</Text>
+  </View>:null}
   {!enabled?<View style={styles.warning}>
    <Text style={styles.warningText}>正式登入與會員資料服務尚未開放。需要獨立的安全測試環境與真正的 Google 登入，才能啟用本頁。</Text>
   </View>:null}
@@ -168,6 +175,19 @@ export function MemberProfileScreen({port,enabled}:MemberProfileScreenProps){
      phase==='reauth_required'?'登入狀態失效，私人資料已從畫面清除。請重新登入。':'無法取得會員資料。'}</Text>
     {phase==='error'?button('重新讀取',()=>{void refresh();},false,true):null}
    </View>:null}
+  {preview&&previewTools&&phase==='ready'?<View style={styles.previewPanel}>
+   <Text style={styles.section}>開發模式測試</Text>
+   <Text style={styles.muted}>以下只模擬本機操作，不會連到伺服器。設定後會影響下一次指定操作。</Text>
+   {button('模擬資料衝突（再按儲存）',()=>{
+    previewTools.failNext('CONFLICT');setNotice('下一次儲存會模擬其他裝置先修改資料。');
+   },locked,true)}
+   {button('模擬下次重新讀取失敗',()=>{
+    previewTools.failNext('UNAVAILABLE');void refresh();
+   },locked,true)}
+   {button('模擬登入失效並清除畫面',()=>{
+    previewTools.failNext('UNAUTHORIZED');void refresh();
+   },locked,true)}
+  </View>:null}
   <Text style={styles.footer}>本頁不包含金流、管理員權限、刪帳執行或公開會員搜尋。服務未開放時不會取得任何身分憑證。</Text>
  </ScrollView>;
 }
@@ -193,5 +213,7 @@ const styles=StyleSheet.create({
  primaryText:{color:'#FFFFFF',fontSize:15,fontWeight:'700',textAlign:'center'},
  secondaryText:{color:'#1D527C',fontSize:15,fontWeight:'700',textAlign:'center'},
  notice:{fontSize:14,lineHeight:22,color:'#7E500D'},
+ previewPanel:{padding:16,borderWidth:1,borderStyle:'dashed',
+  borderColor:'#B7C6D9',borderRadius:12,gap:12},
  footer:{fontSize:13,lineHeight:21,color:'#526780'},
 });
