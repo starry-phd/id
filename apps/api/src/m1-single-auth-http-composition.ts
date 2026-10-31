@@ -18,6 +18,8 @@ import {createM2LocalDeletionRequestHandler} from
   '../../../modules/starry-id-v1/src/m2-local-deletion-request.ts';
 import {createM1GoogleSessionHandoffHttp} from './m1-google-session-handoff-http.ts';
 import {createM1GoogleStartHttp} from './m1-google-start-http.ts';
+import {createM1CloudflareAccessAdmission} from './m1-cloudflare-access-admission.ts';
+import type {M1CfAccessAdmissionConfig} from './m1-cloudflare-access-admission.ts';
 
 export const M1_SINGLE_AUTH_HTTP_LIVE_ENABLED = false as const;
 export const M1_SINGLE_AUTH_HTTP_CONTRACT =
@@ -28,6 +30,8 @@ type GoogleDeps = Parameters<typeof createM1M2LocalGoogleFlow>[0] & Readonly<{
   appReturnUri?:string;
   /** Trusted tester admission / Access verifier, invoked BEFORE OAuth state writes. */
   authStartAdmission?:(request:Request)=>Promise<boolean>;
+  /** Real signed Access JWT validation; source-only, no Access configuration. */
+  cloudflareAccessAdmission?:M1CfAccessAdmissionConfig;
 }>;
 
 export function createM1SingleAuthHttpComposition(deps:GoogleDeps) {
@@ -47,7 +51,14 @@ export function createM1SingleAuthHttpComposition(deps:GoogleDeps) {
   if(deps.sessionHandoffEnabled!==undefined&&typeof deps.sessionHandoffEnabled!=='boolean')
     throw Error('M1_SINGLE_AUTH_HANDOFF_CONFIGURATION_DENIED');
   const sessionHandoffEnabled=deps.sessionHandoffEnabled===true;
-  const authStartAdmission=deps.authStartAdmission;
+  // Production-candidate Access verifier and prior injected test-only admission
+  // are MUTUALLY EXCLUSIVE. No fallback from invalid JWT to a test callback.
+  if(deps.cloudflareAccessAdmission!==undefined&&
+      deps.authStartAdmission!==undefined)
+    throw Error('M1_SINGLE_AUTH_START_ADMISSION_DENIED');
+  const access=deps.cloudflareAccessAdmission===undefined?null:
+    createM1CloudflareAccessAdmission(deps.cloudflareAccessAdmission);
+  const authStartAdmission=access?access.verify:deps.authStartAdmission;
   if(authStartAdmission!==undefined&&typeof authStartAdmission!=='function')
     throw Error('M1_SINGLE_AUTH_START_ADMISSION_DENIED');
   if(sessionHandoffEnabled&&(!deps.appReturnUri||
