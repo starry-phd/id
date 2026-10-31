@@ -73,10 +73,16 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
   if(!result.ok)throw result.error;
   return result.value;
  };
- const deletionOperation=async <T>(run:()=>Promise<T>):Promise<T>=>{
+ const deletionOperation=async <T>(
+  run:()=>Promise<T>,createdForSession:string,
+ ):Promise<T>=>{
   let bearer:string;
   try{bearer=await selected();}
   catch{throw new M2DeletionClientError('SESSION_REQUIRED');}
+  // Cached screen ports belong to the original Session, not merely the
+  // member ID. A fresh B Session may belong to the SAME member.
+  if(bearer!==createdForSession)
+   throw new M2DeletionClientError('UNAUTHORIZED');
   const result=await run().then(
    value=>({ok:true as const,value}),
    error=>({ok:false as const,error}),
@@ -133,10 +139,23 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
   deletionForUser(expectedUserId:string){
    if(!active())throw Error('M1_NATIVE_ROOT_INACTIVE');
    const port=owner.deletionForUser(expectedUserId);
+   // Capture the one Auth Session as the UI obtains this owner-bound port.
+   // selected() starts its read immediately; a resolved null represents an
+   // unauthenticated screen, and never becomes an unhandled rejection.
+   // No token is returned from this root or persisted on the device.
+   const originalSession=selected().then(token=>token,()=>null);
+   const forOriginalSession=async <T>(
+    send:()=>Promise<T>,
+   ):Promise<T>=>{
+    const bearer=await originalSession;
+    if(!bearer)throw new M2DeletionClientError('SESSION_REQUIRED');
+    return deletionOperation(send,bearer);
+   };
    return Object.freeze({
-    getStatus:()=>deletionOperation(()=>port.getStatus()),
-    requestDeletion:()=>deletionOperation(()=>port.requestDeletion()),
-    confirmDeletion:(id:string)=>deletionOperation(()=>port.confirmDeletion(id)),
+    getStatus:()=>forOriginalSession(()=>port.getStatus()),
+    requestDeletion:()=>forOriginalSession(()=>port.requestDeletion()),
+    confirmDeletion:(id:string)=>forOriginalSession(
+     ()=>port.confirmDeletion(id)),
    });
   },
   sessionExpiresAt():number|null{
