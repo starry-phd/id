@@ -709,6 +709,20 @@ test('Google callback-to-mobile handoff uses real Workerd D1 hash-only CAS and o
    body:JSON.stringify({handoff_code:handoffCode}),
   });
   assert.equal(replay.status,401);
-  assert.equal((await db.prepare('SELECT consumed_at FROM starry_m1_session_handoffs').first()).consumed_at,NOW);
+  assert.equal((await db.prepare('SELECT consumed_at FROM starry_m1_session_handoffs WHERE handoff_hash=(SELECT handoff_hash FROM starry_m1_session_handoffs ORDER BY created_at LIMIT 1)').first()).consumed_at,NOW);
+  // An outstanding handoff must not prevent identity unlink, and cannot be
+  // redeemed after the original provider identity is removed.
+  const unlinkStarted=await start(mf,'handoff-before-unlink','known-subject');
+  const unlinkCallback=await request(mf,'/__localtest/callback',{
+   method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(unlinkStarted),
+  });
+  const unlinkRedirect=await unlinkCallback.json();
+  const unlinkCode=new URL(unlinkRedirect.location).hash.slice('#handoff='.length);
+  await db.prepare("DELETE FROM starry_identities WHERE provider='google' AND subject='known-subject'").run();
+  const unlinked=await request(mf,'/__localtest/exchange',{
+   method:'POST',headers:{'content-type':'application/json'},
+   body:JSON.stringify({handoff_code:unlinkCode}),
+  });
+  assert.equal(unlinked.status,401);
  });
 });
