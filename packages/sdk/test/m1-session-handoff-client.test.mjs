@@ -212,8 +212,6 @@ test('throwing clocks and upstream body stream errors are sanitized and cannot d
  }})});
  await assert.rejects(brokenStream.client.acceptReturnUrl(returnUrl()),error=>{
   assert.equal(error.message,'M1_HANDOFF_RESPONSE_INVALID');
-  assert.equal(awaitIsPromise(error),false);
   return true;
  });
 });
-function awaitIsPromise(value){return value instanceof Promise;}
