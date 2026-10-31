@@ -26,7 +26,7 @@ function harness(overrides={}){
  };
  const browser=overrides.browser??(async()=>({type:'cancel'}));
  const ownerFetch=async(raw,init)=>{
-  const pathname=new URL(raw).pathname;
+  const pathname=new globalThis.URL(raw).pathname;
   calls.push(['http',pathname,init.method]);
   if(pathname==='/v1/starry-id/sessions/exchange')
    return new Response(JSON.stringify({
