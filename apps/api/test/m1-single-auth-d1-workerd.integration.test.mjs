@@ -119,7 +119,7 @@ function testWorkerSource(){
   "  return r.flow.handleSessionExchange(new Request(origin+u.pathname+u.search,{",
   "   method:req.method,headers:{'content-type':req.headers.get('content-type')||''},body,",
   "  }));",
-  " }"
+  " }",
   " if(u.pathname==='/__localtest/start'&&req.method==='POST'){",
   "  const r=await current(env);",
   "  const auth=await r.flow.beginGoogleLogin();",
