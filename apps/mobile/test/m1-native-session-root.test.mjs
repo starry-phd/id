@@ -512,7 +512,7 @@ test('the exact Auth-owned member port is the UI revision source; no separate be
 test('native expiry timer invalidates mounted profile without a GET, switch or button',async()=>{
  let clock=now;
  let profileGets=0;
- const h=harness({config:{now:()=>clock,fetchImpl:async(raw,init)=>{
+ const h=harness({config:{now:()=>clock,fetchImpl:async(raw)=>{
   const path=new globalThis.URL(raw).pathname;
   if(path==='/v1/starry-id/sessions/exchange')
    return new Response(JSON.stringify({
@@ -538,7 +538,7 @@ test('native expiry timer invalidates mounted profile without a GET, switch or b
  // The server expiry has elapsed, but the user never pressed a button or
  // asked the SDK for a new bearer. The root's scheduled fence must wake UI.
  clock=now+2;
- await new Promise(resolve=>setTimeout(resolve,1250));
+ await new Promise(resolve=>globalThis.setTimeout(resolve,1250));
  assert.deepEqual(revisions,[1,2,3],
   'a natural Session expiry must retire the already-rendered PII');
  assert.equal(h.root.sessionExpiresAt(),null);
@@ -579,7 +579,7 @@ test('superseded A expiry never clears a newer B Session or emits a false B logo
  h.emit(urlB);await settled();
  assert.deepEqual(revisions,[1,2,3,4]);
  clock=now+2;
- await new Promise(resolve=>setTimeout(resolve,1250));
+ await new Promise(resolve=>globalThis.setTimeout(resolve,1250));
  assert.deepEqual(revisions,[1,2,3,4],
   'A deadline must not act as B deadline');
  assert.equal(h.root.sessionExpiresAt(),now+60);
