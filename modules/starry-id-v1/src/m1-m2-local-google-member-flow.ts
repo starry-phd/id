@@ -36,6 +36,8 @@ type Deps = Readonly<{
   googleJwksSource?:Pick<ReturnType<typeof createM1GoogleJwksSource>,'getProvider'>;
   /** Server-owned exact signed Google sub values of explicitly invited testers. */
   allowedGoogleTestSubjects?:readonly string[];
+  /** Explicit source-only app handoff; never enables a public Worker route. */
+  sessionHandoffEnabled?:boolean;
   verifierCustody:M1VerifierCustody;
   activeKey:()=>Promise<SessionSigningKey>;
   getVerificationKey:(kid:string)=>Promise<CryptoKey|null>;
@@ -76,6 +78,12 @@ export function createM1M2LocalGoogleFlow(deps:Deps){
   const getVerificationKey=deps.getVerificationKey;
   const now=deps.now;
   const enabled=deps.enabled===true;
+  if(deps.sessionHandoffEnabled!==undefined&&typeof deps.sessionHandoffEnabled!=='boolean')
+    throw Error('M1_M2_GOOGLE_FLOW_CONFIGURATION_DENIED');
+  const sessionHandoffEnabled=deps.sessionHandoffEnabled===true;
+  if(sessionHandoffEnabled&&enabled&&(
+    serverScope.environment!=='staging'||!deps.googleJwksSource))
+    throw Error('M1_M2_GOOGLE_FLOW_CONFIGURATION_DENIED');
   // A staging Google-JWKS composition cannot accidentally become open signup.
   // An explicit allowlist is REQUIRED before any remote-like source is used.
   const requireGoogleTestAllowlist=
@@ -92,7 +100,7 @@ export function createM1M2LocalGoogleFlow(deps:Deps){
     authDb,provider:deps.googleProvider,exchangeCode,
     getGoogleJwksProvider:deps.googleJwksSource?.getProvider,
     allowedGoogleTestSubjects:deps.allowedGoogleTestSubjects,
-    requireGoogleTestAllowlist,
+    requireGoogleTestAllowlist,sessionHandoffEnabled,
     verifierCustody:deps.verifierCustody,requireSealedVerifier:true,
     activeKey:deps.activeKey,getVerificationKey,
     now,randomBytes:deps.randomBytes,
@@ -118,6 +126,20 @@ export function createM1M2LocalGoogleFlow(deps:Deps){
     },
     /** Server-only callback result; bearer is NEVER placed in redirect URL. */
     completeGoogleLogin(input:unknown){return core.issueFromVerifiedCallback(input);},
+    /** App-facing callback returns only a 60-second opaque one-time code, never a bearer. */
+    async completeGoogleLoginForApp(input:unknown){
+      if(!enabled||!sessionHandoffEnabled)return null;
+      const issued=await core.issueFromVerifiedCallback(input);
+      const expiresAt=issued?.handoff_expires_at;
+      if(!issued?.handoff_code||typeof expiresAt!=='number'||!Number.isSafeInteger(expiresAt))return null;
+      return Object.freeze({status:'handoff_issued' as const,
+        handoff_code:issued.handoff_code,expires_at:expiresAt});
+    },
+    /** One-time code is consumed before a current, non-revoked D1 Session is re-signed. */
+    redeemSessionHandoff(input:unknown){
+      if(!enabled||!sessionHandoffEnabled)return Promise.resolve(null);
+      return core.redeemSessionHandoff(input);
+    },
     /** Unchanged W3 five-field authenticated GET. */
     readSelf(request:Request):Promise<Response>{return core.readSelf(request);},
     /** Reused M2 PATCH/current-session logout port, not publicly registered. */

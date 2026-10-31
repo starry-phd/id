@@ -30,11 +30,13 @@ const schemaPaths=[
  '../../../modules/starry-id-v1/schema/002_m1_local_oauth_attempts.DRAFT.sql',
  '../../../modules/starry-id-v1/schema/003_m2_local_member_self_mutations.DRAFT.sql',
  '../../../modules/starry-id-v1/schema/004_m2_local_deletion_request_receipt.DRAFT.sql',
+ '../../../modules/starry-id-v1/schema/005_m1_session_handoffs.DRAFT.sql',
 ];
 function testWorkerSource(){
  return [
   "import {createM1SingleAuthHttpComposition} from './m1-single-auth-http-composition.ts';",
   "import {createM1OAuthVerifierCustody} from '../../../modules/starry-id-v1/src/m1-oauth-verifier-custody.ts';",
+  "import {createM1GoogleJwksSource,M1_GOOGLE_DISCOVERY_URL,M1_GOOGLE_JWKS_URL} from '../../../modules/starry-id-v1/src/m1-google-jwks-source.ts';",
   "import {bytesToBase64url} from '../../../modules/starry-id-v1/src/oidc-crypto.ts';",
   "const origin="+JSON.stringify(origin)+";",
   "const scope="+JSON.stringify(scope)+";",
@@ -48,7 +50,15 @@ function testWorkerSource(){
   " const aes=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);",
   " const rsa=await crypto.subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},false,['sign','verify']);",
   " const pub=await crypto.subtle.exportKey('jwk',rsa.publicKey);",
-  " const provider={provider:'google',issuer:'https://accounts.google.com',clientId:'local-workerd-test-client',jwks:[{...pub,kid:'local-workerd-rsa',alg:'RS256',use:'sig'}]};",
+  " const provider={provider:'google',issuer:'https://accounts.google.com',clientId:'local-workerd-test-client',jwks:[]};",
+  " const jwks=createM1GoogleJwksSource({enabled:true,clientId:provider.clientId,issuer:provider.issuer,now:()=>NOW,",
+  "  transport:async(url,init)=>{",
+  "   if(init.method!=='GET'||init.credentials!=='omit'||init.redirect!=='error')throw Error('JWKS_TRANSPORT_DENIED');",
+  "   if(url===M1_GOOGLE_DISCOVERY_URL)return new Response(JSON.stringify({issuer:provider.issuer,jwks_uri:M1_GOOGLE_JWKS_URL}),{status:200,headers:{'content-type':'application/json'}});",
+  "   if(url===M1_GOOGLE_JWKS_URL)return new Response(JSON.stringify({keys:[{...pub,kid:'local-workerd-rsa',alg:'RS256',use:'sig'}]}),{status:200,headers:{'content-type':'application/json','cache-control':'public, max-age=300'}});",
+  "   throw Error('JWKS_URL_DENIED');",
+  "  },",
+  " });",
   " const custody=createM1OAuthVerifierCustody({",
   "  activeKey:async()=>({kid:'local-workerd-aes',key:aes}),",
   "  findKey:async kid=>kid==='local-workerd-aes'?aes:null,",
@@ -64,7 +74,9 @@ function testWorkerSource(){
   " }",
   " const flow=createM1SingleAuthHttpComposition({",
   "  enabled:true,serverScope:scope,expectedOrigin:origin,redirectUri:origin+endpoint,",
-  "  authDb:env.AUTH_DB,googleProvider:provider,verifierCustody:custody,",
+  "  authDb:env.AUTH_DB,googleProvider:provider,googleJwksSource:jwks,verifierCustody:custody,",
+  "  allowedGoogleTestSubjects:['known-subject','new-subject','foreign-subject','another-subject','m2-foreign-subject'],",
+  "  sessionHandoffEnabled:true,appReturnUri:'https://app.starry.invalid/oauth/complete',",
   "  activeKey:async()=>({kid:'local-workerd-hmac',key:hmac}),",
   "  getVerificationKey:async kid=>kid==='local-workerd-hmac'?hmac:null,",
   "  readGoogleClientSecret:async()=> 'ephemeral-test-only-not-a-real-key',",
@@ -99,6 +111,17 @@ function testWorkerSource(){
   "  const value=await req.json();",
   "  const result=await r.flow.completeGoogleLogin({state:value.state,code:value.code});",
   "  return new Response(JSON.stringify(result??null),{headers:{'content-type':'application/json','cache-control':'no-store'}});",
+  " }",
+  " if(u.pathname==='/__localtest/callback'&&req.method==='POST'){",
+  "  const r=await current(env);const value=await req.json();",
+  "  const query=new URLSearchParams({code:value.code,state:value.state});",
+  "  const response=await r.flow.handleOAuthCallback(new Request(origin+endpoint+'?'+query.toString()));",
+  "  return new Response(JSON.stringify({status:response.status,location:response.headers.get('location')}),{headers:{'content-type':'application/json','cache-control':'no-store'}});",
+  " }",
+  " if(u.pathname==='/__localtest/exchange'&&req.method==='POST'){",
+  "  const r=await current(env);const value=await req.json();",
+  "  const response=await r.flow.handleSessionExchange(new Request(origin+'/v1/starry-id/sessions/exchange',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({handoff_code:value.handoff_code})}));",
+  "  return new Response(await response.text(),{status:response.status,headers:response.headers});",
   " }",
   " if(u.pathname==='/__localtest/count'&&req.method==='GET'){",
   "  const r=await current(env);return Response.json({tokenCalls:r.getTokenCalls()});",
@@ -647,5 +670,59 @@ test('owner-fenced deletion refuses stale A screen under B signed Session on rea
    'SELECT count(*) AS n FROM starry_m2_deletion_request_audit'
   ).first()).n,2);
   assert.ok(reads>=4);
+ });
+});
+
+
+test('Google callback-to-mobile handoff uses real Workerd D1 hash-only CAS and one-time Session re-sign',async()=>{
+ await withRealD1(async({mf,db})=>{
+  const started=await start(mf,'handoff-workerd','known-subject');
+  const callback=await request(mf,'/__localtest/callback',{
+   method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(started),
+  });
+  assert.equal(callback.status,200);
+  const redirect=await callback.json();
+  assert.equal(redirect.status,303);
+  assert.ok(redirect.location.startsWith('https://app.starry.invalid/oauth/complete#handoff='));
+  assert.doesNotMatch(redirect.location,/v1\./);
+  const handoffCode=new URL(redirect.location).hash.slice('#handoff='.length);
+  assert.match(handoffCode,/^[A-Za-z0-9_-]{43}$/);
+  const stored=await db.prepare('SELECT handoff_hash,environment,expires_at,consumed_at FROM starry_m1_session_handoffs').first();
+  assert.match(stored.handoff_hash,/^[a-f0-9]{64}$/);
+  assert.equal(stored.environment,'staging');
+  assert.equal(stored.expires_at,NOW+60);
+  assert.equal(stored.consumed_at,null);
+  const exchanged=await request(mf,'/__localtest/exchange',{
+   method:'POST',headers:{'content-type':'application/json'},
+   body:JSON.stringify({handoff_code:handoffCode}),
+  });
+  assert.equal(exchanged.status,200);
+  assert.equal(exchanged.headers.get('cache-control'),'no-store');
+  const payload=await exchanged.json();
+  assert.deepEqual(Object.keys(payload).sort(),['access_token','expires_at','token_type']);
+  assert.match(payload.access_token,/^v1\./);
+  const self=await request(mf,member,authorized(payload.access_token));
+  assert.equal(self.status,200);
+  assert.equal((await self.json()).s_user_id,'u1');
+  const replay=await request(mf,'/__localtest/exchange',{
+   method:'POST',headers:{'content-type':'application/json'},
+   body:JSON.stringify({handoff_code:handoffCode}),
+  });
+  assert.equal(replay.status,401);
+  assert.equal((await db.prepare('SELECT count(*) AS n FROM starry_m1_session_handoffs WHERE consumed_at IS NOT NULL').first()).n,1);
+  // An outstanding handoff must not prevent identity unlink, and cannot be
+  // redeemed after the original provider identity is removed.
+  const unlinkStarted=await start(mf,'handoff-before-unlink','known-subject');
+  const unlinkCallback=await request(mf,'/__localtest/callback',{
+   method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(unlinkStarted),
+  });
+  const unlinkRedirect=await unlinkCallback.json();
+  const unlinkCode=new URL(unlinkRedirect.location).hash.slice('#handoff='.length);
+  await db.prepare("DELETE FROM starry_identities WHERE provider='google' AND subject='known-subject'").run();
+  const unlinked=await request(mf,'/__localtest/exchange',{
+   method:'POST',headers:{'content-type':'application/json'},
+   body:JSON.stringify({handoff_code:unlinkCode}),
+  });
+  assert.equal(unlinked.status,401);
  });
 });
