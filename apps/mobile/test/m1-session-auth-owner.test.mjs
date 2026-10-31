@@ -16,7 +16,7 @@ const make=(extra={})=>{
   enabled:true,appId:'starry-id',environment:'staging',
   baseUrl:origin,appReturnUri:appReturn,now:()=>now,
   fetchImpl:async(url,init)=>{
-   const path=new URL(url).pathname;calls.push({path,init});
+   const path=new globalThis.URL(url).pathname;calls.push({path,init});
    if(path==='/v1/starry-id/sessions/exchange')
     return new Response(JSON.stringify({access_token:bearer,
      token_type:'Bearer',expires_at:now+300}),{status:200,headers:{
