@@ -84,19 +84,35 @@ export function createM1SessionBoundMemberPorts(config:M1MemberPortsConfig){
     getSessionBearer:async()=>originalBearer,fetchImpl:guardedFetch,
    }).patchSelfForUser(expectedUserId,expectedProfileRevision,patch);
   },
-  async logout():Promise<void>{
-   // The server must revoke the credential captured when logout begins,
-   // NOT whichever member happens to be signed in after an await.
-   // A late logout for A must never clear a newer valid Session B.
+  async logout(expectedBearer?:string):Promise<void>{
+   // A native screen supplies the bearer captured for its *render*.
+   // The public SDK and other internal callers may still use the original
+   // no-argument API; only the native root is allowed to bind a render epoch.
    if(!enabled)return profileClient.logout();
    let selected:string|null;
    try{selected=await getSessionBearer();}
    catch{throw Error('STARRY_SELF_SESSION_REQUIRED');}
    if(!selected)throw Error('STARRY_SELF_SESSION_REQUIRED');
+   if(expectedBearer!==undefined&&selected!==expectedBearer)
+    throw Error('STARRY_SELF_IDENTITY_CHANGED');
    const captured=selected;
+   // The SDK itself awaits its volatile bearer before dispatching POST.
+   // A fresh B can become selected during that await: verify at the actual
+   // transport boundary to avoid revoking an old A after switching to B.
+   const guardedFetch:typeof fetch=async(input,init)=>{
+    if(expectedBearer!==undefined){
+     let current:string|null;
+     try{current=await getSessionBearer();}
+     catch{throw Error('STARRY_SELF_SESSION_REQUIRED');}
+     if(!current)throw Error('STARRY_SELF_SESSION_REQUIRED');
+     if(current!==captured)throw Error('STARRY_SELF_IDENTITY_CHANGED');
+    }
+    // No await between the last single-owner check and POST dispatch.
+    return (fetchImpl??fetch)(input,init);
+   };
    await createM1StagingSelfClient({
     enabled:true,appId:'starry-id',baseUrl,
-    getSessionBearer:async()=>captured,fetchImpl,
+    getSessionBearer:async()=>captured,fetchImpl:guardedFetch,
    }).logout();
    let current:string|null;
    try{current=await getSessionBearer();}
