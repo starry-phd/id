@@ -82,9 +82,12 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
     }else scheduleExpiry(); // Clock skew, long expiry, or suspended timer.
    },millis);
    expiryTimer=timer;
-   // Local Node/CI runners must not be kept alive by source-only long timers.
-   if(typeof timer==='object'&&typeof timer.unref==='function')
-    timer.unref();
+   // Native setTimeout handles are numbers; Node timers are objects.
+   // Inspect as unknown so TypeScript does not assume an object is impossible.
+   const nodeTimer:unknown=timer;
+   if(nodeTimer!==null&&typeof nodeTimer==='object'&&
+      'unref' in nodeTimer&&typeof nodeTimer.unref==='function')
+    nodeTimer.unref();
   }catch{
    // If a platform cannot schedule expiry, never continue with a credential
    // that might remain displayed beyond its deadline.
