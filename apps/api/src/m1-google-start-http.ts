@@ -8,7 +8,6 @@
  */
 export const M1_GOOGLE_START_HTTP_LIVE=false as const;
 export const M1_GOOGLE_START_PATH='/v1/starry-id/oauth/google/start' as const;
-const GOOGLE_AUTHORIZE='https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_CALLBACK='/v1/starry-id/oauth/google/callback';
 type Config=Readonly<{
  enabled?:boolean;
