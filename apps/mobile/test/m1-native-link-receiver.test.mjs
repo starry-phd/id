@@ -9,7 +9,7 @@ const root='https://app.starry.invalid/oauth/complete';
 const api='https://staging.starry.invalid';
 const url1=root+'#handoff='+'A'.repeat(43);
 const url2=root+'#handoff='+'B'.repeat(43);
-const later=()=>new Promise(resolve=>setImmediate(resolve));
+const later=()=>new Promise(resolve=>globalThis.setImmediate(resolve));
 function fake(extra={}){
  const calls=[],statuses=[];
  let listener=null,cleared=0,removed=0;
@@ -186,7 +186,7 @@ test('original volatile Auth owner is the ONLY bearer owner; native receiver nev
  const owner=createM1MobileSessionAuthOwner({
   enabled:true,appId:'starry-id',environment:'staging',
   baseUrl:api,appReturnUri:root,now:()=>1793000000,
-  fetchImpl:async(_url,_init)=>{
+  fetchImpl:async()=>{
    requests++;
    return new Response(JSON.stringify({access_token:bearer,
     token_type:'Bearer',expires_at:1793000300}),{
