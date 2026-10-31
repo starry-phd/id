@@ -178,6 +178,8 @@ test('OAuth browser callback returns only a fragment-bound one-time code; native
   assert.notEqual(stored.handoff_hash,code);
   assert.equal(stored.provider_subject,'known-subject');
   assert.equal(stored.environment,'staging');
+  assert.equal(stored.created_at,NOW);
+  assert.equal(stored.expires_at,NOW+60,'handoff lifetime is capped at 60 seconds');
   assert.equal(stored.consumed_at,null);
   const response=await f.flow.handleSessionExchange(exchangeRequest(code));
   assert.equal(response.status,200);
@@ -225,6 +227,10 @@ test('session handoff denies wrong app Origin, cookies, ambient bearer, content 
    body:JSON.stringify({handoff_code:code,member_id:'u1'}),
   }));
   assert.equal(extra.status,400);
+  const wrongIssuer=await f.flow.handleOAuthCallback(new Request(
+   origin+CALLBACK+'?code=x&state='+'S'.repeat(43)+'&iss=https%3A%2F%2Fevil.invalid',
+  ));
+  assert.equal(wrongIssuer.status,400);
   const duplicate=await f.flow.handleOAuthCallback(new Request(
    origin+CALLBACK+'?code=x&state='+'S'.repeat(43)+'&state='+'T'.repeat(43),
   ));
