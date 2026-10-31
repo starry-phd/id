@@ -18,16 +18,16 @@ const encode=(v)=>Buffer.from(JSON.stringify(v)).toString('base64url');
 let signed;
 async function fixture(){
  if(signed)return signed;
- const pair=await crypto.subtle.generateKey({
+ const pair=await globalThis.crypto.subtle.generateKey({
   name:'RSASSA-PKCS1-v1_5',hash:'SHA-256',
   modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),
  },true,['sign','verify']);
- const pub=await crypto.subtle.exportKey('jwk',pair.publicKey);
+ const pub=await globalThis.crypto.subtle.exportKey('jwk',pair.publicKey);
  const kid='owned-fixture-access-rs256-kid';
  const sign=async(payload=base,header={alg:'RS256',kid,typ:'JWT'})=>{
   const encoded=encode(header)+'.'+encode(payload);
-  const sig=await crypto.subtle.sign('RSASSA-PKCS1-v1_5',pair.privateKey,
-   new TextEncoder().encode(encoded));
+  const sig=await globalThis.crypto.subtle.sign('RSASSA-PKCS1-v1_5',pair.privateKey,
+   new globalThis.TextEncoder().encode(encoded));
   return encoded+'.'+Buffer.from(sig).toString('base64url');
  };
  signed={pub:{kty:'RSA',alg:'RS256',use:'sig',kid,n:pub.n,e:pub.e},
