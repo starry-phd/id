@@ -36,6 +36,7 @@ function testWorkerSource(){
  return [
   "import {createM1SingleAuthHttpComposition} from './m1-single-auth-http-composition.ts';",
   "import {createM1OAuthVerifierCustody} from '../../../modules/starry-id-v1/src/m1-oauth-verifier-custody.ts';",
+  "import {createM1GoogleJwksSource,M1_GOOGLE_DISCOVERY_URL,M1_GOOGLE_JWKS_URL} from '../../../modules/starry-id-v1/src/m1-google-jwks-source.ts';",
   "import {bytesToBase64url} from '../../../modules/starry-id-v1/src/oidc-crypto.ts';",
   "const origin="+JSON.stringify(origin)+";",
   "const scope="+JSON.stringify(scope)+";",
