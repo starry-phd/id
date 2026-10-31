@@ -64,6 +64,31 @@ const firstAasaDecision=(entry:Record<string,unknown>,path:string):AasaDecision=
  return 'none';
 };
 
+
+const androidLinkRelation='delegate_permission/common.handle_all_urls';
+/** Android 15+ dynamic assetlinks rules are ordered and can narrow a static
+ * exact-path intent filter. No-match, exclusion, or fragment/query-dependent
+ * rules are NOT proof that a varying OAuth handoff fragment can open the app.
+ * Android 14 and earlier ignore these optional server-side rules; we never
+ * claim cross-version source consistency when Android 15+ can reject them. */
+const androidDynamicAllows=(statement:Record<string,unknown>,path:string):boolean=>{
+ const group=obj(obj(statement.relation_extensions)?.[androidLinkRelation]);
+ const rules=group?.dynamic_app_link_components;
+ if(!Array.isArray(rules)||rules.length===0)return false;
+ for(const raw of rules){
+  const rule=obj(raw);
+  if(!rule||typeof rule['/']!=='string')return false;
+  if(!matchesAasaPattern(rule['/'],path))continue;
+  if(rule['?']!==undefined||rule['#']!==undefined||
+     (rule.exclude!==undefined&&rule.exclude!==false))
+   return false;
+  // The manifest already pins the exact path, so a positive dynamic
+  // wildcard cannot broaden it. It can only permit that pinned path.
+  return true;
+ }
+ return false;
+};
+
 export function checkM1UniversalLinkAssociationPreflight(input:Input){
  const reasons:Reason[]=[];
  const add=(code:Reason)=>{if(!reasons.includes(code))reasons.push(code);};
@@ -120,12 +145,19 @@ export function checkM1UniversalLinkAssociationPreflight(input:Input){
   break;
  }
  if(aasaDecision!=='allow')add('AASA_EXACT_PATH_MISSING');
- const androidExact=!!url&&validIds&&arr(input?.androidAssetLinks).some(item=>{
+ const androidStatements=arr(input?.androidAssetLinks).filter(item=>{
   const x=obj(item);const target=obj(x?.target);
-  return strings(x?.relation).includes('delegate_permission/common.handle_all_urls')&&
+  return strings(x?.relation).includes(androidLinkRelation)&&
    target?.namespace==='android_app'&&target.package_name===input.androidPackageName&&
    strings(target.sha256_cert_fingerprints).includes(input.androidSigningCertSha256);
  });
+ const hasDynamic=androidStatements.some(item=>
+  obj(item)?.relation_extensions!==undefined);
+ // Duplicate matching statements with a dynamic relation have unspecified
+ // precedence on Android. Refuse to present those as verified source config.
+ const androidExact=!!url&&validIds&&androidStatements.length>0&&
+  (!hasDynamic||(androidStatements.length===1&&
+   androidDynamicAllows(obj(androidStatements[0])!,path)));
  if(!androidExact)add('ASSETLINKS_EXACT_APP_MISSING');
  return Object.freeze({
   contract:M1_LINK_ASSOCIATION_PREFLIGHT_CONTRACT,
