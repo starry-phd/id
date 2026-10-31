@@ -222,7 +222,8 @@ test('late A logout 204 must NOT erase a newly signed-in B Session',async()=>{
  // User B completed a new login during A's server-side Session revoke.
  current=signedB;
  finish(new Response(null,{status:204,headers:{'cache-control':'no-store'}}));
- await previousLogout;
+ await assert.rejects(previousLogout,/STARRY_SELF_IDENTITY_CHANGED/,
+  'A revoke completed but B screen must not be told it was logged out');
  assert.equal(reads,2);
  assert.equal(cleared,0,'A cannot clear B after a delayed successful logout');
  assert.equal(current,signedB);
@@ -246,7 +247,7 @@ test('owner switch between selecting logout credential and HTTP still revokes on
    return new Response(null,{status:204,headers:{'cache-control':'no-store'}});
   },
  });
- await ports.profile.logout();
+ await assert.rejects(ports.profile.logout(),/STARRY_SELF_IDENTITY_CHANGED/);
  assert.equal(reads,2);
  assert.equal(cleared,0);
  assert.equal(current,signedB);
@@ -282,4 +283,30 @@ test('M1 profile logout preserves volatile memory when server revocation did not
  });
  await assert.rejects(ports.profile.logout(),/STARRY_SELF_UNAVAILABLE/);
  assert.equal(cleared,0);
+});
+
+
+test('A logout 204 after native unmount reports session loss and cannot clear an empty owner',async()=>{
+ let current=signedA,cleared=0,finish;
+ let started;
+ const entered=new Promise(resolve=>{started=resolve;});
+ const calls=[];
+ const ports=make({
+  enabled:true,
+  getSessionBearer:async()=>current,
+  clearSession:()=>{cleared++;current=null;},
+  fetchImpl:async(url,init)=>{
+   calls.push({url,init});
+   started();
+   return new Promise(resolve=>{finish=resolve;});
+  },
+ });
+ const stale=ports.profile.logout();
+ await entered;
+ current=null; // The sole volatile Auth owner was disposed while A revoked.
+ finish(new Response(null,{status:204,headers:{'cache-control':'no-store'}}));
+ await assert.rejects(stale,/STARRY_SELF_SESSION_REQUIRED/);
+ assert.equal(cleared,0);
+ assert.equal(calls.length,1);
+ assert.equal(calls[0].init.headers.authorization,'Bearer '+signedA);
 });

@@ -70,7 +70,13 @@ export function createM1SessionBoundMemberPorts(config:M1MemberPortsConfig){
    let current:string|null;
    try{current=await getSessionBearer();}
    catch{throw Error('STARRY_SELF_SESSION_REQUIRED');}
-   if(current===captured)clearSession?.();
+   // The old A Session was revoked, but do not report a successful
+   // logout to a screen now owned by B (or after the App was disposed).
+   // The UI already treats these codes as session loss and clears stale PII.
+   if(current!==captured)
+    throw Error(current?'STARRY_SELF_IDENTITY_CHANGED':
+     'STARRY_SELF_SESSION_REQUIRED');
+   clearSession?.();
   },
  });
  return Object.freeze({
