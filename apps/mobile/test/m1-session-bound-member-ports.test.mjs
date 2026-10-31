@@ -191,8 +191,86 @@ test('M1 profile logout clears Auth-owned volatile memory only after server 204 
   },
  });
  await ports.profile.logout();
- assert.equal(reads,1);
+ assert.equal(reads,2,'A is captured before logout and checked again only after 204');
  assert.equal(cleared,1);
+});
+
+
+test('late A logout 204 must NOT erase a newly signed-in B Session',async()=>{
+ let current=signedA;
+ let cleared=0,reads=0,finish;
+ let requestStarted;
+ const entered=new Promise(resolve=>{requestStarted=resolve;});
+ const requests=[];
+ const ports=make({
+  enabled:true,
+  getSessionBearer:async()=>{reads++;return current;},
+  clearSession:()=>{cleared++;current=null;},
+  fetchImpl:async(url,init)=>{
+   requests.push({url,init});
+   requestStarted();
+   return new Promise(resolve=>{finish=resolve;});
+  },
+ });
+ const previousLogout=ports.profile.logout();
+ await entered;
+ assert.equal(requests.length,1);
+ assert.equal(new globalThis.URL(requests[0].url).pathname,
+  '/v1/starry-id/sessions/logout');
+ assert.equal(requests[0].init.method,'POST');
+ assert.equal(requests[0].init.headers.authorization,'Bearer '+signedA);
+ // User B completed a new login during A's server-side Session revoke.
+ current=signedB;
+ finish(new Response(null,{status:204,headers:{'cache-control':'no-store'}}));
+ await previousLogout;
+ assert.equal(reads,2);
+ assert.equal(cleared,0,'A cannot clear B after a delayed successful logout');
+ assert.equal(current,signedB);
+ assert.equal(requests.length,1,'A logout may not retry under B');
+});
+
+test('owner switch between selecting logout credential and HTTP still revokes only A',async()=>{
+ let current=signedA,reads=0,cleared=0;
+ const requests=[];
+ const ports=make({
+  enabled:true,
+  getSessionBearer:async()=>{
+   reads++;
+   const selected=current;
+   if(reads===1)current=signedB;
+   return selected;
+  },
+  clearSession:()=>{cleared++;current=null;},
+  fetchImpl:async(url,init)=>{
+   requests.push({url,init});
+   return new Response(null,{status:204,headers:{'cache-control':'no-store'}});
+  },
+ });
+ await ports.profile.logout();
+ assert.equal(reads,2);
+ assert.equal(cleared,0);
+ assert.equal(current,signedB);
+ assert.equal(requests.length,1);
+ assert.equal(requests[0].init.headers.authorization,'Bearer '+signedA,
+  'the revocation target remains the original Auth owner, not the new B');
+});
+
+test('logout rejects missing or throwing Auth owner before any HTTP or clear',async()=>{
+ for(const invalid of [null,'throw']){
+  let writes=0,cleared=0;
+  const ports=make({
+   enabled:true,
+   getSessionBearer:async()=>{
+    if(invalid==='throw')throw Error('PRIVATE_AUTH');
+    return null;
+   },
+   fetchImpl:async()=>{writes++;throw Error('PRIVATE_NETWORK');},
+   clearSession:()=>{cleared++;},
+  });
+  await assert.rejects(ports.profile.logout(),/STARRY_SELF_SESSION_REQUIRED/);
+  assert.equal(writes,0);
+  assert.equal(cleared,0);
+ }
 });
 
 test('M1 profile logout preserves volatile memory when server revocation did not succeed',async()=>{
