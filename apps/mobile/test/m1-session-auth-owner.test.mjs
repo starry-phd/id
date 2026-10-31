@@ -73,3 +73,48 @@ test('mobile Auth owner rejects wrong app scope before creating member ports',()
   appId:'hglobal-id',environment:'staging',baseUrl:origin,appReturnUri:appReturn,
  }),/M1_MOBILE_AUTH_OWNER_SCOPE_DENIED/);
 });
+
+test('mobile browser login shares original volatile Auth owner and profile without leaking bearer to screen',async()=>{
+ const {owner,calls}=make({openLoginBrowser:async(start,callback)=>{
+  assert.equal(start,origin+'/v1/starry-id/oauth/google/start');
+  assert.equal(callback,appReturn);
+  return {type:'success',url:appReturn+'#handoff='+code};
+ }});
+ assert.deepEqual(await owner.startGoogleLogin(),{status:'authenticated',expires_at:now+300});
+ assert.equal(await owner.getSessionBearer(),bearer);
+ assert.deepEqual(await owner.profile.getSelf(),self);
+ await owner.profile.logout();
+ assert.equal(await owner.getSessionBearer(),null);
+ assert.deepEqual(calls.map(x=>x.path),[
+  '/v1/starry-id/sessions/exchange','/v1/starry-id/members/me',
+  '/v1/starry-id/sessions/logout',
+ ]);
+});
+test('server-confirmed logout invalidates a pending browser return for the SAME Auth owner',async()=>{
+ const pending=[];
+ const {owner}=make({openLoginBrowser:async()=>new Promise(resolve=>pending.push(resolve))});
+ const browser=owner.startGoogleLogin();
+ await owner.acceptReturnUrl(appReturn+'#handoff='+code);
+ assert.equal(await owner.getSessionBearer(),bearer);
+ await owner.profile.logout();
+ assert.equal(await owner.getSessionBearer(),null);
+ pending[0]({type:'success',url:appReturn+'#handoff='+code});
+ await assert.rejects(browser,/M1_LOGIN_SUPERSEDED/);
+ assert.equal(await owner.getSessionBearer(),null,'late old browser must not resurrect Session');
+});
+
+test('OS-delivered newer link fences an older pending browser but malformed links do not clear current member',async()=>{
+ const pending=[];
+ const {owner,calls}=make({openLoginBrowser:async()=>new Promise(resolve=>pending.push(resolve))});
+ const stale=owner.startGoogleLogin();
+ await owner.acceptReturnUrl(appReturn+'#handoff='+code);
+ assert.equal(await owner.getSessionBearer(),bearer);
+ assert.throws(()=>owner.acceptReturnUrl('https://evil.invalid/oauth/complete#handoff='+code),
+  /M1_HANDOFF_RETURN_URL_DENIED/);
+ assert.equal(await owner.getSessionBearer(),bearer,'malformed link cannot force logout');
+ pending[0]({type:'success',url:appReturn+'#handoff='+code});
+ await assert.rejects(stale,/M1_LOGIN_SUPERSEDED/);
+ assert.equal(await owner.getSessionBearer(),bearer);
+ assert.equal(calls.filter(x=>x.path==='/v1/starry-id/sessions/exchange').length,1,
+  'stale browser code may not exchange or replace newer OS-delivered Session');
+});
