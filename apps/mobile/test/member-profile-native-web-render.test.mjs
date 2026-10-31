@@ -33,6 +33,20 @@ test('real React Native Web profile screen renders owner-safe disabled view, nev
   compiled.exports.MemberProfileScreen,{port:never,enabled:false},
  ));
  assert.equal(compiled.exports.M1_MEMBER_PROFILE_SCREEN_LIVE_ENABLED,false);
+ // A port object can stay the same while the native Auth owner switches
+ // between independently issued signed Sessions. A's PII is never eligible
+ // for render after the synchronous token-free revision bump.
+ const valid=compiled.exports.isM1CurrentProfileAuthority;
+ const portA={getSelf:never.getSelf};
+ const portB={getSelf:never.getSelf};
+ const original=Object.freeze({port:portA,revision:5});
+ assert.equal(valid(original,portA,5,true),true);
+ assert.equal(valid(original,portB,5,true),false,'another Auth port cannot show A');
+ assert.equal(valid(original,portA,6,true),false,'same Auth owner, new Session hides A');
+ assert.equal(valid(original,portA,5,false),false,'disabled mode always hides PII');
+ assert.equal(valid(null,portA,5,true),false);
+ assert.equal(valid(original,portA,NaN,true),false);
+ assert.equal(valid(original,portA,-1,true),false);
  const isLost=compiled.exports.isM1SessionLost;
  assert.equal(isLost(Error('STARRY_SELF_UNAUTHORIZED')),true);
  assert.equal(isLost(Error('STARRY_SELF_SESSION_REQUIRED')),true);
@@ -104,6 +118,12 @@ test('mobile route is offline preview in __DEV__ but remains disabled in product
 
 test('M1 profile UI always erases stale PII on refresh and session loss, while public route remains OFF',()=>{
  const source=readFileSync(new URL('../src/member-profile-screen.tsx',import.meta.url),'utf8');
+ assert.match(source,/const profile=isM1CurrentProfileAuthority\(\s*loadedAuthority,port,sessionRevision,enabled\)\?storedProfile:null/,
+  'render-time owner/epoch check prevents one-frame display of A');
+ assert.match(source,/setLoadedAuthority\(\{port,revision:sessionRevision\}\)/,
+  'loaded data is tagged with exact Auth owner generation');
+ assert.match(source,/\},\[enabled,port,sessionRevision,clearProfile\]\)/,
+  'fresh verified GET must run after Session revision change');
  assert.match(source,/clearProfile\(\);\s*setPhase\('loading'\)/);
  assert.match(source,/setPhase\(isM1SessionLost\(error\)\?'reauth_required':'error'\)/);
  assert.match(source,/const failure=failedM1SaveScreenState\(error\);[\s\S]*?if\(!failure\.keepDraft\)clearProfile\(\);\s*setPhase\(failure\.phase\);\s*setNotice\(failure\.notice\);/,
