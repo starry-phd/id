@@ -484,3 +484,27 @@ test('browser-auth success advances revision again, and observers never become A
  assert.deepEqual(await h.root.profile.getSelf(),profile);
  off();h.root.stop();
 });
+
+test('the exact Auth-owned member port is the UI revision source; no separate bearer',async()=>{
+ const h=harness();
+ const revisionChanges=[];
+ assert.equal(typeof h.root.profile.getSessionRevision,'function');
+ assert.equal(typeof h.root.profile.subscribeSessionRevision,'function');
+ assert.equal(h.root.profile.getSessionRevision(),0);
+ const unsubscribe=h.root.profile.subscribeSessionRevision(
+  ()=>revisionChanges.push(h.root.profile.getSessionRevision()));
+ h.root.start();await settled();
+ h.emit(url);
+ assert.deepEqual(revisionChanges,[1],
+  'a mounted profile screen can immediately hide A on valid OS link');
+ await settled();
+ assert.deepEqual(revisionChanges,[1,2]);
+ assert.equal(h.root.profile.getSessionRevision(),h.root.sessionRevision());
+ assert.deepEqual(await h.root.profile.getSelf(),profile);
+ assert.equal('getSessionBearer' in h.root.profile,false);
+ assert.equal('bearer' in h.root.profile,false);
+ assert.equal('access_token' in h.root.profile,false);
+ unsubscribe();h.root.stop();
+ assert.equal(h.root.profile.getSessionRevision(),3);
+ assert.deepEqual(revisionChanges,[1,2]);
+});
