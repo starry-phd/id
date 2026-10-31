@@ -191,7 +191,7 @@ test('M1 profile UI always erases stale PII on refresh and session loss, while p
 test('profile SAVE uses owner-fenced SDK only; account switch must erase stale private form',()=>{
  const source=readFileSync(new URL('../src/member-profile-screen.tsx',import.meta.url),'utf8');
  const route=readFileSync(new URL('../app/profile.tsx',import.meta.url),'utf8');
- assert.match(source,/port\.patchSelfForUser\(profile\.s_user_id,profile\.profile_revision,payload\)/);
+ assert.match(source,/port\.patchSelfForUser\(profile\.s_user_id,profile\.profile_revision,payload,sessionRevision\)/);
  assert.doesNotMatch(source,/port\.patchSelf\(/);
  assert.match(source,/error\.message==='STARRY_SELF_IDENTITY_CHANGED'/);
  assert.match(source,/const failure=failedM1SaveScreenState\(error\);/,

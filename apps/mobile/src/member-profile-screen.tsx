@@ -12,7 +12,11 @@ import type {MemberProfilePreview} from './member-profile-preview.ts';
 
 export const M1_MEMBER_PROFILE_SCREEN_LIVE_ENABLED=false as const;
 export type MemberProfilePort=Pick<ReturnType<typeof createM1StagingSelfClient>,
- 'getSelf'|'patchSelfForUser'|'logout'>&Readonly<{
+ 'getSelf'|'logout'>&Readonly<{
+ /** Native Auth checks this token-free render generation before any CAS.
+  * Preview fixtures may ignore the additional parameter. */
+ patchSelfForUser:(userId:string,profileRevision:number,patch:M1SelfPatch,
+  displayedSessionRevision?:number)=>Promise<M1StagingSelf>;
  /** Optional only for still-offline preview; native Auth owner supplies both. */
  getSessionRevision?:()=>number;
  subscribeSessionRevision?:(callback:()=>void)=>()=>void;
@@ -186,7 +190,7 @@ export function MemberProfileScreen({port,enabled,preview=false,previewTools}:Me
   try{
    // The same captured signed Session is checked against the displayed
    // member BEFORE any CAS write. Never write to a newly switched user.
-   const updated=await port.patchSelfForUser(profile.s_user_id,profile.profile_revision,payload);
+   const updated=await port.patchSelfForUser(profile.s_user_id,profile.profile_revision,payload,sessionRevision);
    if(generation.current===serial){apply(updated);setPhase('ready');setNotice('會員資料已儲存。');}
   }catch(error){
    if(generation.current===serial){

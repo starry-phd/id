@@ -53,6 +53,37 @@ export function createM1SessionBoundMemberPorts(config:M1MemberPortsConfig){
  });
  const profile=Object.freeze({
   ...profileClient,
+  /**
+   * The native screen owns a particular Session, not just a member ID.
+   * Bind the SDK's preflight and CAS to that immutable A bearer, and
+   * recheck the one live Auth owner immediately before BOTH HTTP requests.
+   * A delayed old-screen save must never be reclassified as B's save.
+   */
+  async patchSelfForCapturedSession(
+   expectedUserId:string,expectedProfileRevision:number,
+   patch:Parameters<typeof profileClient.patchSelfForUser>[2],
+   originalBearer:string,
+  ){
+   if(!enabled)throw Error('STARRY_SELF_DISABLED');
+   let selected:string|null;
+   try{selected=await getSessionBearer();}
+   catch{throw Error('STARRY_SELF_SESSION_REQUIRED');}
+   if(!selected)throw Error('STARRY_SELF_SESSION_REQUIRED');
+   if(selected!==originalBearer)throw Error('STARRY_SELF_IDENTITY_CHANGED');
+   const guardedFetch:typeof fetch=async(input,init)=>{
+    let current:string|null;
+    try{current=await getSessionBearer();}
+    catch{throw Error('STARRY_SELF_SESSION_REQUIRED');}
+    if(!current)throw Error('STARRY_SELF_SESSION_REQUIRED');
+    if(current!==originalBearer)throw Error('STARRY_SELF_IDENTITY_CHANGED');
+    // No await between the final owner fence and network dispatch.
+    return (fetchImpl??fetch)(input,init);
+   };
+   return createM1StagingSelfClient({
+    enabled:true,appId:'starry-id',baseUrl,
+    getSessionBearer:async()=>originalBearer,fetchImpl:guardedFetch,
+   }).patchSelfForUser(expectedUserId,expectedProfileRevision,patch);
+  },
   async logout():Promise<void>{
    // The server must revoke the credential captured when logout begins,
    // NOT whichever member happens to be signed in after an await.
