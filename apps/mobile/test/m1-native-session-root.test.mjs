@@ -260,7 +260,7 @@ test('late CAS response after unmount cannot return or display private profile d
  h.root.start();h.emit(url);await settled();
  const inFlight=h.root.profile.patchSelfForUser(profile.s_user_id,1,{
   display_name:'PRIVATE_STALE_UPDATED',
- });
+ },h.root.sessionRevision());
  await reached;
  h.root.stop();
  finishPatch(new Response(JSON.stringify({...profile,
@@ -714,4 +714,56 @@ test('missing or broken AppState port refuses native startup and leaves no Auth 
  assert.throws(()=>invalid.root.start(),/M1_NATIVE_ROOT_START_FAILED/);
  assert.equal(invalid.subscribed(),false);
  invalid.root.stop();
+});
+
+test('an old A profile-save callback cannot mutate B of the SAME member',async()=>{
+ const codeB='B'.repeat(43);
+ const linkB=app+'#handoff='+codeB;
+ const bearerB='v1.'+'q'.repeat(40)+'.'+'r'.repeat(43);
+ const writes=[];
+ const h=harness({config:{fetchImpl:async(raw,init)=>{
+  const pathname=new globalThis.URL(raw).pathname;
+  if(pathname==='/v1/starry-id/sessions/exchange'){
+   const code=JSON.parse(init.body).handoff_code;
+   return new Response(JSON.stringify({access_token:code===codeB?bearerB:bearer,
+    token_type:'Bearer',expires_at:now+300}),{status:200,headers:{
+     'content-type':'application/json','cache-control':'no-store',
+   }});
+  }
+  if(pathname==='/v1/starry-id/members/me'){
+   writes.push({method:init.method,authorization:init.headers.authorization});
+   return new Response(JSON.stringify({
+    ...profile,display_name:init.method==='PATCH'?'B valid update':profile.display_name,
+    profile_revision:init.method==='PATCH'?2:1,
+   }),{status:200,headers:{
+    'content-type':'application/json','cache-control':'no-store',
+   }});
+  }
+  throw Error('UNEXPECTED_NATIVE_PROFILE_NETWORK');
+ }}});
+ h.root.start();h.emit(url);await settled();
+ const staleARevision=h.root.sessionRevision();
+ h.emit(linkB);await settled();
+ const currentBRevision=h.root.sessionRevision();
+ assert.notEqual(staleARevision,currentBRevision);
+ await assert.rejects(
+  h.root.profile.patchSelfForUser(profile.s_user_id,1,
+   {display_name:'A stale update'},staleARevision),
+  /STARRY_SELF_IDENTITY_CHANGED/,
+ );
+ await assert.rejects(
+  h.root.profile.patchSelfForUser(profile.s_user_id,1,
+   {display_name:'A missing revision'}),
+  /STARRY_SELF_IDENTITY_CHANGED/,
+ );
+ assert.deepEqual(writes,[],
+  'stale callbacks must never preflight, let alone PATCH, under B');
+ const saved=await h.root.profile.patchSelfForUser(profile.s_user_id,1,
+  {display_name:'B valid update'},currentBRevision);
+ assert.equal(saved.profile_revision,2);
+ assert.deepEqual(writes,[
+  {method:'GET',authorization:'Bearer '+bearerB},
+  {method:'PATCH',authorization:'Bearer '+bearerB},
+ ]);
+ h.root.stop();
 });
