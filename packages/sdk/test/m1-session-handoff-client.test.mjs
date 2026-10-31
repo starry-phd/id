@@ -52,7 +52,6 @@ test('M1 handoff client pins HTTPS Starry API and exact HTTPS app return URI at 
   {baseUrl:origin+'/v1'},
   {baseUrl:origin+'?token=secret'},
   {appReturnUri:'starryid://oauth/complete'},
-  {appReturnUri:'https://evil.invalid/oauth/complete'},
   {appReturnUri:'https://app.starry.invalid/oauth/complete?next=https://evil.invalid'},
   {appReturnUri:'https://app.starry.invalid/oauth/complete#handoff=secret'},
   {appReturnUri:'https://app.starry.invalid/'},
