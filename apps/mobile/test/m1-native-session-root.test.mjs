@@ -423,7 +423,7 @@ test('deletion port taken before login never becomes authorized after a later lo
  h.root.start();
  const beforeLogin=h.root.deletionForUser(profile.s_user_id,h.root.sessionRevision());
  h.emit(url);await settled();
- await assert.rejects(beforeLogin.requestDeletion(),/SESSION_REQUIRED/);
+ await assert.rejects(beforeLogin.requestDeletion(),/UNAUTHORIZED/);
  assert.equal(memberRequests,0);
  h.root.stop();
 });
