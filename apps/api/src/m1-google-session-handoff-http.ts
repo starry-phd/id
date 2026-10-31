@@ -131,7 +131,12 @@ export function createM1GoogleSessionHandoffHttp(config:Config){
   if(callbackIssuer!==null&&callbackIssuer!=='https://accounts.google.com')
    return denied(400,'CALLBACK_DENIED');
   if(oauthError!==null){
-   if(url.searchParams.has('code')||url.searchParams.has('state'))
+   // Google echoes the original OAuth state on user denial/error too.
+   // This is a FAILURE-only redirect, never an Auth success/state consume.
+   // Validate the syntax without trusting/echoing state or provider details.
+   const errorState=url.searchParams.get('state');
+   if(!oauthError||url.searchParams.has('code')||
+     (errorState!==null&&!/^[A-Za-z0-9_-]{32,256}$/.test(errorState)))
     return denied(400,'CALLBACK_DENIED');
    const target=new URL(appReturn.toString());
    target.hash='error=oauth_failed';
