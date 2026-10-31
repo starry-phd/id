@@ -87,12 +87,9 @@ async function boundedBody(request:Request):Promise<Uint8Array|null>{
 }
 function parseHandoffBody(raw:Uint8Array):string|null{
  try{
-  const value:unknown=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(raw));
-  if(!value||typeof value!=='object'||Array.isArray(value))return null;
-  const item=value as Record<string,unknown>;
-  return Object.keys(item).length===1&&Object.keys(item)[0]==='handoff_code'&&
-   typeof item.handoff_code==='string'&&CODE.test(item.handoff_code)?
-   item.handoff_code:null;
+  const text=new TextDecoder('utf-8',{fatal:true}).decode(raw);
+  const match=/^\s*\{\s*"handoff_code"\s*:\s*"([A-Za-z0-9_-]{43})"\s*\}\s*$/.exec(text);
+  return match&&CODE.test(match[1])?match[1]:null;
  }catch{return null;}
 }
 export function createM1GoogleSessionHandoffHttp(config:Config){
@@ -126,6 +123,9 @@ export function createM1GoogleSessionHandoffHttp(config:Config){
    seen.add(key);
   }
   const oauthError=url.searchParams.get('error');
+  const callbackIssuer=url.searchParams.get('iss');
+  if(callbackIssuer!==null&&callbackIssuer!=='https://accounts.google.com')
+   return denied(400,'CALLBACK_DENIED');
   if(oauthError!==null){
    if(url.searchParams.has('code')||url.searchParams.has('state'))
     return denied(400,'CALLBACK_DENIED');
@@ -135,7 +135,7 @@ export function createM1GoogleSessionHandoffHttp(config:Config){
   }
   const code=url.searchParams.get('code');
   const state=url.searchParams.get('state');
-  if(!code||code.length>2048||/[\x00-\x20\x7f]/.test(code)||
+  if(!code||code.length>2048||!/^[\x21-\x7e]+$/.test(code)||
     !state||!/^[A-Za-z0-9_-]{32,256}$/.test(state))
    return denied(400,'CALLBACK_DENIED');
   try{
@@ -166,7 +166,8 @@ export function createM1GoogleSessionHandoffHttp(config:Config){
   if(!/^application\/json(?:\s*;\s*charset\s*=\s*utf-8)?\s*$/i.test(
     request.headers.get('content-type')??''))
    return denied(415,'UNSUPPORTED_MEDIA_TYPE');
-  const raw=await boundedBody(request);
+  let raw:Uint8Array|null;
+  try{raw=await boundedBody(request);}catch{return denied(400,'HANDOFF_DENIED');}
   if(!raw)return denied(400,'HANDOFF_DENIED');
   const code=parseHandoffBody(raw);
   if(!code)return denied(400,'HANDOFF_DENIED');
