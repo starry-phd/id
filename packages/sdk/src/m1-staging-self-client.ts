@@ -233,6 +233,12 @@ export function createM1StagingSelfClient(config:M1StagingSelfConfig) {
     throw Error('STARRY_SELF_IDENTITY_CHANGED');
    if(current.profile_revision!==expectedRevision)
     throw Error('STARRY_SELF_CONFLICT');
+   // The signed preflight GET can be delayed while the native Auth owner
+   // switches A→B (even when both Sessions resolve to the same user id).
+   // Never dispatch the captured A bearer PATCH after B becomes selected.
+   // There is no await between this final single-owner check and dispatch.
+   if(await currentBearer()!==token)
+    throw Error('STARRY_SELF_IDENTITY_CHANGED');
    const updated=await mutateWithBearer(expectedRevision,patch,token);
    if(updated.s_user_id!==expectedUserId)
     throw Error('STARRY_SELF_RESPONSE_INVALID');
