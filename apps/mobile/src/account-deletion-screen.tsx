@@ -94,13 +94,13 @@ export function AccountDeletionScreen({port,preview,previewTools}:AccountDeletio
     刪除帳號可能影響會員資料、存取權限及數位服務。
     重新註冊後原有購買權益能否恢復，目前政策尚未定案，無法保證自動恢復。
    </Text>
-   {!waiting&&!view.receipt?
+   {view.phase==='idle'&&!view.receipt?
     action('第一次確認：我要提出刪帳申請',()=>flow.requestFirst(),
-     !canInteract||view.phase==='unauthorized'):
+     !canInteract):
     null}
-   {waiting?
+   {view.phase==='awaiting_second_confirmation'&&waiting?
     action('第二次確認：確認送出刪帳申請',()=>flow.confirmSecond(),
-     !canInteract||view.phase==='unauthorized'):
+     !canInteract):
     null}
    {issue&&view.phase==='error'?
     action('重試上一次操作',()=>flow.retry(),!canInteract,true):null}
