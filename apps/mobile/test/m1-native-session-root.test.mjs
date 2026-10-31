@@ -385,7 +385,7 @@ test('cached A deletion port cannot submit as B even when both Sessions share SA
 
 test('deletion port taken before login never becomes authorized after a later login',async()=>{
  let memberRequests=0;
- const h=harness({config:{fetchImpl:async(raw,init)=>{
+ const h=harness({config:{fetchImpl:async(raw)=>{
   const path=new globalThis.URL(raw).pathname;
   if(path==='/v1/starry-id/sessions/exchange')
    return new Response(JSON.stringify({access_token:bearer,
