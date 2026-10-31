@@ -23,7 +23,7 @@ function setup(changes={}){
   STARRY_ENVIRONMENT:'staging',
   STARRY_APP_ID:'starry-id',
   M1_STAGING_SOURCE_ASSEMBLY_ENABLED:'true',
-  AUTH_DB:db,
+  STARRY_SESSION_DB:db,
   M1_STAGING_HTTPS_ORIGIN:server,
   M1_STAGING_APP_RETURN_URI:app,
   M1_GOOGLE_CLIENT_ID:'test-starry.apps.googleusercontent.com',
@@ -62,7 +62,7 @@ test('new Worker binding adapter is inert in the published health-only entry',as
   STARRY_ENVIRONMENT:'staging',STARRY_APP_ID:'starry-id',
  }).status,404,'no new public route on the old Worker');
  const serialized=JSON.stringify(bound);
- assert.doesNotMatch(serialized,/SYNTHETIC_LOCAL_ONLY|test-session-kid|test-pkce-kid|AUTH_DB|secretB64url/);
+ assert.doesNotMatch(serialized,/SYNTHETIC_LOCAL_ONLY|test-session-kid|test-pkce-kid|AUTH_DB|STARRY_SESSION_DB|secretB64url/);
  assert.equal('auth' in bound,false);
  assert.equal('keyMaterial' in bound,false);
  assert.equal('readGoogleClientSecret' in bound,false);
@@ -75,8 +75,8 @@ test('missing source opt-in, wrong brand/environment or absent dedicated D1 fail
   {STARRY_ENVIRONMENT:'development'},
   {STARRY_APP_ID:'h-global'},
   {STARRY_APP_ID:'echo-starry'},
-  {AUTH_DB:undefined},{AUTH_DB:{prepare(){}}},
-  {AUTH_DB:{batch(){}}},
+  {STARRY_SESSION_DB:undefined},{STARRY_SESSION_DB:{prepare(){}}},
+  {STARRY_SESSION_DB:{batch(){}}},
  ];
  for(const change of bad){
   const {vars,stats}=setup(change);
@@ -86,6 +86,18 @@ test('missing source opt-in, wrong brand/environment or absent dedicated D1 fail
  for(const input of [undefined,null,false,[],{},'staging']){
   await assert.rejects(createM1StagingBoundRuntime(input),
    /M1_STAGING_BINDINGS_DENIED/);
+ }
+});
+test('legacy AUTH_DB cannot be silently accepted as the official Starry staging database',async()=>{
+ for(const change of [
+  {AUTH_DB:{prepare(){throw Error('OLD_DB_TOUCHED');},batch(){throw Error('OLD_DB_TOUCHED');}}},
+  {STARRY_SESSION_DB:undefined,AUTH_DB:{prepare(){},batch(){}}},
+  {AUTH_DB:undefined},
+ ]){
+  const {vars,stats}=setup(change);
+  await assert.rejects(createM1StagingBoundRuntime(vars),
+   /M1_STAGING_BINDINGS_DENIED/);
+  assert.deepEqual(stats,{prepare:0,batch:0});
  }
 });
 test('reject forged authority, unsafe URLs, malformed consent/tester sets and missing credentials',async()=>{
