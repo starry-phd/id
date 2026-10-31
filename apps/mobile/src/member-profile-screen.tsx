@@ -15,6 +15,8 @@ export type MemberProfilePort=Pick<ReturnType<typeof createM1StagingSelfClient>,
  'getSelf'|'patchSelfForUser'|'logout'>;
 export type MemberProfileScreenProps=Readonly<{
  port:MemberProfilePort;enabled:boolean;
+ /** Token-free revision from ONE trusted native Auth owner, never a bearer. */
+ sessionRevision?:number;
  preview?:boolean;previewTools?:MemberProfilePreview;
 }>;
 type Phase='disabled'|'loading'|'ready'|'saving'|'logging_out'|'logged_out'|'reauth_required'|'error';
@@ -76,23 +78,42 @@ export function failedM1SaveScreenState(error:unknown):Readonly<{
  });
 }
 
-export function MemberProfileScreen({port,enabled,preview=false,previewTools}:MemberProfileScreenProps){
+/** A profile may render only for the exact original Session revision and
+ * owner port. A port or Auth generation change hides A on the FIRST render,
+ * before React's async effect cleanup can fetch B. */
+export function isM1CurrentProfileAuthority(
+ loaded:Readonly<{port:MemberProfilePort;revision:number}>|null,
+ port:MemberProfilePort,revision:number,enabled:boolean,
+):boolean{
+ return enabled===true&&Number.isSafeInteger(revision)&&revision>=0&&
+  loaded!==null&&loaded.port===port&&loaded.revision===revision;
+}
+
+export function MemberProfileScreen({port,enabled,sessionRevision=0,preview=false,previewTools}:MemberProfileScreenProps){
  const generation=useRef(0);
  const busy=useRef(false);
  const [phase,setPhase]=useState<Phase>(enabled?'loading':'disabled');
- const [profile,setProfile]=useState<M1StagingSelf|null>(null);
+ const [storedProfile,setStoredProfile]=useState<M1StagingSelf|null>(null);
+ const [loadedAuthority,setLoadedAuthority]=useState<
+  Readonly<{port:MemberProfilePort;revision:number}>|null>(null);
+ // React renders may arrive before effect cleanup on an OS Auth switch.
+ // Never expose a prior member, even for a one-frame port/epoch mismatch.
+ const profile=isM1CurrentProfileAuthority(
+  loadedAuthority,port,sessionRevision,enabled)?storedProfile:null;
  const [displayName,setDisplayName]=useState('');
  const [directory,setDirectory]=useState(false);
  const [publicName,setPublicName]=useState(false);
  const [notice,setNotice]=useState('');
  const clearProfile=useCallback(()=>{
-  setProfile(null);
+  setStoredProfile(null);
+  setLoadedAuthority(null);
   setDisplayName('');
   setDirectory(false);
   setPublicName(false);
  },[]);
  const apply=(data:M1StagingSelf)=>{
-  setProfile(data);
+  setStoredProfile(data);
+  setLoadedAuthority({port,revision:sessionRevision});
   setDisplayName(data.display_name??'');
   setDirectory(data.directory_opt_in);
   setPublicName(data.display_name_public);
@@ -115,7 +136,7 @@ export function MemberProfileScreen({port,enabled,preview=false,previewTools}:Me
     setNotice(explanation(error));
    }
   }finally{if(generation.current===serial)busy.current=false;}
- },[enabled,port,clearProfile]);
+ },[enabled,port,sessionRevision,clearProfile]);
  useEffect(()=>{
   if(enabled){void refresh();}
   else{
