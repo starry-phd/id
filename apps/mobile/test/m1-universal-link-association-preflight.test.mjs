@@ -94,3 +94,42 @@ test('Android rejects unrelated package, certificate, wildcard intent filter and
   package:'phd.starry.id.dev',intentFilters:[invalid],
  }}}}).reasons.includes('EXPO_ANDROID_INTENT_FILTER_MISSING'));
 });
+
+test('AASA first-match precedence denies earlier exact, wildcard or competing-app rules',()=>{
+ const id='A1B2C3D4E5.phd.starry.id.dev';
+ const denied=[
+  [{appID:id,paths:['NOT '+path,path]}],
+  [{appID:id,paths:['NOT /oauth/*',path]}],
+  [{appID:id,paths:['/oauth/*',path]}],
+  [{appIDs:[id],components:[{'/':path,exclude:true},{'/':path}]}],
+  [{appIDs:[id],components:[{'/':'/oauth/*',exclude:true},{'/':path}]}],
+  [{appIDs:[id],components:[{'/':'/oauth/*'},{'/':path}]}],
+  [{appIDs:[id],components:[{'/':path,'#':'*',exclude:true},{'/':path}]}],
+  [{appID:'OTHER.app',paths:[path]},{appID:id,paths:[path]}],
+  [{appID:id,paths:[path],components:[{'/':path}]}],
+ ];
+ for(const details of denied){
+  const result=run({appleAppSiteAssociation:{applinks:{details}}});
+  assert.equal(result.source_config_consistent,false,
+   'ordered/ambiguous AASA must never be reported as an exact source match');
+  assert.ok(result.reasons.includes('AASA_EXACT_PATH_MISSING'));
+  assert.equal(result.release_gate_satisfied,false);
+ }
+});
+test('AASA preserves ordered explicit allows before exclusions and unrelated earlier rules',()=>{
+ const id='A1B2C3D4E5.phd.starry.id.dev';
+ const allowed=[
+  [{appID:id,paths:[path,'NOT '+path]}],
+  [{appID:id,paths:['NOT /unrelated',path]}],
+  [{appIDs:[id],components:[{'/':path},{'/':path,exclude:true}]}],
+  [{appIDs:[id],components:[{'/':'/not-our-route',exclude:true},{'/':path}]}],
+ ];
+ for(const details of allowed){
+  const result=run({appleAppSiteAssociation:{applinks:{details}}});
+  assert.equal(result.source_config_consistent,true);
+  assert.deepEqual(result.reasons,[]);
+  assert.equal(result.remote_https_verified,false);
+  assert.equal(result.ios_device_verified,false);
+  assert.equal(result.release_gate_satisfied,false);
+ }
+});

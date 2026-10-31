@@ -30,7 +30,39 @@ const strings=(x:unknown):string[]=>arr(x).filter((v):v is string=>typeof v==='s
 const fingerprint=/^(?:[0-9A-F]{2}:){31}[0-9A-F]{2}$/;
 const bundle=/^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/;
 const team=/^[A-Z0-9]{10}$/;
-const isExactPath=(x:unknown,path:string)=>typeof x==='string'&&x===path;
+// AASA paths and components have ordered first-match semantics, so a prior
+// exclusion or broad rule must never be mistaken for an exact allow.
+type AasaDecision='allow'|'deny'|'none';
+const matchesAasaPattern=(value:unknown,path:string):boolean=>{
+ if(typeof value!=='string'||value.length>256)return false;
+ const expression='^'+[...value].map(ch=>
+  ch==='*'?'.*':ch==='?'?'.':'.^$+()[]{}|\\'.includes(ch)?'\\'+ch:ch
+ ).join('')+'$';
+ return new RegExp(expression).test(path);
+};
+const firstAasaDecision=(entry:Record<string,unknown>,path:string):AasaDecision=>{
+ const modern=Array.isArray(entry.components);
+ if(modern&&Array.isArray(entry.paths))return 'deny';
+ const rules=arr(modern?entry.components:entry.paths);
+ for(const rule of rules){
+  if(modern){
+   const component=obj(rule);
+   if(!component||typeof component['/']!=='string')return 'deny';
+   if(!matchesAasaPattern(component['/'],path))continue;
+   if(component['?']!==undefined||component['#']!==undefined||
+      component.caseSensitive===false||component.percentEncoded===false||
+      (component.exclude!==undefined&&component.exclude!==false))
+    return 'deny';
+   return component['/']===path?'allow':'deny';
+  }
+  if(typeof rule!=='string')return 'deny';
+  const excluded=rule.startsWith('NOT ');
+  const pattern=excluded?rule.slice(4):rule;
+  if(!matchesAasaPattern(pattern,path))continue;
+  return !excluded&&pattern===path?'allow':'deny';
+ }
+ return 'none';
+};
 
 export function checkM1UniversalLinkAssociationPreflight(input:Input){
  const reasons:Reason[]=[];
@@ -77,19 +109,17 @@ export function checkM1UniversalLinkAssociationPreflight(input:Input){
  if(!androidFilterPresent)add('EXPO_ANDROID_INTENT_FILTER_MISSING');
  const details=arr(obj(obj(input?.appleAppSiteAssociation)?.applinks)?.details);
  const appId=input?.iosTeamId+'.'+input?.iosBundleId;
- const aasaExact=!!url&&validIds&&details.some(item=>{
-  const x=obj(item);if(!x)return false;
+ let aasaDecision:AasaDecision='none';
+ if(url&&validIds)for(const item of details){
+  const x=obj(item);if(!x)continue;
   const identities=[...(typeof x.appID==='string'?[x.appID]:[]),...strings(x.appIDs)];
-  if(!identities.includes(appId))return false;
-  const directPaths=strings(x.paths).some(p=>isExactPath(p,path));
-  const componentPaths=arr(x.components).some(component=>{
-   const c=obj(component);
-   return c?.exclude!==true&&c?.['?']===undefined&&c?.['#']===undefined&&
-    isExactPath(c?.['/'],path);
-  });
-  return directPaths||componentPaths;
- });
- if(!aasaExact)add('AASA_EXACT_PATH_MISSING');
+  const decision=firstAasaDecision(x,path);
+  if(decision==='none')continue;
+  // Earlier rules matching another app do not prove our own callback route.
+  aasaDecision=identities.includes(appId)?decision:'deny';
+  break;
+ }
+ if(aasaDecision!=='allow')add('AASA_EXACT_PATH_MISSING');
  const androidExact=!!url&&validIds&&arr(input?.androidAssetLinks).some(item=>{
   const x=obj(item);const target=obj(x?.target);
   return strings(x?.relation).includes('delegate_permission/common.handle_all_urls')&&
