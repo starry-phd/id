@@ -402,3 +402,85 @@ test('deletion port taken before login never becomes authorized after a later lo
  assert.equal(memberRequests,0);
  h.root.stop();
 });
+
+test('native root sends token-free Auth revisions BEFORE B OS link and on settled login',async()=>{
+ const codeB='B'.repeat(43);
+ const urlB=app+'#handoff='+codeB;
+ const bearerB='v1.'+'q'.repeat(40)+'.'+'r'.repeat(43);
+ const h=harness({config:{fetchImpl:async(raw,init)=>{
+  const path=new globalThis.URL(raw).pathname;
+  if(path==='/v1/starry-id/sessions/exchange'){
+   const code=JSON.parse(init.body).handoff_code;
+   return new Response(JSON.stringify({
+    access_token:code===codeB?bearerB:bearer,
+    token_type:'Bearer',expires_at:now+300,
+   }),{status:200,headers:{
+    'content-type':'application/json','cache-control':'no-store',
+   }});
+  }
+  if(path==='/v1/starry-id/members/me')
+   return new Response(JSON.stringify(profile),{status:200,headers:{
+    'content-type':'application/json','cache-control':'no-store',
+   }});
+  throw Error('UNEXPECTED_NETWORK');
+ }}});
+ const revisions=[];
+ const unsubscribe=h.root.subscribeSessionRevision(
+  ()=>revisions.push(h.root.sessionRevision()));
+ assert.equal(h.root.sessionRevision(),0);
+ h.root.start();await settled();
+ h.emit(url);
+ assert.deepEqual(revisions,[1],'A must hide synchronously before POST');
+ await settled();
+ assert.deepEqual(revisions,[1,2],'settled A needs a fresh GET');
+ assert.deepEqual(await h.root.profile.getSelf(),profile);
+ h.emit('https://foreign.invalid/oauth/complete#handoff='+'Z'.repeat(43));
+ assert.deepEqual(revisions,[1,2],'foreign URLs must not advance Auth revision');
+ h.emit(urlB);
+ assert.deepEqual(revisions,[1,2,3],
+  'previously rendered A is invalidated BEFORE B network response');
+ await settled();
+ assert.deepEqual(revisions,[1,2,3,4]);
+ assert.equal(h.notices.length,2);
+ assert.deepEqual(Object.keys(h.notices[1]).sort(),['expires_at','type']);
+ assert.equal('bearer' in h.root,false);
+ assert.equal('getSessionBearer' in h.root,false);
+ unsubscribe();
+ h.root.stop();
+ assert.deepEqual(revisions,[1,2,3,4]);
+ assert.equal(h.root.sessionRevision(),5,'stopping root also retires profile');
+});
+test('browser start immediately retires prior profile, cancellation never restores it',async()=>{
+ const pending=[];
+ const h=harness({browser:()=>new Promise(resolve=>pending.push(resolve))});
+ h.root.start();await settled();
+ h.emit(url);await settled();
+ const before=h.root.sessionRevision();
+ const events=[];
+ const unsubscribe=h.root.subscribeSessionRevision(
+  ()=>events.push(h.root.sessionRevision()));
+ const login=h.root.startGoogleLogin();
+ assert.equal(h.root.sessionRevision(),before+1,
+  'old signed Session may not remain on screen while browser is pending');
+ assert.deepEqual(events,[before+1]);
+ assert.equal(pending.length,1);
+ pending[0]({type:'cancel'});
+ assert.deepEqual(await login,{status:'cancelled'});
+ assert.equal(h.root.sessionRevision(),before+1);
+ await assert.rejects(h.root.profile.getSelf(),/STARRY_SELF_SESSION_REQUIRED/);
+ unsubscribe();h.root.stop();
+});
+test('browser-auth success advances revision again, and observers never become Auth authorities',async()=>{
+ const h=harness({browser:async()=>({type:'success',url})});
+ const observations=[];
+ const off=h.root.subscribeSessionRevision(()=>{
+  observations.push(h.root.sessionRevision());
+  throw Error('UNTRUSTED_UI_CALLBACK');
+ });
+ h.root.start();await settled();
+ const result=await h.root.startGoogleLogin();
+ assert.deepEqual(result,{status:'authenticated',expires_at:now+300});
+ assert.deepEqual(observations,[1,2]);
+ assert.deepEqual(await h.root.profile.getSelf(),profile);
+ off();h.root.stop();
+});
