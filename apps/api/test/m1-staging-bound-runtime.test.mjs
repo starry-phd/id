@@ -50,14 +50,14 @@ test('new Worker binding adapter is inert in the published health-only entry',as
  assert.equal(bound.public_worker_route_registered,false);
  assert.equal(bound.contract,'starry.ai0.m1.source-only-worker-bindings.v1');
  assert.equal(Object.isFrozen(bound),true);
- const response=await bound.handle(new Request(server+start));
+ const response=await bound.handle(new Request(new URL(start,server).href));
  assert.equal(response.status,403,
   'missing signed Access fails before original OAuth/D1');
  assert.equal(stats.prepare,0);
  assert.equal(stats.batch,0);
  assert.equal(response.headers.get('cache-control'),'no-store');
  assert.equal((await bound.handle(new Request(server+'v1/echo/member'))).status,404);
- assert.equal(publicWorker(new Request(server+start),{
+ assert.equal(publicWorker(new Request(new URL(start,server).href),{
   STARRY_ENVIRONMENT:'staging',STARRY_APP_ID:'starry-id',
  }).status,404,'no new public route on the old Worker');
  const serialized=JSON.stringify(bound);
@@ -129,7 +129,7 @@ test('optional previous keys are accepted only as distinct rotation material',as
   M1_PKCE_PREVIOUS_SECRET:fromByte(24),
  });
  const root=await createM1StagingBoundRuntime(vars);
- assert.equal((await root.handle(new Request(server+start))).status,403);
+ assert.equal((await root.handle(new Request(new URL(start,server).href))).status,403);
  for(const change of [
   {M1_SESSION_PREVIOUS_KID:vars.M1_SESSION_ACTIVE_KID},
   {M1_PKCE_PREVIOUS_SECRET:vars.M1_SESSION_ACTIVE_SECRET},
