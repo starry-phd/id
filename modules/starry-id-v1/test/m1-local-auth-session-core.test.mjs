@@ -73,10 +73,10 @@ async function makeFixture(){
      .run(oauthState,'google',provider.clientId,verifier,challenge,nonce,'starry-id','staging',now+150,null);
    return {oauthState,nonce};
  }
- async function signIdToken(nonce,subject=state.verifySub){
+ async function signIdToken(nonce,subject=state.verifySub,expiresAt=now+300){
    const head=b64(utf(JSON.stringify({alg:'RS256',kid:'test-only-kid',typ:'JWT'})));
    const payload=b64(utf(JSON.stringify({iss:provider.issuer,aud:provider.clientId,
-     sub:subject,nonce,iat:now,exp:now+300})));
+     sub:subject,nonce,iat:now,exp:expiresAt})));
    const signed=head+'.'+payload;
    const mac=await webcrypto.subtle.sign('RSASSA-PKCS1-v1_5',providerPair.privateKey,utf(signed));
    return signed+'.'+b64(new Uint8Array(mac));
@@ -840,5 +840,34 @@ test('single-Auth composition is OFF by default and refuses wrong scope/origin b
    headers:{authorization:'Bearer v1.'+'a'.repeat(48)+'.'+'b'.repeat(43)},
   }));
   assert.equal(fake.status,404);
+ }finally{f.close();}
+});
+
+test('real local SQLite Auth never issues a signed Session using a Google JWT expired during exchange',async()=>{
+ const f=await makeFixture();
+ try{
+  const input=await f.prepare();
+  const nonce=f.db.prepare(
+   'SELECT nonce FROM starry_m1_oauth_attempts WHERE state=?'
+  ).get(input.state).nonce;
+  // The token is valid at callback entry, expires before Google's awaited
+  // token exchange finishes, but remains inside the original 30-second
+  // issuance guard. This specifically distinguishes the old stale-time bug.
+  const shortToken=await f.signIdToken(nonce,'verified-sub',now+4);
+  const core=createM1LocalAuthSessionCore({...f.deps,
+   exchangeCode:async()=>{
+    f.state.clock=now+7;
+    return {idToken:shortToken};
+   },
+  });
+  const issued=await core.issueFromVerifiedCallback(input);
+  assert.equal(issued,null);
+  assert.equal(f.state.clock,now+7);
+  assert.equal(f.db.prepare(
+   'SELECT count(*) AS n FROM starry_sessions'
+  ).get().n,0,'expired JWT cannot commit a signed Session');
+  assert.equal(f.db.prepare(
+   'SELECT count(*) AS n FROM starry_m1_audit_intents'
+  ).get().n,0,'no issuance audit without a real Session');
  }finally{f.close();}
 });

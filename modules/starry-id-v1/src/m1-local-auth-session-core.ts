@@ -170,6 +170,7 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
   const callback=createVerifiedOidcCallback({
     config:provider,appId:scope.app_id,environment:scope.environment,
     backend:port,getVerificationProvider:deps.getGoogleJwksProvider,
+    getTrustedNow:deps.now, // one original server clock, never client/HTTP time
   });
   return Object.freeze({
     contract:M1_AUTH_CONTRACT,local_only:true as const,live_enabled:M1_AUTH_LIVE_ENABLED,

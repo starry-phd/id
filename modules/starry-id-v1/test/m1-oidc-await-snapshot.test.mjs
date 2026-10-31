@@ -32,10 +32,10 @@ async function fixture(){
   provider:'google',clientId:CLIENT,appId:'starry-id',
   environment:'staging',expiresAt:NOW+180,consumedAt:null,
  };
- async function signed(nonce=NONCE){
+ async function signed(nonce=NONCE,expiresAt=NOW+300){
   const h=b64(enc.encode(JSON.stringify({alg:'RS256',kid:'test-rsa',typ:'JWT'})));
   const p=b64(enc.encode(JSON.stringify({iss:config.issuer,sub:'verified-test-subject',
-   aud:CLIENT,nonce,iat:NOW,exp:NOW+300})));
+   aud:CLIENT,nonce,iat:NOW,exp:expiresAt})));
   const value=h+'.'+p;
   const signature=await webcrypto.subtle.sign('RSASSA-PKCS1-v1_5',pair.privateKey,enc.encode(value));
   return value+'.'+b64(new Uint8Array(signature));
@@ -50,7 +50,7 @@ async function fixture(){
  };
  const deps={config,appId:'starry-id',environment:'staging',backend};
  const run=request=>createVerifiedOidcCallback(deps)(request,NOW);
- return {tx,backend,deps,config,received,run,request:{code:CODE,state:STATE},
+ return {tx,backend,deps,config,signed,received,run,request:{code:CODE,state:STATE},
   stats(){return {casCalls,readCalls,exchangeCalls};},
  };
 }
@@ -138,4 +138,51 @@ test('outer callback inspects a proxy once, never invokes a second ownKeys trap 
  assert.equal(verified?.providerSubject,'verified-test-subject');
  assert.equal(keyEnumerations,1);
  assert.deepEqual(f.stats(),{casCalls:1,readCalls:1,exchangeCalls:1});
+});
+
+test('OAuth attempt expired during asynchronous Google JWKS lookup cannot be consumed',async()=>{
+ const f=await fixture();
+ let clock=NOW;
+ const handler=createVerifiedOidcCallback({
+  ...f.deps,getTrustedNow:()=>clock,
+  async getVerificationProvider(){
+   clock=NOW+181; // Attempt expires at NOW+180 while JWKS awaits.
+   return f.config;
+  },
+ });
+ assert.equal(await handler(f.request,NOW),null);
+ assert.deepEqual(f.stats(),{casCalls:0,readCalls:1,exchangeCalls:0},
+  'no state CAS, Google code exchange or Session after expiry');
+});
+
+test('Google ID Token expired during the code exchange is rejected at final trusted time',async()=>{
+ const f=await fixture();
+ let clock=NOW;
+ const shortlyValid=await f.signed(NONCE,NOW+4);
+ f.backend.exchangeCode=async()=>{
+  clock=NOW+5; // Token was valid at callback entry but expired in flight.
+  return {idToken:shortlyValid};
+ };
+ const handler=createVerifiedOidcCallback({...f.deps,getTrustedNow:()=>clock});
+ assert.equal(await handler(f.request,NOW),null,
+  'the callback-entry clock must never resurrect a now-expired JWT');
+ assert.equal(f.stats().casCalls,1,
+  'a single one-time state CAS still takes place before Google code exchange');
+ assert.equal(f.stats().readCalls,1);
+});
+
+test('OIDC callback denies a server clock rollback during awaited JWKS acquisition',async()=>{
+ const f=await fixture();
+ let clock=NOW;
+ const handler=createVerifiedOidcCallback({
+  ...f.deps,getTrustedNow:()=>clock,
+  async getVerificationProvider(){
+   clock=NOW-1;return f.config;
+  },
+ });
+ assert.equal(await handler(f.request,NOW),null);
+ assert.deepEqual(f.stats(),{casCalls:0,readCalls:1,exchangeCalls:0});
+ assert.throws(()=>createVerifiedOidcCallback({
+  ...f.deps,getTrustedNow:'untrusted-browser-clock',
+ }),/OIDC_CALLBACK_CONFIGURATION_DENIED/);
 });
