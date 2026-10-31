@@ -2,7 +2,8 @@
  * One REAL local Miniflare/workerd/SQLite D1 vertical M1 test through:
  * #320 RSA-verified Cloudflare Access JWT -> #321 nonextractable HMAC+AES
  * Worker Secret keyring -> #322 original unique Starry Auth factory ->
- * #325 exact HTTPS dispatcher -> #327/#328 real canonical bound-runtime\n * STARRY_SESSION_DB config -> original M1 profile GET/CAS/logout.
+ * #325 exact HTTPS dispatcher -> #327/#328 real canonical bound-runtime
+ * STARRY_SESSION_DB config -> original M1 profile GET/CAS/logout.
  *
  * Google token and Access certs are cryptographically signed TEST FIXTURES,
  * and Worker+D1 resources are ephemeral LOCAL ONLY. Not remote acceptance,
@@ -238,7 +239,10 @@ test('genuine local workerd/SQLite D1 verifies signed Access + nonextractable Wo
   assert.equal((await call(mf,member,{headers:authHeader})).status,401);
   assert.equal((await call(mf,logout,{method:'POST',
    headers:authHeader})).status,401);
-  assert.equal((await db.prepare('SELECT revoked_at FROM starry_sessions').first()).revoked_at,NOW);
+  const revoked=(await db.prepare('SELECT revoked_at FROM starry_sessions').first()).revoked_at;
+  assert.equal(Number.isSafeInteger(revoked),true);
+  assert.ok(revoked>=NOW&&revoked<=Math.floor(Date.now()/1000)+2,
+   'real bound Worker uses wall-clock time, not the former injected frozen test time');
   const audit=(await db.prepare('SELECT event_type FROM starry_m2_member_mutation_audit').all()).results;
   assert.deepEqual(audit.map(x=>x.event_type).sort(),
    ['profile_updated','session_revoked']);
