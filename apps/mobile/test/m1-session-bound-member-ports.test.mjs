@@ -346,10 +346,10 @@ test('M2 checks current Auth at transport dispatch, even if it changed just afte
   getSessionBearer:async()=>{
    reads++;
    const captured=current;
-   if(reads===2)queueMicrotask(()=>{current=signedB;});
+   if(reads===2)globalThis.queueMicrotask(()=>{current=signedB;});
    return captured;
   },
-  fetchImpl:async(url,init)=>{
+  fetchImpl:async(url)=>{
    if(new globalThis.URL(url).pathname==='/v1/starry-id/members/me')
     return json(selfOf(memberIdA));
    transmitted++;
