@@ -131,10 +131,11 @@ export function createM1StagingHttpBoundary(config:M1StagingHttpBoundaryConfig){
     return rejected(404,'NOT_FOUND');
    const methods=allowed.get(url.pathname);
    if(!methods)return rejected(404,'NOT_FOUND');
-   if(!methods.has(request.method))
-    return rejected(405,'METHOD_NOT_ALLOWED',[...methods].join(', '));
+   // Malformed or credential-bearing URLs fail before method probing.
    if(url.hash||url.pathname!==CALLBACK&&url.search)
     return rejected(400,'REQUEST_DENIED');
+   if(!methods.has(request.method))
+    return rejected(405,'METHOD_NOT_ALLOWED',[...methods].join(', '));
    try{
     const response=url.pathname===START?await auth.handleOAuthStart(request):
      url.pathname===CALLBACK?await auth.handleOAuthCallback(request):
