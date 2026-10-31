@@ -21,7 +21,7 @@ export type M1WriteDatabase = D1Database & Readonly<{
 }>;
 type Scope = TrustedScope & {environment: 'development'|'staging'};
 type Exchange = TrustedOAuthBackend['exchangeCode'];
-type Result = Readonly<{status:'issued'; bearer:string; s_user_id:string; expires_at:number}>;
+type Result = Readonly<{status:'issued'; bearer:string; s_user_id:string; expires_at:number; handoff_code?:string; handoff_expires_at?:number}>;
 type Dependencies = Readonly<{
   enabled?:boolean;
   serverScope:Scope;
@@ -38,6 +38,8 @@ type Dependencies = Readonly<{
    */
   allowedGoogleTestSubjects?:readonly string[];
   requireGoogleTestAllowlist?:boolean;
+  /** Optional one-time app handoff; allowed only for sealed, invite-only staging Auth. */
+  sessionHandoffEnabled?:boolean;
   /** Optional for backward-compatible local fixtures; REQUIRED for approved remote wiring. */
   verifierCustody?:M1VerifierCustody;
   requireSealedVerifier?:boolean;
@@ -56,7 +58,10 @@ const identitySelect='SELECT m.s_user_id,m.auth_version FROM starry_identities i
 const newMember='INSERT INTO starry_members(s_user_id,status,auth_version,profile_revision,display_name,directory_opt_in,display_name_public,created_at,updated_at) VALUES(?,\'active\',1,1,NULL,0,0,?,?)';
 const newIdentity='INSERT INTO starry_identities(provider,subject,s_user_id) VALUES(?,?,?)';
 const auditIntent='INSERT INTO starry_m1_audit_intents(event_id,source_operation_id,event_type,brand_id,app_id,environment,s_user_id,created_at) SELECT ?,?,?,\'starry\',?,?,s_user_id,? FROM starry_sessions WHERE session_id=?';
-const insertSession='INSERT INTO starry_sessions(session_id,s_user_id,app_id,environment,auth_version,refresh_hash,expires_at) SELECT ?,m.s_user_id,?,?,m.auth_version,?,? FROM starry_members m WHERE m.s_user_id=? AND m.status=\'active\' AND m.auth_version=? AND EXISTS (SELECT 1 FROM starry_identities i WHERE i.s_user_id=m.s_user_id AND i.provider=? AND i.subject=?)';
+const insertSession='INSERT INTO starry_sessions(session_id,s_user_id,app_id,environment,auth_version,refresh_hash,expires_at) SELECT ?,m.s_user_id,?,?,m.auth_version,?,? FROM starry_members m WHERE m.s_user_id=? AND m.status='active' AND m.auth_version=? AND EXISTS (SELECT 1 FROM starry_identities i WHERE i.s_user_id=m.s_user_id AND i.provider=? AND i.subject=?)';
+const insertSessionHandoff='INSERT INTO starry_m1_session_handoffs(handoff_hash,session_id,provider,provider_subject,app_id,environment,created_at,expires_at,consumed_at) SELECT ?,s.session_id,?,?,?,?,?,?,NULL FROM starry_sessions s JOIN starry_members m ON m.s_user_id=s.s_user_id JOIN starry_identities i ON i.provider=? AND i.subject=? AND i.s_user_id=s.s_user_id WHERE s.session_id=? AND s.app_id=? AND s.environment=? AND s.revoked_at IS NULL AND s.expires_at>? AND s.auth_version=m.auth_version AND m.status=\'active\'';
+const consumeSessionHandoff='UPDATE starry_m1_session_handoffs AS h SET consumed_at=? WHERE h.handoff_hash=? AND h.app_id=? AND h.environment=? AND h.consumed_at IS NULL AND h.expires_at>? AND EXISTS (SELECT 1 FROM starry_sessions s JOIN starry_members m ON m.s_user_id=s.s_user_id JOIN starry_identities i ON i.provider=h.provider AND i.subject=h.provider_subject AND i.s_user_id=s.s_user_id WHERE s.session_id=h.session_id AND s.app_id=h.app_id AND s.environment=h.environment AND s.revoked_at IS NULL AND s.expires_at>? AND s.auth_version=m.auth_version AND m.status=\'active\')';
+const readConsumedSessionHandoff='SELECT s.session_id,s.s_user_id,s.auth_version,s.app_id,s.environment,s.expires_at,h.provider,h.provider_subject FROM starry_m1_session_handoffs h JOIN starry_sessions s ON s.session_id=h.session_id AND s.app_id=h.app_id AND s.environment=h.environment JOIN starry_members m ON m.s_user_id=s.s_user_id JOIN starry_identities i ON i.provider=h.provider AND i.subject=h.provider_subject AND i.s_user_id=s.s_user_id WHERE h.handoff_hash=? AND h.consumed_at=? AND h.app_id=? AND h.environment=? AND h.expires_at>? AND s.revoked_at IS NULL AND s.expires_at>? AND s.auth_version=m.auth_version AND m.status=\'active\'';
 const validTime=(n:unknown):n is number=>typeof n==='number'&&Number.isSafeInteger(n)&&n>=0;
 function secureBytes(n:number):Uint8Array {
   const bytes=new Uint8Array(n);crypto.getRandomValues(bytes);return bytes;
@@ -94,6 +99,9 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
        new Set(allowedSubjects).size!==allowedSubjects.length)))
     throw Error('M1_AUTH_TEST_ALLOWLIST_DENIED');
   const pilotAllowedSubjects=allowedSubjects===null?null:new Set(allowedSubjects);
+  if(deps.sessionHandoffEnabled!==undefined&&typeof deps.sessionHandoffEnabled!=='boolean')
+    throw Error('M1_AUTH_HANDOFF_CONFIGURATION_DENIED');
+  const sessionHandoffEnabled=deps.sessionHandoffEnabled===true;
   const provider=deps.provider&&Object.freeze({
     provider:deps.provider.provider,clientId:deps.provider.clientId,
     issuer:deps.provider.issuer,
@@ -116,6 +124,10 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
     (provider.provider==='google'&&!['https://accounts.google.com','accounts.google.com'].includes(provider.issuer)))
     throw Error('M1_AUTH_CONFIGURATION_DENIED');
   const enabled=deps.enabled===true;
+  if(sessionHandoffEnabled&&enabled&&(
+    scope.environment!=='staging'||!deps.getGoogleJwksProvider||
+    !deps.verifierCustody||deps.requireSealedVerifier!==true||!pilotAllowedSubjects))
+    throw Error('M1_AUTH_HANDOFF_CONFIGURATION_DENIED');
   const origin=new URL(deps.expectedOrigin);
   if(origin.protocol!=='https:'||origin.pathname!=='/'||origin.search||origin.hash||
     origin.username||origin.password||origin.toString()!==origin.origin+'/')
@@ -220,6 +232,10 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
       const sessionId='m1-'+hex(entropy);
       const refresh=random(32);
       if(!(refresh instanceof Uint8Array)||refresh.length!==32)return null;
+      const handoffEntropy=sessionHandoffEnabled?random(32):null;
+      if(sessionHandoffEnabled&&(!(handoffEntropy instanceof Uint8Array)||handoffEntropy.length!==32))return null;
+      const handoffCode=handoffEntropy?bytesToBase64url(handoffEntropy):null;
+      const handoffHash=handoffEntropy?hex(new Uint8Array(await crypto.subtle.digest('SHA-256',handoffEntropy))):null;
       const refreshBuffer=new ArrayBuffer(refresh.length);
       new Uint8Array(refreshBuffer).set(refresh);
       const refreshDigest=new Uint8Array(await crypto.subtle.digest('SHA-256',refreshBuffer));
@@ -233,6 +249,7 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
       const bearer=await signServerSession(claims,scope,committedAt,key);
       const atWrite=deps.now();
       if(!validTime(atWrite)||atWrite<committedAt||atWrite>now+30||atWrite>=expiry)return null;
+      const handoffExpiry=sessionHandoffEnabled?Math.min(expiry,atWrite+60):null;
       // The INSERT SELECT repeats the identity, status, version and scope
       // fence at the actual write, preventing stale pre-read issuance.
       const statements:D1Prepared[]=[];
@@ -244,6 +261,13 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
         sessionId,scope.app_id,scope.environment,hex(refreshDigest),
         expiry,row.s_user_id,row.auth_version,verified.provider,verified.providerSubject,
       ));
+      if(sessionHandoffEnabled){
+        statements.push(deps.authDb.prepare(insertSessionHandoff).bind(
+          handoffHash!,verified.provider,verified.providerSubject,scope.app_id,
+          scope.environment,atWrite,handoffExpiry!,verified.provider,
+          verified.providerSubject,sessionId,scope.app_id,scope.environment,atWrite,
+        ));
+      }
       statements.push(deps.authDb.prepare(auditIntent).bind(
         sessionId+':session',sessionId,'session_issued',scope.app_id,scope.environment,atWrite,sessionId,
       ));
@@ -255,8 +279,44 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
       const committed=await deps.authDb.batch(statements);
       if(committed.length!==statements.length||committed.some(v=>v.success===false||v.meta?.changes!==1))
         return null;
-      return Object.freeze({status:'issued' as const,bearer,s_user_id:row.s_user_id,expires_at:expiry});
+      return Object.freeze(sessionHandoffEnabled?{
+        status:'issued' as const,bearer,s_user_id:row.s_user_id,expires_at:expiry,
+        handoff_code:handoffCode!,handoff_expires_at:handoffExpiry!,
+      }:{status:'issued' as const,bearer,s_user_id:row.s_user_id,expires_at:expiry});
       } catch { return null; } // Never emit raw SQL / KMS / token error details.
+    },
+    /** Consume a one-time hash-only app handoff and re-sign only the still-current D1 Session. */
+    async redeemSessionHandoff(input:unknown):Promise<Result|null>{
+      if(!enabled||!sessionHandoffEnabled||typeof input!=='string'||! /^[A-Za-z0-9_-]{43}$/.test(input))return null;
+      try{
+        const now=deps.now();if(!validTime(now))return null;
+        const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(input));
+        const hash=hex(new Uint8Array(digest));
+        const consumed=await deps.authDb.prepare(consumeSessionHandoff).bind(
+          now,hash,scope.app_id,scope.environment,now,now,
+        ).run();
+        if(consumed.success===false||consumed.meta?.changes!==1)return null;
+        const row=await deps.authDb.prepare(readConsumedSessionHandoff).bind(
+          hash,now,scope.app_id,scope.environment,now,now,
+        ).first<{
+          session_id:string;s_user_id:string;auth_version:number;app_id:string;
+          environment:string;expires_at:number;provider:'google'|'apple';provider_subject:string;
+        }>();
+        if(!row||!id.test(row.session_id)||!id.test(row.s_user_id)||
+          !Number.isSafeInteger(row.auth_version)||row.auth_version<1||
+          row.app_id!==scope.app_id||row.environment!==scope.environment||
+          !validTime(row.expires_at)||row.expires_at<=now||
+          !['google','apple'].includes(row.provider)||!id.test(row.provider_subject))return null;
+        const suppliedKey=await deps.activeKey();
+        const key=suppliedKey&&Object.freeze({kid:suppliedKey.kid,key:suppliedKey.key});
+        if(!validKey(key))return null;
+        const claims={...scope,provider:row.provider,provider_subject:row.provider_subject,
+          s_user_id:row.s_user_id,session_id:row.session_id,auth_version:row.auth_version,
+          issued_at:now,expires_at:row.expires_at,key_id:key.kid};
+        const bearer=await signServerSession(claims,scope,now,key);
+        return Object.freeze({status:'issued' as const,bearer,
+          s_user_id:row.s_user_id,expires_at:row.expires_at});
+      }catch{return null;}
     },
     /** Already-verified bearer is passed to unchanged W3 for final Auth fence. */
     readSelf(request:Request):Promise<Response>{return self.handle(request);},
