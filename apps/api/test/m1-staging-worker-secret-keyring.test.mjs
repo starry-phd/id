@@ -87,7 +87,7 @@ test('rotation: previous HMAC verifies ONLY, previous PKCE decrypts ONLY; active
  assert.ok(previous);
  assert.deepEqual(previous.usages,['verify']);
  await assert.rejects(
-  globalThis.crypto.subtle.sign('HMAC',previous,new TextEncoder().encode('bad')),
+  globalThis.crypto.subtle.sign('HMAC',previous,new globalThis.TextEncoder().encode('bad')),
  );
  assert.equal(await createVerifiedSignedSession({
   scope,getKey:next.getVerificationKey,
