@@ -65,20 +65,28 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
   const bearer=await selected();
   // Verify even if the HTTP request failed: a late failure must not override
   // a new member's screen with the old request's status.
-  try{return await run();}
-  finally{await sameMember(bearer);}
+  const result=await run().then(
+   value=>({ok:true as const,value}),
+   error=>({ok:false as const,error}),
+  );
+  await sameMember(bearer);
+  if(!result.ok)throw result.error;
+  return result.value;
  };
  const deletionOperation=async <T>(run:()=>Promise<T>):Promise<T>=>{
   let bearer:string;
   try{bearer=await selected();}
   catch{throw new M2DeletionClientError('SESSION_REQUIRED');}
-  try{return await run();}
-  finally{
-   let current:string;
-   try{current=await selected();}
-   catch{throw new M2DeletionClientError('SESSION_REQUIRED');}
-   if(current!==bearer)throw new M2DeletionClientError('UNAUTHORIZED');
-  }
+  const result=await run().then(
+   value=>({ok:true as const,value}),
+   error=>({ok:false as const,error}),
+  );
+  let current:string;
+  try{current=await selected();}
+  catch{throw new M2DeletionClientError('SESSION_REQUIRED');}
+  if(current!==bearer)throw new M2DeletionClientError('UNAUTHORIZED');
+  if(!result.ok)throw result.error;
+  return result.value;
  };
  const profile=Object.freeze({
   // Deliberately OMIT unfenced patchSelf: UI may mutate only the confirmed
