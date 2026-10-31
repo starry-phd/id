@@ -15,6 +15,15 @@ const settled=()=>new Promise(resolve=>globalThis.setImmediate(resolve));
 function harness(overrides={}){
  const calls=[];
  let listener=null;
+ let appStateListener=null;
+ const appState={
+  addEventListener(kind,callback){
+   assert.equal(kind,'change');
+   appStateListener=callback;
+   return {remove(){appStateListener=null;}};
+  },
+  ...overrides.appState,
+ };
  const links={
   addEventListener(kind,callback){
    calls.push(['subscribe',kind]);
@@ -46,12 +55,14 @@ function harness(overrides={}){
  const config={
   enabled:true,appId:'starry-id',environment:'staging',
   baseUrl:api,appReturnUri:app,now:()=>now,
-  linking:links,openLoginBrowser:browser,fetchImpl:ownerFetch,
+  linking:links,appState,openLoginBrowser:browser,fetchImpl:ownerFetch,
   onStatus:status=>notices.push(status),
   ...overrides.config,
  };
  const root=createM1NativeSessionRoot(config);
  return {root,calls,notices,emit:uri=>listener?.({url:uri}),
+  emitAppState:state=>appStateListener?.(state),
+  appStateSubscribed:()=>appStateListener!==null,
   subscribed:()=>listener!==null};
 }
 
@@ -66,6 +77,7 @@ test('single native root is source-only and default-disabled with no URL listene
  await assert.rejects(h.root.startGoogleLogin(),/M1_NATIVE_ROOT_INACTIVE/);
  await assert.rejects(h.root.profile.getSelf(),/STARRY_SELF_DISABLED/);
  assert.equal(h.subscribed(),false);
+ assert.equal(h.appStateSubscribed(),false);
  assert.deepEqual(h.calls,[]);
  h.root.stop();
  h.root.stop();
@@ -92,6 +104,7 @@ test('native root receives OS link once, shows self, logs out, and disposes ONE 
  assert.equal(h.root.sessionExpiresAt(),null);
  h.root.stop();h.root.stop();
  assert.equal(h.subscribed(),false);
+ assert.equal(h.appStateSubscribed(),false);
  assert.equal(h.calls.filter(c=>c[0]==='unsubscribe').length,1);
  assert.throws(()=>h.root.start(),/M1_NATIVE_ROOT_ALREADY_STARTED/);
  assert.throws(()=>h.root.deletionForUser(profile.s_user_id),/M1_NATIVE_ROOT_INACTIVE/);
@@ -121,7 +134,9 @@ test('newer signed OS handoff fences pending browser, and unmount rejects late b
 test('native root rejects foreign app/env, incomplete platform and non-HTTPS callback',()=>{
  const changes=[
   {appId:'echo'},{environment:'production'},{openLoginBrowser:undefined},
-  {linking:undefined},{appReturnUri:'starry://callback'},
+  {linking:undefined},{appState:undefined},
+  {appState:{addEventListener:null}},
+  {appReturnUri:'starry://callback'},
   {baseUrl:'http://staging.starry.invalid'},
  ];
  for(const change of changes)
@@ -134,6 +149,7 @@ test('native listener setup failure clears volatile owner and does not create a 
  assert.throws(()=>h.root.start(),/M1_NATIVE_ROOT_START_FAILED/);
  assert.equal(h.root.sessionExpiresAt(),null);
  assert.equal(h.subscribed(),false);
+ assert.equal(h.appStateSubscribed(),false);
  h.root.stop();
 });
 
@@ -585,4 +601,117 @@ test('superseded A expiry never clears a newer B Session or emits a false B logo
  assert.equal(h.root.sessionExpiresAt(),now+60);
  assert.deepEqual(await h.root.profile.getSelf(),profileB);
  off();h.root.stop();
+});
+
+test('foreground after suspended timers invalidates naturally expired PII before another GET',async()=>{
+ let clock=now;
+ let profileGets=0;
+ const h=harness({config:{now:()=>clock,fetchImpl:async(raw,init)=>{
+  const path=new globalThis.URL(raw).pathname;
+  if(path==='/v1/starry-id/sessions/exchange')
+   return new Response(JSON.stringify({
+    access_token:bearer,token_type:'Bearer',expires_at:now+300,
+   }),{status:200,headers:{
+    'content-type':'application/json','cache-control':'no-store',
+   }});
+  if(path==='/v1/starry-id/members/me'&&init.method==='GET'){
+   profileGets++;
+   return new Response(JSON.stringify(profile),{status:200,headers:{
+    'content-type':'application/json','cache-control':'no-store',
+   }});
+  }
+  throw Error('UNEXPECTED_FOREGROUND_NETWORK');
+ }}});
+ const revisions=[];
+ const off=h.root.profile.subscribeSessionRevision(
+  ()=>revisions.push(h.root.profile.getSessionRevision()));
+ h.root.start();
+ assert.equal(h.appStateSubscribed(),true);
+ h.emit(url);await settled();
+ assert.deepEqual(revisions,[1,2]);
+ assert.deepEqual(await h.root.profile.getSelf(),profile);
+ assert.equal(profileGets,1);
+ // Simulate a suspended JS runtime: only the trusted AppState resume event,
+ // not the 300-second timer, is delivered after wall-clock expiry.
+ clock=now+301;
+ h.emitAppState('background');
+ h.emitAppState('inactive');
+ h.emitAppState('unknown');
+ assert.deepEqual(revisions,[1,2],
+  'background and transient events cannot be treated as active');
+ h.emitAppState('active');
+ assert.deepEqual(revisions,[1,2,3],
+  'a resumed app must hide the expired loaded member synchronously');
+ assert.equal(profileGets,1,'resume must never issue a hidden member GET');
+ assert.equal(h.root.sessionExpiresAt(),null);
+ await assert.rejects(h.root.profile.getSelf(),/STARRY_SELF_SESSION_REQUIRED/);
+ h.emitAppState('active');
+ assert.deepEqual(revisions,[1,2,3],
+  'duplicate active events must not repeatedly claim a logout');
+ off();h.root.stop();
+ assert.equal(h.appStateSubscribed(),false);
+ h.emitAppState('active');
+ assert.deepEqual(revisions,[1,2,3]);
+});
+test('foreground clock change cannot expire a newer B or replay the prior A timer',async()=>{
+ let clock=now;
+ const codeB='B'.repeat(43);
+ const urlB=app+'#handoff='+codeB;
+ const bearerB='v1.'+'q'.repeat(40)+'.'+'r'.repeat(43);
+ let profileGets=0;
+ const h=harness({config:{now:()=>clock,fetchImpl:async(raw,init)=>{
+  const path=new globalThis.URL(raw).pathname;
+  if(path==='/v1/starry-id/sessions/exchange'){
+   const isB=JSON.parse(init.body).handoff_code===codeB;
+   return new Response(JSON.stringify({
+    access_token:isB?bearerB:bearer,
+    token_type:'Bearer',expires_at:now+(isB?360:1),
+   }),{status:200,headers:{
+    'content-type':'application/json','cache-control':'no-store',
+   }});
+  }
+  if(path==='/v1/starry-id/members/me'){
+   profileGets++;
+   assert.equal(init.headers.authorization,'Bearer '+bearerB);
+   return new Response(JSON.stringify({...profile,s_user_id:'su-current-B'}),
+    {status:200,headers:{
+     'content-type':'application/json','cache-control':'no-store',
+    }});
+  }
+  throw Error('UNEXPECTED_FOREGROUND_SWITCH_NETWORK');
+ }}});
+ const revisions=[];
+ const off=h.root.profile.subscribeSessionRevision(
+  ()=>revisions.push(h.root.profile.getSessionRevision()));
+ h.root.start();
+ h.emit(url);await settled();
+ h.emit(urlB);await settled();
+ assert.deepEqual(revisions,[1,2,3,4]);
+ clock=now+2;
+ h.emitAppState('active');
+ h.emitAppState('active');
+ assert.deepEqual(revisions,[1,2,3,4],
+  'the old A deadline must never clear a valid B Session');
+ assert.equal(h.root.sessionExpiresAt(),now+360);
+ assert.deepEqual(await h.root.profile.getSelf(),
+  {...profile,s_user_id:'su-current-B'});
+ assert.equal(profileGets,1);
+ off();h.root.stop();
+ assert.equal(h.appStateSubscribed(),false);
+});
+test('missing or broken AppState port refuses native startup and leaves no Auth listener',()=>{
+ const thrown=harness({appState:{
+  addEventListener(){throw Error('PRIVATE_NATIVE_APPSTATE');},
+ }});
+ assert.throws(()=>thrown.root.start(),error=>{
+  assert.equal(error.message,'M1_NATIVE_ROOT_START_FAILED');return true;
+ });
+ assert.equal(thrown.subscribed(),false);
+ assert.equal(thrown.appStateSubscribed(),false);
+ assert.equal(thrown.root.sessionExpiresAt(),null);
+ thrown.root.stop();
+ const invalid=harness({appState:{addEventListener(){return {};}}});
+ assert.throws(()=>invalid.root.start(),/M1_NATIVE_ROOT_START_FAILED/);
+ assert.equal(invalid.subscribed(),false);
+ invalid.root.stop();
 });
