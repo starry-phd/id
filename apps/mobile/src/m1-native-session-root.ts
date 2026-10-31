@@ -165,14 +165,16 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
   return result.value;
  };
  const deletionOperation=async <T>(
-  run:()=>Promise<T>,createdForSession:string,
+  run:()=>Promise<T>,createdForSession:string,renderRevision:number,
  ):Promise<T>=>{
+  if(!active())throw new M2DeletionClientError('SESSION_REQUIRED');
+  if(revision!==renderRevision)throw new M2DeletionClientError('UNAUTHORIZED');
   let bearer:string;
   try{bearer=await selected();}
   catch{throw new M2DeletionClientError('SESSION_REQUIRED');}
-  // Cached screen ports belong to the original Session, not merely the
-  // member ID. A fresh B Session may belong to the SAME member.
-  if(bearer!==createdForSession)
+  // The same member may own two different signed Sessions. A stale screen
+  // cannot borrow either the newer bearer or the newer display generation.
+  if(bearer!==createdForSession||revision!==renderRevision)
    throw new M2DeletionClientError('UNAUTHORIZED');
   const result=await run().then(
    value=>({ok:true as const,value}),
@@ -181,7 +183,8 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
   let current:string;
   try{current=await selected();}
   catch{throw new M2DeletionClientError('SESSION_REQUIRED');}
-  if(current!==bearer)throw new M2DeletionClientError('UNAUTHORIZED');
+  if(current!==bearer||revision!==renderRevision)
+   throw new M2DeletionClientError('UNAUTHORIZED');
   if(!result.ok)throw result.error;
   return result.value;
  };
@@ -289,8 +292,15 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
   subscribeSessionRevision:subscribeRevision,
   /** Only the already-Auth-owned scoped member SDK ports reach the UI. */
   profile,
-  deletionForUser(expectedUserId:string){
+  deletionForUser(expectedUserId:string,displayedSessionRevision?:number){
    if(!active())throw Error('M1_NATIVE_ROOT_INACTIVE');
+   // A stale A screen may ask for a NEW deletion port after B signs in;
+   // capturing the current B bearer here is not proof A authorized deletion.
+   // Require the token-free Auth revision that the screen actually rendered.
+   if(!Number.isSafeInteger(displayedSessionRevision)||
+      displayedSessionRevision!==revision)
+    throw new M2DeletionClientError('UNAUTHORIZED');
+   const renderRevision=revision;
    const port=owner.deletionForUser(expectedUserId);
    // Capture the one Auth Session as the UI obtains this owner-bound port.
    // selected() starts its read immediately; a resolved null represents an
@@ -300,9 +310,15 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
    const forOriginalSession=async <T>(
     send:()=>Promise<T>,
    ):Promise<T>=>{
+    if(!active())throw new M2DeletionClientError('SESSION_REQUIRED');
+    if(revision!==renderRevision)
+     throw new M2DeletionClientError('UNAUTHORIZED');
     const bearer=await originalSession;
+    if(!active())throw new M2DeletionClientError('SESSION_REQUIRED');
+    if(revision!==renderRevision)
+     throw new M2DeletionClientError('UNAUTHORIZED');
     if(!bearer)throw new M2DeletionClientError('SESSION_REQUIRED');
-    return deletionOperation(send,bearer);
+    return deletionOperation(send,bearer,renderRevision);
    };
    return Object.freeze({
     getStatus:()=>forOriginalSession(()=>port.getStatus()),

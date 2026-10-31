@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createM1NativeSessionRoot,M1_NATIVE_SESSION_ROOT_LIVE}
  from '../src/m1-native-session-root.ts';
+import {M2DeletionClientError} from '../../../packages/sdk/src/m2-local-deletion-request-client.ts';
 
 const api='https://staging.starry.invalid';
 const app='https://app.starry.invalid/oauth/complete';
@@ -95,7 +96,7 @@ test('native root receives OS link once, shows self, logs out, and disposes ONE 
  assert.deepEqual(h.notices,[{type:'authenticated',expires_at:now+300}]);
  assert.equal(h.root.sessionExpiresAt(),now+300);
  assert.deepEqual(await h.root.profile.getSelf(),profile);
- assert.equal(typeof h.root.deletionForUser(profile.s_user_id).getStatus,'function');
+ assert.equal(typeof h.root.deletionForUser(profile.s_user_id,h.root.sessionRevision()).getStatus,'function');
  assert.deepEqual(h.calls.filter(c=>c[0]==='http').map(c=>c.slice(1)),[
   ['/v1/starry-id/sessions/exchange','POST'],
   ['/v1/starry-id/members/me','GET'],
@@ -107,7 +108,7 @@ test('native root receives OS link once, shows self, logs out, and disposes ONE 
  assert.equal(h.appStateSubscribed(),false);
  assert.equal(h.calls.filter(c=>c[0]==='unsubscribe').length,1);
  assert.throws(()=>h.root.start(),/M1_NATIVE_ROOT_ALREADY_STARTED/);
- assert.throws(()=>h.root.deletionForUser(profile.s_user_id),/M1_NATIVE_ROOT_INACTIVE/);
+ assert.throws(()=>h.root.deletionForUser(profile.s_user_id,h.root.sessionRevision()),/M1_NATIVE_ROOT_INACTIVE/);
  await assert.rejects(h.root.startGoogleLogin(),/M1_NATIVE_ROOT_INACTIVE/);
  await assert.rejects(h.root.profile.getSelf(),/STARRY_SELF_SESSION_REQUIRED/);
  h.emit(url);await settled();
@@ -287,7 +288,7 @@ test('cached deletion request port fails closed after native unmount with zero m
   throw Error('UNEXPECTED_DELETION_NETWORK');
  }}});
  h.root.start();h.emit(url);await settled();
- const oldReceipt=h.root.deletionForUser(profile.s_user_id);
+ const oldReceipt=h.root.deletionForUser(profile.s_user_id,h.root.sessionRevision());
  h.root.stop();
  await assert.rejects(oldReceipt.getStatus(),/SESSION_REQUIRED/);
  await assert.rejects(oldReceipt.requestDeletion(),/SESSION_REQUIRED/);
@@ -383,16 +384,24 @@ test('cached A deletion port cannot submit as B even when both Sessions share SA
   throw Error('WRONG_SESSION_OR_UNEXPECTED_M2_NETWORK');
  }}});
  h.root.start();h.emit(url);await settled();
- const staleA=h.root.deletionForUser(profile.s_user_id);
+ const staleARevision=h.root.sessionRevision();
+ const staleA=h.root.deletionForUser(profile.s_user_id,staleARevision);
  assert.equal('getSessionBearer' in staleA,false);
  h.emit(urlB);await settled();
  // A and B are distinct signed Sessions for the *same* profile.
+ assert.throws(()=>h.root.deletionForUser(profile.s_user_id,staleARevision),
+  e=>e instanceof M2DeletionClientError&&e.code==='UNAUTHORIZED',
+  'old A display cannot create a fresh deletion port using new B bearer');
+ assert.throws(()=>h.root.deletionForUser(profile.s_user_id),
+  e=>e instanceof M2DeletionClientError&&e.code==='UNAUTHORIZED',
+  'missing Auth-render revision is not an authorization');
+
  await assert.rejects(staleA.getStatus(),/UNAUTHORIZED/);
  await assert.rejects(staleA.requestDeletion(),/UNAUTHORIZED/);
  await assert.rejects(staleA.confirmDeletion('m2del-'+'e'.repeat(48)),/UNAUTHORIZED/);
  assert.equal(memberReads,0,'old A port cannot even preflight with B bearer');
  assert.equal(deletionPosts,0,'old A screen must not trigger any B deletion');
- const freshB=h.root.deletionForUser(profile.s_user_id);
+ const freshB=h.root.deletionForUser(profile.s_user_id,h.root.sessionRevision());
  assert.deepEqual(await freshB.requestDeletion(),receipt);
  assert.equal(memberReads,1);
  assert.equal(deletionPosts,1);
@@ -412,9 +421,9 @@ test('deletion port taken before login never becomes authorized after a later lo
   throw Error('UNAUTHENTICATED_SCREEN_SHOULD_NEVER_CALL_M2');
  }}});
  h.root.start();
- const beforeLogin=h.root.deletionForUser(profile.s_user_id);
+ const beforeLogin=h.root.deletionForUser(profile.s_user_id,h.root.sessionRevision());
  h.emit(url);await settled();
- await assert.rejects(beforeLogin.requestDeletion(),/SESSION_REQUIRED/);
+ await assert.rejects(beforeLogin.requestDeletion(),/UNAUTHORIZED/);
  assert.equal(memberRequests,0);
  h.root.stop();
 });
