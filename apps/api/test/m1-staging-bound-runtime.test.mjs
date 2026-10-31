@@ -5,6 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Buffer} from 'node:buffer';
+import {URL} from 'node:url';
 import {createM1StagingBoundRuntime,M1_STAGING_BOUND_RUNTIME_LIVE}
  from '../src/m1-staging-bound-runtime.ts';
 import {handleRequest as publicWorker} from '../src/index.ts';
