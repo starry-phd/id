@@ -136,3 +136,146 @@ test('native listener setup failure clears volatile owner and does not create a 
  assert.equal(h.subscribed(),false);
  h.root.stop();
 });
+
+
+test('unmount fences a delayed private self GET; it cannot reappear on a disposed native root',async()=>{
+ let sendPrivate;
+ let requestReached;
+ const reached=new Promise(resolve=>{requestReached=resolve;});
+ const h=harness({config:{fetchImpl:async(raw,init)=>{
+  const pathname=new globalThis.URL(raw).pathname;
+  if(pathname==='/v1/starry-id/sessions/exchange')
+   return new Response(JSON.stringify({access_token:bearer,token_type:'Bearer',
+    expires_at:now+300}),{status:200,headers:{
+     'content-type':'application/json','cache-control':'no-store',
+    }});
+  if(pathname==='/v1/starry-id/members/me'&&init.method==='GET'){
+   requestReached();
+   return new Promise(resolve=>{sendPrivate=resolve;});
+  }
+  throw Error('UNEXPECTED_PRIVATE_NETWORK');
+ }}});
+ h.root.start();h.emit(url);await settled();
+ const pending=h.root.profile.getSelf();
+ await reached;
+ h.root.stop();
+ sendPrivate(new Response(JSON.stringify({
+  ...profile,display_name:'PRIVATE_AFTER_UNMOUNT',
+ }),{status:200,headers:{
+  'content-type':'application/json','cache-control':'no-store',
+ }}));
+ await assert.rejects(pending,/STARRY_SELF_SESSION_REQUIRED/);
+ assert.equal(h.root.sessionExpiresAt(),null);
+ await assert.rejects(h.root.profile.getSelf(),/STARRY_SELF_SESSION_REQUIRED/);
+ assert.equal('patchSelf' in h.root.profile,false,
+  'public root must not expose unfenced CAS without a user id');
+});
+
+test('account A delayed GET cannot publish A after an OS handoff to B',async()=>{
+ const codeB='B'.repeat(43);
+ const urlB=app+'#handoff='+codeB;
+ const bearerB='v1.'+'q'.repeat(40)+'.'+'r'.repeat(43);
+ let sendA;
+ let started;
+ const entered=new Promise(resolve=>{started=resolve;});
+ const requests=[];
+ const h=harness({config:{fetchImpl:async(raw,init)=>{
+  const pathname=new globalThis.URL(raw).pathname;
+  requests.push({pathname,init});
+  if(pathname==='/v1/starry-id/sessions/exchange'){
+   const handoff=JSON.parse(init.body).handoff_code;
+   const token=handoff===codeB?bearerB:bearer;
+   return new Response(JSON.stringify({access_token:token,
+    token_type:'Bearer',expires_at:now+300}),{status:200,headers:{
+     'content-type':'application/json','cache-control':'no-store',
+   }});
+  }
+  if(pathname==='/v1/starry-id/members/me'&&init.method==='GET'){
+   if(init.headers.authorization==='Bearer '+bearer){
+    started();
+    return new Promise(resolve=>{sendA=resolve;});
+   }
+   assert.equal(init.headers.authorization,'Bearer '+bearerB);
+   return new Response(JSON.stringify({...profile,s_user_id:'su-B',
+    display_name:'Current B'}),{status:200,headers:{
+     'content-type':'application/json','cache-control':'no-store',
+   }});
+  }
+  throw Error('UNEXPECTED_ACCOUNT_NETWORK');
+ }}});
+ h.root.start();
+ h.emit(url);await settled();
+ const pendingA=h.root.profile.getSelf();await entered;
+ h.emit(urlB);await settled();
+ sendA(new Response(JSON.stringify({...profile,display_name:'PRIVATE_OLD_A'}),{
+  status:200,headers:{'content-type':'application/json','cache-control':'no-store'},
+ }));
+ await assert.rejects(pendingA,/STARRY_SELF_IDENTITY_CHANGED/);
+ assert.deepEqual(await h.root.profile.getSelf(),{
+  ...profile,s_user_id:'su-B',display_name:'Current B',
+ });
+ assert.equal(requests.filter(x=>x.pathname==='/v1/starry-id/sessions/exchange').length,2);
+ h.root.stop();
+});
+
+test('late CAS response after unmount cannot return or display private profile data',async()=>{
+ let finishPatch;
+ let requestReached;
+ const reached=new Promise(resolve=>{requestReached=resolve;});
+ const requests=[];
+ const h=harness({config:{fetchImpl:async(raw,init)=>{
+  const pathname=new globalThis.URL(raw).pathname;
+  requests.push({pathname,init});
+  if(pathname==='/v1/starry-id/sessions/exchange')
+   return new Response(JSON.stringify({access_token:bearer,
+    token_type:'Bearer',expires_at:now+300}),{status:200,headers:{
+     'content-type':'application/json','cache-control':'no-store',
+   }});
+  if(pathname==='/v1/starry-id/members/me'&&init.method==='GET')
+   return new Response(JSON.stringify(profile),{status:200,headers:{
+    'content-type':'application/json','cache-control':'no-store',
+   }});
+  if(pathname==='/v1/starry-id/members/me'&&init.method==='PATCH'){
+   requestReached();
+   return new Promise(resolve=>{finishPatch=resolve;});
+  }
+  throw Error('UNEXPECTED_PROFILE_NETWORK');
+ }}});
+ h.root.start();h.emit(url);await settled();
+ const inFlight=h.root.profile.patchSelfForUser(profile.s_user_id,1,{
+  display_name:'PRIVATE_STALE_UPDATED',
+ });
+ await reached;
+ h.root.stop();
+ finishPatch(new Response(JSON.stringify({...profile,
+  display_name:'PRIVATE_STALE_UPDATED',profile_revision:2,
+ }),{status:200,headers:{
+  'content-type':'application/json','cache-control':'no-store',
+ }}));
+ await assert.rejects(inFlight,/STARRY_SELF_SESSION_REQUIRED/);
+ assert.deepEqual(requests.filter(x=>x.init.method==='PATCH')
+  .map(x=>x.init.headers.authorization),['Bearer '+bearer],
+  'in-flight CAS may act on A, never on a newer B token');
+});
+
+test('cached deletion request port fails closed after native unmount with zero mutation calls',async()=>{
+ let writes=0;
+ const h=harness({config:{fetchImpl:async(raw)=>{
+  const pathname=new globalThis.URL(raw).pathname;
+  if(pathname==='/v1/starry-id/sessions/exchange')
+   return new Response(JSON.stringify({access_token:bearer,
+    token_type:'Bearer',expires_at:now+300}),{status:200,headers:{
+     'content-type':'application/json','cache-control':'no-store',
+   }});
+  writes++;
+  throw Error('UNEXPECTED_DELETION_NETWORK');
+ }}});
+ h.root.start();h.emit(url);await settled();
+ const oldReceipt=h.root.deletionForUser(profile.s_user_id);
+ h.root.stop();
+ await assert.rejects(oldReceipt.getStatus(),/SESSION_REQUIRED/);
+ await assert.rejects(oldReceipt.requestDeletion(),/SESSION_REQUIRED/);
+ await assert.rejects(oldReceipt.confirmDeletion('m2del-'+'f'.repeat(48)),
+  /SESSION_REQUIRED/);
+ assert.equal(writes,0);
+});
