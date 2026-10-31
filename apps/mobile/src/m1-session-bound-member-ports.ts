@@ -54,8 +54,23 @@ export function createM1SessionBoundMemberPorts(config:M1MemberPortsConfig){
  const profile=Object.freeze({
   ...profileClient,
   async logout():Promise<void>{
-   await profileClient.logout();
-   clearSession?.();
+   // The server must revoke the credential captured when logout begins,
+   // NOT whichever member happens to be signed in after an await.
+   // A late logout for A must never clear a newer valid Session B.
+   if(!enabled)return profileClient.logout();
+   let selected:string|null;
+   try{selected=await getSessionBearer();}
+   catch{throw Error('STARRY_SELF_SESSION_REQUIRED');}
+   if(!selected)throw Error('STARRY_SELF_SESSION_REQUIRED');
+   const captured=selected;
+   await createM1StagingSelfClient({
+    enabled:true,appId:'starry-id',baseUrl,
+    getSessionBearer:async()=>captured,fetchImpl,
+   }).logout();
+   let current:string|null;
+   try{current=await getSessionBearer();}
+   catch{throw Error('STARRY_SELF_SESSION_REQUIRED');}
+   if(current===captured)clearSession?.();
   },
  });
  return Object.freeze({
