@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {URLSearchParams} from 'node:url';
 import {createM1GoogleSessionHandoffHttp} from
  '../src/m1-google-session-handoff-http.ts';
 
