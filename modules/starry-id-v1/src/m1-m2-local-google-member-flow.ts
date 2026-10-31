@@ -130,9 +130,10 @@ export function createM1M2LocalGoogleFlow(deps:Deps){
     async completeGoogleLoginForApp(input:unknown){
       if(!enabled||!sessionHandoffEnabled)return null;
       const issued=await core.issueFromVerifiedCallback(input);
-      if(!issued?.handoff_code||!Number.isSafeInteger(issued.handoff_expires_at))return null;
+      const expiresAt=issued?.handoff_expires_at;
+      if(!issued?.handoff_code||typeof expiresAt!=='number'||!Number.isSafeInteger(expiresAt))return null;
       return Object.freeze({status:'handoff_issued' as const,
-        handoff_code:issued.handoff_code,expires_at:issued.handoff_expires_at});
+        handoff_code:issued.handoff_code,expires_at:expiresAt});
     },
     /** One-time code is consumed before a current, non-revoked D1 Session is re-signed. */
     redeemSessionHandoff(input:unknown){
