@@ -239,7 +239,9 @@ export function createM1LocalAuthSessionCore(deps:Dependencies) {
       if(handoffEntropy){
         const handoffBuffer=new ArrayBuffer(handoffEntropy.byteLength);
         new Uint8Array(handoffBuffer).set(handoffEntropy);
-        handoffHash=hex(new Uint8Array(await crypto.subtle.digest('SHA-256',handoffBuffer)));
+        handoffHash=hex(new Uint8Array(await crypto.subtle.digest(
+          'SHA-256',new TextEncoder().encode(handoffCode!),
+        )));
       }
       const refreshBuffer=new ArrayBuffer(refresh.length);
       new Uint8Array(refreshBuffer).set(refresh);
