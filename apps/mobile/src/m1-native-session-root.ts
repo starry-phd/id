@@ -48,21 +48,62 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
   fetchImpl:config.fetchImpl,
   openLoginBrowser:config.openLoginBrowser,now:config.now,
  });
+ let started=false;
+ let closed=false;
+ const active=()=>started&&!closed;
+ let expiryTimer:ReturnType<typeof setTimeout>|null=null;
+ const cancelExpiry=()=>{
+  if(expiryTimer!==null)clearTimeout(expiryTimer);
+  expiryTimer=null;
+ };
+ // The Auth SDK clears expired credentials only when read; a mounted UI can
+ // otherwise continue displaying an old name indefinitely without another
+ // request. Schedule a token-free revision at the actual Session deadline.
+ const scheduleExpiry=()=>{
+  cancelExpiry();
+  if(!active())return;
+  const expiresAt=owner.sessionExpiresAt();
+  if(expiresAt===null)return;
+  let now:number;
+  try{now=(config.now??(()=>Math.floor(Date.now()/1000)))();}
+  catch{owner.clearSession();advanceRevision();return;}
+  if(!Number.isSafeInteger(now)||now<0){
+   owner.clearSession();advanceRevision();return;
+  }
+  const millis=Math.min(Math.max(1,(expiresAt-now)*1000),2147483647);
+  try{
+   const timer=setTimeout(()=>{
+    expiryTimer=null;
+    if(!active())return;
+    if(owner.sessionExpiresAt()===null){
+     // The owner has purged the expired credential. The same Auth-owned
+     // React profile port must now hide its previously loaded member.
+     advanceRevision();
+    }else scheduleExpiry(); // Clock skew, long expiry, or suspended timer.
+   },millis);
+   expiryTimer=timer;
+   // Local Node/CI runners must not be kept alive by source-only long timers.
+   if(typeof timer==='object'&&typeof timer.unref==='function')
+    timer.unref();
+  }catch{
+   // If a platform cannot schedule expiry, never continue with a credential
+   // that might remain displayed beyond its deadline.
+   owner.clearSession();advanceRevision();
+  }
+ };
  const receiver=createM1NativeLinkReceiver({
   enabled:config.enabled,appId:'starry-id',environment:'staging',
   appReturnUri:config.appReturnUri,
   owner,linking:config.linking,
-  onHandoffStart:advanceRevision,
+  onHandoffStart:()=>{cancelExpiry();advanceRevision();},
   onStatus:status=>{
-   // The new authenticated owner must be re-read from the server; after a
-   // failed exchange the earlier revision already hid the old profile.
-   if(status.type==='authenticated')advanceRevision();
+   // A failed exchange was already hidden before its async network request.
+   if(status.type==='authenticated'){
+    advanceRevision();scheduleExpiry();
+   }
    try{config.onStatus?.(status);}catch{/* UI callback is not Auth */}
   },
  });
- let started=false;
- let closed=false;
- const active=()=>started&&!closed;
  // A result from the old member must never reach the new screen after an OS
  // link, another browser login, logout, or root unmount. Credentials stay
  // private to this closure and never become a UI-facing property.
@@ -135,7 +176,10 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
    finally{
     // Whether success or an ambiguous lost 204, the old UI must re-check
     // the only Auth owner before showing any member again.
-    if(active())advanceRevision();
+    if(active()){
+     advanceRevision();
+     scheduleExpiry(); // A failed/ambiguous revoke may leave a live owner.
+    }
    }
    if(!active())throw Error('STARRY_SELF_SESSION_REQUIRED');
   },
@@ -158,6 +202,7 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
   stop():void{
    if(closed)return;
    closed=true;
+   cancelExpiry();
    // Hide any displayed private profile synchronously before the owner is
    // disposed. Late subscriber exceptions must never stop the teardown.
    advanceRevision();
@@ -170,9 +215,11 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
    if(!active())throw Error('M1_NATIVE_ROOT_INACTIVE');
    // A browser switch clears the old bearer BEFORE the browser is opened.
    // The UI must stop rendering A before B's remote OAuth can resolve.
-   advanceRevision();
+   cancelExpiry();advanceRevision();
    const outcome=await owner.startGoogleLogin();
-   if(active()&&outcome.status==='authenticated')advanceRevision();
+   if(active()&&outcome.status==='authenticated'){
+    advanceRevision();scheduleExpiry();
+   }
    return outcome;
   },
   /** useSyncExternalStore-compatible, no tokens/PII exposed to UI. */
