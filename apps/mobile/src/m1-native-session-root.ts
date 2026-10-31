@@ -112,7 +112,16 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
   if(!result.ok)throw result.error;
   return result.value;
  };
+ const subscribeRevision=(listener:()=>void)=>{
+  if(typeof listener!=='function'||closed)return ()=>{};
+  revisionListeners.add(listener);
+  return ()=>{revisionListeners.delete(listener);};
+ };
  const profile=Object.freeze({
+  /** The already-Auth-owned UI port carries its own token-free revision
+   * subscription. Screens need no separate global Auth state or bearer. */
+  getSessionRevision:()=>revision,
+  subscribeSessionRevision:subscribeRevision,
   // Deliberately OMIT unfenced patchSelf: UI may mutate only the confirmed
   // member id via the existing server CAS + preflight owner check.
   getSelf:()=>profileOperation(()=>owner.profile.getSelf()),
@@ -168,11 +177,7 @@ export function createM1NativeSessionRoot(config:M1NativeSessionRootConfig){
   },
   /** useSyncExternalStore-compatible, no tokens/PII exposed to UI. */
   sessionRevision:()=>revision,
-  subscribeSessionRevision(listener:()=>void){
-   if(typeof listener!=='function'||closed)return ()=>{};
-   revisionListeners.add(listener);
-   return ()=>{revisionListeners.delete(listener);};
-  },
+  subscribeSessionRevision:subscribeRevision,
   /** Only the already-Auth-owned scoped member SDK ports reach the UI. */
   profile,
   deletionForUser(expectedUserId:string){
