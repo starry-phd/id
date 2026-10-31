@@ -38,6 +38,21 @@ const explanation=(error:unknown):string=>{
   default:return '服務暫時無法使用，請稍後重試。';
  }
 };
+/** A lost logout POST response does not prove whether server revocation happened.
+ * Hide the former member until a fresh authenticated GET settles the result.
+ * UI gets sanitized text only; this helper never exposes server error details.
+ */
+export function failedM1LogoutScreenState(error:unknown):Readonly<{
+ phase:'reauth_required'|'error';notice:string;
+}>{
+ if(isM1SessionLost(error))
+  return Object.freeze({phase:'reauth_required' as const,notice:explanation(error)});
+ return Object.freeze({
+  phase:'error' as const,
+  notice:'登出結果尚無法確認，個人資料已隱藏。請重新讀取登入狀態；若已失效，請重新登入。',
+ });
+}
+
 export function MemberProfileScreen({port,enabled,preview=false,previewTools}:MemberProfileScreenProps){
  const generation=useRef(0);
  const busy=useRef(false);
@@ -122,9 +137,12 @@ export function MemberProfileScreen({port,enabled,preview=false,previewTools}:Me
    }
   }catch(error){
    if(generation.current===serial){
-    if(isM1SessionLost(error)){clearProfile();setPhase('reauth_required');}
-    else setPhase('ready');
-    setNotice(explanation(error));
+    // Logout can have succeeded server-side even if the 204 response was lost.
+    // Never keep old PII editable or assert logout success from a timeout.
+    const failure=failedM1LogoutScreenState(error);
+    clearProfile();
+    setPhase(failure.phase);
+    setNotice(failure.notice);
    }
   }finally{if(generation.current===serial)busy.current=false;}
  };
