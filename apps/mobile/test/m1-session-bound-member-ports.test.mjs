@@ -175,3 +175,33 @@ test('M2 owner fence default OFF and malformed owner never read Auth or network'
   e=>e instanceof M2DeletionClientError&&e.code==='UNAUTHORIZED');
  assert.equal(reads,0);assert.equal(calls,0);
 });
+
+
+test('M1 profile logout clears Auth-owned volatile memory only after server 204 succeeds',async()=>{
+ let cleared=0,reads=0;
+ const ports=make({
+  enabled:true,
+  getSessionBearer:async()=>{reads++;return signedA;},
+  clearSession:()=>{cleared++;},
+  fetchImpl:async(url,init)=>{
+   assert.equal(new globalThis.URL(url).pathname,'/v1/starry-id/sessions/logout');
+   assert.equal(init.method,'POST');
+   assert.equal(init.credentials,'omit');
+   return new Response(null,{status:204,headers:{'cache-control':'no-store'}});
+  },
+ });
+ await ports.profile.logout();
+ assert.equal(reads,1);
+ assert.equal(cleared,1);
+});
+
+test('M1 profile logout preserves volatile memory when server revocation did not succeed',async()=>{
+ let cleared=0;
+ const ports=make({
+  enabled:true,getSessionBearer:async()=>signedA,
+  clearSession:()=>{cleared++;},
+  fetchImpl:async()=>new Response('unavailable',{status:503}),
+ });
+ await assert.rejects(ports.profile.logout(),/STARRY_SELF_UNAVAILABLE/);
+ assert.equal(cleared,0);
+});
