@@ -856,3 +856,27 @@ test('native logout switching A to B before async bearer lookup cannot dispatch 
  assert.equal(h.root.sessionExpiresAt(),now+300);
  h.root.stop();
 });
+
+
+test('system browser denial keeps the native member screen hidden with no extra Auth exchange',async()=>{
+ const h=harness({browser:async()=>({
+  type:'success',url:app+'#error=oauth_failed',
+ })});
+ h.root.start();await settled();
+ h.emit(url);await settled();
+ assert.deepEqual(await h.root.profile.getSelf(),profile);
+ const before=h.root.sessionRevision();
+ const exchangesBefore=h.calls.filter(c=>c[0]==='http'&&
+  c[1]==='/v1/starry-id/sessions/exchange').length;
+ const result=await h.root.startGoogleLogin();
+ assert.deepEqual(result,{status:'failed'});
+ assert.equal(h.root.sessionRevision(),before+1,
+  'the formerly displayed member must be hidden as the browser starts');
+ assert.equal(h.root.sessionExpiresAt(),null,
+  'Google rejection must never restore the previous member bearer');
+ await assert.rejects(h.root.profile.getSelf(),/STARRY_SELF_SESSION_REQUIRED/);
+ assert.equal(h.calls.filter(c=>c[0]==='http'&&
+  c[1]==='/v1/starry-id/sessions/exchange').length,exchangesBefore,
+  'a failure-only browser callback MUST NOT redeem a Session');
+ h.root.stop();
+});
