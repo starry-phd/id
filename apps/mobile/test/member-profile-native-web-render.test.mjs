@@ -48,6 +48,18 @@ test('real React Native Web profile screen renders owner-safe disabled view, nev
  assert.match(loading,/正在安全處理/);
  assert.doesNotMatch(loading,/PRIVATE_USER|PRIVATE_TOKEN|Bearer |u1/);
  assert.equal(invoked,0);
+ const logoutFailure=compiled.exports.failedM1LogoutScreenState;
+ const ambiguous=logoutFailure(Error('STARRY_SELF_UNAVAILABLE'));
+ assert.equal(ambiguous.phase,'error');
+ assert.match(ambiguous.notice,/登出結果尚無法確認/);
+ assert.match(ambiguous.notice,/個人資料已隱藏/);
+ for(const code of ['STARRY_SELF_UNAUTHORIZED','STARRY_SELF_SESSION_REQUIRED',
+  'STARRY_SELF_IDENTITY_CHANGED'])
+  assert.equal(logoutFailure(Error(code)).phase,'reauth_required');
+ const privateFailure=logoutFailure(Error('PRIVATE_BEARER_AND_SQL'));
+ assert.equal(privateFailure.phase,'error');
+ assert.doesNotMatch(privateFailure.notice,/PRIVATE_BEARER|PRIVATE_SQL|Bearer /);
+ assert.equal(Object.isFrozen(privateFailure),true);
  assert.match(html,/我的會員資料/);
  assert.match(html,/正式登入與會員資料服務尚未開放/);
  assert.match(html,/不會取得任何身分憑證/);
@@ -71,8 +83,12 @@ test('M1 profile UI always erases stale PII on refresh and session loss, while p
  const source=readFileSync(new URL('../src/member-profile-screen.tsx',import.meta.url),'utf8');
  assert.match(source,/clearProfile\(\);\s*setPhase\('loading'\)/);
  assert.match(source,/setPhase\(isM1SessionLost\(error\)\?'reauth_required':'error'\)/);
- assert.equal((source.match(/if\(isM1SessionLost\(error\)\)\{clearProfile\(\);setPhase\('reauth_required'\);\}/g)||[]).length,2,
-  'PATCH and logout unauthorized must both clear stale member data');
+ assert.equal((source.match(/if\(isM1SessionLost\(error\)\)\{clearProfile\(\);setPhase\('reauth_required'\);\}/g)||[]).length,1,
+  'PATCH unauthorized must clear stale member data');
+ assert.match(source,/const failure=failedM1LogoutScreenState\(error\);\s*clearProfile\(\);\s*setPhase\(failure\.phase\);\s*setNotice\(failure\.notice\);/,
+  'ambiguous logout must hide PII before offering an authenticated refresh');
+ assert.match(source,/phase==='error'\?button\('重新讀取'/,
+  'ambiguous logout resolves via explicit GET, never automatic POST retry');
  assert.match(source,/phase==='reauth_required'\?'登入狀態失效，私人資料已從畫面清除/);
  assert.match(source,/phase==='ready'\?<View style=\{styles.card\}>/);
  assert.match(source,/clearProfile\(\);setNotice\(''\);setPhase\('disabled'\)/);
