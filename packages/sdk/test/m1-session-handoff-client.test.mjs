@@ -171,3 +171,49 @@ test('valid code shape is checked before network; expiry supplier errors never r
  await assert.rejects(badClock.client.acceptReturnUrl(returnUrl()),/M1_HANDOFF_CLOCK_INVALID/);
  assert.equal(await badClock.client.getSessionBearer(),null);
 });
+
+
+test('a late A callback cannot overwrite B Session after account switch, and logout cancels in-flight login',async()=>{
+ const pending=[];
+ const client=createM1SessionHandoffClient({
+  enabled:true,appId:'starry-id',baseUrl:origin,appReturnUri:appReturn,
+  now:()=>now,
+  fetchImpl:async(url,init)=>new Promise(resolve=>pending.push({resolve,url,init})),
+ });
+ const a=client.acceptReturnUrl(returnUrl('A'.repeat(43)));
+ const b=client.acceptReturnUrl(returnUrl('B'.repeat(43)));
+ assert.equal(pending.length,2);
+ const tokenB='v1.'+'c'.repeat(40)+'.'+'d'.repeat(43);
+ pending[1].resolve(response(payload({access_token:tokenB})));
+ await b;
+ assert.equal(await client.getSessionBearer(),tokenB);
+ pending[0].resolve(response(payload()));
+ await assert.rejects(a,/M1_HANDOFF_SUPERSEDED/);
+ assert.equal(await client.getSessionBearer(),tokenB,'old A must never replace current B');
+ const c=client.acceptReturnUrl(returnUrl('C'.repeat(43)));
+ assert.equal(pending.length,3);
+ client.clearSession();
+ pending[2].resolve(response(payload()));
+ await assert.rejects(c,/M1_HANDOFF_SUPERSEDED/);
+ assert.equal(await client.getSessionBearer(),null);
+ assert.equal(client.sessionExpiresAt(),null);
+});
+
+test('throwing clocks and upstream body stream errors are sanitized and cannot disclose credentials',async()=>{
+ const brokenClock=make({now:()=>{throw Error('PRIVATE_CLOCK_TOKEN');}});
+ await assert.rejects(brokenClock.client.acceptReturnUrl(returnUrl()),error=>{
+  assert.equal(error.message,'M1_HANDOFF_CLOCK_INVALID');
+  return true;
+ });
+ const brokenStream=make({fetchImpl:async()=>new Response(new ReadableStream({
+  pull(controller){controller.error(Error('PRIVATE_UPSTREAM_TOKEN'));}
+ }),{status:200,headers:{
+  'content-type':'application/json','cache-control':'no-store',
+ }})});
+ await assert.rejects(brokenStream.client.acceptReturnUrl(returnUrl()),error=>{
+  assert.equal(error.message,'M1_HANDOFF_RESPONSE_INVALID');
+  assert.equal(awaitIsPromise(error),false);
+  return true;
+ });
+});
+function awaitIsPromise(value){return value instanceof Promise;}
