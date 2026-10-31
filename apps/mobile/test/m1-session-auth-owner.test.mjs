@@ -102,3 +102,19 @@ test('server-confirmed logout invalidates a pending browser return for the SAME 
  await assert.rejects(browser,/M1_LOGIN_SUPERSEDED/);
  assert.equal(await owner.getSessionBearer(),null,'late old browser must not resurrect Session');
 });
+
+test('OS-delivered newer link fences an older pending browser but malformed links do not clear current member',async()=>{
+ const pending=[];
+ const {owner,calls}=make({openLoginBrowser:async()=>new Promise(resolve=>pending.push(resolve))});
+ const stale=owner.startGoogleLogin();
+ await owner.acceptReturnUrl(appReturn+'#handoff='+code);
+ assert.equal(await owner.getSessionBearer(),bearer);
+ await assert.rejects(owner.acceptReturnUrl('https://evil.invalid/oauth/complete#handoff='+code),
+  /M1_HANDOFF_RETURN_URL_DENIED/);
+ assert.equal(await owner.getSessionBearer(),bearer,'malformed link cannot force logout');
+ pending[0]({type:'success',url:appReturn+'#handoff='+code});
+ await assert.rejects(stale,/M1_LOGIN_SUPERSEDED/);
+ assert.equal(await owner.getSessionBearer(),bearer);
+ assert.equal(calls.filter(x=>x.path==='/v1/starry-id/sessions/exchange').length,1,
+  'stale browser code may not exchange or replace newer OS-delivered Session');
+});
