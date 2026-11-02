@@ -6,6 +6,7 @@ import type { Provider } from '../auth/provider-keys';
 import { background, readProviderRequest, verifyProviderRequest } from '../auth/routes';
 import type { AppBindings } from '../env';
 import { rememberAppleToken } from '../identity/apple';
+import { MAX_AVATAR_BYTES, r2Store, removeAvatar, setAvatar, signedAvatarPath } from '../identity/avatars';
 import { cancelDeletion, DELETION_GRACE_MS, requestDeletion } from '../identity/lifecycle';
 import { linkIdentity } from '../identity/link';
 import { auditStatement } from '../lib/audit';
@@ -16,16 +17,19 @@ export const meRoutes = new Hono<AppBindings>();
 
 interface ProfileRow {
   display_name: string | null;
+  avatar_key: string | null;
   birthday: string | null;
   locale: string;
   version: number;
   updated_at: number;
 }
 
-const PROFILE_SQL = 'SELECT display_name, birthday, locale, version, updated_at FROM profiles WHERE user_id = ?';
+const PROFILE_SQL = 'SELECT display_name, avatar_key, birthday, locale, version, updated_at FROM profiles WHERE user_id = ?';
 
-function profileJson(p: ProfileRow) {
-  return { display_name: p.display_name, birthday: p.birthday, locale: p.locale, version: p.version, updated_at: p.updated_at };
+/** avatar_url is a signed path valid for one hour (S-ID-08); null without an avatar or signing key. */
+async function profileJson(env: { DATA_ENCRYPTION_KEY?: string }, p: ProfileRow) {
+  const avatarUrl = p.avatar_key && env.DATA_ENCRYPTION_KEY ? await signedAvatarPath(env.DATA_ENCRYPTION_KEY, p.avatar_key, Date.now()) : null;
+  return { display_name: p.display_name, avatar_url: avatarUrl, birthday: p.birthday, locale: p.locale, version: p.version, updated_at: p.updated_at };
 }
 
 /** GET /v1/me — the signed-in member, profile, linked providers and consent state. */
@@ -50,7 +54,7 @@ meRoutes.get('/', requireAuthAllowPending, async (c) => {
     created_at: u.created_at,
     deletion_requested_at: u.deletion_requested_at,
     deletion_purge_at: u.deletion_requested_at === null ? null : u.deletion_requested_at + DELETION_GRACE_MS,
-    profile: profileJson(p),
+    profile: await profileJson(c.env, p),
     identities: ((identities?.results ?? []) as { provider: string; email: string | null; email_is_private_relay: number }[]).map((i) => ({
       provider: i.provider,
       email: i.email,
@@ -112,9 +116,9 @@ meRoutes.patch('/profile', requireAuth, async (c) => {
   if (!current) return c.json(errorBody('NOT_FOUND', 'Member not found', requestId), 404);
   c.header('etag', `"${current.version}"`);
   if (!written) {
-    return c.json({ ...errorBody('VERSION_CONFLICT', 'The profile changed elsewhere; reload and try again', requestId), profile: profileJson(current) }, 409);
+    return c.json({ ...errorBody('VERSION_CONFLICT', 'The profile changed elsewhere; reload and try again', requestId), profile: await profileJson(c.env, current) }, 409);
   }
-  return c.json({ profile: profileJson(current) });
+  return c.json({ profile: await profileJson(c.env, current) });
 });
 
 /** POST /v1/me/consents — records acceptance of the current terms and privacy policy (S-ID-09). */
@@ -185,4 +189,35 @@ meRoutes.post('/identities/:provider{apple|google}', requireAuth, async (c) => {
     if (pending) await pending;
   }
   return c.json({ provider, linked: true }, outcome === 'linked' ? 201 : 200);
+});
+
+/**
+ * PUT /v1/me/avatar — raw image bytes (WebP, JPEG or PNG, at most 256 KB), already cropped
+ * and compressed by the App (S-ID-08). Replaces the previous avatar.
+ */
+meRoutes.put('/avatar', requireAuth, async (c) => {
+  const { userId, appId } = c.get('auth');
+  const requestId = c.get('requestId');
+  if (!c.env.AVATARS) return c.json(errorBody('SERVICE_UNAVAILABLE', 'Avatar storage is not configured', requestId), 503);
+  const declared = Number(c.req.header('content-length') ?? '0');
+  if (declared > MAX_AVATAR_BYTES) return c.json(errorBody('BAD_REQUEST', 'Avatar must be at most 256 KB', requestId), 413);
+  const bytes = new Uint8Array(await c.req.arrayBuffer());
+  const result = await setAvatar(c.env.DB_IDENTITY, r2Store(c.env.AVATARS), { userId, bytes, appId, requestId }, Date.now());
+  if (!result.ok) {
+    if (result.reason === 'too_large') return c.json(errorBody('BAD_REQUEST', 'Avatar must be at most 256 KB', requestId), 413);
+    if (result.reason === 'unsupported') return c.json(errorBody('BAD_REQUEST', 'Avatar must be a WebP, JPEG or PNG image', requestId), 415);
+    return c.json(errorBody('NOT_FOUND', 'Member not found', requestId), 404);
+  }
+  const current = await c.env.DB_IDENTITY.prepare(PROFILE_SQL).bind(userId).first<ProfileRow>();
+  if (!current) return c.json(errorBody('NOT_FOUND', 'Member not found', requestId), 404);
+  c.header('etag', `"${current.version}"`);
+  return c.json({ profile: await profileJson(c.env, current) });
+});
+
+/** DELETE /v1/me/avatar — removes the avatar; Apps then show the first character of the name. */
+meRoutes.delete('/avatar', requireAuth, async (c) => {
+  const { userId, appId } = c.get('auth');
+  if (!c.env.AVATARS) return c.json(errorBody('SERVICE_UNAVAILABLE', 'Avatar storage is not configured', c.get('requestId')), 503);
+  await removeAvatar(c.env.DB_IDENTITY, r2Store(c.env.AVATARS), { userId, appId, requestId: c.get('requestId') }, Date.now());
+  return c.body(null, 204);
 });

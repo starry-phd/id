@@ -6,6 +6,8 @@ export type StarryEnvironment = 'development' | 'staging' | 'production';
 export interface Env {
   STARRY_ENV: StarryEnvironment;
   DB_IDENTITY: D1Database;
+  /** Private R2 bucket for avatars (S-ID-08); reads only through signed URLs. */
+  AVATARS?: R2Bucket;
   /** Current legal document versions; members must accept these (spec S-ID-09). */
   TERMS_VERSION: string;
   PRIVACY_VERSION: string;

@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { secureHeaders } from 'hono/secure-headers';
+import { avatarRoutes } from './apps/avatar-route';
 import { appRoutes } from './apps/routes';
 import { loadSigningKey } from './auth/access-token';
 import { authRoutes } from './auth/routes';
@@ -52,6 +53,7 @@ app.use('/account/session', limitByIp('RL_WEB'));
 app.use('/support', limitByIp('RL_WEB'));
 
 app.route('/v1/apps', appRoutes);
+app.route('/v1/avatars', avatarRoutes);
 app.route('/v1/auth', authRoutes);
 app.route('/v1/me', meRoutes);
 
@@ -71,7 +73,11 @@ app.onError((err, c) => {
 /** Cron Trigger (wrangler.jsonc "triggers"): daily purge, revocations and retention (S-ID-06, S-PLT-06). */
 async function scheduled(controller: ScheduledController, env: Env): Promise<void> {
   try {
-    const report = await runDailyMaintenance({ db: env.DB_IDENTITY, secrets: env, fetch: (url, init) => fetch(url, init) }, controller.scheduledTime);
+    const avatars = env.AVATARS;
+    const report = await runDailyMaintenance(
+      { db: env.DB_IDENTITY, secrets: env, fetch: (url, init) => fetch(url, init), ...(avatars ? { deleteObjects: (keys: string[]) => avatars.delete(keys) } : {}) },
+      controller.scheduledTime,
+    );
     console.log(JSON.stringify({ level: 'info', event: 'maintenance.daily', ...report }));
   } catch (error) {
     console.error(JSON.stringify({ level: 'error', event: 'maintenance.daily', message: error instanceof Error ? error.message : 'failed' }));

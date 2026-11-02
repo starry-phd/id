@@ -92,6 +92,27 @@ describe('account lifecycle API', () => {
     assert.equal((await worker.call('/v1/me/identities/apple', json(await providerBody('apple', 'anon')))).status, 401, 'requires sign-in');
   });
 
+  test('avatars upload to R2 and are served only through a signed URL', async () => {
+    const session = await signIn('google', 'avatar-user');
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 73, 72, 68, 82]);
+    const put = (body, type = 'image/png') => worker.call('/v1/me/avatar', authed(session.access_token, { method: 'PUT', headers: { 'content-type': type }, body }));
+    assert.equal((await put(new TextEncoder().encode('<svg/>'), 'image/svg+xml')).status, 415);
+    const res = await put(png);
+    assert.equal(res.status, 200, await res.clone().text());
+    const { profile } = await res.json();
+    assert.match(profile.avatar_url, /^\/v1\/avatars\/[0-9a-f-]+\/[0-9a-f-]+\.png\?exp=\d+&sig=/);
+    const image = await worker.call(profile.avatar_url);
+    assert.equal(image.status, 200);
+    assert.equal(image.headers.get('content-type'), 'image/png');
+    assert.deepEqual(new Uint8Array(await image.arrayBuffer()), png);
+    assert.equal((await worker.call(profile.avatar_url.replace(/sig=.*/, 'sig=AAAA'))).status, 404);
+    assert.equal((await worker.call(profile.avatar_url.split('?')[0])).status, 404);
+    assert.equal((await worker.call('/v1/me/avatar', authed(session.access_token, { method: 'DELETE' }))).status, 204);
+    assert.equal((await worker.call(profile.avatar_url)).status, 404);
+    const me = await (await worker.call('/v1/me', authed(session.access_token))).json();
+    assert.equal(me.profile.avatar_url, null);
+  });
+
   test('Apple sign-in with an authorization code but no Apple secrets still succeeds and is audited', async () => {
     const res = await worker.call('/v1/auth/apple', json(await providerBody('apple', 'with-code', { authorization_code: 'c0de' })));
     assert.equal(res.status, 200);

@@ -18,6 +18,7 @@
     { "name": "RL_API", "namespace_id": "1002", "simple": { "limit": 300, "period": 60 } },
     { "name": "RL_WEB", "namespace_id": "1003", "simple": { "limit": 20, "period": 60 } }
   ],
+  "r2_buckets": [{ "binding": "AVATARS", "bucket_name": "starry-avatars" }],
   "d1_databases": [
     {
       "binding": "DB_IDENTITY",
@@ -36,6 +37,7 @@
         { "name": "RL_API", "namespace_id": "2002", "simple": { "limit": 300, "period": 60 } },
         { "name": "RL_WEB", "namespace_id": "2003", "simple": { "limit": 20, "period": 60 } }
       ],
+      "r2_buckets": [{ "binding": "AVATARS", "bucket_name": "starry-avatars-staging" }],
       "d1_databases": [
         {
           "binding": "DB_IDENTITY",

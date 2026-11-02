@@ -37,6 +37,7 @@ export async function startWorker({ migrate = true, bindings = {} } = {}) {
     scriptPath: 'dist/index.js',
     compatibilityDate: COMPATIBILITY_DATE,
     d1Databases: { DB_IDENTITY: 'starry-identity-test' },
+    r2Buckets: { AVATARS: 'starry-avatars-test' },
     bindings: { STARRY_ENV: 'development', ...bindings },
   });
   let db;

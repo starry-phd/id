@@ -54,6 +54,7 @@ export async function authBindings() {
     TERMS_VERSION: 'terms-2026-11-03',
     PRIVACY_VERSION: 'privacy-2026-11-03',
     ACCESS_TOKEN_PRIVATE_JWK: await makeAccessKeyJwk(),
+    DATA_ENCRYPTION_KEY: Buffer.alloc(32, 9).toString('base64url'),
     AUTH_TEST_JWKS: JSON.stringify({ apple: { keys: [apple.jwk] }, google: { keys: [google.jwk] } }),
     AUTH_TEST_AUDIENCES: JSON.stringify({ echo: { apple: [APPLE_AUDIENCE], google: [GOOGLE_AUDIENCE] } }),
   };
