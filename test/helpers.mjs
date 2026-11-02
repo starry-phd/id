@@ -36,18 +36,24 @@ export async function startWorker({ migrate = true, bindings = {} } = {}) {
     modules: true,
     scriptPath: 'dist/index.js',
     compatibilityDate: COMPATIBILITY_DATE,
-    d1Databases: { DB_IDENTITY: 'starry-identity-test' },
+    d1Databases: { DB_IDENTITY: 'starry-identity-test', DB_BILLING: 'starry-billing-test' },
+    r2Buckets: { AVATARS: 'starry-avatars-test' },
     bindings: { STARRY_ENV: 'development', ...bindings },
   });
   let db;
+  let billing;
   try {
     db = await mf.getD1Database('DB_IDENTITY');
-    if (migrate) await applyMigrations(db);
+    billing = await mf.getD1Database('DB_BILLING');
+    if (migrate) {
+      await applyMigrations(db);
+      await applyMigrations(billing, 'migrations/billing');
+    }
   } catch (error) {
     // A runtime that failed to start must still be shut down, or the test process never exits.
     await mf.dispose().catch(() => {});
     throw error;
   }
   const call = (path, init) => mf.dispatchFetch(`https://api.test${path}`, init);
-  return { mf, db, call };
+  return { mf, db, billing, call };
 }

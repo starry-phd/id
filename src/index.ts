@@ -1,8 +1,21 @@
 import { Hono } from 'hono';
 import { secureHeaders } from 'hono/secure-headers';
+import { avatarRoutes } from './apps/avatar-route';
 import { appRoutes } from './apps/routes';
-import type { AppBindings } from './env';
+import { appRegistry } from './apps/registry';
+import { billingRoutes } from './billing/routes';
+import { forgetMembers, perAppSecrets, processPendingEvents, processRevenueCatDeletions } from './billing/revenuecat';
+import { WEB_APP_ID } from './identity/web-sessions';
+import { loadSigningKey } from './auth/access-token';
+import { authRoutes } from './auth/routes';
+import type { AppBindings, Env } from './env';
+import { runDailyMaintenance } from './identity/maintenance';
 import { errorBody } from './lib/errors';
+import { limitByIp } from './lib/rate-limit';
+import { meRoutes } from './me/routes';
+import { accountApp, publicPages } from './web/account';
+import { adminApp } from './web/admin';
+import { supportApp } from './web/support';
 
 const app = new Hono<AppBindings>();
 
@@ -13,7 +26,9 @@ app.use('*', async (c, next) => {
   c.res.headers.set('x-request-id', requestId);
   if (!c.res.headers.has('cache-control')) c.res.headers.set('cache-control', 'no-store');
 });
-app.use('*', secureHeaders());
+// Google and Apple web sign-in use popups, which need same-origin-allow-popups;
+// their buttons also need the page origin, so the referrer keeps the origin cross-site.
+app.use('*', secureHeaders({ crossOriginOpenerPolicy: 'same-origin-allow-popups', referrerPolicy: 'strict-origin-when-cross-origin' }));
 
 /** Liveness plus a single D1 round trip; 503 when the identity database is unreachable. */
 app.get('/v1/health', async (c) => {
@@ -24,11 +39,34 @@ app.get('/v1/health', async (c) => {
   } catch {
     db = 'error';
   }
-  const body = { status: db === 'ok' ? 'ok' : 'degraded', service: 'starry-api', environment: c.env.STARRY_ENV, db };
+  const body = { status: db === 'ok' ? 'ok' : 'degraded', service: 'starry-id', environment: c.env.STARRY_ENV, db };
   return c.json(body, db === 'ok' ? 200 : 503);
 });
 
+/** Public key set so other Starry backends (e.g. Echo) can verify access tokens without a shared secret. */
+app.get('/.well-known/jwks.json', async (c) => {
+  const key = await loadSigningKey(c.env);
+  if (!key) return c.json(errorBody('AUTH_NOT_CONFIGURED', 'Signing key not configured', c.get('requestId')), 503);
+  c.header('cache-control', 'public, max-age=3600');
+  return c.json({ keys: [key.publicJwk] });
+});
+
+app.use('/v1/*', limitByIp('RL_API'));
+app.use('/v1/auth/*', limitByIp('RL_AUTH'));
+app.use('/account/session', limitByIp('RL_WEB'));
+app.use('/support', limitByIp('RL_WEB'));
+
 app.route('/v1/apps', appRoutes);
+app.route('/v1/avatars', avatarRoutes);
+app.route('/v1/billing', billingRoutes);
+app.route('/v1/auth', authRoutes);
+app.route('/v1/me', meRoutes);
+
+// Web account center, support form and Admin Lite (server-rendered, cookie sessions).
+app.route('/account', accountApp);
+app.route('/support', supportApp);
+app.route('/admin', adminApp);
+app.route('/', publicPages);
 
 app.notFound((c) => c.json(errorBody('NOT_FOUND', 'Resource not found', c.get('requestId')), 404));
 
@@ -37,4 +75,30 @@ app.onError((err, c) => {
   return c.json(errorBody('INTERNAL', 'Internal error', c.get('requestId')), 500);
 });
 
-export default app;
+/** Cron Trigger (wrangler.jsonc "triggers"): daily purge, revocations, billing and retention (S-ID-06, S-PLT-06, S-BIL-04). */
+async function scheduled(controller: ScheduledController, env: Env): Promise<void> {
+  const now = controller.scheduledTime;
+  const fetcher = (url: string, init?: RequestInit) => fetch(url, init);
+  const storeApps = [...appRegistry.keys()].filter((id) => id !== WEB_APP_ID);
+  try {
+    const avatars = env.AVATARS;
+    const report = await runDailyMaintenance(
+      {
+        db: env.DB_IDENTITY,
+        secrets: env,
+        fetch: fetcher,
+        ...(avatars ? { deleteObjects: (keys: string[]) => avatars.delete(keys) } : {}),
+        onPurged: (userIds) => forgetMembers(env.DB_BILLING, userIds, storeApps, now),
+      },
+      now,
+    );
+    const events = await processPendingEvents(env.DB_BILLING, now, 200);
+    const revenuecat = await processRevenueCatDeletions(env.DB_BILLING, perAppSecrets(env.REVENUECAT_API_KEYS), fetcher, now);
+    console.log(JSON.stringify({ level: 'info', event: 'maintenance.daily', ...report, billingEvents: events, revenuecatDeletions: revenuecat }));
+  } catch (error) {
+    console.error(JSON.stringify({ level: 'error', event: 'maintenance.daily', message: error instanceof Error ? error.message : 'failed' }));
+    throw error;
+  }
+}
+
+export default { fetch: app.fetch, scheduled };

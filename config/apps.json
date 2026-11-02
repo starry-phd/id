@@ -7,9 +7,33 @@
       "ios_bundle_id": null,
       "android_package": null,
       "status": "active",
-      "scopes": ["profile:read", "profile:write"],
+      "scopes": [
+        "profile:read",
+        "profile:write"
+      ],
       "min_version": "0.0.0",
-      "config": {}
+      "config": {},
+      "auth": {
+        "apple_audiences": [],
+        "google_audiences": []
+      }
+    },
+    {
+      "app_id": "account",
+      "name": "Starry 帳號中心（網頁）",
+      "ios_bundle_id": null,
+      "android_package": null,
+      "status": "active",
+      "scopes": [
+        "profile:read",
+        "profile:write"
+      ],
+      "min_version": "0.0.0",
+      "config": {},
+      "auth": {
+        "apple_audiences": [],
+        "google_audiences": []
+      }
     }
   ]
 }

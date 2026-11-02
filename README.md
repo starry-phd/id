@@ -1,25 +1,85 @@
-# Starry 平台 API
+# Starry 平台（Starry ID）
 
-Starry ID 與 Starry 平台服務，部署在 Cloudflare Workers。規格與開發規則見 [AGENTS.md](AGENTS.md)。
+Starry ID 會員與登入、App Registry、購買權益投影、推播 Token、客服、Web 帳號中心與 Admin Lite，部署在 Cloudflare Workers。正式網址：https://id.starry.phd。規格與開發規則見 [AGENTS.md](AGENTS.md)，業主設定步驟見 [docs/owner-setup.md](docs/owner-setup.md)，App 串接方式見 [docs/integration-guide.md](docs/integration-guide.md)。
 
-| 路由 | 說明 |
-|---|---|
-| `GET /v1/health` | 服務狀態與 D1 連線檢查 |
-| `GET /v1/apps/{app_id}/config` | App 啟動時讀取的狀態、最低版本與白名單設定 |
+## API（`/v1`，App 使用 Bearer Access Token）
+
+| 路由 | 說明 | 規格 |
+|---|---|---|
+| `GET /v1/health` | 服務狀態與 D1 連線檢查 | S-PLT-07 |
+| `GET /v1/apps/{app_id}/config` | 狀態（含 Admin 覆寫）、最低版本、白名單設定 | S-PLT-01/02 |
+| `POST /v1/auth/nonce` | 單次有效的登入 nonce（10 分鐘，綁 app_id） | S-ID-01 |
+| `POST /v1/auth/apple`、`/v1/auth/google` | 原生 ID Token 登入／註冊；Apple 可附 `authorization_code` | S-ID-01/03 |
+| `POST /v1/auth/refresh` | 換發 Token；舊 Refresh Token 重用即撤銷 Session | S-ID-04 |
+| `POST /v1/auth/logout`、`/v1/auth/logout-all` | 登出本裝置／所有裝置（立即生效） | S-ID-05 |
+| `GET /v1/me` | 會員、個人資料（含簽章頭像網址）、登入方式、同意與刪除狀態 | S-ID-08/09 |
+| `PATCH /v1/me/profile` | 顯示名稱、生日、語系；需 `If-Match`，版本不符回 409 | S-ID-08 |
+| `PUT`／`DELETE /v1/me/avatar` | 上傳（WebP／JPEG／PNG ≤ 256 KB）或移除頭像 | S-ID-08 |
+| `POST /v1/me/consents` | 同意目前版本的條款與隱私權政策 | S-ID-09 |
+| `POST`／`DELETE /v1/me/deletion` | 申請刪除（立即停用、7 天後清除）／撤回 | S-ID-06 |
+| `POST /v1/me/identities/{apple\|google}` | 加綁另一種登入方式 | S-ID-02 |
+| `GET /v1/me/entitlements` | 本 App 的有效權益（RevenueCat 投影） | S-BIL-04 |
+| `PUT`／`DELETE /v1/me/push-tokens` | 登記／移除 Expo 推播 Token | A-04 |
+| `GET`／`PUT /v1/me/notification-preferences` | 各推播分類開關 | S-NTF-01 |
+| `GET /v1/avatars/{user}/{file}?exp&sig` | 以短效簽章讀取頭像 | S-ID-08 |
+| `POST /v1/billing/revenuecat/{app_id}` | RevenueCat Webhook（每款 App 各自的授權值） | S-BIL-04 |
+| `GET /.well-known/jwks.json` | Access Token 公鑰，供 App 後端驗證 | S-ID-04 |
+
+## 網頁（Cookie Session）
+
+| 路徑 | 說明 | 規格 |
+|---|---|---|
+| `/account` | 登入（Google／Apple 網頁登入）、個人資料、同意條款、刪除與撤回 | S-WEB-01 |
+| `/privacy`、`/terms` | 隱私權政策、服務條款（草案，待業主確認） | S-WEB-01 |
+| `/support` | 客服與檢舉表單（訪客與會員；設定 Turnstile 後啟用驗證） | S-WEB-02 |
+| `/admin` | Admin Lite：會員查詢（遮罩）、停權／復權、角色、客服單、App 狀態、稽核 | S-ADM-01 |
+| `/account/claim-owner` | 一次性設定 Owner（設定 `OWNER_CLAIM_CODE` 時才出現） | S-ID-10 |
+
+## 背景作業
+
+- 每日 03:17（台灣）Cron：清除刪帳期滿會員、撤銷 Apple Token、刪除 RevenueCat 客戶、處理未完成的 Webhook 事件、清理過期 nonce／Session／客服單、稽核保留期（一般 90 天、安全 1 年）。
+- GitHub Actions：每 15 分鐘外部探測（故障開一張 Issue、恢復自動關閉）、每週匯出 D1 到 R2 `starry-backups`。
+
+## Secrets
+
+| 名稱 | 放在 | 由誰設定 |
+|---|---|---|
+| `CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_ACCOUNT_ID` | GitHub Actions Secret | 業主 |
+| `ACCESS_TOKEN_PRIVATE_JWK`、`DATA_ENCRYPTION_KEY` | Workers Secret | 部署流程自動產生（只在缺少時建立） |
+| `OWNER_CLAIM_CODE`（暫時） | Workers Secret | 業主，設定 Owner 後刪除 |
+| `APPLE_TEAM_ID`、`APPLE_KEY_ID`、`APPLE_PRIVATE_KEY` | Workers Secret | 業主（Sign in with Apple 金鑰） |
+| `REVENUECAT_WEBHOOK_AUTH`、`REVENUECAT_API_KEYS` | Workers Secret（JSON，每款 App 一筆） | 業主（RevenueCat 專案建立後） |
+| `TURNSTILE_SECRET_KEY`；`TURNSTILE_SITE_KEY`（變數） | Workers | 業主（選用） |
+
+各 App 的 Apple／Google client ID 寫在 `config/apps.json` 的 `auth`（不是秘密）；清單為空時該登入方式回 503。
 
 ## 結構
 
 ```
-src/            Worker 程式（Hono）
-config/apps.json App Registry，每款 App 一筆
-migrations/     D1 migration，依資料庫分資料夾
-test/           本機 workerd + D1 測試（Miniflare）
-docs/adr/       架構決策紀錄
+src/auth/       Token 驗證、Session、登入路由
+src/identity/   會員、刪帳、角色、加綁、Apple、頭像、網頁 Session、每日作業
+src/billing/    RevenueCat Webhook 與權益投影
+src/notify/     推播 Token 與 Expo Push
+src/support/    客服單
+src/web/        帳號中心、客服表單、Admin Lite、條款（伺服器端產生 HTML）
+config/apps.json App Registry
+migrations/     D1 migration：identity、billing
+test/           整合測試（打包後在本機 workerd＋D1 執行）
+test/unit/      領域邏輯單元測試（SQLite 版 D1 替身，tsx 執行）
+docs/           ADR、業主設定、App 串接說明
 ```
 
 ## 環境
 
-| 環境 | Worker | D1 |
-|---|---|---|
-| staging | `starry-api-staging` | `starry-identity-staging` |
-| production | `starry-api` | `starry-identity` |
+| 環境 | Worker | D1 | R2 |
+|---|---|---|---|
+| staging | `starry-id-staging`（workers.dev） | `starry-identity-staging`、`starry-billing-staging` | `starry-avatars-staging` |
+| production | `starry-id`（https://id.starry.phd） | `starry-identity`、`starry-billing` | `starry-avatars`、`starry-backups` |
+
+## 指令
+
+```bash
+npm install
+npm run check      # typecheck + lint + 打包 + workerd 整合測試 + 單元測試
+npm run test:unit  # 只跑單元測試
+```

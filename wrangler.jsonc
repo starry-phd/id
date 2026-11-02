@@ -2,30 +2,60 @@
   // Starry platform Worker. Top level = production, env.staging = staging.
   // Account ID and API token come from CI secrets, never from this file.
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "starry-api",
+  "name": "starry-id",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-01",
   "workers_dev": true,
+  // Production is served at https://id.starry.phd (account center, Admin Lite and /v1 API).
+  "routes": [{ "pattern": "id.starry.phd", "custom_domain": true }],
   "observability": { "enabled": true },
-  "vars": { "STARRY_ENV": "production" },
+  // Daily maintenance at 03:17 Taiwan time (19:17 UTC): deletion purge, Apple revocations, retention.
+  "triggers": { "crons": ["17 19 * * *"] },
+  "vars": { "STARRY_ENV": "production", "TERMS_VERSION": "draft-2026-11-03", "PRIVACY_VERSION": "draft-2026-11-03" },
+  // Rate limits per Cloudflare location (S-PLT-05). namespace_id is unique per account.
+  "ratelimits": [
+    { "name": "RL_AUTH", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } },
+    { "name": "RL_API", "namespace_id": "1002", "simple": { "limit": 300, "period": 60 } },
+    { "name": "RL_WEB", "namespace_id": "1003", "simple": { "limit": 20, "period": 60 } }
+  ],
+  "r2_buckets": [{ "binding": "AVATARS", "bucket_name": "starry-avatars" }],
   "d1_databases": [
     {
       "binding": "DB_IDENTITY",
       "database_name": "starry-identity",
-      "database_id": "2f885aa8-5a14-4041-9cf8-51963b313f05",
+      "database_id": "2b523a86-7116-4afc-a02a-f67c20304774",
       "migrations_dir": "migrations/identity"
+    },
+    {
+      "binding": "DB_BILLING",
+      "database_name": "starry-billing",
+      "database_id": "5e241e4d-5962-4c1c-90b1-f718e2124f1f",
+      "migrations_dir": "migrations/billing"
     }
   ],
   "env": {
     "staging": {
-      "name": "starry-api-staging",
-      "vars": { "STARRY_ENV": "staging" },
+      "name": "starry-id-staging",
+      "routes": [],
+      "vars": { "STARRY_ENV": "staging", "TERMS_VERSION": "draft-2026-11-03", "PRIVACY_VERSION": "draft-2026-11-03" },
+      "ratelimits": [
+        { "name": "RL_AUTH", "namespace_id": "2001", "simple": { "limit": 30, "period": 60 } },
+        { "name": "RL_API", "namespace_id": "2002", "simple": { "limit": 300, "period": 60 } },
+        { "name": "RL_WEB", "namespace_id": "2003", "simple": { "limit": 20, "period": 60 } }
+      ],
+      "r2_buckets": [{ "binding": "AVATARS", "bucket_name": "starry-avatars-staging" }],
       "d1_databases": [
         {
           "binding": "DB_IDENTITY",
           "database_name": "starry-identity-staging",
-          "database_id": "9d6e00d3-8a00-4e67-93a9-73ea0d5b2db3",
+          "database_id": "e3fc4307-fb2e-4859-a2eb-4638626dffe8",
           "migrations_dir": "migrations/identity"
+        },
+        {
+          "binding": "DB_BILLING",
+          "database_name": "starry-billing-staging",
+          "database_id": "7d5a045d-5abd-40ab-858f-9af44522f40a",
+          "migrations_dir": "migrations/billing"
         }
       ]
     }

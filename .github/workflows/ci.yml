@@ -61,6 +61,8 @@ jobs:
       - run: npm run lint
       - name: Build bundle and run local workerd + D1 tests
         run: npm test
+      - name: Validate the production configuration
+        run: npx wrangler deploy --dry-run --outdir dist-production
 
   required-validation:
     # Job name is a required status check on main; keep it unchanged.
