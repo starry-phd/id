@@ -4,8 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    # platform-rebuild: temporary CI host branch until starry-phd/id is recreated (ADR 0001).
-    branches: [main, platform-rebuild]
+    branches: [main]
   workflow_dispatch:
 
 # PR code never receives deployment credentials or write access.

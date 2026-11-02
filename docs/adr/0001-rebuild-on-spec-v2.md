@@ -15,6 +15,6 @@
 5. 部署：合併到 main 後，Deploy workflow 依序處理 staging 與 production（migration、部署、smoke test、production 失敗自動回滾）。需要 `CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_ACCOUNT_ID` 兩個 Repo secrets；未設定前 workflow 只會跳過。
 6. D1 於 2026-11-03 重新建立（APAC）：`starry-identity`、`starry-identity-staging`。
 
-## 暫時安排
+## Repo 建立經過
 
-重建當晚無法從開發環境建立新 Repo，程式先放在 `starry-phd/starry-test` 的獨立分支 `platform-rebuild`（與該 Repo 原有內容無共同歷史），只為了讓 CI 執行。業主建立空白的 `starry-phd/id` 後，整段歷史推為該 Repo 的 `main`，再刪除暫存分支並移除 CI 對 `platform-rebuild` 的觸發。
+重建當晚開發環境無法建立新 Repo，也不能推送到其他 Repo，程式先以 Git bundle 備份。業主於 2026-11-03 建立空白的 `starry-phd/id` 後，第一個 commit 推為 `main`，其餘工作以 PR 合併。
