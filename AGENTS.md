@@ -38,10 +38,24 @@
 - 只做 Starry。H-Global 依規格暫停（階段 H），Starry 與 H-Global 不共用帳號、資料庫或 Secrets。
 - Starry Battery 永遠免費，任何付款都不得增加 Battery；廣告預設關閉。
 
+## 測試
+
+- `test/*.test.mjs`：整合測試，`wrangler deploy --dry-run` 打包後在本機 workerd＋D1＋R2（Miniflare）執行，涵蓋所有 HTTP 路由。
+- `test/unit/*.test.ts`：領域邏輯單元測試，`src/identity`、`src/billing`、`src/notify`、`src/support` 等不依賴 Hono 的模組，以 `node:sqlite` 版 D1 替身跑真正的 migration。新的資料規則優先寫成這類模組並加單元測試。
+- 每個新資料表都要更新 `test/migrations.test.mjs` 的資料表清單。
+
 ## 本機指令
 
 ```bash
 npm install
-npm run check    # typecheck + lint + 打包 + 本機 workerd/D1 測試
-npm run dev      # wrangler dev（staging 設定，本機 D1）
+npm run check      # typecheck + lint + 打包 + workerd 整合測試 + 單元測試
+npm run test:unit  # 只跑單元測試
+npm run dev        # wrangler dev（staging 設定，本機 D1）
 ```
+
+## 尚未完成（依序）
+
+1. S-PLT-03／S-PLT-04：所有 `/v1` 路由改用 `@hono/zod-openapi`，輸出 OpenAPI 3.1、CI 加 oasdiff、Admin 可見的文件頁。
+2. Echo（starry-phd/echo）接入 Starry ID：見 `docs/integration-guide.md`。
+3. 業主外部設定：`docs/owner-setup.md`。
+4. 依需求再做：Battery（S-BAT，第一款付費 AI App 開工時）、系統 Email（S-NTF-02，需客服信箱與 Email Routing）、客服附件、RevenueCat 每日全量對帳。
