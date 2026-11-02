@@ -45,7 +45,9 @@ jobs:
         run: if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
       - name: Apply D1 migrations (staging)
         if: steps.gate.outputs.enabled == 'true'
-        run: npx wrangler d1 migrations apply starry-identity-staging --remote --env staging
+        run: |
+          npx wrangler d1 migrations apply starry-identity-staging --remote --env staging
+          npx wrangler d1 migrations apply starry-billing-staging --remote --env staging
       - name: Deploy Worker (staging)
         id: deploy
         if: steps.gate.outputs.enabled == 'true'
@@ -79,7 +81,9 @@ jobs:
           node-version: '22'
       - run: if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
       - name: Apply D1 migrations (production)
-        run: npx wrangler d1 migrations apply starry-identity --remote
+        run: |
+          npx wrangler d1 migrations apply starry-identity --remote
+          npx wrangler d1 migrations apply starry-billing --remote
       - name: Deploy Worker (production)
         id: deploy
         run: |

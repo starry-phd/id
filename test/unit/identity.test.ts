@@ -285,6 +285,18 @@ describe('sealed secrets and Apple token revocation', () => {
 });
 
 describe('daily maintenance (S-PLT-06)', () => {
+  test('tells other domains which members were purged', async () => {
+    const db = migratedDb();
+    const d = db as unknown as D1Database;
+    const id = await member(db);
+    await requestDeletion(d, { userId: id, appId: null, requestId: null }, NOW - DELETION_GRACE_MS);
+    const seen: string[][] = [];
+    await runDailyMaintenance({ db: d, secrets: {}, fetch: async () => new Response(null), onPurged: async (ids) => void seen.push(ids) }, NOW);
+    assert.deepEqual(seen, [[id]]);
+    await runDailyMaintenance({ db: d, secrets: {}, fetch: async () => new Response(null), onPurged: async (ids) => void seen.push(ids) }, NOW);
+    assert.equal(seen.length, 1, 'not called when nobody was purged');
+  });
+
   test('removes expired nonces, old sessions and audit rows past retention', async () => {
     const db = migratedDb();
     const d = db as unknown as D1Database;

@@ -2,6 +2,10 @@ import { Hono } from 'hono';
 import { secureHeaders } from 'hono/secure-headers';
 import { avatarRoutes } from './apps/avatar-route';
 import { appRoutes } from './apps/routes';
+import { appRegistry } from './apps/registry';
+import { billingRoutes } from './billing/routes';
+import { forgetMembers, perAppSecrets, processPendingEvents, processRevenueCatDeletions } from './billing/revenuecat';
+import { WEB_APP_ID } from './identity/web-sessions';
 import { loadSigningKey } from './auth/access-token';
 import { authRoutes } from './auth/routes';
 import type { AppBindings, Env } from './env';
@@ -54,6 +58,7 @@ app.use('/support', limitByIp('RL_WEB'));
 
 app.route('/v1/apps', appRoutes);
 app.route('/v1/avatars', avatarRoutes);
+app.route('/v1/billing', billingRoutes);
 app.route('/v1/auth', authRoutes);
 app.route('/v1/me', meRoutes);
 
@@ -70,15 +75,26 @@ app.onError((err, c) => {
   return c.json(errorBody('INTERNAL', 'Internal error', c.get('requestId')), 500);
 });
 
-/** Cron Trigger (wrangler.jsonc "triggers"): daily purge, revocations and retention (S-ID-06, S-PLT-06). */
+/** Cron Trigger (wrangler.jsonc "triggers"): daily purge, revocations, billing and retention (S-ID-06, S-PLT-06, S-BIL-04). */
 async function scheduled(controller: ScheduledController, env: Env): Promise<void> {
+  const now = controller.scheduledTime;
+  const fetcher = (url: string, init?: RequestInit) => fetch(url, init);
+  const storeApps = [...appRegistry.keys()].filter((id) => id !== WEB_APP_ID);
   try {
     const avatars = env.AVATARS;
     const report = await runDailyMaintenance(
-      { db: env.DB_IDENTITY, secrets: env, fetch: (url, init) => fetch(url, init), ...(avatars ? { deleteObjects: (keys: string[]) => avatars.delete(keys) } : {}) },
-      controller.scheduledTime,
+      {
+        db: env.DB_IDENTITY,
+        secrets: env,
+        fetch: fetcher,
+        ...(avatars ? { deleteObjects: (keys: string[]) => avatars.delete(keys) } : {}),
+        onPurged: (userIds) => forgetMembers(env.DB_BILLING, userIds, storeApps, now),
+      },
+      now,
     );
-    console.log(JSON.stringify({ level: 'info', event: 'maintenance.daily', ...report }));
+    const events = await processPendingEvents(env.DB_BILLING, now, 200);
+    const revenuecat = await processRevenueCatDeletions(env.DB_BILLING, perAppSecrets(env.REVENUECAT_API_KEYS), fetcher, now);
+    console.log(JSON.stringify({ level: 'info', event: 'maintenance.daily', ...report, billingEvents: events, revenuecatDeletions: revenuecat }));
   } catch (error) {
     console.error(JSON.stringify({ level: 'error', event: 'maintenance.daily', message: error instanceof Error ? error.message : 'failed' }));
     throw error;

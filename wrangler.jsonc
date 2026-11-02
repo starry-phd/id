@@ -25,6 +25,12 @@
       "database_name": "starry-identity",
       "database_id": "2b523a86-7116-4afc-a02a-f67c20304774",
       "migrations_dir": "migrations/identity"
+    },
+    {
+      "binding": "DB_BILLING",
+      "database_name": "starry-billing",
+      "database_id": "5e241e4d-5962-4c1c-90b1-f718e2124f1f",
+      "migrations_dir": "migrations/billing"
     }
   ],
   "env": {
@@ -44,6 +50,12 @@
           "database_name": "starry-identity-staging",
           "database_id": "e3fc4307-fb2e-4859-a2eb-4638626dffe8",
           "migrations_dir": "migrations/identity"
+        },
+        {
+          "binding": "DB_BILLING",
+          "database_name": "starry-billing-staging",
+          "database_id": "7d5a045d-5abd-40ab-858f-9af44522f40a",
+          "migrations_dir": "migrations/billing"
         }
       ]
     }

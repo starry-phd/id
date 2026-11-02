@@ -9,6 +9,7 @@ import { rememberAppleToken } from '../identity/apple';
 import { MAX_AVATAR_BYTES, r2Store, removeAvatar, setAvatar, signedAvatarPath } from '../identity/avatars';
 import { cancelDeletion, DELETION_GRACE_MS, requestDeletion } from '../identity/lifecycle';
 import { linkIdentity } from '../identity/link';
+import { activeEntitlements } from '../billing/revenuecat';
 import { auditStatement } from '../lib/audit';
 import { errorBody } from '../lib/errors';
 import { boundedString, isBirthday, isLocale, readJsonObject } from '../lib/validate';
@@ -220,4 +221,15 @@ meRoutes.delete('/avatar', requireAuth, async (c) => {
   if (!c.env.AVATARS) return c.json(errorBody('SERVICE_UNAVAILABLE', 'Avatar storage is not configured', c.get('requestId')), 503);
   await removeAvatar(c.env.DB_IDENTITY, r2Store(c.env.AVATARS), { userId, appId, requestId: c.get('requestId') }, Date.now());
   return c.body(null, 204);
+});
+
+/**
+ * GET /v1/me/entitlements — active entitlements of the member in the App that issued the
+ * token (S-BIL-01: entitlements never cross Apps). The App's RevenueCat SDK stays the live
+ * source; backends use this projection.
+ */
+meRoutes.get('/entitlements', requireAuth, async (c) => {
+  const { userId, appId } = c.get('auth');
+  const entitlements = await activeEntitlements(c.env.DB_BILLING, userId, appId, Date.now());
+  return c.json({ app_id: appId, entitlements });
 });

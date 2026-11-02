@@ -17,6 +17,8 @@ export interface MaintenanceDeps {
   fetch: FetchLike;
   /** Deletes avatar objects of purged members; absent until avatars are stored in R2. */
   deleteObjects?: (keys: string[]) => Promise<void>;
+  /** Removes purged members from other domains (billing projection, RevenueCat). */
+  onPurged?: (userIds: string[]) => Promise<void>;
 }
 
 export interface MaintenanceReport {
@@ -35,6 +37,7 @@ export async function runDailyMaintenance(deps: MaintenanceDeps, now: number): P
   const { db } = deps;
   const purge = await purgeExpiredDeletions(db, now);
   if (purge.avatarKeys.length > 0 && deps.deleteObjects) await deps.deleteObjects(purge.avatarKeys);
+  if (purge.purgedUserIds.length > 0 && deps.onPurged) await deps.onPurged(purge.purgedUserIds);
   const apple = await processAppleRevocations(db, deps.secrets, deps.fetch, now);
   const [nonces, sessions, audit] = await db.batch([
     db.prepare('DELETE FROM auth_nonces WHERE expires_at < ?').bind(now - DAY_MS),

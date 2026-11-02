@@ -6,6 +6,8 @@ export type StarryEnvironment = 'development' | 'staging' | 'production';
 export interface Env {
   STARRY_ENV: StarryEnvironment;
   DB_IDENTITY: D1Database;
+  /** RevenueCat entitlement projection (S-BIL-04). */
+  DB_BILLING: D1Database;
   /** Private R2 bucket for avatars (S-ID-08); reads only through signed URLs. */
   AVATARS?: R2Bucket;
   /** Current legal document versions; members must accept these (spec S-ID-09). */
@@ -19,6 +21,9 @@ export interface Env {
   APPLE_TEAM_ID?: string;
   APPLE_KEY_ID?: string;
   APPLE_PRIVATE_KEY?: string;
+  /** Secrets, JSON per App: RevenueCat webhook Authorization values and secret API keys, e.g. {"echo": "..."}. */
+  REVENUECAT_WEBHOOK_AUTH?: string;
+  REVENUECAT_API_KEYS?: string;
   /** Secret: 32 random bytes, base64url; seals stored third-party tokens. */
   DATA_ENCRYPTION_KEY?: string;
   /** Turnstile for the public support form (S-WEB-02); without the secret the form relies on rate limits. */
