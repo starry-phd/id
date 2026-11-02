@@ -87,7 +87,7 @@ export function page(c: WebContext, title: string, body: Html, options: { script
   <nav>${options.admin ? html`<a href="/account">帳號中心</a>` : html`<a href="/support">客服</a>`}${signedIn ? html`<form class="inline" method="post" action="/account/logout"><button class="secondary" type="submit">登出</button></form>` : ''}</nav>
 </header>
 ${body}
-<p class="muted" style="margin-top:48px"><a href="/privacy">隱私權政策</a>　<a href="/terms">服務條款</a>　<a href="/support">客服與檢舉</a></p>
+<p class="muted" style="margin-top:48px"><a href="/privacy">隱私權政策</a>&emsp;<a href="/terms">服務條款</a>&emsp;<a href="/support">客服與檢舉</a></p>
 </main>
 ${options.scripts ?? ''}
 </body>

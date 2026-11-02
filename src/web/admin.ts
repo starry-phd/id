@@ -53,7 +53,7 @@ async function needsReauth(c: WebContext): Promise<Response | null> {
   );
 }
 
-const nav = html`<p><a href="/admin/members">會員</a>　<a href="/admin/tickets">客服單</a>　<a href="/admin/apps">App 狀態</a>　<a href="/admin/audit">稽核紀錄</a></p>`;
+const nav = html`<p><a href="/admin/members">會員</a>&emsp;<a href="/admin/tickets">客服單</a>&emsp;<a href="/admin/apps">App 狀態</a>&emsp;<a href="/admin/audit">稽核紀錄</a></p>`;
 
 function adminPage(c: WebContext, title: string, body: Html): Html {
   return page(c, title, html`${nav}${body}`, { admin: true });
@@ -184,7 +184,7 @@ adminApp.get('/tickets', async (c) => {
       c,
       '客服單',
       html`<h1>客服單</h1>
-<p>${status === 'open' ? html`<strong>未結</strong>　<a href="/admin/tickets?status=closed">已結</a>` : html`<a href="/admin/tickets">未結</a>　<strong>已結</strong>`}</p>
+<p>${status === 'open' ? html`<strong>未結</strong>&emsp;<a href="/admin/tickets?status=closed">已結</a>` : html`<a href="/admin/tickets">未結</a>&emsp;<strong>已結</strong>`}</p>
 <table><thead><tr><th>時間</th><th>類別</th><th>內容</th></tr></thead><tbody>
 ${result.tickets.map(
   (t) => html`<tr><td><a href="/admin/tickets/${t.ticket_id}">${formatTime(t.created_at)}</a></td><td>${CATEGORY_LABELS[t.category]}${t.app_id ? html`<br><span class="muted">${t.app_id}</span>` : ''}</td><td>${t.message.length > 80 ? `${t.message.slice(0, 80)}…` : t.message}</td></tr>`,
