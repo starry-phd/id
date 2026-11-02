@@ -1,0 +1,33 @@
+{
+  // Starry platform Worker. Top level = production, env.staging = staging.
+  // Account ID and API token come from CI secrets, never from this file.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "starry-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  "workers_dev": true,
+  "observability": { "enabled": true },
+  "vars": { "STARRY_ENV": "production" },
+  "d1_databases": [
+    {
+      "binding": "DB_IDENTITY",
+      "database_name": "starry-identity",
+      "database_id": "2f885aa8-5a14-4041-9cf8-51963b313f05",
+      "migrations_dir": "migrations/identity"
+    }
+  ],
+  "env": {
+    "staging": {
+      "name": "starry-api-staging",
+      "vars": { "STARRY_ENV": "staging" },
+      "d1_databases": [
+        {
+          "binding": "DB_IDENTITY",
+          "database_name": "starry-identity-staging",
+          "database_id": "9d6e00d3-8a00-4e67-93a9-73ea0d5b2db3",
+          "migrations_dir": "migrations/identity"
+        }
+      ]
+    }
+  }
+}

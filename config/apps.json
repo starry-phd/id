@@ -1,0 +1,15 @@
+{
+  "brand": "starry",
+  "apps": [
+    {
+      "app_id": "echo",
+      "name": "繁星回聲 Echo",
+      "ios_bundle_id": null,
+      "android_package": null,
+      "status": "active",
+      "scopes": ["profile:read", "profile:write"],
+      "min_version": "0.0.0",
+      "config": {}
+    }
+  ]
+}

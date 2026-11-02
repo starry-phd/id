@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# PR code never receives deployment credentials or write access.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-policy:
+    # Job name is a required status check on main; keep it unchanged.
+    name: Repository policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Secret-like file names
+        run: python3 scripts/check_repo.py
+      - name: Secret scan (gitleaks)
+        run: docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:latest dir /repo --redact --no-banner
+
+  app-tests:
+    name: App typecheck, lint and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund
+          else
+            echo "::warning::package-lock.json missing; resolving fresh versions"
+            npm install --no-audit --no-fund
+          fi
+      - name: Keep the resolved lockfile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-lock
+          path: package-lock.json
+          if-no-files-found: ignore
+          retention-days: 7
+      - run: npm run typecheck
+      - run: npm run lint
+      - name: Build bundle and run local workerd + D1 tests
+        run: npm test
+
+  required-validation:
+    # Job name is a required status check on main; keep it unchanged.
+    name: Required validation
+    if: always()
+    needs: [repository-policy, app-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Reject failed, cancelled or skipped validation
+        env:
+          POLICY_RESULT: ${{ needs.repository-policy.result }}
+          APP_RESULT: ${{ needs.app-tests.result }}
+        run: |
+          test "$POLICY_RESULT" = success
+          test "$APP_RESULT" = success
