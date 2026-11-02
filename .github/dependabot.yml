@@ -5,8 +5,21 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      # These must move together or their peer ranges conflict.
+      lint:
+        patterns: ['eslint', '@eslint/*', 'typescript-eslint']
+      cloudflare:
+        patterns: ['wrangler', 'miniflare', '@cloudflare/*']
+    ignore:
+      # Types follow the Node runtime used in CI (Node 22), not the newest Node.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 3
+    groups:
+      actions:
+        patterns: ['*']
