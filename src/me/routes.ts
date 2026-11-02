@@ -10,6 +10,7 @@ import { MAX_AVATAR_BYTES, r2Store, removeAvatar, setAvatar, signedAvatarPath } 
 import { cancelDeletion, DELETION_GRACE_MS, requestDeletion } from '../identity/lifecycle';
 import { linkIdentity } from '../identity/link';
 import { activeEntitlements } from '../billing/revenuecat';
+import { getPreferences, isCategory, isPushToken, registerPushToken, setPreferences, unregisterPushToken } from '../notify/push';
 import { auditStatement } from '../lib/audit';
 import { errorBody } from '../lib/errors';
 import { boundedString, isBirthday, isLocale, readJsonObject } from '../lib/validate';
@@ -232,4 +233,46 @@ meRoutes.get('/entitlements', requireAuth, async (c) => {
   const { userId, appId } = c.get('auth');
   const entitlements = await activeEntitlements(c.env.DB_BILLING, userId, appId, Date.now());
   return c.json({ app_id: appId, entitlements });
+});
+
+/** PUT /v1/me/push-tokens — registers this device's Expo push token for the token's App (A-04). */
+meRoutes.put('/push-tokens', requireAuth, async (c) => {
+  const { userId, appId } = c.get('auth');
+  const body = await readJsonObject(c);
+  const platform = body?.platform;
+  if (!isPushToken(body?.token) || (platform !== 'ios' && platform !== 'android')) {
+    return c.json(errorBody('BAD_REQUEST', 'token must be an Expo push token and platform ios or android', c.get('requestId')), 400);
+  }
+  await registerPushToken(c.env.DB_IDENTITY, { userId, appId, token: body.token, platform }, Date.now());
+  return c.body(null, 204);
+});
+
+/** DELETE /v1/me/push-tokens — body {"token": "..."}; call before signing out on the device. */
+meRoutes.delete('/push-tokens', requireAuthAllowPending, async (c) => {
+  const { userId } = c.get('auth');
+  const body = await readJsonObject(c);
+  if (!isPushToken(body?.token)) return c.json(errorBody('BAD_REQUEST', 'token is required', c.get('requestId')), 400);
+  await unregisterPushToken(c.env.DB_IDENTITY, userId, body.token);
+  return c.body(null, 204);
+});
+
+/** GET/PUT /v1/me/notification-preferences — per-category opt-outs for the token's App (S-NTF-01). */
+meRoutes.get('/notification-preferences', requireAuth, async (c) => {
+  const { userId, appId } = c.get('auth');
+  return c.json({ app_id: appId, categories: await getPreferences(c.env.DB_IDENTITY, userId, appId) });
+});
+
+meRoutes.put('/notification-preferences', requireAuth, async (c) => {
+  const { userId, appId } = c.get('auth');
+  const body = await readJsonObject(c);
+  const categories = body?.categories;
+  if (typeof categories !== 'object' || categories === null || Array.isArray(categories)) {
+    return c.json(errorBody('BAD_REQUEST', 'categories must be an object like {"reminders": false}', c.get('requestId')), 400);
+  }
+  const entries = Object.entries(categories as Record<string, unknown>);
+  if (entries.length === 0 || entries.length > 20 || entries.some(([k, v]) => !isCategory(k) || typeof v !== 'boolean')) {
+    return c.json(errorBody('BAD_REQUEST', 'Up to 20 categories (a-z, 0-9, _) with true or false', c.get('requestId')), 400);
+  }
+  await setPreferences(c.env.DB_IDENTITY, userId, appId, Object.fromEntries(entries) as Record<string, boolean>, Date.now());
+  return c.json({ app_id: appId, categories: await getPreferences(c.env.DB_IDENTITY, userId, appId) });
 });
