@@ -55,6 +55,14 @@ jobs:
           npx wrangler deploy --env staging | tee deploy.log
           url=$(grep -Eo 'https://[a-zA-Z0-9.-]+\.workers\.dev' deploy.log | head -1)
           echo "url=$url" >> "$GITHUB_OUTPUT"
+      - name: Ensure generated secrets (staging)
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          set -euo pipefail
+          existing=$(npx wrangler secret list --env staging 2>/dev/null || true)
+          # Only missing secrets are created; rotating DATA_ENCRYPTION_KEY would break stored data.
+          if ! grep -qw ACCESS_TOKEN_PRIVATE_JWK <<<"$existing"; then node scripts/generate-secret.mjs access-jwk | npx wrangler secret put ACCESS_TOKEN_PRIVATE_JWK --env staging >/dev/null; echo "Created ACCESS_TOKEN_PRIVATE_JWK"; fi
+          if ! grep -qw DATA_ENCRYPTION_KEY <<<"$existing"; then node scripts/generate-secret.mjs data-key | npx wrangler secret put DATA_ENCRYPTION_KEY --env staging >/dev/null; echo "Created DATA_ENCRYPTION_KEY"; fi
       - name: Smoke test (staging)
         if: steps.gate.outputs.enabled == 'true'
         run: |
@@ -90,6 +98,12 @@ jobs:
           npx wrangler deploy | tee deploy.log
           url=$(grep -Eo 'https://[a-zA-Z0-9.-]+\.workers\.dev' deploy.log | head -1)
           echo "url=$url" >> "$GITHUB_OUTPUT"
+      - name: Ensure generated secrets (production)
+        run: |
+          set -euo pipefail
+          existing=$(npx wrangler secret list 2>/dev/null || true)
+          if ! grep -qw ACCESS_TOKEN_PRIVATE_JWK <<<"$existing"; then node scripts/generate-secret.mjs access-jwk | npx wrangler secret put ACCESS_TOKEN_PRIVATE_JWK >/dev/null; echo "Created ACCESS_TOKEN_PRIVATE_JWK"; fi
+          if ! grep -qw DATA_ENCRYPTION_KEY <<<"$existing"; then node scripts/generate-secret.mjs data-key | npx wrangler secret put DATA_ENCRYPTION_KEY >/dev/null; echo "Created DATA_ENCRYPTION_KEY"; fi
       - name: Smoke test (production), roll back on failure
         run: |
           for i in 1 2 3 4 5 6; do
