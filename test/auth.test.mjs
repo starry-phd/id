@@ -116,7 +116,12 @@ describe('Starry ID sign-in, sessions and profile', () => {
   test('bad requests are rejected before any token work', async () => {
     assert.equal((await worker.call('/v1/auth/nonce', json({ app_id: 'nope' }))).status, 400);
     assert.equal((await worker.call('/v1/auth/google', json({ app_id: 'echo' }))).status, 400);
-    assert.equal((await worker.call('/v1/auth/google', { method: 'POST', body: 'not json' })).status, 400);
+    const notJson = await worker.call('/v1/auth/google', { method: 'POST', body: 'not json' });
+    assert.equal(notJson.status, 415);
+    assert.equal((await notJson.json()).error.code, 'UNSUPPORTED_MEDIA_TYPE');
+    const malformed = await worker.call('/v1/auth/google', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{oops' });
+    assert.equal(malformed.status, 400);
+    assert.equal((await malformed.json()).error.code, 'BAD_REQUEST');
     assert.equal((await worker.call('/v1/auth/facebook', json({}))).status, 404);
   });
 

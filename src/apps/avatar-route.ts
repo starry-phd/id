@@ -1,19 +1,35 @@
-import { Hono } from 'hono';
-import type { AppBindings } from '../env';
+import { createRoute, z } from '@hono/zod-openapi';
+import { apiRouter, errorResponses } from '../api/openapi';
+import { fail } from '../auth/routes';
 import { verifyAvatarSignature } from '../identity/avatars';
-import { errorBody } from '../lib/errors';
 
-/** GET /v1/avatars/{user_id}/{file}?exp&sig — serves a private avatar through a signed, expiring URL. */
-export const avatarRoutes = new Hono<AppBindings>();
+/** GET /v1/avatars/{userId}/{file}?exp&sig — serves a private avatar through a signed, expiring URL. */
+export const avatarRoutes = apiRouter();
 
-avatarRoutes.get('/:userId/:file', async (c) => {
-  const key = `avatars/${c.req.param('userId')}/${c.req.param('file')}`;
+const avatarRoute = createRoute({
+  method: 'get',
+  path: '/{userId}/{file}',
+  tags: ['Account'],
+  summary: 'Avatar image through a signed URL (use profile.avatar_url as given)',
+  request: {
+    params: z.object({ userId: z.string(), file: z.string() }),
+    query: z.object({ exp: z.string().optional(), sig: z.string().optional() }),
+  },
+  responses: {
+    200: { description: 'Image bytes (image/webp, image/jpeg or image/png)' },
+    ...errorResponses(404, 429),
+  },
+});
+
+avatarRoutes.openapi(avatarRoute, async (c) => {
+  const { userId, file } = c.req.valid('param');
+  const { exp, sig } = c.req.valid('query');
+  const key = `avatars/${userId}/${file}`;
   const secret = c.env.DATA_ENCRYPTION_KEY;
-  const notFound = () => c.json(errorBody('NOT_FOUND', 'Resource not found', c.get('requestId')), 404);
-  if (!secret || !c.env.AVATARS) return notFound();
-  if (!(await verifyAvatarSignature(secret, key, c.req.query('exp'), c.req.query('sig'), Date.now()))) return notFound();
+  if (!secret || !c.env.AVATARS) return fail(c, 404, 'NOT_FOUND', 'Resource not found');
+  if (!(await verifyAvatarSignature(secret, key, exp, sig, Date.now()))) return fail(c, 404, 'NOT_FOUND', 'Resource not found');
   const object = await c.env.AVATARS.get(key);
-  if (!object) return notFound();
+  if (!object) return fail(c, 404, 'NOT_FOUND', 'Resource not found');
   return new Response(object.body, {
     headers: {
       'content-type': object.httpMetadata?.contentType ?? 'application/octet-stream',

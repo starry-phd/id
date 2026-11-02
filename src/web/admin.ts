@@ -305,3 +305,41 @@ ${result.nextCursor ? html`<p class="pager"><a href="${query(result.nextCursor)}
     ),
   );
 });
+
+// ---- API documentation (S-PLT-04): Owner/Admin only ----
+
+type ApiDocument = { paths?: Record<string, Record<string, { summary?: string; tags?: string[]; security?: unknown[] } | undefined> | undefined> };
+let apiDocument: (() => unknown) | null = null;
+
+/** Set by app.ts once every route is registered, so the page shows the generated OpenAPI document. */
+export function setApiDocument(provider: () => unknown): void {
+  apiDocument = provider;
+}
+
+const METHODS = ['get', 'post', 'put', 'patch', 'delete'] as const;
+
+adminApp.get('/api', async (c) => {
+  const actor = await staff(c, 'admin');
+  if (actor instanceof Response) return actor;
+  const doc = (apiDocument?.() ?? {}) as ApiDocument;
+  const rows = Object.entries(doc.paths ?? {}).flatMap(([path, item]) =>
+    METHODS.filter((m) => item?.[m]).map((m) => ({ path, method: m.toUpperCase(), op: item?.[m] })),
+  );
+  return c.html(
+    adminPage(
+      c,
+      'API 文件',
+      html`<h1>API 文件</h1>
+<p>由程式碼自動產生的 OpenAPI 3.1（<a href="/admin/api/openapi.json">下載 JSON</a>）。新 App 串接請看 <a href="https://github.com/starry-phd/id/blob/main/docs/integration-guide.md">串接說明</a>；App 端用 openapi-typescript 產生型別、openapi-fetch 呼叫。</p>
+<table><thead><tr><th>方法</th><th>路徑</th><th>說明</th></tr></thead><tbody>
+${rows.map((r) => html`<tr><td><code>${r.method}</code></td><td><code>${r.path}</code>${r.op?.security?.length ? ' 🔒' : ''}</td><td>${r.op?.summary ?? ''}<br><span class="muted">${(r.op?.tags ?? []).join('、')}</span></td></tr>`)}
+</tbody></table>`,
+    ),
+  );
+});
+
+adminApp.get('/api/openapi.json', async (c) => {
+  const actor = await staff(c, 'admin');
+  if (actor instanceof Response) return actor;
+  return c.json(apiDocument?.() ?? {});
+});

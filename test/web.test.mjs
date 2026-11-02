@@ -166,6 +166,23 @@ describe('web account center, support form and Admin Lite', () => {
     assert.equal((await worker.call('/account/claim-owner', form({ code: 'owner-claim-test-code' }, other))).status, 403);
   });
 
+  test('API documentation is generated from the code and visible to admins only', async () => {
+    const memberCookie = await webSignIn('docs-member');
+    assert.equal((await worker.call('/admin/api', get(memberCookie))).status, 403);
+    const adminCookie = await webSignIn('docs-admin');
+    await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(await userIdOf('docs-admin'), Date.now()).run();
+    const page = await worker.call('/admin/api', get(adminCookie));
+    assert.equal(page.status, 200);
+    assert.match(await page.text(), /\/v1\/auth\/google/);
+    const doc = await (await worker.call('/admin/api/openapi.json', get(adminCookie))).json();
+    assert.equal(doc.openapi, '3.1.0');
+    for (const path of ['/v1/health', '/v1/auth/nonce', '/v1/me', '/v1/me/profile', '/v1/me/entitlements', '/v1/billing/revenuecat/{appId}']) {
+      assert.ok(doc.paths[path], path);
+    }
+    assert.equal(doc.paths['/admin/api'], undefined, 'web pages are not part of the API document');
+    assert.ok(doc.components.securitySchemes.bearerAuth);
+  });
+
   test('the web app id cannot be used by Apps, and web cookies are not refresh tokens', async () => {
     const res = await worker.call('/v1/auth/nonce', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ app_id: 'account' }) });
     assert.equal(res.status, 400);

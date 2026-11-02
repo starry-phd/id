@@ -4,6 +4,8 @@ Starry ID 會員與登入、App Registry、購買權益投影、推播 Token、�
 
 ## API（`/v1`，App 使用 Bearer Access Token）
 
+完整契約：[`openapi/starry-id.v1.json`](openapi/starry-id.v1.json)（OpenAPI 3.1，由程式碼產生；`npm run openapi` 更新）。
+
 | 路由 | 說明 | 規格 |
 |---|---|---|
 | `GET /v1/health` | 服務狀態與 D1 連線檢查 | S-PLT-07 |
