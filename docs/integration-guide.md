@@ -63,3 +63,16 @@ App 啟動時呼叫 `GET /v1/apps/{app_id}/config`：
 ## 7. App 後端驗證會員
 
 App 自己的後端（如需要）以 `GET /.well-known/jwks.json` 的公鑰驗證 Access Token（ES256）：`iss` 為 `starry-id:production`（staging 為 `starry-id:staging`）、`aud` 為 `starry`、`app_id` 必須等於自己的 app_id、檢查 `exp`。需要即時確認停權或登出時，改呼叫 `GET /v1/me`。
+
+## 8. Echo 現有程式的對應（給 starry-phd/echo）
+
+Echo 的 `src/auth/centralMemberContract.ts` 依已被 v2.0 取代的 v1.0 規格，預期 `GET /v1/starry-id/members/me` 回傳五個欄位。v2.0 平台不提供該路徑，請改用 `GET /v1/me`，對應如下：
+
+| Echo 舊 DTO | `GET /v1/me` |
+|---|---|
+| `s_user_id` | `user_id` |
+| `display_name` | `profile.display_name`（可能為 null，顯示時退回「繁星會員」） |
+| `profile_revision` | `profile.version`（修改時放在 `If-Match`） |
+| `directory_opt_in`、`display_name_public` | v2.0 沒有會員名錄（屬 H-Global 階段 H-03），一律視為 false |
+
+Echo 的 D1 只存 `user_id` 當外鍵，不複製會員主檔；Echo Worker 需要辨識會員時，以 JWKS 驗證 Access Token（第 7 節），並檢查 `app_id === "echo"`。
