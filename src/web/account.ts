@@ -107,7 +107,8 @@ window.addEventListener('load', () => {
 accountApp.post('/session', async (c) => {
   const requestId = c.get('requestId');
   const body = await readJsonObject(c);
-  const provider: Provider | null = body?.provider === 'apple' || body?.provider === 'google' ? body.provider : null;
+  const requested = body?.provider;
+  const provider: Provider | null = requested === 'apple' || requested === 'google' ? requested : null;
   const request = readProviderRequest(body);
   if (!provider || !request) return c.json(errorBody('BAD_REQUEST', 'provider, id_token and nonce are required', requestId), 400);
   const app = await webApp(c);
