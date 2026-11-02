@@ -6,7 +6,7 @@ import { clientSecret, processAppleRevocations, rememberAppleToken, type FetchLi
 import { cancelDeletion, DELETION_GRACE_MS, purgeExpiredDeletions, requestDeletion } from '../../src/identity/lifecycle';
 import { linkIdentity } from '../../src/identity/link';
 import { runDailyMaintenance } from '../../src/identity/maintenance';
-import { isRecentLogin, maskEmail, maskName, restoreMember, roleOf, searchMembers, setStaffRole, suspendMember } from '../../src/identity/roles';
+import { claimOwner, isRecentLogin, maskEmail, maskName, restoreMember, roleOf, searchMembers, setStaffRole, suspendMember } from '../../src/identity/roles';
 import { uuidv7 } from '../../src/lib/crypto';
 import { open, seal } from '../../src/lib/sealed';
 import { migratedDb } from '../support/sqlite-d1.mjs';
@@ -190,6 +190,26 @@ describe('staff roles, suspension and search (S-ID-07, S-ID-10, S-ADM-01)', () =
     assert.equal(maskEmail('a@b.co'), 'a***@b.co');
     assert.equal(maskName('星'), '＊');
     assert.equal(maskName(null), null);
+  });
+});
+
+describe('owner claim', () => {
+  test('works once with the right code while the secret is set', async () => {
+    const db = migratedDb();
+    const d = db as unknown as D1Database;
+    const me = await member(db);
+    const other = await member(db);
+    const code = 'starry-owner-2026';
+    assert.equal(await claimOwner(d, undefined, me, code, null, NOW), 'disabled');
+    assert.equal(await claimOwner(d, 'short', me, 'short', null, NOW), 'disabled');
+    assert.equal(await claimOwner(d, code, me, 'wrong-code-000', null, NOW), 'wrong_code');
+    assert.equal(await claimOwner(d, code, me, code, null, NOW), 'claimed');
+    assert.equal(await roleOf(d, undefined, me), 'owner');
+    assert.equal(await claimOwner(d, code, other, code, null, NOW), 'already_claimed');
+    const asOwner = { userId: me, role: 'owner' as const, requestId: null };
+    assert.equal(await setStaffRole(d, undefined, asOwner, other, 'admin', NOW), 'ok');
+    assert.equal(await setStaffRole(d, undefined, { userId: other, role: 'admin', requestId: null }, me, null, NOW), 'not_allowed');
+    assert.equal(await suspendMember(d, undefined, { userId: other, role: 'admin', requestId: null }, me, 'x', NOW), 'not_allowed', 'a claimed owner cannot be suspended');
   });
 });
 

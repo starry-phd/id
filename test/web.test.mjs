@@ -12,7 +12,7 @@ describe('web account center, support form and Admin Lite', () => {
   before(async () => {
     keys = await authBindings();
     const audiences = { echo: { apple: [APPLE_AUDIENCE], google: [GOOGLE_AUDIENCE] }, account: { apple: [], google: [GOOGLE_AUDIENCE] } };
-    worker = await startWorker({ bindings: { ...keys.bindings, AUTH_TEST_AUDIENCES: JSON.stringify(audiences) } });
+    worker = await startWorker({ bindings: { ...keys.bindings, AUTH_TEST_AUDIENCES: JSON.stringify(audiences), OWNER_CLAIM_CODE: 'owner-claim-test-code' } });
   });
   after(async () => {
     await worker?.mf.dispose();
@@ -154,6 +154,16 @@ describe('web account center, support form and Admin Lite', () => {
     assert.equal(nonce.status, 403);
     await worker.call('/admin/apps/echo/status', form({ status: 'default' }, adminCookie));
     assert.equal((await (await worker.call('/v1/apps/echo/config')).json()).status, 'active');
+  });
+
+  test('owner claim works once with the configured passphrase', async () => {
+    const cookie = await webSignIn('future-owner');
+    assert.equal((await worker.call('/account/claim-owner', form({ code: 'wrong-passphrase' }, cookie))).status, 403);
+    const ok = await worker.call('/account/claim-owner', form({ code: 'owner-claim-test-code' }, cookie));
+    assert.equal(ok.status, 200);
+    assert.equal((await worker.call('/admin', get(cookie))).status, 200);
+    const other = await webSignIn('second-claimer');
+    assert.equal((await worker.call('/account/claim-owner', form({ code: 'owner-claim-test-code' }, other))).status, 403);
   });
 
   test('the web app id cannot be used by Apps, and web cookies are not refresh tokens', async () => {

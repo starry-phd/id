@@ -1,4 +1,5 @@
 import { auditStatement } from '../lib/audit';
+import { constantTimeEqual, sha256Hex } from '../lib/crypto';
 
 /** Spec S-ID-10: three Starry staff roles. */
 export type Role = 'owner' | 'admin' | 'support';
@@ -9,8 +10,8 @@ const RANK: Record<Role, number> = { support: 1, admin: 2, owner: 3 };
 export const RECENT_LOGIN_MS = 10 * 60 * 1000;
 
 /**
- * Owners come from the OWNER_USER_IDS secret (comma-separated member IDs), so the
- * first owner needs no database bootstrap and can never be removed through the UI.
+ * Owners come from the OWNER_USER_IDS secret (comma-separated member IDs) or from a
+ * one-time claim (claimOwner) stored in user_roles; neither can be changed through the UI.
  * Admin and Support are granted by an owner and stored in user_roles.
  */
 export function ownerIds(ownerUserIds: string | undefined): ReadonlySet<string> {
@@ -25,7 +26,7 @@ export function ownerIds(ownerUserIds: string | undefined): ReadonlySet<string> 
 export async function roleOf(db: D1Database, ownerUserIds: string | undefined, userId: string): Promise<Role | null> {
   if (ownerIds(ownerUserIds).has(userId)) return 'owner';
   const row = await db.prepare('SELECT role FROM user_roles WHERE user_id = ?').bind(userId).first<{ role: Role }>();
-  return row?.role === 'admin' || row?.role === 'support' ? row.role : null;
+  return row?.role === 'owner' || row?.role === 'admin' || row?.role === 'support' ? row.role : null;
 }
 
 export function hasRole(role: Role | null, minimum: Role): boolean {
@@ -108,6 +109,7 @@ export async function setStaffRole(
   if (actor.role !== 'owner' || targetId === actor.userId || ownerIds(ownerUserIds).has(targetId)) return 'not_allowed';
   const exists = await db.prepare('SELECT 1 AS present FROM users WHERE user_id = ?').bind(targetId).first();
   if (!exists) return 'not_found';
+  if ((await roleOf(db, ownerUserIds, targetId)) === 'owner') return 'not_allowed';
   const change =
     role === null
       ? db.prepare('DELETE FROM user_roles WHERE user_id = ?').bind(targetId)
@@ -198,4 +200,34 @@ export async function searchMembers(
     });
   }
   return { members, nextCursor: hasMore ? (ids[ids.length - 1] ?? null) : null };
+}
+
+export type ClaimResult = 'claimed' | 'disabled' | 'already_claimed' | 'wrong_code' | 'not_active';
+
+/**
+ * One-time owner bootstrap: while the OWNER_CLAIM_CODE secret is set and no owner exists in
+ * user_roles, a signed-in active member who enters the code becomes Owner. Remove the secret
+ * afterwards. Keeps member IDs off every page (S-ID-03).
+ */
+export async function claimOwner(db: D1Database, claimCode: string | undefined, userId: string, code: string, requestId: string | null, now: number): Promise<ClaimResult> {
+  if (!claimCode || claimCode.length < 12) return 'disabled';
+  const existing = await db.prepare("SELECT 1 AS present FROM user_roles WHERE role = 'owner' LIMIT 1").first();
+  if (existing) return 'already_claimed';
+  const member = await db.prepare('SELECT status FROM users WHERE user_id = ?').bind(userId).first<{ status: string }>();
+  if (member?.status !== 'active') return 'not_active';
+  const ok = constantTimeEqual(await sha256Hex(code), await sha256Hex(claimCode));
+  if (!ok) {
+    await auditStatement(db, { actorType: 'user', actorUserId: userId, action: 'admin.owner_claim', targetType: 'user', targetId: userId, result: 'denied', requestId, retention: 'security' }, now).run();
+    return 'wrong_code';
+  }
+  await db.batch([
+    db
+      .prepare(
+        `INSERT INTO user_roles (user_id, role, granted_at, granted_by) VALUES (?, 'owner', ?, 'owner-claim')
+         ON CONFLICT (user_id) DO UPDATE SET role = 'owner', granted_at = excluded.granted_at, granted_by = excluded.granted_by`,
+      )
+      .bind(userId, now),
+    auditStatement(db, { actorType: 'user', actorUserId: userId, action: 'admin.owner_claim', targetType: 'user', targetId: userId, result: 'success', requestId, retention: 'security' }, now),
+  ]);
+  return 'claimed';
 }

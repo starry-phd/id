@@ -17,6 +17,8 @@ export interface Env {
   ACCESS_TOKEN_PRIVATE_JWK?: string;
   /** Secret: comma-separated member IDs that hold the Owner role (spec S-ID-10). */
   OWNER_USER_IDS?: string;
+  /** Secret, temporary: passphrase (12+ chars) for the one-time owner claim at /account/claim-owner. */
+  OWNER_CLAIM_CODE?: string;
   /** Secrets for Sign in with Apple token exchange and revocation (spec S-ID-06). */
   APPLE_TEAM_ID?: string;
   APPLE_KEY_ID?: string;

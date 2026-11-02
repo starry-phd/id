@@ -9,7 +9,7 @@ import type { AppBindings } from '../env';
 import { cancelDeletion, DELETION_GRACE_MS, requestDeletion } from '../identity/lifecycle';
 import { acceptConsents, consentRequired, findOrCreateMember, PROFILE_SQL, updateProfile, type ProfileChanges, type ProfileRow } from '../identity/members';
 import { issueNonce } from '../identity/nonces';
-import { hasRole, roleOf } from '../identity/roles';
+import { claimOwner, hasRole, roleOf } from '../identity/roles';
 import { createWebSession, endWebSession, WEB_APP_ID, WEB_SESSION_ABSOLUTE_MS } from '../identity/web-sessions';
 import { errorBody } from '../lib/errors';
 import { boundedString, isBirthday, isLocale, readJsonObject } from '../lib/validate';
@@ -295,4 +295,36 @@ accountApp.post('/delete/cancel', async (c) => {
   if (!web) return c.redirect('/account', 303);
   await cancelDeletion(c.env.DB_IDENTITY, { userId: web.userId, appId: WEB_APP_ID, requestId: c.get('requestId') }, Date.now());
   return c.redirect('/account', 303);
+});
+
+/** One-time owner bootstrap (see claimOwner); only visible while OWNER_CLAIM_CODE is set. */
+accountApp.get('/claim-owner', (c) => {
+  const web = c.get('web');
+  if (!c.env.OWNER_CLAIM_CODE) return c.redirect('/account', 303);
+  if (!web) return c.redirect('/account?next=/account/claim-owner', 303);
+  return c.html(
+    page(
+      c,
+      '設定 Owner',
+      html`<h1>設定 Owner</h1><form method="post" action="/account/claim-owner" class="card">
+<p>輸入在 Cloudflare 設定的 OWNER_CLAIM_CODE，將目前登入的帳號設為 Starry Owner。完成後請刪除該 Secret。</p>
+<label for="code">Owner 密語</label><input id="code" name="code" type="password" autocomplete="off" required>
+<button type="submit">確認</button></form>`,
+    ),
+  );
+});
+
+accountApp.post('/claim-owner', async (c) => {
+  const web = c.get('web');
+  if (!web) return c.redirect('/account', 303);
+  const code = (await readForm(c)).code ?? '';
+  const result = await claimOwner(c.env.DB_IDENTITY, c.env.OWNER_CLAIM_CODE, web.userId, code, c.get('requestId'), Date.now());
+  const text: Record<typeof result, string> = {
+    claimed: '已設為 Owner。請到 Cloudflare 刪除 OWNER_CLAIM_CODE。',
+    disabled: '目前沒有開放設定 Owner。',
+    already_claimed: '已經有 Owner，無法再次設定。',
+    wrong_code: '密語不正確。',
+    not_active: '帳號目前不能執行這個操作。',
+  };
+  return c.html(page(c, '設定 Owner', html`<h1>設定 Owner</h1><div class="banner${result === 'claimed' ? '' : ' danger'}">${text[result]}</div><p><a href="${result === 'claimed' ? '/admin' : '/account'}">繼續</a></p>`), result === 'claimed' ? 200 : 403);
 });
