@@ -1,10 +1,14 @@
 import { Hono, type Context } from 'hono';
 import { audiencesFor, getApp, type AppEntry } from '../apps/registry';
+import { withEffectiveStatus } from '../apps/status';
 import type { AppBindings } from '../env';
 import { rememberAppleToken } from '../identity/apple';
 import { DELETION_GRACE_MS } from '../identity/lifecycle';
+import { consentRequired, findOrCreateMember } from '../identity/members';
+import { consumeNonce, issueNonce, NONCE_TTL_MS } from '../identity/nonces';
+import { WEB_APP_ID } from '../identity/web-sessions';
 import { audit, auditStatement } from '../lib/audit';
-import { constantTimeEqual, randomToken, sha256Hex, uuidv7 } from '../lib/crypto';
+import { constantTimeEqual, sha256Hex, uuidv7 } from '../lib/crypto';
 import { errorBody, type ErrorCode } from '../lib/errors';
 import { boundedString, readJsonObject } from '../lib/validate';
 import { loadSigningKey } from './access-token';
@@ -15,29 +19,22 @@ import { issueTokenPair, newRefreshToken, parseRefreshToken, REFRESH_TTL_MS } fr
 
 export const authRoutes = new Hono<AppBindings>();
 
-const NONCE_TTL_MS = 10 * 60 * 1000;
 type Ctx = Context<AppBindings>;
 
 function fail(c: Ctx, status: 400 | 401 | 403 | 409 | 503, code: ErrorCode, message: string) {
   return c.json(errorBody(code, message, c.get('requestId')), status);
 }
 
-export function activeApp(appId: unknown): AppEntry | 'unknown' | 'unavailable' {
-  if (typeof appId !== 'string') return 'unknown';
+/**
+ * The App a request names, with its runtime status (config default or Admin override).
+ * The web account center's app_id is reserved for cookie sessions and never valid here.
+ */
+export async function resolveApp(c: Ctx, appId: unknown): Promise<AppEntry | 'unknown' | 'unavailable'> {
+  if (typeof appId !== 'string' || appId === WEB_APP_ID) return 'unknown';
   const app = getApp(appId);
   if (!app) return 'unknown';
-  return app.status === 'active' ? app : 'unavailable';
-}
-
-async function consentRequired(c: Ctx, userId: string): Promise<boolean> {
-  const row = await c.env.DB_IDENTITY.prepare(
-    `SELECT COUNT(*) AS n FROM consents
-     WHERE user_id = ? AND withdrawn_at IS NULL
-       AND ((document = 'terms' AND version = ?) OR (document = 'privacy' AND version = ?))`,
-  )
-    .bind(userId, c.env.TERMS_VERSION, c.env.PRIVACY_VERSION)
-    .first<{ n: number }>();
-  return (row?.n ?? 0) < 2;
+  const effective = await withEffectiveStatus(c.env.DB_IDENTITY, app, Date.now());
+  return effective.status === 'active' ? effective : 'unavailable';
 }
 
 /** Runs work after the response when the runtime allows it (Apple code exchange). */
@@ -56,17 +53,10 @@ export function background(c: Ctx, work: Promise<unknown>): Promise<unknown> | u
 /** POST /v1/auth/nonce — single-use nonce the App hands to Apple or Google. */
 authRoutes.post('/nonce', async (c) => {
   const body = await readJsonObject(c);
-  const app = activeApp(body?.app_id);
+  const app = await resolveApp(c, body?.app_id);
   if (app === 'unknown') return fail(c, 400, 'APP_NOT_FOUND', 'Unknown app');
   if (app === 'unavailable') return fail(c, 403, 'APP_UNAVAILABLE', 'This app is not available');
-  const now = Date.now();
-  const nonce = randomToken(24);
-  const db = c.env.DB_IDENTITY;
-  await db.batch([
-    db.prepare('INSERT INTO auth_nonces (nonce, app_id, created_at, expires_at) VALUES (?, ?, ?, ?)').bind(nonce, app.app_id, now, now + NONCE_TTL_MS),
-    // Keeps the table small without a cron: each new nonce removes up to 20 expired ones.
-    db.prepare('DELETE FROM auth_nonces WHERE nonce IN (SELECT nonce FROM auth_nonces WHERE expires_at < ? LIMIT 20)').bind(now - NONCE_TTL_MS),
-  ]);
+  const nonce = await issueNonce(c.env.DB_IDENTITY, app.app_id, Date.now());
   return c.json({ nonce, expires_in: NONCE_TTL_MS / 1000 });
 });
 
@@ -105,28 +95,9 @@ export async function verifyProviderRequest(
     await audit(db, { actorType: 'user', actorUserId, action: auditAction, appId: app.app_id, result: 'denied', requestId: c.get('requestId'), retention: 'security' }, now);
     return { response: fail(c, 401, 'INVALID_TOKEN', 'Sign-in could not be verified') };
   }
-  const consumed = await db
-    .prepare('UPDATE auth_nonces SET consumed_at = ? WHERE nonce = ? AND app_id = ? AND consumed_at IS NULL AND expires_at > ?')
-    .bind(now, request.nonce, app.app_id, now)
-    .run();
-  if (consumed.meta.changes !== 1) return { response: fail(c, 401, 'INVALID_NONCE', 'Sign-in expired, please try again') };
+  if (!(await consumeNonce(db, request.nonce, app.app_id, now))) return { response: fail(c, 401, 'INVALID_NONCE', 'Sign-in expired, please try again') };
   return { identity };
 }
-
-interface MemberRow {
-  user_id: string;
-  status: 'active' | 'suspended' | 'pending_deletion';
-  session_version: number;
-  deletion_requested_at: number | null;
-}
-
-const findMember = (c: Ctx, provider: Provider, subject: string) =>
-  c.env.DB_IDENTITY.prepare(
-    `SELECT u.user_id, u.status, u.session_version, u.deletion_requested_at FROM auth_identities i
-     JOIN users u ON u.user_id = i.user_id WHERE i.provider = ? AND i.subject = ?`,
-  )
-    .bind(provider, subject)
-    .first<MemberRow>();
 
 /** POST /v1/auth/apple | /v1/auth/google — sign in or sign up with a native ID token (S-ID-01, S-ID-03). */
 authRoutes.post('/:provider{apple|google}', async (c) => {
@@ -137,7 +108,7 @@ authRoutes.post('/:provider{apple|google}', async (c) => {
   const request = readProviderRequest(body);
   if (!body || !request) return fail(c, 400, 'BAD_REQUEST', 'id_token, nonce and app_id are required');
   const deviceLabel = boundedString(body.device_label, 80) ? body.device_label : null;
-  const app = activeApp(body.app_id);
+  const app = await resolveApp(c, body.app_id);
   if (app === 'unknown') return fail(c, 400, 'APP_NOT_FOUND', 'Unknown app');
   if (app === 'unavailable') return fail(c, 403, 'APP_UNAVAILABLE', 'This app is not available');
   if (!(await loadSigningKey(c.env))) return fail(c, 503, 'AUTH_NOT_CONFIGURED', 'Sign-in is not available');
@@ -146,29 +117,7 @@ authRoutes.post('/:provider{apple|google}', async (c) => {
   const { identity } = verified;
 
   const now = Date.now();
-  let member = await findMember(c, provider, identity.subject);
-  let isNew = false;
-  if (!member) {
-    const userId = uuidv7(now);
-    try {
-      await db.batch([
-        db.prepare('INSERT INTO users (user_id, created_at, updated_at) VALUES (?, ?, ?)').bind(userId, now, now),
-        db
-          .prepare(
-            `INSERT INTO auth_identities (provider, subject, user_id, email, email_is_private_relay, created_at, last_login_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          )
-          .bind(provider, identity.subject, userId, identity.email, identity.isPrivateRelay ? 1 : 0, now, now),
-        db.prepare('INSERT INTO profiles (user_id, updated_at) VALUES (?, ?)').bind(userId, now),
-        auditStatement(db, { actorType: 'user', actorUserId: userId, action: 'auth.signup', targetType: 'user', targetId: userId, appId: app.app_id, result: 'success', requestId, retention: 'security' }, now),
-      ]);
-      isNew = true;
-    } catch {
-      // A parallel request created the same identity first; use that member.
-    }
-    member = await findMember(c, provider, identity.subject);
-    if (!member) throw new Error('MEMBER_CREATE_FAILED');
-  }
+  const { member, isNew } = await findOrCreateMember(db, identity, { appId: app.app_id, requestId }, now);
   if (member.status === 'suspended') {
     await audit(db, { actorType: 'user', actorUserId: member.user_id, action: `auth.login.${provider}`, appId: app.app_id, result: 'denied', requestId, retention: 'security' }, now);
     return fail(c, 403, 'ACCOUNT_SUSPENDED', 'Account suspended');
@@ -210,7 +159,7 @@ authRoutes.post('/:provider{apple|google}', async (c) => {
       is_new: isNew,
       deletion_purge_at: member.status === 'pending_deletion' && member.deletion_requested_at !== null ? member.deletion_requested_at + DELETION_GRACE_MS : null,
     },
-    consent_required: await consentRequired(c, member.user_id),
+    consent_required: await consentRequired(db, member.user_id, c.env.TERMS_VERSION, c.env.PRIVACY_VERSION),
   });
 });
 
@@ -242,7 +191,8 @@ authRoutes.post('/refresh', async (c) => {
     )
     .bind(parsed.sessionId)
     .first<RefreshRow>();
-  if (!row || row.revoked_at !== null || row.expires_at <= now || row.session_version !== row.user_session_version) {
+  // Web account center cookie sessions are never accepted as App refresh tokens.
+  if (!row || row.app_id === WEB_APP_ID || row.revoked_at !== null || row.expires_at <= now || row.session_version !== row.user_session_version) {
     return fail(c, 401, 'INVALID_REFRESH', 'Please sign in again');
   }
   const hash = await sha256Hex(parsed.secret);

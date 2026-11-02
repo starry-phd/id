@@ -17,6 +17,9 @@ export interface Env {
   APPLE_PRIVATE_KEY?: string;
   /** Secret: 32 random bytes, base64url; seals stored third-party tokens. */
   DATA_ENCRYPTION_KEY?: string;
+  /** Turnstile for the public support form (S-WEB-02); without the secret the form relies on rate limits. */
+  TURNSTILE_SITE_KEY?: string;
+  TURNSTILE_SECRET_KEY?: string;
   /** Development only: provider JWKS and audiences used by local tests instead of Apple/Google. */
   AUTH_TEST_JWKS?: string;
   AUTH_TEST_AUDIENCES?: string;
@@ -31,8 +34,16 @@ export interface AuthContext {
   sessionCreatedAt: number;
 }
 
+/** Signed-in web account center / Admin Lite visitor (cookie session). */
+export interface WebVisitor {
+  sessionId: string;
+  userId: string;
+  status: 'active' | 'pending_deletion';
+  createdAt: number;
+}
+
 /** Hono context type shared by every route module. */
 export type AppBindings = {
   Bindings: Env;
-  Variables: { requestId: string; auth: AuthContext };
+  Variables: { requestId: string; auth: AuthContext; web: WebVisitor | null; cspNonce: string };
 };

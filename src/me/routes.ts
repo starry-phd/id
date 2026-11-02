@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { getApp } from '../apps/registry';
+import { withEffectiveStatus } from '../apps/status';
 import { requireAuth, requireAuthAllowPending } from '../auth/middleware';
 import type { Provider } from '../auth/provider-keys';
 import { background, readProviderRequest, verifyProviderRequest } from '../auth/routes';
@@ -167,7 +168,8 @@ meRoutes.post('/identities/:provider{apple|google}', requireAuth, async (c) => {
   const requestId = c.get('requestId');
   const request = readProviderRequest(await readJsonObject(c));
   if (!request) return c.json(errorBody('BAD_REQUEST', 'id_token and nonce are required', requestId), 400);
-  const app = getApp(appId);
+  const configured = getApp(appId);
+  const app = configured ? await withEffectiveStatus(c.env.DB_IDENTITY, configured, Date.now()) : undefined;
   if (!app || app.status !== 'active') return c.json(errorBody('APP_UNAVAILABLE', 'This app is not available', requestId), 403);
   const verified = await verifyProviderRequest(c, provider, app, request, `account.link.${provider}`, userId);
   if ('response' in verified) return verified.response;

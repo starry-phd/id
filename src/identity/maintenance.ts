@@ -1,4 +1,5 @@
 import { auditStatement } from '../lib/audit';
+import { purgeOldTickets } from '../support/tickets';
 import { processAppleRevocations, type AppleSecrets, type FetchLike } from './apple';
 import { purgeExpiredDeletions } from './lifecycle';
 
@@ -26,6 +27,7 @@ export interface MaintenanceReport {
   nonces: number;
   sessions: number;
   audit: number;
+  tickets: number;
 }
 
 /** Daily housekeeping run by the Cron Trigger. Each step is bounded so one run stays short. */
@@ -46,6 +48,7 @@ export async function runDailyMaintenance(deps: MaintenanceDeps, now: number): P
       )
       .bind(now - AUDIT_RETENTION_MS.general, now - AUDIT_RETENTION_MS.security),
   ]);
+  const tickets = await purgeOldTickets(db, now);
   const report: MaintenanceReport = {
     purgedMembers: purge.purgedUserIds.length,
     appleRevoked: apple.revoked,
@@ -54,6 +57,7 @@ export async function runDailyMaintenance(deps: MaintenanceDeps, now: number): P
     nonces: nonces?.meta.changes ?? 0,
     sessions: sessions?.meta.changes ?? 0,
     audit: audit?.meta.changes ?? 0,
+    tickets,
   };
   await auditStatement(db, { actorType: 'system', action: 'maintenance.daily', result: 'success', retention: 'general' }, now).run();
   return report;

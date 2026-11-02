@@ -7,6 +7,9 @@ import type { AppBindings, Env } from './env';
 import { runDailyMaintenance } from './identity/maintenance';
 import { errorBody } from './lib/errors';
 import { meRoutes } from './me/routes';
+import { accountApp, publicPages } from './web/account';
+import { adminApp } from './web/admin';
+import { supportApp } from './web/support';
 
 const app = new Hono<AppBindings>();
 
@@ -17,7 +20,9 @@ app.use('*', async (c, next) => {
   c.res.headers.set('x-request-id', requestId);
   if (!c.res.headers.has('cache-control')) c.res.headers.set('cache-control', 'no-store');
 });
-app.use('*', secureHeaders());
+// Google and Apple web sign-in use popups, which need same-origin-allow-popups;
+// their buttons also need the page origin, so the referrer keeps the origin cross-site.
+app.use('*', secureHeaders({ crossOriginOpenerPolicy: 'same-origin-allow-popups', referrerPolicy: 'strict-origin-when-cross-origin' }));
 
 /** Liveness plus a single D1 round trip; 503 when the identity database is unreachable. */
 app.get('/v1/health', async (c) => {
@@ -43,6 +48,12 @@ app.get('/.well-known/jwks.json', async (c) => {
 app.route('/v1/apps', appRoutes);
 app.route('/v1/auth', authRoutes);
 app.route('/v1/me', meRoutes);
+
+// Web account center, support form and Admin Lite (server-rendered, cookie sessions).
+app.route('/account', accountApp);
+app.route('/support', supportApp);
+app.route('/admin', adminApp);
+app.route('/', publicPages);
 
 app.notFound((c) => c.json(errorBody('NOT_FOUND', 'Resource not found', c.get('requestId')), 404));
 

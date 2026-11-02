@@ -44,7 +44,7 @@ describe('platform Worker', () => {
   });
 
   test('unknown route and wrong method return NOT_FOUND', async () => {
-    for (const [path, method] of [['/v1/nothing', 'GET'], ['/v1/health', 'POST'], ['/', 'GET']]) {
+    for (const [path, method] of [['/v1/nothing', 'GET'], ['/v1/health', 'POST'], ['/nothing', 'GET']]) {
       const res = await worker.call(path, { method });
       assert.equal(res.status, 404, `${method} ${path}`);
       assert.equal((await res.json()).error.code, 'NOT_FOUND');
