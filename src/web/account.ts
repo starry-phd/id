@@ -114,7 +114,7 @@ accountApp.post('/session', async (c) => {
   const app = await webApp(c);
   if (!app) return c.json(errorBody('APP_UNAVAILABLE', 'Web sign-in is not available', requestId), 403);
   const verified = await verifyProviderRequest(c, provider, app, request, `web.login.${provider}`, null);
-  if ('response' in verified) return verified.response;
+  if (!verified.ok) return verified.response;
   const now = Date.now();
   const db = c.env.DB_IDENTITY;
   const { member } = await findOrCreateMember(db, verified.identity, { appId: WEB_APP_ID, requestId }, now);

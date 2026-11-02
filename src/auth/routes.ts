@@ -74,15 +74,15 @@ export function readProviderRequest(body: Record<string, unknown> | null | undef
 export async function verifyProviderRequest(c: Ctx, provider: Provider, app: AppEntry, request: ProviderRequest, auditAction: string, actorUserId: string | null) {
   const db = c.env.DB_IDENTITY;
   const audiences = audiencesFor(c.env, app, provider);
-  if (audiences.length === 0) return { response: fail(c, 503, 'PROVIDER_NOT_CONFIGURED', `${provider} sign-in is not configured for this app`) };
+  if (audiences.length === 0) return { ok: false as const, response: fail(c, 503, 'PROVIDER_NOT_CONFIGURED', `${provider} sign-in is not configured for this app`) };
   const now = Date.now();
   const identity: ProviderIdentity | null = await verifyIdToken(c.env, provider, request.idToken, { audiences, nonce: request.nonce, now });
   if (!identity) {
     await audit(db, { actorType: 'user', actorUserId, action: auditAction, appId: app.app_id, result: 'denied', requestId: c.get('requestId'), retention: 'security' }, now);
-    return { response: fail(c, 401, 'INVALID_TOKEN', 'Sign-in could not be verified') };
+    return { ok: false as const, response: fail(c, 401, 'INVALID_TOKEN', 'Sign-in could not be verified') };
   }
-  if (!(await consumeNonce(db, request.nonce, app.app_id, now))) return { response: fail(c, 401, 'INVALID_NONCE', 'Sign-in expired, please try again') };
-  return { identity };
+  if (!(await consumeNonce(db, request.nonce, app.app_id, now))) return { ok: false as const, response: fail(c, 401, 'INVALID_NONCE', 'Sign-in expired, please try again') };
+  return { ok: true as const, identity };
 }
 
 const nonceRoute = createRoute({
@@ -136,7 +136,7 @@ async function signIn(c: Ctx, provider: Provider, body: z.infer<typeof SignInReq
   if (app === 'unavailable') return fail(c, 403, 'APP_UNAVAILABLE', 'This app is not available');
   if (!(await loadSigningKey(c.env))) return fail(c, 503, 'AUTH_NOT_CONFIGURED', 'Sign-in is not available');
   const verified = await verifyProviderRequest(c, provider, app, request, `auth.login.${provider}`, null);
-  if ('response' in verified) return verified.response;
+  if (!verified.ok) return verified.response;
   const { identity } = verified;
 
   const now = Date.now();

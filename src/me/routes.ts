@@ -263,7 +263,7 @@ async function link(c: Context<AppBindings>, provider: Provider, body: z.infer<t
   const app = configured ? await withEffectiveStatus(c.env.DB_IDENTITY, configured, Date.now()) : undefined;
   if (!app || app.status !== 'active') return fail(c, 403, 'APP_UNAVAILABLE', 'This app is not available');
   const verified = await verifyProviderRequest(c, provider, app, request, `account.link.${provider}`, userId);
-  if ('response' in verified) return verified.response;
+  if (!verified.ok) return verified.response;
   const now = Date.now();
   const outcome = await linkIdentity(c.env.DB_IDENTITY, { userId, appId, requestId }, { provider, subject: verified.identity.subject, email: verified.identity.email, isPrivateRelay: verified.identity.isPrivateRelay }, now);
   if (outcome === 'identity_in_use') return fail(c, 409, 'IDENTITY_IN_USE', 'This sign-in already belongs to another Starry account');
