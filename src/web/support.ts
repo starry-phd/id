@@ -32,7 +32,7 @@ function form(c: WebContext, values: Record<string, string> = {}, message?: stri
   const signedIn = c.get('web') !== null;
   const siteKey = c.env.TURNSTILE_SITE_KEY;
   const apps = [...appRegistry.values()].filter((a) => a.app_id !== WEB_APP_ID);
-  const scripts = siteKey ? html`<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer nonce="${c.get('cspNonce')}"></script>` : '';
+  const scripts = siteKey ? html`<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer nonce="${c.get('cspNonce')}"></script>` : undefined;
   return c.html(
     page(
       c,
