@@ -14,10 +14,13 @@
     "test": "npm run build && node --test --test-force-exit --test-timeout=60000 \"test/*.test.mjs\" && npm run test:unit",
     "check": "npm run typecheck && npm run lint && npm test",
     "dev": "wrangler dev --env staging",
-    "test:unit": "tsx --test --test-force-exit --test-timeout=60000 \"test/unit/*.test.ts\""
+    "test:unit": "tsx --test --test-force-exit --test-timeout=60000 \"test/unit/*.test.ts\"",
+    "openapi": "tsx scripts/export-openapi.ts"
   },
   "dependencies": {
-    "hono": "^4.7.0"
+    "@hono/zod-openapi": "^1.6.3",
+    "hono": "^4.7.0",
+    "zod": "^4.1.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261102.1",

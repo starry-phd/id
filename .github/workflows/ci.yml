@@ -63,6 +63,35 @@ jobs:
         run: npm test
       - name: Validate the production configuration
         run: npx wrangler deploy --dry-run --outdir dist-production
+      - name: OpenAPI document matches the code
+        run: |
+          npm run openapi
+          if [ -n "$(git status --porcelain openapi/)" ]; then
+            echo "::error::openapi/starry-id.v1.json is out of date. Run 'npm run openapi' and commit the result."
+            echo "::group::Regenerated openapi/starry-id.v1.json"
+            echo "----- BEGIN OPENAPI -----"
+            cat openapi/starry-id.v1.json
+            echo "----- END OPENAPI -----"
+            echo "::endgroup::"
+            exit 1
+          fi
+      - name: Keep the generated OpenAPI document
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi
+          path: openapi/starry-id.v1.json
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: No breaking API changes (oasdiff)
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --depth=1 origin "${{ github.base_ref }}"
+          if git show FETCH_HEAD:openapi/starry-id.v1.json > "$RUNNER_TEMP/base-openapi.json" 2>/dev/null; then
+            docker run --rm -v "$RUNNER_TEMP:/base:ro" -v "$PWD/openapi:/head:ro" tufin/oasdiff breaking /base/base-openapi.json /head/starry-id.v1.json --fail-on ERR
+          else
+            echo "No OpenAPI document on ${{ github.base_ref }} yet; nothing to compare."
+          fi
 
   required-validation:
     # Job name is a required status check on main; keep it unchanged.

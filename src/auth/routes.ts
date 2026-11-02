@@ -1,4 +1,6 @@
-import { Hono, type Context } from 'hono';
+import { createRoute, z } from '@hono/zod-openapi';
+import type { Context } from 'hono';
+import { apiRouter, bearer, errorResponses, json, jsonBody, ProviderRequestSchema, SignInResponseSchema, TokenPairSchema } from '../api/openapi';
 import { audiencesFor, getApp, type AppEntry } from '../apps/registry';
 import { withEffectiveStatus } from '../apps/status';
 import type { AppBindings } from '../env';
@@ -10,18 +12,19 @@ import { WEB_APP_ID } from '../identity/web-sessions';
 import { audit, auditStatement } from '../lib/audit';
 import { constantTimeEqual, sha256Hex, uuidv7 } from '../lib/crypto';
 import { errorBody, type ErrorCode } from '../lib/errors';
-import { boundedString, readJsonObject } from '../lib/validate';
+import { boundedString } from '../lib/validate';
 import { loadSigningKey } from './access-token';
 import { verifyIdToken, type ProviderIdentity } from './id-token';
 import { requireAuthAllowPending } from './middleware';
 import type { Provider } from './provider-keys';
 import { issueTokenPair, newRefreshToken, parseRefreshToken, REFRESH_TTL_MS } from './sessions';
 
-export const authRoutes = new Hono<AppBindings>();
+export const authRoutes = apiRouter();
 
 type Ctx = Context<AppBindings>;
 
-function fail(c: Ctx, status: 400 | 401 | 403 | 409 | 503, code: ErrorCode, message: string) {
+/** Error response with a literal status, so typed OpenAPI routes accept it. */
+export function fail<S extends 400 | 401 | 403 | 404 | 409 | 413 | 415 | 428 | 503>(c: Ctx, status: S, code: ErrorCode, message: string) {
   return c.json(errorBody(code, message, c.get('requestId')), status);
 }
 
@@ -50,24 +53,14 @@ export function background(c: Ctx, work: Promise<unknown>): Promise<unknown> | u
   }
 }
 
-/** POST /v1/auth/nonce — single-use nonce the App hands to Apple or Google. */
-authRoutes.post('/nonce', async (c) => {
-  const body = await readJsonObject(c);
-  const app = await resolveApp(c, body?.app_id);
-  if (app === 'unknown') return fail(c, 400, 'APP_NOT_FOUND', 'Unknown app');
-  if (app === 'unavailable') return fail(c, 403, 'APP_UNAVAILABLE', 'This app is not available');
-  const nonce = await issueNonce(c.env.DB_IDENTITY, app.app_id, Date.now());
-  return c.json({ nonce, expires_in: NONCE_TTL_MS / 1000 });
-});
-
 export interface ProviderRequest {
   idToken: string;
   nonce: string;
   authorizationCode: string | null;
 }
 
-/** Reads id_token, nonce and the optional Apple authorization_code from a JSON body. */
-export function readProviderRequest(body: Record<string, unknown> | null): ProviderRequest | null {
+/** Reads id_token, nonce and the optional Apple authorization_code; rejects control characters. */
+export function readProviderRequest(body: Record<string, unknown> | null | undefined): ProviderRequest | null {
   if (!body || !boundedString(body.id_token, 8192) || !boundedString(body.nonce, 128, 16)) return null;
   const code = boundedString(body.authorization_code, 1024) ? body.authorization_code : null;
   return { idToken: body.id_token, nonce: body.nonce, authorizationCode: code };
@@ -78,42 +71,72 @@ export function readProviderRequest(body: Record<string, unknown> | null): Provi
  * Used by sign-in and by linking a second provider (S-ID-02). Returns an error
  * response on any failure without revealing which check failed.
  */
-export async function verifyProviderRequest(
-  c: Ctx,
-  provider: Provider,
-  app: AppEntry,
-  request: ProviderRequest,
-  auditAction: string,
-  actorUserId: string | null,
-): Promise<{ identity: ProviderIdentity } | { response: Response }> {
+export async function verifyProviderRequest(c: Ctx, provider: Provider, app: AppEntry, request: ProviderRequest, auditAction: string, actorUserId: string | null) {
   const db = c.env.DB_IDENTITY;
   const audiences = audiencesFor(c.env, app, provider);
-  if (audiences.length === 0) return { response: fail(c, 503, 'PROVIDER_NOT_CONFIGURED', `${provider} sign-in is not configured for this app`) };
+  if (audiences.length === 0) return { ok: false as const, response: fail(c, 503, 'PROVIDER_NOT_CONFIGURED', `${provider} sign-in is not configured for this app`) };
   const now = Date.now();
-  const identity = await verifyIdToken(c.env, provider, request.idToken, { audiences, nonce: request.nonce, now });
+  const identity: ProviderIdentity | null = await verifyIdToken(c.env, provider, request.idToken, { audiences, nonce: request.nonce, now });
   if (!identity) {
     await audit(db, { actorType: 'user', actorUserId, action: auditAction, appId: app.app_id, result: 'denied', requestId: c.get('requestId'), retention: 'security' }, now);
-    return { response: fail(c, 401, 'INVALID_TOKEN', 'Sign-in could not be verified') };
+    return { ok: false as const, response: fail(c, 401, 'INVALID_TOKEN', 'Sign-in could not be verified') };
   }
-  if (!(await consumeNonce(db, request.nonce, app.app_id, now))) return { response: fail(c, 401, 'INVALID_NONCE', 'Sign-in expired, please try again') };
-  return { identity };
+  if (!(await consumeNonce(db, request.nonce, app.app_id, now))) return { ok: false as const, response: fail(c, 401, 'INVALID_NONCE', 'Sign-in expired, please try again') };
+  return { ok: true as const, identity };
 }
 
-/** POST /v1/auth/apple | /v1/auth/google — sign in or sign up with a native ID token (S-ID-01, S-ID-03). */
-authRoutes.post('/:provider{apple|google}', async (c) => {
-  const provider = c.req.param('provider') as Provider;
+const nonceRoute = createRoute({
+  method: 'post',
+  path: '/nonce',
+  tags: ['Auth'],
+  summary: 'Get a single-use sign-in nonce (10 minutes, bound to the App)',
+  request: { body: jsonBody(z.object({ app_id: z.string().openapi({ example: 'echo' }) })) },
+  responses: {
+    200: json(z.object({ nonce: z.string(), expires_in: z.number().int() }), 'Nonce for the native Apple or Google SDK'),
+    ...errorResponses(400, 403, 415, 429),
+  },
+});
+
+authRoutes.openapi(nonceRoute, async (c) => {
+  const { app_id } = c.req.valid('json');
+  const app = await resolveApp(c, app_id);
+  if (app === 'unknown') return fail(c, 400, 'APP_NOT_FOUND', 'Unknown app');
+  if (app === 'unavailable') return fail(c, 403, 'APP_UNAVAILABLE', 'This app is not available');
+  const nonce = await issueNonce(c.env.DB_IDENTITY, app.app_id, Date.now());
+  return c.json({ nonce, expires_in: NONCE_TTL_MS / 1000 }, 200);
+});
+
+const SignInRequestSchema = ProviderRequestSchema.extend({
+  app_id: z.string().openapi({ example: 'echo' }),
+  device_label: z.string().max(80).optional(),
+});
+
+function signInRoute<P extends Provider>(provider: P) {
+  return createRoute({
+    method: 'post',
+    path: `/${provider}` as `/${P}`,
+    tags: ['Auth'],
+    summary: `Sign in or sign up with a native ${provider === 'apple' ? 'Sign in with Apple' : 'Google'} ID token`,
+    request: { body: jsonBody(SignInRequestSchema) },
+    responses: {
+      200: json(SignInResponseSchema, 'Signed in'),
+      ...errorResponses(400, 401, 403, 415, 429, 503),
+    },
+  });
+}
+
+async function signIn(c: Ctx, provider: Provider, body: z.infer<typeof SignInRequestSchema>) {
   const requestId = c.get('requestId');
   const db = c.env.DB_IDENTITY;
-  const body = await readJsonObject(c);
   const request = readProviderRequest(body);
-  if (!body || !request) return fail(c, 400, 'BAD_REQUEST', 'id_token, nonce and app_id are required');
+  if (!request) return fail(c, 400, 'BAD_REQUEST', 'id_token, nonce and app_id are required');
   const deviceLabel = boundedString(body.device_label, 80) ? body.device_label : null;
   const app = await resolveApp(c, body.app_id);
   if (app === 'unknown') return fail(c, 400, 'APP_NOT_FOUND', 'Unknown app');
   if (app === 'unavailable') return fail(c, 403, 'APP_UNAVAILABLE', 'This app is not available');
   if (!(await loadSigningKey(c.env))) return fail(c, 503, 'AUTH_NOT_CONFIGURED', 'Sign-in is not available');
   const verified = await verifyProviderRequest(c, provider, app, request, `auth.login.${provider}`, null);
-  if ('response' in verified) return verified.response;
+  if (!verified.ok) return verified.response;
   const { identity } = verified;
 
   const now = Date.now();
@@ -127,9 +150,7 @@ authRoutes.post('/:provider{apple|google}', async (c) => {
   const refresh = await newRefreshToken(sessionId);
   await db.batch([
     db
-      .prepare(
-        'UPDATE auth_identities SET last_login_at = ?, email = COALESCE(?, email), email_is_private_relay = ? WHERE provider = ? AND subject = ?',
-      )
+      .prepare('UPDATE auth_identities SET last_login_at = ?, email = COALESCE(?, email), email_is_private_relay = ? WHERE provider = ? AND subject = ?')
       .bind(now, identity.email, identity.isPrivateRelay ? 1 : 0, provider, identity.subject),
     db
       .prepare(
@@ -146,22 +167,25 @@ authRoutes.post('/:provider{apple|google}', async (c) => {
     );
     if (pending) await pending;
   }
-  const tokens = await issueTokenPair(
-    c.env,
-    { userId: member.user_id, appId: app.app_id, sessionId, sessionVersion: member.session_version, refreshToken: refresh.token },
-    now,
-  );
-  return c.json({
-    ...tokens,
-    user: {
-      user_id: member.user_id,
-      status: member.status,
-      is_new: isNew,
-      deletion_purge_at: member.status === 'pending_deletion' && member.deletion_requested_at !== null ? member.deletion_requested_at + DELETION_GRACE_MS : null,
+  const tokens = await issueTokenPair(c.env, { userId: member.user_id, appId: app.app_id, sessionId, sessionVersion: member.session_version, refreshToken: refresh.token }, now);
+  return c.json(
+    {
+      ...tokens,
+      user: {
+        user_id: member.user_id,
+        status: member.status,
+        is_new: isNew,
+        deletion_purge_at: member.status === 'pending_deletion' && member.deletion_requested_at !== null ? member.deletion_requested_at + DELETION_GRACE_MS : null,
+      },
+      consent_required: await consentRequired(db, member.user_id, c.env.TERMS_VERSION, c.env.PRIVACY_VERSION),
     },
-    consent_required: await consentRequired(db, member.user_id, c.env.TERMS_VERSION, c.env.PRIVACY_VERSION),
-  });
-});
+    200,
+  );
+}
+
+/** POST /v1/auth/apple | /v1/auth/google (S-ID-01, S-ID-03). Other providers stay 404. */
+authRoutes.openapi(signInRoute('apple'), async (c) => signIn(c, 'apple', c.req.valid('json')));
+authRoutes.openapi(signInRoute('google'), async (c) => signIn(c, 'google', c.req.valid('json')));
 
 interface RefreshRow {
   user_id: string;
@@ -175,11 +199,23 @@ interface RefreshRow {
   status: 'active' | 'suspended' | 'pending_deletion';
 }
 
+const refreshRoute = createRoute({
+  method: 'post',
+  path: '/refresh',
+  tags: ['Auth'],
+  summary: 'Rotate tokens; reusing an old refresh token revokes the session',
+  request: { body: jsonBody(z.object({ refresh_token: z.string() })) },
+  responses: {
+    200: json(TokenPairSchema, 'New token pair; replace the stored refresh token'),
+    ...errorResponses(400, 401, 403, 415, 429, 503),
+  },
+});
+
 /** POST /v1/auth/refresh — rotates the refresh token; reuse of an old one revokes the session (S-ID-04). */
-authRoutes.post('/refresh', async (c) => {
+authRoutes.openapi(refreshRoute, async (c) => {
   const requestId = c.get('requestId');
   const db = c.env.DB_IDENTITY;
-  const parsed = parseRefreshToken((await readJsonObject(c))?.refresh_token);
+  const parsed = parseRefreshToken(c.req.valid('json').refresh_token);
   if (!parsed) return fail(c, 401, 'INVALID_REFRESH', 'Please sign in again');
   if (!(await loadSigningKey(c.env))) return fail(c, 503, 'AUTH_NOT_CONFIGURED', 'Sign-in is not available');
   const now = Date.now();
@@ -215,16 +251,22 @@ authRoutes.post('/refresh', async (c) => {
     .bind(next.hash, now, now + REFRESH_TTL_MS, parsed.sessionId, row.refresh_token_hash)
     .run();
   if (rotated.meta.changes !== 1) return fail(c, 401, 'INVALID_REFRESH', 'Please sign in again');
-  const tokens = await issueTokenPair(
-    c.env,
-    { userId: row.user_id, appId: row.app_id, sessionId: parsed.sessionId, sessionVersion: row.session_version, refreshToken: next.token },
-    now,
-  );
-  return c.json(tokens);
+  const tokens = await issueTokenPair(c.env, { userId: row.user_id, appId: row.app_id, sessionId: parsed.sessionId, sessionVersion: row.session_version, refreshToken: next.token }, now);
+  return c.json(tokens, 200);
+});
+
+const logoutRoute = createRoute({
+  method: 'post',
+  path: '/logout',
+  tags: ['Auth'],
+  summary: 'End the current session',
+  security: bearer,
+  middleware: [requireAuthAllowPending] as const,
+  responses: { 204: { description: 'Signed out' }, ...errorResponses(401, 403, 429, 503) },
 });
 
 /** POST /v1/auth/logout — ends the current session only (S-ID-05). */
-authRoutes.post('/logout', requireAuthAllowPending, async (c) => {
+authRoutes.openapi(logoutRoute, async (c) => {
   const auth = c.get('auth');
   const now = Date.now();
   const db = c.env.DB_IDENTITY;
@@ -235,8 +277,18 @@ authRoutes.post('/logout', requireAuthAllowPending, async (c) => {
   return c.body(null, 204);
 });
 
+const logoutAllRoute = createRoute({
+  method: 'post',
+  path: '/logout-all',
+  tags: ['Auth'],
+  summary: 'End every session of the member in every Starry App',
+  security: bearer,
+  middleware: [requireAuthAllowPending] as const,
+  responses: { 204: { description: 'All sessions ended' }, ...errorResponses(401, 403, 429, 503) },
+});
+
 /** POST /v1/auth/logout-all — invalidates every session of the member in every Starry App (S-ID-05). */
-authRoutes.post('/logout-all', requireAuthAllowPending, async (c) => {
+authRoutes.openapi(logoutAllRoute, async (c) => {
   const auth = c.get('auth');
   const now = Date.now();
   const db = c.env.DB_IDENTITY;

@@ -44,6 +44,12 @@
 - `test/unit/*.test.ts`：領域邏輯單元測試，`src/identity`、`src/billing`、`src/notify`、`src/support` 等不依賴 Hono 的模組，以 `node:sqlite` 版 D1 替身跑真正的 migration。新的資料規則優先寫成這類模組並加單元測試。
 - 每個新資料表都要更新 `test/migrations.test.mjs` 的資料表清單。
 
+## API 契約（S-PLT-03）
+
+- 所有 `/v1` 路由用 `@hono/zod-openapi` 的 `createRoute` 宣告；請求以同一份 zod schema 驗證，回應型別由 TypeScript 檢查。
+- 改了路由就執行 `npm run openapi` 並提交 `openapi/starry-id.v1.json`；CI 會檢查文件是否最新，並以 oasdiff 擋下破壞性變更。
+- 破壞性改版走 `/v2`，與 `/v1` 並存到所有 App 更新完成。
+
 ## 本機指令
 
 ```bash
@@ -55,7 +61,6 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 
 ## 尚未完成（依序）
 
-1. S-PLT-03／S-PLT-04：所有 `/v1` 路由改用 `@hono/zod-openapi`，輸出 OpenAPI 3.1、CI 加 oasdiff、Admin 可見的文件頁。
-2. Echo（starry-phd/echo）接入 Starry ID：見 `docs/integration-guide.md`。
-3. 業主外部設定：`docs/owner-setup.md`。
-4. 依需求再做：Battery（S-BAT，第一款付費 AI App 開工時）、系統 Email（S-NTF-02，需客服信箱與 Email Routing）、客服附件、RevenueCat 每日全量對帳。
+1. Echo（starry-phd/echo）接入 Starry ID：見 `docs/integration-guide.md`；Echo 以 `openapi/starry-id.v1.json` 產生型別。
+2. 業主外部設定：`docs/owner-setup.md`。
+3. 依需求再做：Battery（S-BAT，第一款付費 AI App 開工時）、系統 Email（S-NTF-02，需客服信箱與 Email Routing）、客服附件、RevenueCat 每日全量對帳。
