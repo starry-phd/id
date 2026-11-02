@@ -15,6 +15,9 @@ updates:
       # Types follow the Node runtime used in CI (Node 22), not the newest Node.
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
+      # typescript-eslint 8 supports TypeScript < 6.1; move to 7 when it does.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
   - package-ecosystem: github-actions
     directory: /
     schedule:
