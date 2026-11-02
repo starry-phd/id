@@ -1,4 +1,4 @@
-import { base64urlEncode, utf8 } from './encoding';
+import { base64urlEncode, toArrayBuffer, utf8 } from './encoding';
 
 export function randomBytes(length: number): Uint8Array {
   const bytes = new Uint8Array(length);
@@ -12,7 +12,7 @@ export function randomToken(bytes = 32): string {
 }
 
 export async function sha256Hex(input: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', utf8(input));
+  const digest = await crypto.subtle.digest('SHA-256', toArrayBuffer(utf8(input)));
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
