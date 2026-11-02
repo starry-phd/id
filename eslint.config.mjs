@@ -10,10 +10,14 @@ const nodeGlobals = {
   Response: 'readonly',
   crypto: 'readonly',
   setTimeout: 'readonly',
+  Buffer: 'readonly',
+  URLSearchParams: 'readonly',
+  TextEncoder: 'readonly',
+  TextDecoder: 'readonly',
 };
 
 export default tseslint.config(
-  { ignores: ['dist/', 'node_modules/', '.wrangler/'] },
+  { ignores: ['dist/', 'dist-production/', 'node_modules/', '.wrangler/'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
