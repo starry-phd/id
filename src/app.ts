@@ -49,7 +49,7 @@ const healthRoute = createRoute({
 
 /** Liveness plus a single D1 round trip; 503 when the identity database is unreachable. */
 app.openapi(healthRoute, async (c) => {
-  let ok = true;
+  let ok: boolean;
   try {
     const row = await c.env.DB_IDENTITY.prepare('SELECT 1 AS ok').first<{ ok: number }>();
     ok = row?.ok === 1;
