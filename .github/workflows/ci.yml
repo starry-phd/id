@@ -68,7 +68,11 @@ jobs:
           npm run openapi
           if [ -n "$(git status --porcelain openapi/)" ]; then
             echo "::error::openapi/starry-id.v1.json is out of date. Run 'npm run openapi' and commit the result."
-            git diff --stat openapi/ || true
+            echo "::group::Regenerated openapi/starry-id.v1.json"
+            echo "----- BEGIN OPENAPI -----"
+            cat openapi/starry-id.v1.json
+            echo "----- END OPENAPI -----"
+            echo "::endgroup::"
             exit 1
           fi
       - name: Keep the generated OpenAPI document
