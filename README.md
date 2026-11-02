@@ -38,5 +38,5 @@ docs/adr/       架構決策紀錄
 
 | 環境 | Worker | D1 |
 |---|---|---|
-| staging | `starry-api-staging` | `starry-identity-staging` |
-| production | `starry-api` | `starry-identity` |
+| staging | `starry-id-staging`（workers.dev） | `starry-identity-staging` |
+| production | `starry-id`（https://id.starry.phd） | `starry-identity` |

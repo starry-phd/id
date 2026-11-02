@@ -51,7 +51,7 @@ export async function loadSigningKey(env: Env): Promise<SigningKey | null> {
 }
 
 export function tokenIssuer(env: Env): string {
-  return `starry-api:${env.STARRY_ENV}`;
+  return `starry-id:${env.STARRY_ENV}`;
 }
 
 export async function signAccessToken(

@@ -2,10 +2,12 @@
   // Starry platform Worker. Top level = production, env.staging = staging.
   // Account ID and API token come from CI secrets, never from this file.
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "starry-api",
+  "name": "starry-id",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-01",
   "workers_dev": true,
+  // Production is served at https://id.starry.phd (account center, Admin Lite and /v1 API).
+  "routes": [{ "pattern": "id.starry.phd", "custom_domain": true }],
   "observability": { "enabled": true },
   "vars": { "STARRY_ENV": "production", "TERMS_VERSION": "draft-2026-11-03", "PRIVACY_VERSION": "draft-2026-11-03" },
   "d1_databases": [
@@ -18,7 +20,8 @@
   ],
   "env": {
     "staging": {
-      "name": "starry-api-staging",
+      "name": "starry-id-staging",
+      "routes": [],
       "vars": { "STARRY_ENV": "staging", "TERMS_VERSION": "draft-2026-11-03", "PRIVACY_VERSION": "draft-2026-11-03" },
       "d1_databases": [
         {

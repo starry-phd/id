@@ -16,7 +16,7 @@ describe('platform Worker', () => {
     assert.equal(res.status, 200);
     assert.deepEqual(await res.json(), {
       status: 'ok',
-      service: 'starry-api',
+      service: 'starry-id',
       environment: 'development',
       db: 'ok',
     });

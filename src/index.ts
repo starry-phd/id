@@ -27,7 +27,7 @@ app.get('/v1/health', async (c) => {
   } catch {
     db = 'error';
   }
-  const body = { status: db === 'ok' ? 'ok' : 'degraded', service: 'starry-api', environment: c.env.STARRY_ENV, db };
+  const body = { status: db === 'ok' ? 'ok' : 'degraded', service: 'starry-id', environment: c.env.STARRY_ENV, db };
   return c.json(body, db === 'ok' ? 200 : 503);
 });
 
