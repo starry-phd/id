@@ -14,7 +14,8 @@
 3. 到 GitHub Repo → Settings → Secrets and variables → Actions → New repository secret：
    - `CLOUDFLARE_API_TOKEN`：剛建立的 Token
    - `CLOUDFLARE_ACCOUNT_ID`：starry.phd 帳號的 Account ID（Cloudflare 首頁 → 任一網域 Overview 右側 API 區塊，或 Workers & Pages 右側）
-4. 下一次合併到 main 時會自動部署 staging 與 production，並自動產生簽章金鑰與加密金鑰。
+4. 不必等下一次合併：到 GitHub Repo → Actions → Deploy → Run workflow（分支選 main）即可立即部署 staging 與 production，流程會自動產生簽章金鑰與加密金鑰。之後每次合併到 main 都會自動部署。
+5. 部署完成後打開 https://id.starry.phd/v1/health，看到 `"status":"ok"` 即成功。
 
 ## 3. 設定自己為 Owner（一次）
 
