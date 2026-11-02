@@ -28,11 +28,11 @@ jobs:
         run: |
           if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then echo "enabled=true" >> "$GITHUB_OUTPUT"; else echo "::notice::Cloudflare secrets not configured; backup skipped."; fi
       - if: steps.gate.outputs.enabled == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
       - if: steps.gate.outputs.enabled == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
       - if: steps.gate.outputs.enabled == 'true'
