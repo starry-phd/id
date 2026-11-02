@@ -1,6 +1,7 @@
 import type { MiddlewareHandler } from 'hono';
 import type { AppBindings } from '../env';
 import { errorBody } from '../lib/errors';
+import { tooManyRequests, withinLimit } from '../lib/rate-limit';
 import { loadSigningKey, verifyAccessToken } from './access-token';
 
 interface SessionRow {
@@ -45,6 +46,7 @@ function authGuard(options: { allowPendingDeletion: boolean }): MiddlewareHandle
     if (row.status === 'pending_deletion' && !options.allowPendingDeletion) {
       return c.json(errorBody('ACCOUNT_PENDING_DELETION', 'Account deletion is pending; cancel it to continue', requestId), 403);
     }
+    if (!(await withinLimit(c, 'RL_API', `user:${claims.sub}`))) return tooManyRequests(c);
     c.set('auth', { userId: claims.sub, sessionId: claims.sid, appId: claims.app_id, status: row.status, sessionCreatedAt: row.created_at });
     await next();
   };

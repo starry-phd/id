@@ -6,6 +6,7 @@ import { authRoutes } from './auth/routes';
 import type { AppBindings, Env } from './env';
 import { runDailyMaintenance } from './identity/maintenance';
 import { errorBody } from './lib/errors';
+import { limitByIp } from './lib/rate-limit';
 import { meRoutes } from './me/routes';
 import { accountApp, publicPages } from './web/account';
 import { adminApp } from './web/admin';
@@ -44,6 +45,11 @@ app.get('/.well-known/jwks.json', async (c) => {
   c.header('cache-control', 'public, max-age=3600');
   return c.json({ keys: [key.publicJwk] });
 });
+
+app.use('/v1/*', limitByIp('RL_API'));
+app.use('/v1/auth/*', limitByIp('RL_AUTH'));
+app.use('/account/session', limitByIp('RL_WEB'));
+app.use('/support', limitByIp('RL_WEB'));
 
 app.route('/v1/apps', appRoutes);
 app.route('/v1/auth', authRoutes);

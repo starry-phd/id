@@ -1,3 +1,5 @@
+import type { RateLimiter } from './lib/rate-limit';
+
 export type StarryEnvironment = 'development' | 'staging' | 'production';
 
 /** Cloudflare bindings available to the platform Worker. */
@@ -20,6 +22,10 @@ export interface Env {
   /** Turnstile for the public support form (S-WEB-02); without the secret the form relies on rate limits. */
   TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;
+  /** Rate Limiting bindings (S-PLT-05): sign-in per IP, API per IP and member, web forms per IP. */
+  RL_AUTH?: RateLimiter;
+  RL_API?: RateLimiter;
+  RL_WEB?: RateLimiter;
   /** Development only: provider JWKS and audiences used by local tests instead of Apple/Google. */
   AUTH_TEST_JWKS?: string;
   AUTH_TEST_AUDIENCES?: string;
