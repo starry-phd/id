@@ -13,6 +13,8 @@ Starry ID 與 Starry 平台服務，部署在 Cloudflare Workers。規格與開�
 | `GET /v1/me` | 會員、個人資料、已綁定登入方式與同意狀態 |
 | `PATCH /v1/me/profile` | 修改暱稱、生日、語系；需帶 `If-Match` 版本號 |
 | `POST /v1/me/consents` | 同意目前版本的服務條款與隱私權政策 |
+| `POST /v1/me/deletion`、`DELETE /v1/me/deletion` | 申請刪除帳號（立即停用，7 天後清除）／在期限內撤回 |
+| `POST /v1/me/identities/apple`、`…/google` | 已登入會員加綁另一種登入方式 |
 | `GET /.well-known/jwks.json` | Access Token 公鑰，供 Echo 等 App 後端驗證 |
 
 ## 必要 Secrets
@@ -20,6 +22,9 @@ Starry ID 與 Starry 平台服務，部署在 Cloudflare Workers。規格與開�
 | 名稱 | 放在 | 用途 |
 |---|---|---|
 | `ACCESS_TOKEN_PRIVATE_JWK` | Workers Secret（staging、production 各一把） | ES256 私鑰，簽發 Access Token；未設定時登入 API 回 503 |
+| `OWNER_USER_IDS` | Workers Secret | Owner 的會員 ID（逗號分隔）；Owner 可在 Admin Lite 指派 Admin／Support |
+| `APPLE_TEAM_ID`、`APPLE_KEY_ID`、`APPLE_PRIVATE_KEY` | Workers Secret | Sign in with Apple 的 .p8 金鑰；刪帳時撤銷 Apple Token（Apple 規定） |
+| `DATA_ENCRYPTION_KEY` | Workers Secret | 32 bytes base64url，加密保存 Apple Refresh Token |
 | `CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_ACCOUNT_ID` | GitHub Actions Secret | 自動部署 |
 
 各 App 的 Apple／Google client ID 寫在 `config/apps.json` 的 `auth`；清單為空時該登入方式回 503。

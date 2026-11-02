@@ -69,7 +69,7 @@ export async function signAccessToken(
     exp: nowSec + ACCESS_TOKEN_TTL_SEC,
   };
   const signingInput = `${header}.${base64urlJson(body)}`;
-  const signature = await crypto.subtle.sign(SIGN, key.privateKey, utf8(signingInput));
+  const signature = await crypto.subtle.sign(SIGN, key.privateKey, toArrayBuffer(utf8(signingInput)));
   return `${signingInput}.${base64urlEncode(new Uint8Array(signature))}`;
 }
 
@@ -82,7 +82,7 @@ export async function verifyAccessToken(key: SigningKey, env: Env, token: string
     const [headerPart, payloadPart, signaturePart] = parts as [string, string, string];
     const header = parseBase64urlJson(headerPart);
     if (!header || header.alg !== 'ES256' || header.kid !== key.kid) return null;
-    const ok = await crypto.subtle.verify(SIGN, key.publicKey, toArrayBuffer(base64urlDecode(signaturePart)), utf8(`${headerPart}.${payloadPart}`));
+    const ok = await crypto.subtle.verify(SIGN, key.publicKey, toArrayBuffer(base64urlDecode(signaturePart)), toArrayBuffer(utf8(`${headerPart}.${payloadPart}`)));
     if (!ok) return null;
     const c = parseBase64urlJson(payloadPart);
     if (!c || c.iss !== tokenIssuer(env) || c.aud !== ACCESS_TOKEN_AUDIENCE) return null;

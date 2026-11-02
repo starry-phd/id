@@ -3,7 +3,8 @@ import { secureHeaders } from 'hono/secure-headers';
 import { appRoutes } from './apps/routes';
 import { loadSigningKey } from './auth/access-token';
 import { authRoutes } from './auth/routes';
-import type { AppBindings } from './env';
+import type { AppBindings, Env } from './env';
+import { runDailyMaintenance } from './identity/maintenance';
 import { errorBody } from './lib/errors';
 import { meRoutes } from './me/routes';
 
@@ -50,4 +51,15 @@ app.onError((err, c) => {
   return c.json(errorBody('INTERNAL', 'Internal error', c.get('requestId')), 500);
 });
 
-export default app;
+/** Cron Trigger (wrangler.jsonc "triggers"): daily purge, revocations and retention (S-ID-06, S-PLT-06). */
+async function scheduled(controller: ScheduledController, env: Env): Promise<void> {
+  try {
+    const report = await runDailyMaintenance({ db: env.DB_IDENTITY, secrets: env, fetch: (url, init) => fetch(url, init) }, controller.scheduledTime);
+    console.log(JSON.stringify({ level: 'info', event: 'maintenance.daily', ...report }));
+  } catch (error) {
+    console.error(JSON.stringify({ level: 'error', event: 'maintenance.daily', message: error instanceof Error ? error.message : 'failed' }));
+    throw error;
+  }
+}
+
+export default { fetch: app.fetch, scheduled };

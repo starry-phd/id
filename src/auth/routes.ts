@@ -1,13 +1,15 @@
 import { Hono, type Context } from 'hono';
 import { audiencesFor, getApp, type AppEntry } from '../apps/registry';
 import type { AppBindings } from '../env';
+import { rememberAppleToken } from '../identity/apple';
+import { DELETION_GRACE_MS } from '../identity/lifecycle';
 import { audit, auditStatement } from '../lib/audit';
 import { constantTimeEqual, randomToken, sha256Hex, uuidv7 } from '../lib/crypto';
 import { errorBody, type ErrorCode } from '../lib/errors';
 import { boundedString, readJsonObject } from '../lib/validate';
 import { loadSigningKey } from './access-token';
-import { verifyIdToken } from './id-token';
-import { requireAuth } from './middleware';
+import { verifyIdToken, type ProviderIdentity } from './id-token';
+import { requireAuthAllowPending } from './middleware';
 import type { Provider } from './provider-keys';
 import { issueTokenPair, newRefreshToken, parseRefreshToken, REFRESH_TTL_MS } from './sessions';
 
@@ -16,11 +18,11 @@ export const authRoutes = new Hono<AppBindings>();
 const NONCE_TTL_MS = 10 * 60 * 1000;
 type Ctx = Context<AppBindings>;
 
-function fail(c: Ctx, status: 400 | 401 | 403 | 503, code: ErrorCode, message: string) {
+function fail(c: Ctx, status: 400 | 401 | 403 | 409 | 503, code: ErrorCode, message: string) {
   return c.json(errorBody(code, message, c.get('requestId')), status);
 }
 
-function activeApp(appId: unknown): AppEntry | 'unknown' | 'unavailable' {
+export function activeApp(appId: unknown): AppEntry | 'unknown' | 'unavailable' {
   if (typeof appId !== 'string') return 'unknown';
   const app = getApp(appId);
   if (!app) return 'unknown';
@@ -36,6 +38,19 @@ async function consentRequired(c: Ctx, userId: string): Promise<boolean> {
     .bind(userId, c.env.TERMS_VERSION, c.env.PRIVACY_VERSION)
     .first<{ n: number }>();
   return (row?.n ?? 0) < 2;
+}
+
+/** Runs work after the response when the runtime allows it (Apple code exchange). */
+export function background(c: Ctx, work: Promise<unknown>): Promise<unknown> | undefined {
+  const guarded = work.catch((error: unknown) => {
+    console.error(JSON.stringify({ level: 'error', request_id: c.get('requestId'), message: error instanceof Error ? error.message : 'background task failed' }));
+  });
+  try {
+    c.executionCtx.waitUntil(guarded);
+    return undefined;
+  } catch {
+    return guarded;
+  }
 }
 
 /** POST /v1/auth/nonce — single-use nonce the App hands to Apple or Google. */
@@ -55,15 +70,59 @@ authRoutes.post('/nonce', async (c) => {
   return c.json({ nonce, expires_in: NONCE_TTL_MS / 1000 });
 });
 
+export interface ProviderRequest {
+  idToken: string;
+  nonce: string;
+  authorizationCode: string | null;
+}
+
+/** Reads id_token, nonce and the optional Apple authorization_code from a JSON body. */
+export function readProviderRequest(body: Record<string, unknown> | null): ProviderRequest | null {
+  if (!body || !boundedString(body.id_token, 8192) || !boundedString(body.nonce, 128, 16)) return null;
+  const code = boundedString(body.authorization_code, 1024) ? body.authorization_code : null;
+  return { idToken: body.id_token, nonce: body.nonce, authorizationCode: code };
+}
+
+/**
+ * Verifies a provider ID token for `app` and consumes its nonce (spec S-ID-01).
+ * Used by sign-in and by linking a second provider (S-ID-02). Returns an error
+ * response on any failure without revealing which check failed.
+ */
+export async function verifyProviderRequest(
+  c: Ctx,
+  provider: Provider,
+  app: AppEntry,
+  request: ProviderRequest,
+  auditAction: string,
+  actorUserId: string | null,
+): Promise<{ identity: ProviderIdentity } | { response: Response }> {
+  const db = c.env.DB_IDENTITY;
+  const audiences = audiencesFor(c.env, app, provider);
+  if (audiences.length === 0) return { response: fail(c, 503, 'PROVIDER_NOT_CONFIGURED', `${provider} sign-in is not configured for this app`) };
+  const now = Date.now();
+  const identity = await verifyIdToken(c.env, provider, request.idToken, { audiences, nonce: request.nonce, now });
+  if (!identity) {
+    await audit(db, { actorType: 'user', actorUserId, action: auditAction, appId: app.app_id, result: 'denied', requestId: c.get('requestId'), retention: 'security' }, now);
+    return { response: fail(c, 401, 'INVALID_TOKEN', 'Sign-in could not be verified') };
+  }
+  const consumed = await db
+    .prepare('UPDATE auth_nonces SET consumed_at = ? WHERE nonce = ? AND app_id = ? AND consumed_at IS NULL AND expires_at > ?')
+    .bind(now, request.nonce, app.app_id, now)
+    .run();
+  if (consumed.meta.changes !== 1) return { response: fail(c, 401, 'INVALID_NONCE', 'Sign-in expired, please try again') };
+  return { identity };
+}
+
 interface MemberRow {
   user_id: string;
   status: 'active' | 'suspended' | 'pending_deletion';
   session_version: number;
+  deletion_requested_at: number | null;
 }
 
 const findMember = (c: Ctx, provider: Provider, subject: string) =>
   c.env.DB_IDENTITY.prepare(
-    `SELECT u.user_id, u.status, u.session_version FROM auth_identities i
+    `SELECT u.user_id, u.status, u.session_version, u.deletion_requested_at FROM auth_identities i
      JOIN users u ON u.user_id = i.user_id WHERE i.provider = ? AND i.subject = ?`,
   )
     .bind(provider, subject)
@@ -75,29 +134,18 @@ authRoutes.post('/:provider{apple|google}', async (c) => {
   const requestId = c.get('requestId');
   const db = c.env.DB_IDENTITY;
   const body = await readJsonObject(c);
-  if (!body || !boundedString(body.id_token, 8192) || !boundedString(body.nonce, 128, 16)) {
-    return fail(c, 400, 'BAD_REQUEST', 'id_token, nonce and app_id are required');
-  }
+  const request = readProviderRequest(body);
+  if (!body || !request) return fail(c, 400, 'BAD_REQUEST', 'id_token, nonce and app_id are required');
   const deviceLabel = boundedString(body.device_label, 80) ? body.device_label : null;
   const app = activeApp(body.app_id);
   if (app === 'unknown') return fail(c, 400, 'APP_NOT_FOUND', 'Unknown app');
   if (app === 'unavailable') return fail(c, 403, 'APP_UNAVAILABLE', 'This app is not available');
   if (!(await loadSigningKey(c.env))) return fail(c, 503, 'AUTH_NOT_CONFIGURED', 'Sign-in is not available');
-  const audiences = audiencesFor(c.env, app, provider);
-  if (audiences.length === 0) return fail(c, 503, 'PROVIDER_NOT_CONFIGURED', `${provider} sign-in is not configured for this app`);
+  const verified = await verifyProviderRequest(c, provider, app, request, `auth.login.${provider}`, null);
+  if ('response' in verified) return verified.response;
+  const { identity } = verified;
 
   const now = Date.now();
-  const identity = await verifyIdToken(c.env, provider, body.id_token, { audiences, nonce: body.nonce, now });
-  if (!identity) {
-    await audit(db, { actorType: 'user', action: `auth.login.${provider}`, appId: app.app_id, result: 'denied', requestId, retention: 'security' }, now);
-    return fail(c, 401, 'INVALID_TOKEN', 'Sign-in could not be verified');
-  }
-  const consumed = await db
-    .prepare('UPDATE auth_nonces SET consumed_at = ? WHERE nonce = ? AND app_id = ? AND consumed_at IS NULL AND expires_at > ?')
-    .bind(now, body.nonce, app.app_id, now)
-    .run();
-  if (consumed.meta.changes !== 1) return fail(c, 401, 'INVALID_NONCE', 'Sign-in expired, please try again');
-
   let member = await findMember(c, provider, identity.subject);
   let isNew = false;
   if (!member) {
@@ -142,6 +190,13 @@ authRoutes.post('/:provider{apple|google}', async (c) => {
       .bind(sessionId, member.user_id, app.app_id, refresh.hash, member.session_version, deviceLabel, now, now, now + REFRESH_TTL_MS),
     auditStatement(db, { actorType: 'user', actorUserId: member.user_id, action: `auth.login.${provider}`, targetType: 'session', targetId: sessionId, appId: app.app_id, result: 'success', requestId, retention: 'security' }, now),
   ]);
+  if (provider === 'apple' && request.authorizationCode) {
+    const pending = background(
+      c,
+      rememberAppleToken(db, c.env, (url, init) => fetch(url, init), { userId: member.user_id, subject: identity.subject, clientId: identity.audience, code: request.authorizationCode, appId: app.app_id, requestId }, now),
+    );
+    if (pending) await pending;
+  }
   const tokens = await issueTokenPair(
     c.env,
     { userId: member.user_id, appId: app.app_id, sessionId, sessionVersion: member.session_version, refreshToken: refresh.token },
@@ -149,7 +204,12 @@ authRoutes.post('/:provider{apple|google}', async (c) => {
   );
   return c.json({
     ...tokens,
-    user: { user_id: member.user_id, status: member.status, is_new: isNew },
+    user: {
+      user_id: member.user_id,
+      status: member.status,
+      is_new: isNew,
+      deletion_purge_at: member.status === 'pending_deletion' && member.deletion_requested_at !== null ? member.deletion_requested_at + DELETION_GRACE_MS : null,
+    },
     consent_required: await consentRequired(c, member.user_id),
   });
 });
@@ -214,7 +274,7 @@ authRoutes.post('/refresh', async (c) => {
 });
 
 /** POST /v1/auth/logout — ends the current session only (S-ID-05). */
-authRoutes.post('/logout', requireAuth, async (c) => {
+authRoutes.post('/logout', requireAuthAllowPending, async (c) => {
   const auth = c.get('auth');
   const now = Date.now();
   const db = c.env.DB_IDENTITY;
@@ -226,7 +286,7 @@ authRoutes.post('/logout', requireAuth, async (c) => {
 });
 
 /** POST /v1/auth/logout-all — invalidates every session of the member in every Starry App (S-ID-05). */
-authRoutes.post('/logout-all', requireAuth, async (c) => {
+authRoutes.post('/logout-all', requireAuthAllowPending, async (c) => {
   const auth = c.get('auth');
   const now = Date.now();
   const db = c.env.DB_IDENTITY;

@@ -1,12 +1,17 @@
 import { Hono } from 'hono';
-import { requireAuth } from '../auth/middleware';
+import { getApp } from '../apps/registry';
+import { requireAuth, requireAuthAllowPending } from '../auth/middleware';
+import type { Provider } from '../auth/provider-keys';
+import { background, readProviderRequest, verifyProviderRequest } from '../auth/routes';
 import type { AppBindings } from '../env';
+import { rememberAppleToken } from '../identity/apple';
+import { cancelDeletion, DELETION_GRACE_MS, requestDeletion } from '../identity/lifecycle';
+import { linkIdentity } from '../identity/link';
 import { auditStatement } from '../lib/audit';
 import { errorBody } from '../lib/errors';
 import { boundedString, isBirthday, isLocale, readJsonObject } from '../lib/validate';
 
 export const meRoutes = new Hono<AppBindings>();
-meRoutes.use('*', requireAuth);
 
 interface ProfileRow {
   display_name: string | null;
@@ -23,7 +28,7 @@ function profileJson(p: ProfileRow) {
 }
 
 /** GET /v1/me — the signed-in member, profile, linked providers and consent state. */
-meRoutes.get('/', async (c) => {
+meRoutes.get('/', requireAuthAllowPending, async (c) => {
   const { userId } = c.get('auth');
   const db = c.env.DB_IDENTITY;
   const [user, profile, identities, consents] = await db.batch([
@@ -43,6 +48,7 @@ meRoutes.get('/', async (c) => {
     status: u.status,
     created_at: u.created_at,
     deletion_requested_at: u.deletion_requested_at,
+    deletion_purge_at: u.deletion_requested_at === null ? null : u.deletion_requested_at + DELETION_GRACE_MS,
     profile: profileJson(p),
     identities: ((identities?.results ?? []) as { provider: string; email: string | null; email_is_private_relay: number }[]).map((i) => ({
       provider: i.provider,
@@ -61,7 +67,7 @@ meRoutes.get('/', async (c) => {
  * PATCH /v1/me/profile — optimistic concurrency (S-ID-08): the client sends
  * If-Match with the version it edited; a stale version gets 409 and is never written.
  */
-meRoutes.patch('/profile', async (c) => {
+meRoutes.patch('/profile', requireAuth, async (c) => {
   const { userId, appId } = c.get('auth');
   const requestId = c.get('requestId');
   const ifMatch = /^"?(\d{1,9})"?$/.exec(c.req.header('if-match') ?? '');
@@ -111,7 +117,7 @@ meRoutes.patch('/profile', async (c) => {
 });
 
 /** POST /v1/me/consents — records acceptance of the current terms and privacy policy (S-ID-09). */
-meRoutes.post('/consents', async (c) => {
+meRoutes.post('/consents', requireAuth, async (c) => {
   const { userId, appId } = c.get('auth');
   const requestId = c.get('requestId');
   const body = await readJsonObject(c);
@@ -126,4 +132,55 @@ meRoutes.post('/consents', async (c) => {
     auditStatement(db, { actorType: 'user', actorUserId: userId, action: 'consent.accept', targetType: 'user', targetId: userId, appId, result: 'success', requestId, retention: 'security' }, now),
   ]);
   return c.body(null, 204);
+});
+
+/**
+ * POST /v1/me/deletion — starts account deletion (S-ID-06). The account is disabled at once;
+ * signing in again within 7 days allows cancelling. Requires {"confirm": true}.
+ */
+meRoutes.post('/deletion', requireAuth, async (c) => {
+  const { userId, appId } = c.get('auth');
+  const requestId = c.get('requestId');
+  const body = await readJsonObject(c);
+  if (body?.confirm !== true) return c.json(errorBody('BAD_REQUEST', 'Send {"confirm": true} to delete the account', requestId), 400);
+  const result = await requestDeletion(c.env.DB_IDENTITY, { userId, appId, requestId }, Date.now());
+  if (!result.ok) return c.json(errorBody('CONFLICT', 'The account cannot be deleted in its current state', requestId), 409);
+  return c.json({ status: 'pending_deletion', deletion_purge_at: result.purgeAt }, 202);
+});
+
+/** DELETE /v1/me/deletion — cancels a pending deletion during the grace period. */
+meRoutes.delete('/deletion', requireAuthAllowPending, async (c) => {
+  const { userId, appId } = c.get('auth');
+  const requestId = c.get('requestId');
+  const cancelled = await cancelDeletion(c.env.DB_IDENTITY, { userId, appId, requestId }, Date.now());
+  if (!cancelled) return c.json(errorBody('CONFLICT', 'No deletion is pending', requestId), 409);
+  return c.json({ status: 'active' });
+});
+
+/**
+ * POST /v1/me/identities/apple | google — links the other sign-in method (S-ID-02).
+ * Needs a fresh ID token and nonce for that provider, issued for the same App.
+ */
+meRoutes.post('/identities/:provider{apple|google}', requireAuth, async (c) => {
+  const provider = c.req.param('provider') as Provider;
+  const { userId, appId } = c.get('auth');
+  const requestId = c.get('requestId');
+  const request = readProviderRequest(await readJsonObject(c));
+  if (!request) return c.json(errorBody('BAD_REQUEST', 'id_token and nonce are required', requestId), 400);
+  const app = getApp(appId);
+  if (!app || app.status !== 'active') return c.json(errorBody('APP_UNAVAILABLE', 'This app is not available', requestId), 403);
+  const verified = await verifyProviderRequest(c, provider, app, request, `account.link.${provider}`, userId);
+  if ('response' in verified) return verified.response;
+  const now = Date.now();
+  const outcome = await linkIdentity(c.env.DB_IDENTITY, { userId, appId, requestId }, { provider, subject: verified.identity.subject, email: verified.identity.email, isPrivateRelay: verified.identity.isPrivateRelay }, now);
+  if (outcome === 'identity_in_use') return c.json(errorBody('IDENTITY_IN_USE', 'This sign-in already belongs to another Starry account', requestId), 409);
+  if (outcome === 'provider_in_use') return c.json(errorBody('PROVIDER_ALREADY_LINKED', `A different ${provider} sign-in is already linked`, requestId), 409);
+  if (provider === 'apple' && request.authorizationCode && outcome === 'linked') {
+    const pending = background(
+      c,
+      rememberAppleToken(c.env.DB_IDENTITY, c.env, (url, init) => fetch(url, init), { userId, subject: verified.identity.subject, clientId: verified.identity.audience, code: request.authorizationCode, appId, requestId }, now),
+    );
+    if (pending) await pending;
+  }
+  return c.json({ provider, linked: true }, outcome === 'linked' ? 201 : 200);
 });

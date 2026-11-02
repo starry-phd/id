@@ -29,7 +29,7 @@ async function verifySignature(jwk: ProviderJwk, signingInput: string, signature
       false,
       ['verify'],
     );
-    return await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, toArrayBuffer(signature), utf8(signingInput));
+    return await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, toArrayBuffer(signature), toArrayBuffer(utf8(signingInput)));
   } catch {
     return false;
   }

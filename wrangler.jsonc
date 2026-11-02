@@ -9,6 +9,8 @@
   // Production is served at https://id.starry.phd (account center, Admin Lite and /v1 API).
   "routes": [{ "pattern": "id.starry.phd", "custom_domain": true }],
   "observability": { "enabled": true },
+  // Daily maintenance at 03:17 Taiwan time (19:17 UTC): deletion purge, Apple revocations, retention.
+  "triggers": { "crons": ["17 19 * * *"] },
   "vars": { "STARRY_ENV": "production", "TERMS_VERSION": "draft-2026-11-03", "PRIVACY_VERSION": "draft-2026-11-03" },
   "d1_databases": [
     {

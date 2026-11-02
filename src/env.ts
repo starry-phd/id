@@ -9,6 +9,14 @@ export interface Env {
   PRIVACY_VERSION: string;
   /** Secret: ES256 private JWK (with kid) used to sign access tokens. */
   ACCESS_TOKEN_PRIVATE_JWK?: string;
+  /** Secret: comma-separated member IDs that hold the Owner role (spec S-ID-10). */
+  OWNER_USER_IDS?: string;
+  /** Secrets for Sign in with Apple token exchange and revocation (spec S-ID-06). */
+  APPLE_TEAM_ID?: string;
+  APPLE_KEY_ID?: string;
+  APPLE_PRIVATE_KEY?: string;
+  /** Secret: 32 random bytes, base64url; seals stored third-party tokens. */
+  DATA_ENCRYPTION_KEY?: string;
   /** Development only: provider JWKS and audiences used by local tests instead of Apple/Google. */
   AUTH_TEST_JWKS?: string;
   AUTH_TEST_AUDIENCES?: string;
@@ -19,6 +27,8 @@ export interface AuthContext {
   sessionId: string;
   appId: string;
   status: 'active' | 'pending_deletion';
+  /** When this session was created by a sign-in; used for the recent-login rule. */
+  sessionCreatedAt: number;
 }
 
 /** Hono context type shared by every route module. */
