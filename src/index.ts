@@ -1,8 +1,11 @@
 import { Hono } from 'hono';
 import { secureHeaders } from 'hono/secure-headers';
 import { appRoutes } from './apps/routes';
+import { loadSigningKey } from './auth/access-token';
+import { authRoutes } from './auth/routes';
 import type { AppBindings } from './env';
 import { errorBody } from './lib/errors';
+import { meRoutes } from './me/routes';
 
 const app = new Hono<AppBindings>();
 
@@ -28,7 +31,17 @@ app.get('/v1/health', async (c) => {
   return c.json(body, db === 'ok' ? 200 : 503);
 });
 
+/** Public key set so other Starry backends (e.g. Echo) can verify access tokens without a shared secret. */
+app.get('/.well-known/jwks.json', async (c) => {
+  const key = await loadSigningKey(c.env);
+  if (!key) return c.json(errorBody('AUTH_NOT_CONFIGURED', 'Signing key not configured', c.get('requestId')), 503);
+  c.header('cache-control', 'public, max-age=3600');
+  return c.json({ keys: [key.publicJwk] });
+});
+
 app.route('/v1/apps', appRoutes);
+app.route('/v1/auth', authRoutes);
+app.route('/v1/me', meRoutes);
 
 app.notFound((c) => c.json(errorBody('NOT_FOUND', 'Resource not found', c.get('requestId')), 404));
 

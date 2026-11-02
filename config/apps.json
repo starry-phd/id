@@ -9,7 +9,11 @@
       "status": "active",
       "scopes": ["profile:read", "profile:write"],
       "min_version": "0.0.0",
-      "config": {}
+      "config": {},
+      "auth": {
+        "apple_audiences": [],
+        "google_audiences": []
+      }
     }
   ]
 }

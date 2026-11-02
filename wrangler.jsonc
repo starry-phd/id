@@ -7,7 +7,7 @@
   "compatibility_date": "2026-08-01",
   "workers_dev": true,
   "observability": { "enabled": true },
-  "vars": { "STARRY_ENV": "production" },
+  "vars": { "STARRY_ENV": "production", "TERMS_VERSION": "draft-2026-11-03", "PRIVACY_VERSION": "draft-2026-11-03" },
   "d1_databases": [
     {
       "binding": "DB_IDENTITY",
@@ -19,7 +19,7 @@
   "env": {
     "staging": {
       "name": "starry-api-staging",
-      "vars": { "STARRY_ENV": "staging" },
+      "vars": { "STARRY_ENV": "staging", "TERMS_VERSION": "draft-2026-11-03", "PRIVACY_VERSION": "draft-2026-11-03" },
       "d1_databases": [
         {
           "binding": "DB_IDENTITY",

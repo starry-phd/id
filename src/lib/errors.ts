@@ -1,7 +1,20 @@
 /** Stable machine-readable error codes returned by the API. */
 export type ErrorCode =
+  | 'BAD_REQUEST'
   | 'NOT_FOUND'
   | 'APP_NOT_FOUND'
+  | 'APP_UNAVAILABLE'
+  | 'AUTH_NOT_CONFIGURED'
+  | 'PROVIDER_NOT_CONFIGURED'
+  | 'INVALID_TOKEN'
+  | 'INVALID_NONCE'
+  | 'UNAUTHORIZED'
+  | 'ACCOUNT_SUSPENDED'
+  | 'INVALID_REFRESH'
+  | 'REFRESH_REUSED'
+  | 'PRECONDITION_REQUIRED'
+  | 'VERSION_CONFLICT'
+  | 'CONSENT_VERSION_MISMATCH'
   | 'INTERNAL'
   | 'SERVICE_UNAVAILABLE';
 
