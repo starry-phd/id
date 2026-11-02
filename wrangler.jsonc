@@ -12,7 +12,7 @@
     {
       "binding": "DB_IDENTITY",
       "database_name": "starry-identity",
-      "database_id": "2f885aa8-5a14-4041-9cf8-51963b313f05",
+      "database_id": "2b523a86-7116-4afc-a02a-f67c20304774",
       "migrations_dir": "migrations/identity"
     }
   ],
@@ -24,7 +24,7 @@
         {
           "binding": "DB_IDENTITY",
           "database_name": "starry-identity-staging",
-          "database_id": "9d6e00d3-8a00-4e67-93a9-73ea0d5b2db3",
+          "database_id": "e3fc4307-fb2e-4859-a2eb-4638626dffe8",
           "migrations_dir": "migrations/identity"
         }
       ]

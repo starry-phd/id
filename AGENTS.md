@@ -7,14 +7,14 @@
 - 唯一規格：[H-Global × Starry 開發主規格 v2.0｜開發清單與技術架構](https://docs.google.com/document/d/1bKhdZO-NsgKEUCeut-8vNp1lLea6iIIkvn_-cKqAadM/edit)。項目編號（S-ID-01、S-PLT-03 等）以該文件為準。
 - 刪除與修正紀錄：[開發主規格 v2.0｜刪除與修正紀錄](https://docs.google.com/document/d/1G22CRm8Mod9vd_r8xUW4fyS1fgYaT-n6cp7-GHKXV-M/edit)。
 - 實作層面的決定寫在 `docs/adr/`。
-- 工程進度以 GitHub 為準：PR、commit、CI、部署紀錄，以及交接 Issue [#220](https://github.com/starry-phd/id/issues/220)。
+- 工程進度以 GitHub 為準：PR、commit、CI、部署紀錄，以及本 Repo 的交接 Issue（Repo 重建後開立的第一個 Issue）。
 
-2026-11-03 業主授權刪除舊程式、依 v2.0 重新開發。舊的五 AI 分工、AI-0～AI-4 角色、G00～G10 發布閘門與相關文件已移除，只保留在 Git 歷史中（重建前最後一個 commit：`219223f5b44c24b1ad44aeb1393d8b8fdb28e895`）。
+2026-11-03 業主核准 v2.0，並自行刪除舊 Repo 與 Cloudflare 上的舊資源，授權 Claude 從零重建。本 Repo 的歷史從重建開始；舊的五 AI 分工、AI-0～AI-4 角色、G00～G10 發布閘門都不再適用。
 
 ## 開發方式
 
 - 單一開發者：Claude。業主負責產品方向、外部平台操作與下列核准事項。
-- 每項工作：分支 → PR → CI（Repository policy、App typecheck, lint and tests、Required validation）全綠 → squash 合併 → 確認 main 的 CI 與部署結果 → 回寫 #220。
+- 每項工作：分支 → PR → CI（Repository policy、App typecheck, lint and tests、Required validation）全綠 → squash 合併 → 確認 main 的 CI 與部署結果 → 回寫交接 Issue。
 - 合併到 main 後，Deploy workflow 自動執行：staging 套用 migration、部署、smoke test，通過後同樣流程部署 production，production smoke 失敗自動回滾。
 - 只有一款 App 用到的程式不放這裡；放在該 App 的 Repo。
 
