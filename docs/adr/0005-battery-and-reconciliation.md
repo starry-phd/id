@@ -1,0 +1,32 @@
+# 0005｜Starry Battery 與 RevenueCat 每日對帳
+
+日期：2026-11-03｜狀態：已採用
+
+## 背景
+
+規格 S-BAT-07 原訂「第一款會呼叫付費 AI 服務的 App 開工時才實作 Battery」。業主 2026-11-03 指示一次完成所有開發清單，因此提前實作；S-BAT-01～06 的規則不變。S-BIL-04 的每日對帳原本等待 RevenueCat API Key（ADR 0004），現在先完成程式，有 Key 的 App 自動納入。
+
+## Battery 決定
+
+- 獨立 D1 `starry-battery`（staging：`starry-battery-staging`），只有 `src/battery` 寫入（S-BAT-06、架構原則 4）。
+- 月份以台灣時間計算（`YYYY-MM`），每月 1 日 00:00 恢復；帳戶在新月份第一次被寫入時才重置，不需要月初批次（規格資料庫說明）。讀取不寫入。
+- 防止超扣：`battery_accounts` 有 `CHECK (used + reserved <= allowance)`。預留、建立預留紀錄與更新帳戶在同一個 D1 batch（交易）中執行，額度不足時整批失敗、不留下任何變更，並發請求也不會超扣。
+- 冪等：預留以 `(app_id, idempotency_key)` 唯一；確認／釋放以 `op_id` 標記關閉該筆預留的請求，只有它會異動額度，重送不會重複扣除或歸還。
+- 逾時：預設 3 分鐘，可依任務類型設定；每分鐘 Cron 以集合式更新釋放逾時預留。逾時後才送達的確認回 409 `RESERVATION_EXPIRED`，不扣額度。
+- 消耗量：任務類型定義「每單位消耗」與「單次上限」，預留量＝每單位消耗 × 預估單位；確認時可帶實際單位（不超過預留），差額歸還。
+- 跨月的進行中預留會保留到新月份，在新月份確認時計入新月份。
+- Owner 修改每月額度時，本月所有帳戶同步增減（不低於已用＋預留），新帳戶直接取得新額度；個別會員的人工調整只影響當月，必填原因，寫入帳本與稽核，並寄只寫項目的通知信（S-NTF-02）。
+- 只有 App 後端能操作：服務金鑰放在 Worker Secret `BATTERY_SERVICE_KEYS`（每款 App 一把、32 字以上）；預留同時要求同一 App 的會員 Access Token，確保會員已登入該 App 且未被停權。確認／釋放只需服務金鑰，因為 AI 任務結束時會員 Token 可能已過期。
+- 帳本只新增（觸發器擋下 UPDATE），保留 1 年；已結束的預留保留 35 天（冪等鍵的有效期）。刪帳期滿時刪除該會員所有 Battery 資料（S-ID-06）。
+
+## 對帳決定
+
+- RevenueCat v1 API 沒有列出全部客戶的端點，因此對象為「曾有權益投影或購買事件的會員 × App」，每天依上次比對時間由舊到新處理最多 200 組，所有買家會在數天內輪過一次。
+- 以 RevenueCat 的 CustomerInfo 為準覆寫投影：到期與寬限期依 `expires_date`／`grace_period_expires_date`，`expires_date` 為 null 視為永久買斷。RevenueCat 已不認得的權益關閉。
+- 查詢失敗不修改投影（不因暫時錯誤撤權）；遇到 429 停止當次執行，隔天繼續。
+- `GET /v1/subscribers/{id}` 在 RevenueCat 不存在該客戶時會建立客戶，所以只查詢已知買家，不查詢已刪除的會員。
+
+## 影響
+
+- 新增每分鐘 Cron（Workers Paid 已核准）。
+- 每週備份改為匯出 identity、billing、battery 三個 D1。

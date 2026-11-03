@@ -1,7 +1,7 @@
 /**
- * Privacy policy and terms of service (spec S-WEB-01, S-ID-09). Drafted by Claude for the
- * owner to review; versions follow TERMS_VERSION / PRIVACY_VERSION. Items marked 【待業主確認】
- * need facts only the owner can supply before launch.
+ * Privacy policy and terms of service (spec S-WEB-01, S-ID-09). Written by Claude under the
+ * owner's 2026-11-03 delegation; versions follow TERMS_VERSION / PRIVACY_VERSION. Any change
+ * to the text needs a new version, which asks every member to accept again.
  */
 export interface LegalSection {
   title: string;
@@ -23,7 +23,7 @@ export const PRIVACY_POLICY: LegalDocument = {
     {
       title: '一、經營者與聯絡方式',
       items: [
-        '經營者：【待業主確認：個人或公司名稱】',
+        '經營者：CHIEN-LUNG TU（個人開發者，以「Starry 繁星」名義提供本服務）。',
         '聯絡方式：本網站「客服與檢舉」表單（https://id.starry.phd/support），或客服信箱 support@starry.phd。',
       ],
     },
@@ -36,6 +36,7 @@ export const PRIVACY_POLICY: LegalDocument = {
         '登入紀錄：登入使用的 App、時間與您自訂的裝置名稱，用來管理登入狀態與帳號安全。',
         '客服資料：您透過客服表單提供的聯絡信箱、內容與選擇上傳的附件（截圖或 PDF）；為防止濫用，另保存來源 IP 的雜湊值（無法反推原始 IP）。',
         '購買紀錄：在繁星 App 內購買時，交易由 Apple App Store 或 Google Play 處理，我們透過 RevenueCat 取得您擁有的權益（例如是否已購買某功能），不會取得您的付款卡號。',
+        'Starry Battery 使用紀錄：您使用 AI 功能時消耗的額度、時間、使用的 App 與功能名稱，不包含您交給 AI 處理的內容。',
         '技術資料：App 當機與錯誤紀錄（透過 Sentry）及推播通知權杖（若您允許推播），不包含您的通訊內容。',
       ],
     },
@@ -45,6 +46,7 @@ export const PRIVACY_POLICY: LegalDocument = {
         '提供會員登入，讓您以同一個帳號使用所有繁星 App（特定目的：會員管理、契約或類似契約關係之管理）。',
         '提供 App 功能、購買權益與免費 AI 使用額度（Starry Battery）。',
         '帳號安全、防止濫用與詐欺、處理客服與檢舉、遵循法令。',
+        '寄送必要的系統通知信：刪除帳號申請確認、客服回覆，以及客服人員調整您帳號資料時的通知（只說明調整的項目）。',
         '我們不會出售您的個人資料，也不會用於行銷信件或廣告追蹤。',
       ],
     },
@@ -55,13 +57,14 @@ export const PRIVACY_POLICY: LegalDocument = {
         '刪除帳號：申請後帳號立即停用，7 天後永久清除個人資料、頭像、登入方式與客服紀錄；7 天內重新登入可撤回。',
         '稽核紀錄：只以隨機會員編號記錄操作，一般操作保存 90 天，安全與管理操作保存 1 年。',
         '客服紀錄：結案後保存 1 年。',
+        'Starry Battery 使用紀錄：保存 1 年；刪除帳號時一併清除。',
         '依法須保存的交易紀錄，於法定期間內以去識別化方式保存。',
       ],
     },
     {
       title: '五、資料處理地點與受託者',
       paragraphs: [
-        '為提供服務，我們委託下列服務商處理資料，資料可能存放於中華民國境外，我們會要求其依約妥善保護：Cloudflare（主機與資料庫）、Apple 與 Google（登入、App 發佈與付款）、RevenueCat（購買權益）、Sentry（錯誤紀錄）、Expo（推播通知）。',
+        '為提供服務，我們委託下列服務商處理資料，資料可能存放於中華民國境外，我們會要求其依約妥善保護：Cloudflare（主機、資料庫、檔案儲存與電子郵件寄送）、Apple 與 Google（登入、App 發佈與付款）、RevenueCat（購買權益）、Sentry（錯誤紀錄）、Expo（推播通知）。',
       ],
     },
     {
@@ -144,7 +147,7 @@ export const TERMS_OF_SERVICE: LegalDocument = {
     },
     {
       title: '八、準據法與管轄',
-      paragraphs: ['本條款以中華民國法律為準據法。因本服務發生爭議時，以【待業主確認：例如臺灣臺北地方法院】為第一審管轄法院，但法律另有強制規定者從其規定。'],
+      paragraphs: ['本條款以中華民國法律為準據法。因本服務發生爭議時，以臺灣臺北地方法院為第一審管轄法院，但法律另有強制規定者從其規定。'],
     },
   ],
 };

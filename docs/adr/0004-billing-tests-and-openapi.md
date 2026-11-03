@@ -6,7 +6,7 @@
 
 規格 S-BIL-04 寫「先回 200 再交給 Queue 處理」。實作改為：先以 event_id 寫入 `rc_events`（去重）並回 200，回應後以 `waitUntil` 更新投影；每日 Cron 補處理失敗或遺漏的事件（最多 10 次）。效果相同（RevenueCat 不需等待、事件不會遺失、重送不重複），且不需要建立 Queue 資源。流量成長或需要更即時的重試時再改用 Queues。
 
-App 端仍以 RevenueCat SDK 為即時來源；投影表供後端判斷。永久買斷記在 `lifetime_product_id`，訂閱到期或訂閱退款不會撤銷它（S-BIL-05）。每日與 RevenueCat 全量對帳尚未實作，需 RevenueCat API Key 後再加入。
+App 端仍以 RevenueCat SDK 為即時來源；投影表供後端判斷。永久買斷記在 `lifetime_product_id`，訂閱到期或訂閱退款不會撤銷它（S-BIL-05）。每日與 RevenueCat 對帳見 ADR 0005。
 
 ## 2. 單元測試
 

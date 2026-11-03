@@ -1,6 +1,6 @@
 # Starry 平台（Starry ID）
 
-Starry ID 會員與登入、App Registry、購買權益投影、推播 Token、客服、Web 帳號中心與 Admin Lite，部署在 Cloudflare Workers。正式網址：https://id.starry.phd。規格與開發規則見 [AGENTS.md](AGENTS.md)，業主設定步驟見 [docs/owner-setup.md](docs/owner-setup.md)，App 串接方式見 [docs/integration-guide.md](docs/integration-guide.md)。
+Starry ID 會員與登入、App Registry、購買權益投影與每日對帳、Starry Battery（免費 AI 用量月額度）、推播 Token、系統 Email、客服、Web 帳號中心與 Admin Lite，部署在 Cloudflare Workers。正式網址：https://id.starry.phd。規格與開發規則見 [AGENTS.md](AGENTS.md)，業主設定步驟見 [docs/owner-setup.md](docs/owner-setup.md)，App 串接方式見 [docs/integration-guide.md](docs/integration-guide.md)。
 
 ## API（`/v1`，App 使用 Bearer Access Token）
 
@@ -21,6 +21,9 @@ Starry ID 會員與登入、App Registry、購買權益投影、推播 Token、�
 | `POST`／`DELETE /v1/me/deletion` | 申請刪除（立即停用、7 天後清除）／撤回 | S-ID-06 |
 | `POST /v1/me/identities/{apple\|google}` | 加綁另一種登入方式 | S-ID-02 |
 | `GET /v1/me/entitlements` | 本 App 的有效權益（RevenueCat 投影） | S-BIL-04 |
+| `GET /v1/me/battery` | 本月 Battery 額度、已用、預留、剩餘、下次恢復時間與近 30 天紀錄 | S-BAT-04 |
+| `POST /v1/battery/reservations` | App 後端預留 Battery（服務金鑰＋同一 App 的會員 Token；冪等鍵） | S-BAT-03/06 |
+| `POST /v1/battery/reservations/{id}/commit`、`/release` | App 後端確認扣除（可帶實際用量）／釋放；冪等，逾時後不扣除 | S-BAT-03 |
 | `PUT`／`DELETE /v1/me/push-tokens` | 登記／移除 Expo 推播 Token | A-04 |
 | `GET`／`PUT /v1/me/notification-preferences` | 各推播分類開關 | S-NTF-01 |
 | `GET /v1/avatars/{user}/{file}?exp&sig` | 以短效簽章讀取頭像 | S-ID-08 |
@@ -31,17 +34,18 @@ Starry ID 會員與登入、App Registry、購買權益投影、推播 Token、�
 
 | 路徑 | 說明 | 規格 |
 |---|---|---|
-| `/account` | 登入（Google／Apple 網頁登入）、個人資料、同意條款、刪除與撤回、登入中的裝置（登出單一裝置／所有裝置） | S-WEB-01、S-ID-05 |
+| `/account` | 登入（Google／Apple 網頁登入）、個人資料、同意條款、刪除與撤回、登入中的裝置（登出單一裝置／所有裝置）、Starry Battery 額度與紀錄 | S-WEB-01、S-ID-05、S-BAT-04 |
 | `/account/link` | 加綁另一種登入方式（需 10 分鐘內登入過） | S-ID-02 |
-| `/privacy`、`/terms` | 隱私權政策、服務條款（草案，待業主確認） | S-WEB-01 |
+| `/privacy`、`/terms` | 隱私權政策、服務條款（版本 2026-11-03） | S-WEB-01 |
 | `/support` | 客服與檢舉表單（訪客與會員；附件選填：PNG／JPEG／WebP／PDF ≤ 2 MB，以檔案內容判斷類型；設定 Turnstile 後啟用驗證） | S-WEB-02 |
-| `/admin` | Admin Lite：會員查詢（遮罩）、停權／復權、角色、客服單（含附件下載）、App 狀態、稽核 | S-ADM-01 |
+| `/admin` | Admin Lite：會員查詢（遮罩）、停權／復權、角色、Battery 人工調整（Admin）與每月額度／任務消耗設定（Owner）、客服單（含附件下載、Email 回覆）、App 狀態、稽核、API 文件 | S-ADM-01、S-BAT-02/05 |
 | `/account/claim-owner` | 一次性設定 Owner（設定 `OWNER_CLAIM_CODE` 時才出現） | S-ID-10 |
 
 ## 背景作業
 
-- 每日 03:17（台灣）Cron：清除刪帳期滿會員、撤銷 Apple Token、刪除已移除客服單的附件、刪除 RevenueCat 客戶、處理未完成的 Webhook 事件、清理過期 nonce／Session／客服單、稽核保留期（一般 90 天、安全 1 年）。
-- GitHub Actions：每 15 分鐘外部探測（故障開一張 Issue、恢復自動關閉）、每週匯出 D1 到 R2 `starry-backups`。
+- 每分鐘 Cron：釋放逾時的 Battery 預留（S-BAT-03）。
+- 每日 03:17（台灣）Cron：清除刪帳期滿會員（含 Battery 與權益資料）、撤銷 Apple Token、刪除已移除客服單的附件、刪除 RevenueCat 客戶、處理未完成的 Webhook 事件、與 RevenueCat 對帳（每次最多 200 組會員／App，最久未比對的優先）、清理過期 nonce／Session／客服單、稽核保留期（一般 90 天、安全 1 年）、Battery 帳本保留 1 年。
+- GitHub Actions：每 15 分鐘外部探測（故障開一張 Issue、恢復自動關閉）、每週匯出三個 D1 到 R2 `starry-backups`、手動維運工作（`Ops`：刪除 `OWNER_CLAIM_CODE`、建立 Turnstile）。
 
 ## Secrets
 
@@ -49,10 +53,11 @@ Starry ID 會員與登入、App Registry、購買權益投影、推播 Token、�
 |---|---|---|
 | `CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_ACCOUNT_ID` | GitHub Actions Secret | 業主 |
 | `ACCESS_TOKEN_PRIVATE_JWK`、`DATA_ENCRYPTION_KEY` | Workers Secret | 部署流程自動產生（只在缺少時建立） |
-| `OWNER_CLAIM_CODE`（暫時） | Workers Secret | 業主，設定 Owner 後刪除 |
+| `OWNER_CLAIM_CODE`（暫時） | Workers Secret | 業主；Owner 認領後由 `Ops` 工作流程刪除 |
 | `APPLE_TEAM_ID`、`APPLE_KEY_ID`、`APPLE_PRIVATE_KEY` | Workers Secret | 業主（Sign in with Apple 金鑰） |
 | `REVENUECAT_WEBHOOK_AUTH`、`REVENUECAT_API_KEYS` | Workers Secret（JSON，每款 App 一筆） | 業主（RevenueCat 專案建立後） |
-| `TURNSTILE_SECRET_KEY`；`TURNSTILE_SITE_KEY`（變數） | Workers | 業主（選用） |
+| `BATTERY_SERVICE_KEYS` | Workers Secret（JSON，每款 App 一筆，32 字以上） | Claude（App 後端開始使用 Battery 時，同一值設定在該 App 後端） |
+| `TURNSTILE_SECRET_KEY`；`TURNSTILE_SITE_KEY`（變數） | Workers | `Ops` 工作流程（setup-turnstile）建立 |
 | `send_email` 綁定 `EMAIL`；`EMAIL_FROM`、`SUPPORT_EMAIL`（變數） | wrangler.jsonc | Claude（已於 2026-11-03 加入；Email Sending 網域 starry.phd 已啟用） |
 
 各 App 的 Apple／Google client ID 寫在 `config/apps.json` 的 `auth`（不是秘密）；清單為空時該登入方式回 503。
@@ -62,12 +67,13 @@ Starry ID 會員與登入、App Registry、購買權益投影、推播 Token、�
 ```
 src/auth/       Token 驗證、Session、登入路由
 src/identity/   會員、刪帳、角色、加綁、Apple、頭像、網頁 Session、每日作業
-src/billing/    RevenueCat Webhook 與權益投影
-src/notify/     推播 Token 與 Expo Push
-src/support/    客服單
+src/billing/    RevenueCat Webhook、權益投影與每日對帳
+src/battery/    Starry Battery：月配額、預留／確認／釋放、帳本
+src/notify/     推播 Token、Expo Push、系統 Email
+src/support/    客服單、附件、Email 回覆
 src/web/        帳號中心、客服表單、Admin Lite、條款（伺服器端產生 HTML）
 config/apps.json App Registry
-migrations/     D1 migration：identity、billing
+migrations/     D1 migration：identity、billing、battery
 test/           整合測試（打包後在本機 workerd＋D1 執行）
 test/unit/      領域邏輯單元測試（SQLite 版 D1 替身，tsx 執行）
 docs/           ADR、業主設定、App 串接說明
@@ -77,8 +83,8 @@ docs/           ADR、業主設定、App 串接說明
 
 | 環境 | Worker | D1 | R2 |
 |---|---|---|---|
-| staging | `starry-id-staging`（workers.dev） | `starry-identity-staging`、`starry-billing-staging` | `starry-avatars-staging`、`starry-support-files-staging` |
-| production | `starry-id`（https://id.starry.phd） | `starry-identity`、`starry-billing` | `starry-avatars`、`starry-support-files`、`starry-backups` |
+| staging | `starry-id-staging`（workers.dev） | `starry-identity-staging`、`starry-billing-staging`、`starry-battery-staging` | `starry-avatars-staging`、`starry-support-files-staging` |
+| production | `starry-id`（https://id.starry.phd） | `starry-identity`、`starry-billing`、`starry-battery` | `starry-avatars`、`starry-support-files`、`starry-backups` |
 
 ## 指令
 
