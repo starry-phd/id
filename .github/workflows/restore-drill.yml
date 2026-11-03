@@ -1,0 +1,66 @@
+name: Restore drill (staging)
+
+# Spec S-PLT-08: rehearse a restore on staging before any high-risk migration (staging holds test
+# data only). For each staging database: take a Time Travel bookmark, write a marker row, restore
+# to the bookmark, then check the marker is gone, the row counts match and staging is healthy.
+# Production is never touched; restoring production needs the owner's approval (docs/restore.md).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  drill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Drill identity, billing and battery
+        run: |
+          set -euo pipefail
+          query() { npx wrangler d1 execute "$1" --env staging --remote --json --command "$2" | jq -r '.[0].results[0].n'; }
+          echo "| Database | Rows before | Marker after restore | Rows after | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          for pair in "starry-identity-staging:audit_log" "starry-billing-staging:rc_events" "starry-battery-staging:battery_ledger"; do
+            db="${pair%%:*}"; table="${pair##*:}"
+            before=$(query "$db" "SELECT COUNT(*) AS n FROM $table")
+            bookmark=$(npx wrangler d1 time-travel info "$db" --env staging --json | jq -r '.bookmark')
+            test -n "$bookmark" && test "$bookmark" != null
+            marker="restore-drill-$(date +%s)"
+            case "$table" in
+              audit_log) id=audit_id; insert="INSERT INTO audit_log (audit_id, occurred_at, actor_type, action, result, retention_class) VALUES ('$marker', 0, 'system', 'system.restore_drill', 'success', 'general')" ;;
+              rc_events) id=event_id; insert="INSERT INTO rc_events (event_id, app_id, app_user_id, type, event_timestamp_ms, payload, received_at, processed_at) VALUES ('$marker', 'drill', 'deleted', 'TEST', 0, '{}', 0, 0)" ;;
+              battery_ledger) id=entry_id; insert="INSERT INTO battery_ledger (entry_id, user_id, period, kind, amount, created_at) VALUES ('$marker', 'drill', '2000-01', 'usage', 0, 0)" ;;
+            esac
+            npx wrangler d1 execute "$db" --env staging --remote --command "$insert" > /dev/null
+            test "$(query "$db" "SELECT COUNT(*) AS n FROM $table")" -eq $((before + 1))
+            npx wrangler d1 time-travel restore "$db" --env staging --bookmark "$bookmark" > /dev/null
+            gone=$(query "$db" "SELECT COUNT(*) AS n FROM $table WHERE $id = '$marker'")
+            after=$(query "$db" "SELECT COUNT(*) AS n FROM $table")
+            result=pass
+            if [ "$gone" -ne 0 ] || [ "$after" -ne "$before" ]; then result=FAIL; fi
+            echo "| $db | $before | $( [ "$gone" -eq 0 ] && echo removed || echo still there ) | $after | $result |" >> "$GITHUB_STEP_SUMMARY"
+            echo "$db: before=$before after=$after marker_left=$gone -> $result"
+            test "$result" = pass
+          done
+      - name: Staging is healthy after the restore
+        run: |
+          for i in 1 2 3 4 5; do
+            if curl -fsS https://starry-id-staging.starry-phd.workers.dev/v1/health | grep -q '"status":"ok"'; then echo "healthy"; exit 0; fi
+            sleep 5
+          done
+          exit 1
