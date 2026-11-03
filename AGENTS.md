@@ -15,6 +15,7 @@
 
 - 單一開發者：Claude。業主負責產品方向、外部平台操作與下列核准事項。
 - 每項工作：分支 → PR → CI（Repository policy、App typecheck, lint and tests、Required validation）全綠 → squash 合併 → 確認 main 的 CI 與部署結果 → 回寫交接 Issue。
+- 高風險 migration（刪欄、改表、大量更新）合併前，先執行「Restore drill (staging)」並在 PR 附上結果（`docs/restore.md`）。
 - 合併到 main 後，Deploy workflow 自動執行：staging 套用 migration、部署、smoke test，通過後同樣流程部署 production，production smoke 失敗自動回滾。
 - 只有一款 App 用到的程式不放這裡；放在該 App 的 Repo。
 
