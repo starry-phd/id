@@ -5,6 +5,7 @@ import { audiencesFor, getApp, type AppEntry } from '../apps/registry';
 import { withEffectiveStatus } from '../apps/status';
 import type { AppBindings } from '../env';
 import { rememberAppleToken } from '../identity/apple';
+import { logoutEverywhere } from '../identity/devices';
 import { DELETION_GRACE_MS } from '../identity/lifecycle';
 import { consentRequired, findOrCreateMember } from '../identity/members';
 import { consumeNonce, issueNonce, NONCE_TTL_MS } from '../identity/nonces';
@@ -290,12 +291,6 @@ const logoutAllRoute = createRoute({
 /** POST /v1/auth/logout-all — invalidates every session of the member in every Starry App (S-ID-05). */
 authRoutes.openapi(logoutAllRoute, async (c) => {
   const auth = c.get('auth');
-  const now = Date.now();
-  const db = c.env.DB_IDENTITY;
-  await db.batch([
-    db.prepare('UPDATE users SET session_version = session_version + 1, updated_at = ? WHERE user_id = ?').bind(now, auth.userId),
-    db.prepare("UPDATE sessions SET revoked_at = ?, revoke_reason = 'logout_all' WHERE user_id = ? AND revoked_at IS NULL").bind(now, auth.userId),
-    auditStatement(db, { actorType: 'user', actorUserId: auth.userId, action: 'auth.logout_all', targetType: 'user', targetId: auth.userId, appId: auth.appId, result: 'success', requestId: c.get('requestId'), retention: 'security' }, now),
-  ]);
+  await logoutEverywhere(c.env.DB_IDENTITY, { userId: auth.userId, appId: auth.appId, requestId: c.get('requestId') }, Date.now());
   return c.body(null, 204);
 });

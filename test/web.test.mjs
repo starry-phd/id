@@ -4,6 +4,7 @@ import { APPLE_AUDIENCE, authBindings, GOOGLE_AUDIENCE, idTokenClaims, signJwt }
 import { startWorker } from './helpers.mjs';
 
 const ORIGIN = 'https://api.test';
+const WEB_APPLE_AUDIENCE = 'phd.starry.id.web';
 
 describe('web account center, support form and Admin Lite', () => {
   let worker;
@@ -11,7 +12,7 @@ describe('web account center, support form and Admin Lite', () => {
 
   before(async () => {
     keys = await authBindings();
-    const audiences = { echo: { apple: [APPLE_AUDIENCE], google: [GOOGLE_AUDIENCE] }, account: { apple: [], google: [GOOGLE_AUDIENCE] } };
+    const audiences = { echo: { apple: [APPLE_AUDIENCE], google: [GOOGLE_AUDIENCE] }, account: { apple: [WEB_APPLE_AUDIENCE], google: [GOOGLE_AUDIENCE] } };
     worker = await startWorker({ bindings: { ...keys.bindings, AUTH_TEST_AUDIENCES: JSON.stringify(audiences), OWNER_CLAIM_CODE: 'owner-claim-test-code' } });
   });
   after(async () => {
@@ -44,6 +45,24 @@ describe('web account center, support form and Admin Lite', () => {
     assert.match(setCookie, /SameSite=Lax/i);
     return setCookie.split(';')[0];
   }
+
+  const jsonPost = (data, cookie) => ({
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: ORIGIN, ...(cookie ? { cookie } : {}) },
+    body: JSON.stringify(data),
+  });
+  const pageNonce = (html) => /"nonce":"([A-Za-z0-9_-]+)"/.exec(html)?.[1];
+  const sessionIdOf = (cookie) => decodeURIComponent(cookie.split('=')[1]).split('.')[0];
+
+  /** Native App sign-in for the same Google subject; returns the refresh token. */
+  async function appSignIn(sub, deviceLabel) {
+    const { nonce } = await (await worker.call('/v1/auth/nonce', jsonPost({ app_id: 'echo' }))).json();
+    const idToken = await signJwt(keys.google, idTokenClaims('google', { sub, nonce }));
+    const res = await worker.call('/v1/auth/google', jsonPost({ app_id: 'echo', id_token: idToken, nonce, device_label: deviceLabel }));
+    assert.equal(res.status, 200, await res.clone().text());
+    return (await res.json()).refresh_token;
+  }
+  const refreshStatus = async (refreshToken) => (await worker.call('/v1/auth/refresh', jsonPost({ refresh_token: refreshToken }))).status;
 
   async function userIdOf(sub) {
     return (await worker.db.prepare("SELECT user_id FROM auth_identities WHERE provider = 'google' AND subject = ?").bind(sub).first()).user_id;
@@ -181,6 +200,88 @@ describe('web account center, support form and Admin Lite', () => {
     }
     assert.equal(doc.paths['/admin/api'], undefined, 'web pages are not part of the API document');
     assert.ok(doc.components.securitySchemes.bearerAuth);
+  });
+
+  test('members see where they are signed in and can end one session or all of them (S-ID-05)', async () => {
+    const cookie = await webSignIn('devices-user');
+    const refreshToken = await appSignIn('devices-user', 'Pixel 9');
+    let page = await (await worker.call('/account', get(cookie))).text();
+    assert.match(page, /登入中的裝置/);
+    assert.match(page, /Pixel 9/);
+    assert.match(page, /目前這個瀏覽器/);
+    const appSession = /action="\/account\/sessions\/([0-9a-f-]+)\/revoke"/.exec(page)?.[1];
+    assert.ok(appSession, 'other sessions have a sign-out button');
+    assert.notEqual(appSession, sessionIdOf(cookie));
+
+    const stranger = await webSignIn('devices-stranger');
+    const refused = await worker.call(`/account/sessions/${appSession}/revoke`, form({}, stranger));
+    assert.equal(refused.headers.get('location'), '/account', 'cannot end another member\'s session');
+    assert.equal(await refreshStatus(refreshToken), 200, 'still signed in after the refused attempt');
+
+    const secondRefresh = await appSignIn('devices-user', 'iPad');
+    page = await (await worker.call('/account', get(cookie))).text();
+    const ipad = [...page.matchAll(/action="\/account\/sessions\/([0-9a-f-]+)\/revoke"/g)].map((m) => m[1]);
+    assert.equal(ipad.length, 2);
+    const revoke = await worker.call(`/account/sessions/${ipad[0]}/revoke`, form({}, cookie));
+    assert.equal(revoke.status, 303);
+    assert.equal(revoke.headers.get('location'), '/account?notice=session_revoked');
+    assert.match(await (await worker.call('/account?notice=session_revoked', get(cookie))).text(), /已登出該裝置/);
+
+    const third = await appSignIn('devices-user', 'Laptop');
+    const all = await worker.call('/account/logout-all', form({}, cookie));
+    assert.equal(all.status, 303);
+    assert.equal(all.headers.get('location'), '/account?notice=logged_out_everywhere');
+    assert.match(all.headers.get("set-cookie") ?? "", /__Host-starry_session=;|Max-Age=0/i);
+    assert.match(await (await worker.call('/account', get(cookie))).text(), /登入 Starry/, 'this browser is signed out too');
+    assert.match(await (await worker.call('/account?notice=logged_out_everywhere')).text(), /已登出所有裝置/);
+    for (const token of [secondRefresh, third]) assert.equal(await refreshStatus(token), 401);
+  });
+
+  test('linking Apple from the web needs a recent login and refuses identities of other members (S-ID-02)', async () => {
+    const cookie = await webSignIn('link-user');
+    const account = await (await worker.call('/account', get(cookie))).text();
+    assert.match(account, /加綁 Apple 登入方式/);
+    const linkPage = await (await worker.call('/account/link', get(cookie))).text();
+    assert.match(linkPage, /"endpoint":"\/account\/link"/);
+    assert.match(linkPage, /綁定 Apple 帳號/);
+    assert.doesNotMatch(linkPage, /google-button/, 'Google is already linked');
+    const nonce = pageNonce(linkPage);
+    const appleToken = await signJwt(keys.apple, idTokenClaims('apple', { sub: 'apple-link-1', nonce, aud: WEB_APPLE_AUDIENCE }));
+    const res = await worker.call('/account/link', jsonPost({ provider: 'apple', id_token: appleToken, nonce, authorization_code: 'web-code' }, cookie));
+    assert.equal(res.status, 200, await res.clone().text());
+    assert.deepEqual(await res.json(), { ok: true, result: 'linked' });
+    const after = await (await worker.call('/account?notice=linked', get(cookie))).text();
+    assert.match(after, /已加綁新的登入方式/);
+    assert.match(after, /<li>Apple/);
+    assert.doesNotMatch(after, /加綁.*登入方式<\/a>/);
+    assert.match(await (await worker.call('/account/link', get(cookie))).text(), /已綁定所有可用的登入方式/);
+    const exchange = await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'apple.token_exchange' AND result = 'error'").first();
+    assert.ok(exchange.n >= 1, 'without Apple keys the code exchange is skipped and audited, never blocking the link');
+
+    const other = await webSignIn('link-other');
+    const otherNonce = pageNonce(await (await worker.call('/account/link', get(other))).text());
+    const stolen = await signJwt(keys.apple, idTokenClaims('apple', { sub: 'apple-link-1', nonce: otherNonce, aud: WEB_APPLE_AUDIENCE }));
+    const taken = await worker.call('/account/link', jsonPost({ provider: 'apple', id_token: stolen, nonce: otherNonce }, other));
+    assert.equal(taken.status, 409);
+    assert.equal((await taken.json()).error.code, 'IDENTITY_IN_USE');
+
+    await worker.db.prepare('UPDATE sessions SET created_at = created_at - 3600000 WHERE session_id = ?').bind(sessionIdOf(other)).run();
+    const stale = await (await worker.call('/account/link', get(other))).text();
+    assert.match(stale, /加綁前請重新登入/);
+    assert.match(stale, /name="next" value="\/account\/link"/);
+    const late = await worker.call('/account/link', jsonPost({ provider: 'apple', id_token: stolen, nonce: otherNonce }, other));
+    assert.equal(late.status, 403);
+    assert.equal((await late.json()).error.code, 'REAUTH_REQUIRED');
+    const reauth = await worker.call('/account/logout', form({ next: '/account/link' }, other));
+    assert.equal(reauth.headers.get('location'), '/account?next=%2Faccount%2Flink');
+    assert.equal((await worker.call('/account/link', jsonPost({ provider: 'apple', id_token: stolen, nonce: otherNonce }))).status, 401);
+  });
+
+  test('the web login page sends the Apple authorization code for revocation', async () => {
+    const page = await (await worker.call('/account')).text();
+    assert.match(page, /apple-button/);
+    assert.match(page, /authorization_code = code/);
+    assert.match(page, /r\.authorization\.code/);
   });
 
   test('the web app id cannot be used by Apps, and web cookies are not refresh tokens', async () => {

@@ -60,10 +60,15 @@ function form(fields: Record<string, string>): RequestInit {
   };
 }
 
-/** Exchanges the App's one-time authorization code for a refresh token; null on any failure. */
-export async function exchangeAuthorizationCode(config: AppleConfig, clientId: string, code: string, fetchFn: FetchLike, now: number): Promise<string | null> {
+/**
+ * Exchanges a one-time authorization code for a refresh token; null on any failure.
+ * Codes from the web flow (Services ID) must repeat the redirect_uri of the authorization request.
+ */
+export async function exchangeAuthorizationCode(config: AppleConfig, clientId: string, code: string, fetchFn: FetchLike, now: number, redirectUri?: string): Promise<string | null> {
   try {
-    const res = await fetchFn(TOKEN_URL, form({ client_id: clientId, client_secret: await clientSecret(config, clientId, now), code, grant_type: 'authorization_code' }));
+    const fields: Record<string, string> = { client_id: clientId, client_secret: await clientSecret(config, clientId, now), code, grant_type: 'authorization_code' };
+    if (redirectUri) fields.redirect_uri = redirectUri;
+    const res = await fetchFn(TOKEN_URL, form(fields));
     if (!res.ok) return null;
     const body: unknown = await res.json();
     const token = typeof body === 'object' && body !== null ? (body as { refresh_token?: unknown }).refresh_token : undefined;
@@ -83,18 +88,19 @@ export async function revokeRefreshToken(config: AppleConfig, clientId: string, 
 }
 
 /**
- * Called after a successful Apple sign-in or link when the App sent an authorization code.
- * Failures never block sign-in; they are audited so missing revocation capability is visible.
+ * Called after a successful Apple sign-in or link when the client sent an authorization code
+ * (native Apps, and the web account center with its redirectUri). Failures never block
+ * sign-in; they are audited so missing revocation capability is visible.
  */
 export async function rememberAppleToken(
   db: D1Database,
   env: AppleSecrets,
   fetchFn: FetchLike,
-  input: { userId: string; subject: string; clientId: string; code: string; appId: string | null; requestId: string | null },
+  input: { userId: string; subject: string; clientId: string; code: string; redirectUri?: string; appId: string | null; requestId: string | null },
   now: number,
 ): Promise<boolean> {
   const config = appleConfig(env);
-  const refreshToken = config ? await exchangeAuthorizationCode(config, input.clientId, input.code, fetchFn, now) : null;
+  const refreshToken = config ? await exchangeAuthorizationCode(config, input.clientId, input.code, fetchFn, now, input.redirectUri) : null;
   const sealed = config && refreshToken ? await seal(config.encryptionKey, SEAL_CONTEXT, refreshToken) : null;
   if (!sealed) {
     await auditStatement(db, { actorType: 'system', actorUserId: input.userId, action: 'apple.token_exchange', targetType: 'user', targetId: input.userId, appId: input.appId, result: 'error', requestId: input.requestId, retention: 'security' }, now).run();
