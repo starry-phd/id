@@ -1057,6 +1057,11 @@
                     "maxLength": 1024,
                     "description": "Apple only; lets Starry revoke the token at account deletion"
                   },
+                  "redirect_uri": {
+                    "type": "string",
+                    "maxLength": 512,
+                    "description": "Apple web flows only: the redirect URI the authorization code was issued for (Android relay: https://id.starry.phd/auth/apple/callback; an App web version: its own registered URL)"
+                  },
                   "app_id": {
                     "type": "string",
                     "example": "echo"
@@ -1176,6 +1181,11 @@
                     "type": "string",
                     "maxLength": 1024,
                     "description": "Apple only; lets Starry revoke the token at account deletion"
+                  },
+                  "redirect_uri": {
+                    "type": "string",
+                    "maxLength": 512,
+                    "description": "Apple web flows only: the redirect URI the authorization code was issued for (Android relay: https://id.starry.phd/auth/apple/callback; an App web version: its own registered URL)"
                   },
                   "app_id": {
                     "type": "string",
@@ -2147,6 +2157,11 @@
                     "maxLength": 1024,
                     "description": "Apple only; lets Starry revoke the token at account deletion"
                   },
+                  "redirect_uri": {
+                    "type": "string",
+                    "maxLength": 512,
+                    "description": "Apple web flows only: the redirect URI the authorization code was issued for (Android relay: https://id.starry.phd/auth/apple/callback; an App web version: its own registered URL)"
+                  },
                   "merge_other_account": {
                     "type": "boolean",
                     "description": "If this sign-in already made its own Starry account, merge that account into this one. Ask the member first; the other account is deleted."
@@ -2319,6 +2334,11 @@
                     "type": "string",
                     "maxLength": 1024,
                     "description": "Apple only; lets Starry revoke the token at account deletion"
+                  },
+                  "redirect_uri": {
+                    "type": "string",
+                    "maxLength": 512,
+                    "description": "Apple web flows only: the redirect URI the authorization code was issued for (Android relay: https://id.starry.phd/auth/apple/callback; an App web version: its own registered URL)"
                   },
                   "merge_other_account": {
                     "type": "boolean",

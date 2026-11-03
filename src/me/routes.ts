@@ -7,7 +7,7 @@ import { getApp } from '../apps/registry';
 import { withEffectiveStatus } from '../apps/status';
 import { requireAuth, requireAuthAllowPending } from '../auth/middleware';
 import type { Provider } from '../auth/provider-keys';
-import { background, fail, readProviderRequest, verifyProviderRequest } from '../auth/routes';
+import { appleRedirectFor, background, fail, readProviderRequest, verifyProviderRequest } from '../auth/routes';
 import { activeEntitlements } from '../billing/revenuecat';
 import type { AppBindings } from '../env';
 import { rememberAppleToken } from '../identity/apple';
@@ -318,7 +318,13 @@ async function link(c: Context<AppBindings>, provider: Provider, body: z.infer<t
   if (provider === 'apple' && request.authorizationCode && (outcome === 'linked' || outcome === 'merged')) {
     const pending = background(
       c,
-      rememberAppleToken(c.env.DB_IDENTITY, c.env, (url, init) => fetch(url, init), { userId, subject: verified.identity.subject, clientId: verified.identity.audience, code: request.authorizationCode, appId, requestId }, now),
+      rememberAppleToken(
+        c.env.DB_IDENTITY,
+        c.env,
+        (url, init) => fetch(url, init),
+        { userId, subject: verified.identity.subject, clientId: verified.identity.audience, code: request.authorizationCode, redirectUri: appleRedirectFor(c, app, request.redirectUri), appId, requestId },
+        now,
+      ),
     );
     if (pending) await pending;
   }

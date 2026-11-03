@@ -15,6 +15,10 @@ export interface AppEntry {
   config: Readonly<Record<string, unknown>>;
   /** Accepted ID-token audiences per provider: iOS bundle ID, Apple Services ID, Google client IDs. */
   auth: Readonly<Record<Provider, readonly string[]>>;
+  /** HTTPS origins of the App's web version: allowed for CORS on /v1 and as Apple redirect_uri. */
+  web_origins: readonly string[];
+  /** App deep links the Apple web sign-in relay may return to (Android), e.g. echostarry://auth/apple. */
+  return_urls: readonly string[];
 }
 
 const APP_ID = /^[a-z][a-z0-9-]{1,31}$/;
@@ -22,6 +26,9 @@ const SEMVER = /^\d+\.\d+\.\d+$/;
 const STATUSES: readonly AppStatus[] = ['active', 'paused', 'killed'];
 const SCOPE = /^[a-z]+:[a-z]+$/;
 const AUDIENCE = /^[A-Za-z0-9._:-]{1,200}$/;
+const WEB_ORIGIN = /^https:\/\/[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+(:\d{1,5})?$/;
+// Custom-scheme deep links only, so the relay can never send tokens to a web page.
+const RETURN_URL = /^(?!(?:https?|javascript|data|file|intent|blob|about):)[a-z][a-z0-9+.-]{1,30}:\/\/[A-Za-z0-9._~/-]{1,100}$/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -31,6 +38,14 @@ function optionalString(value: unknown, field: string, appId: string): string | 
   if (value === null) return null;
   if (typeof value === 'string' && value.length > 0 && value.length <= 200) return value;
   throw new Error(`App registry: ${appId}.${field} must be null or a non-empty string`);
+}
+
+function patternList(value: unknown, pattern: RegExp, field: string, appId: string): readonly string[] {
+  if (value === undefined) return Object.freeze([]);
+  if (!Array.isArray(value) || !value.every((v) => typeof v === 'string' && pattern.test(v))) {
+    throw new Error(`App registry: ${appId}.${field} has an invalid entry`);
+  }
+  return Object.freeze([...(value as string[])]);
 }
 
 function audiences(value: unknown, field: string, appId: string): readonly string[] {
@@ -82,6 +97,8 @@ export function parseRegistry(raw: unknown): ReadonlyMap<string, AppEntry> {
         apple: audiences(item.auth.apple_audiences, 'apple_audiences', id),
         google: audiences(item.auth.google_audiences, 'google_audiences', id),
       }),
+      web_origins: patternList(item.web_origins, WEB_ORIGIN, 'web_origins', id),
+      return_urls: patternList(item.return_urls, RETURN_URL, 'return_urls', id),
     }));
   }
   return apps;

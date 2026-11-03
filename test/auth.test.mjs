@@ -259,14 +259,15 @@ describe('fail-closed configuration', () => {
     }
   });
 
-  test('test-only key and audience overrides are ignored outside development', async () => {
+  test('outside development a bad token is refused against the configured audiences', async () => {
+    // test/unit/registry.test.ts checks that the test-only key and audience overrides are ignored.
     const { bindings } = await authBindings();
     const worker = await startWorker({ bindings: { ...bindings, STARRY_ENV: 'staging' } });
     try {
       const n = (await (await worker.call('/v1/auth/nonce', json({ app_id: 'echo' }))).json()).nonce;
       const res = await worker.call('/v1/auth/google', json({ app_id: 'echo', id_token: 'a.b.c', nonce: n }));
-      assert.equal(res.status, 503);
-      assert.equal((await res.json()).error.code, 'PROVIDER_NOT_CONFIGURED');
+      assert.equal(res.status, 401);
+      assert.equal((await res.json()).error.code, 'INVALID_TOKEN');
     } finally {
       await worker.mf.dispose();
     }
