@@ -146,4 +146,8 @@ export const ProviderRequestSchema = z.object({
   id_token: z.string().min(1).max(8192),
   nonce: z.string().min(16).max(128),
   authorization_code: z.string().max(1024).optional().openapi({ description: 'Apple only; lets Starry revoke the token at account deletion' }),
+  redirect_uri: z.string().max(512).optional().openapi({
+    description:
+      'Apple web flows only: the redirect URI the authorization code was issued for (Android relay: https://id.starry.phd/auth/apple/callback; an App web version: its own registered URL)',
+  }),
 });

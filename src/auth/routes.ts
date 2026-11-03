@@ -58,13 +58,31 @@ export interface ProviderRequest {
   idToken: string;
   nonce: string;
   authorizationCode: string | null;
+  redirectUri: string | null;
 }
 
 /** Reads id_token, nonce and the optional Apple authorization_code; rejects control characters. */
 export function readProviderRequest(body: Record<string, unknown> | null | undefined): ProviderRequest | null {
   if (!body || !boundedString(body.id_token, 8192) || !boundedString(body.nonce, 128, 16)) return null;
   const code = boundedString(body.authorization_code, 1024) ? body.authorization_code : null;
-  return { idToken: body.id_token, nonce: body.nonce, authorizationCode: code };
+  const redirectUri = boundedString(body.redirect_uri, 512) ? body.redirect_uri : null;
+  return { idToken: body.id_token, nonce: body.nonce, authorizationCode: code, redirectUri };
+}
+
+/**
+ * The redirect_uri for Apple's code exchange: only our own pages (account center, Android relay)
+ * or the App's registered web origins. Returned exactly as sent, since Apple compares it verbatim.
+ */
+export function appleRedirectFor(c: Ctx, app: AppEntry, value: string | null): string | undefined {
+  if (!value) return undefined;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return undefined;
+  }
+  if (url.protocol !== 'https:') return undefined;
+  return url.origin === new URL(c.req.url).origin || app.web_origins.includes(url.origin) ? value : undefined;
 }
 
 /**
@@ -164,7 +182,13 @@ async function signIn(c: Ctx, provider: Provider, body: z.infer<typeof SignInReq
   if (provider === 'apple' && request.authorizationCode) {
     const pending = background(
       c,
-      rememberAppleToken(db, c.env, (url, init) => fetch(url, init), { userId: member.user_id, subject: identity.subject, clientId: identity.audience, code: request.authorizationCode, appId: app.app_id, requestId }, now),
+      rememberAppleToken(
+        db,
+        c.env,
+        (url, init) => fetch(url, init),
+        { userId: member.user_id, subject: identity.subject, clientId: identity.audience, code: request.authorizationCode, redirectUri: appleRedirectFor(c, app, request.redirectUri), appId: app.app_id, requestId },
+        now,
+      ),
     );
     if (pending) await pending;
   }

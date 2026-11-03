@@ -11,9 +11,11 @@ import { batteryRoutes, myBatteryRoutes } from './battery/routes';
 import { billingRoutes } from './billing/routes';
 import type { AppBindings } from './env';
 import { errorBody, type ErrorCode } from './lib/errors';
+import { apiCors } from './lib/cors';
 import { limitByIp } from './lib/rate-limit';
 import { meRoutes } from './me/routes';
 import { accountApp, publicPages } from './web/account';
+import { appleRelay } from './web/apple-relay';
 import { adminApp, setApiDocument } from './web/admin';
 import { supportApp } from './web/support';
 
@@ -27,9 +29,15 @@ app.use('*', async (c, next) => {
   c.res.headers.set('x-request-id', requestId);
   if (!c.res.headers.has('cache-control')) c.res.headers.set('cache-control', 'no-store');
 });
+// Avatars are images shown by App web versions on other origins; everything else stays same-origin.
+// Registered before secureHeaders so it runs after it and has the last word.
+app.use('*', async (c, next) => {
+  await next();
+  c.res.headers.set('cross-origin-resource-policy', c.req.path.startsWith('/v1/avatars/') ? 'cross-origin' : 'same-origin');
+});
 // Google and Apple web sign-in use popups, which need same-origin-allow-popups;
 // their buttons also need the page origin, so the referrer keeps the origin cross-site.
-app.use('*', secureHeaders({ crossOriginOpenerPolicy: 'same-origin-allow-popups', referrerPolicy: 'strict-origin-when-cross-origin' }));
+app.use('*', secureHeaders({ crossOriginOpenerPolicy: 'same-origin-allow-popups', referrerPolicy: 'strict-origin-when-cross-origin', crossOriginResourcePolicy: false }));
 
 app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
   type: 'http',
@@ -89,12 +97,14 @@ app.openapi(jwksRoute, async (c) => {
   return c.json({ keys: [{ ...key.publicJwk }] }, 200);
 });
 
+app.use('/v1/*', apiCors);
 app.use('/v1/*', limitByIp('RL_API'));
 app.use('/v1/auth/*', limitByIp('RL_AUTH'));
 app.use('/account/session', limitByIp('RL_WEB'));
 app.use('/account/link', limitByIp('RL_WEB'));
 app.use('/account/link/merge', limitByIp('RL_WEB'));
 app.use('/support', limitByIp('RL_WEB'));
+app.use('/auth/apple/*', limitByIp('RL_WEB'));
 
 app.route('/v1/apps', appRoutes);
 app.route('/v1/avatars', avatarRoutes);
@@ -108,6 +118,7 @@ app.route('/v1/battery', batteryRoutes);
 app.route('/account', accountApp);
 app.route('/support', supportApp);
 app.route('/admin', adminApp);
+app.route('/auth/apple', appleRelay);
 app.route('/', publicPages);
 
 app.notFound((c) => c.json(errorBody('NOT_FOUND', 'Resource not found', c.get('requestId')), 404));
