@@ -18,7 +18,7 @@ describe('App registry', () => {
     assert.equal(echo.ios_bundle_id, 'phd.starry.echo');
     assert.equal(echo.android_package, 'phd.starry.echo');
     assert.deepEqual(echo.auth.apple, ['phd.starry.echo', 'phd.starry.id.web']);
-    assert.deepEqual(echo.web_origins, ['https://echo-starry.starry-phd.workers.dev']);
+    assert.deepEqual(echo.web_origins, ['https://echo.starry.phd']);
     assert.deepEqual(echo.return_urls, ['echostarry://auth/apple']);
     assert.deepEqual(getApp('account')?.web_origins, [], 'optional lists default to empty');
   });

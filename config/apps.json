@@ -23,7 +23,7 @@
         ]
       },
       "web_origins": [
-        "https://echo-starry.starry-phd.workers.dev"
+        "https://echo.starry.phd"
       ],
       "return_urls": [
         "echostarry://auth/apple"
