@@ -91,9 +91,9 @@ describe('billing and battery migrations', () => {
     assert.deepEqual(await tables(worker.battery), ['battery_accounts', 'battery_ledger', 'battery_policy', 'battery_reservations', 'battery_task_types']);
   });
 
-  test('the battery policy starts with a monthly allowance and a 3-minute timeout', async () => {
+  test('the battery policy starts with 10 a month and a 3-minute timeout', async () => {
     const policy = await worker.battery.prepare('SELECT monthly_allowance, default_timeout_ms FROM battery_policy WHERE id = 1').first();
-    assert.deepEqual({ ...policy }, { monthly_allowance: 100, default_timeout_ms: 180000 });
+    assert.deepEqual({ ...policy }, { monthly_allowance: 10, default_timeout_ms: 180000 });
   });
 
   test('an account can never hold more than its allowance', async () => {

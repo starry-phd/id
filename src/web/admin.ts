@@ -134,7 +134,7 @@ ${message ? html`<div class="banner">${message}</div>` : ''}
 </div>
 <h2>Starry Battery（${balance.period}）</h2>
 <div class="card">
-<p>本月額度 <strong>${balance.allowance}</strong>｜已使用 ${balance.used}｜預留中 ${balance.reserved}｜剩餘 <strong>${balance.remaining}</strong><br>
+<p>本月額度 <strong>${balance.allowance}</strong> 顆｜已使用 ${balance.used}｜預留中 ${balance.reserved}｜剩餘 <strong>${balance.remaining}</strong> 顆<br>
 <span class="muted">下次恢復：${formatTime(balance.resets_at)}</span></p>
 ${ledger.length > 0
   ? html`<table><thead><tr><th>時間</th><th>項目</th><th>數量</th></tr></thead><tbody>
@@ -142,7 +142,7 @@ ${ledger.map((e) => html`<tr><td>${formatTime(e.created_at)}</td><td>${e.kind ==
 </tbody></table>`
   : html`<p class="muted">沒有使用紀錄。</p>`}
 ${canAdjust
-  ? html`<form method="post" action="/admin/members/${m.user_id}/battery"><label for="delta">調整本月額度（正數增加、負數減少，不能低於已使用＋預留）</label><input id="delta" name="delta" type="number" step="1" required>
+  ? html`<form method="post" action="/admin/members/${m.user_id}/battery"><label for="delta">調整本月額度（顆；正數增加、負數減少，不能低於已使用＋預留）</label><input id="delta" name="delta" type="number" step="1" required>
 <label for="battery-reason">原因（必填，最多 200 字，會員看不到）</label><input id="battery-reason" name="reason" maxlength="200" required><button type="submit">調整</button>
 <p class="muted">調整後會寄通知信給會員，只說明額度被調整，不寫數字。</p></form>`
   : ''}
@@ -219,7 +219,7 @@ adminApp.post('/members/:id/battery', async (c) => {
   await auditStatement(db, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.battery_adjusted', targetType: 'user', targetId: userId, result: 'success', requestId: actor.requestId, retention: 'security' }, now).run();
   const notice = background(c, notifyStaffChange(db, mailSettings(c.env, new URL(c.req.url).origin), userId, 'Starry Battery 本月額度'));
   if (notice) await notice;
-  return memberPage(c, actor, userId, `已調整，本月額度現為 ${result.balance.allowance}。`);
+  return memberPage(c, actor, userId, `已調整，本月額度現為 ${result.balance.allowance} 顆。`);
 });
 
 const TIMEOUT_SECONDS = (ms: number | null) => (ms === null ? '' : String(Math.round(ms / 1000)));
@@ -238,15 +238,15 @@ ${message ? html`<div class="banner">${message}</div>` : ''}
 <p class="muted">Starry 會員共用的免費 AI 用量月額度，每月 1 日（台灣時間）恢復，不累積、不能購買或轉讓。App 後端預留額度、成功才扣除，失敗或逾時自動歸還。</p>
 <h2>每月額度</h2>
 <div class="card">
-<p>每位會員每月 <strong>${policy.monthly_allowance}</strong>｜預設逾時 ${TIMEOUT_SECONDS(policy.default_timeout_ms)} 秒${policy.updated_at ? html`<br><span class="muted">最後修改：${formatTime(policy.updated_at)}</span>` : ''}</p>
+<p>每位會員每月 <strong>${policy.monthly_allowance}</strong> 顆｜預設逾時 ${TIMEOUT_SECONDS(policy.default_timeout_ms)} 秒${policy.updated_at ? html`<br><span class="muted">最後修改：${formatTime(policy.updated_at)}</span>` : ''}</p>
 ${owner
-  ? html`<form method="post" action="/admin/battery/policy"><label for="allowance">每月額度（0～1000000）</label><input id="allowance" name="allowance" type="number" min="0" max="1000000" step="1" value="${policy.monthly_allowance}" required>
+  ? html`<form method="post" action="/admin/battery/policy"><label for="allowance">每位會員每月幾顆（0～1000000）</label><input id="allowance" name="allowance" type="number" min="0" max="1000000" step="1" value="${policy.monthly_allowance}" required>
 <label for="timeout">預設逾時秒數（10～3600）</label><input id="timeout" name="timeout" type="number" min="10" max="3600" step="1" value="${TIMEOUT_SECONDS(policy.default_timeout_ms)}" required>
 <button type="submit">儲存</button><p class="muted">修改額度會同時套用到本月：每位會員本月額度增減同樣數量，但不會低於已使用＋預留。</p></form>`
   : html`<p class="muted">只有 Owner 可以修改。</p>`}
 </div>
 <h2>AI 任務類型與消耗</h2>
-<table><thead><tr><th>任務</th><th>每單位消耗</th><th>單次上限</th><th>逾時</th><th>狀態</th></tr></thead><tbody>
+<table><thead><tr><th>任務</th><th>每單位消耗（顆）</th><th>單次上限</th><th>逾時</th><th>狀態</th></tr></thead><tbody>
 ${tasks.map((t) => html`<tr><td>${t.label}<br><code>${t.task_type}</code></td><td>${t.unit_cost}</td><td>${t.max_units} 單位</td><td>${t.timeout_ms === null ? '預設' : `${TIMEOUT_SECONDS(t.timeout_ms)} 秒`}</td><td>${t.enabled ? '啟用' : '停用'}</td></tr>`)}
 </tbody></table>
 ${tasks.length === 0 ? html`<p class="muted">尚未設定任務類型；App 後端要先有任務類型才能預留 Battery。</p>` : ''}
@@ -255,7 +255,7 @@ ${owner
 <label for="task-app">App</label><select id="task-app" name="app_id">${apps.map((a) => html`<option value="${a.app_id}">${a.name}</option>`)}</select>
 <label for="task-name">任務代碼（英文小寫，例如 transcribe；完整代碼為「App.任務」）</label><input id="task-name" name="name" pattern="[a-z][a-z0-9_-]{1,31}" required>
 <label for="task-label">顯示名稱（會員看得到）</label><input id="task-label" name="label" maxlength="60" required>
-<label for="task-cost">每單位消耗</label><input id="task-cost" name="unit_cost" type="number" min="1" max="100000" step="1" required>
+<label for="task-cost">每單位消耗幾顆</label><input id="task-cost" name="unit_cost" type="number" min="1" max="100000" step="1" required>
 <label for="task-max">單次最多幾單位</label><input id="task-max" name="max_units" type="number" min="1" max="100000" step="1" required>
 <label for="task-timeout">逾時秒數（留空用預設）</label><input id="task-timeout" name="timeout" type="number" min="10" max="3600" step="1">
 <label><input type="checkbox" name="enabled" value="1" checked> 啟用</label>

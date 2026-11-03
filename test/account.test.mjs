@@ -92,6 +92,23 @@ describe('account lifecycle API', () => {
     assert.equal((await worker.call('/v1/me/identities/apple', json(await providerBody('apple', 'anon')))).status, 401, 'requires sign-in');
   });
 
+  test('an App can merge a separate account made with the other sign-in, after asking the member', async () => {
+    const duplicate = await signIn('apple', 'app-merge-apple');
+    const main = await signIn('google', 'app-merge-google');
+    const ask = await worker.call('/v1/me/identities/apple', authed(main.access_token, json(await providerBody('apple', 'app-merge-apple'))));
+    assert.equal(ask.status, 409);
+    const conflict = await ask.json();
+    assert.equal(conflict.error.code, 'IDENTITY_IN_USE');
+    assert.equal(conflict.mergeable, true);
+    assert.equal(typeof conflict.other_account_created_at, 'number');
+    const merged = await worker.call('/v1/me/identities/apple', authed(main.access_token, json(await providerBody('apple', 'app-merge-apple', { merge_other_account: true }))));
+    assert.equal(merged.status, 201, await merged.clone().text());
+    assert.deepEqual(await merged.json(), { provider: 'apple', linked: true, merged: true });
+    assert.equal((await worker.call('/v1/me', authed(duplicate.access_token))).status, 401, 'the duplicate account is gone');
+    const viaApple = await signIn('apple', 'app-merge-apple');
+    assert.equal(viaApple.user.user_id, main.user.user_id);
+  });
+
   test('avatars upload to R2 and are served only through a signed URL', async () => {
     const session = await signIn('google', 'avatar-user');
     const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 73, 72, 68, 82]);

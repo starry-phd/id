@@ -14,6 +14,8 @@ describe('Starry Battery API (S-BAT-03/04/06)', () => {
   before(async () => {
     const keys = await authBindings();
     worker = await startWorker({ bindings: { ...keys.bindings, BATTERY_SERVICE_KEYS: JSON.stringify({ echo: ECHO_KEY, other: OTHER_KEY }) } });
+    // A 100 allowance keeps the arithmetic below simple; the shipped default is 10.
+    await worker.battery.prepare('UPDATE battery_policy SET monthly_allowance = 100').run();
     await worker.battery
       .prepare("INSERT INTO battery_task_types (task_type, app_id, label, unit_cost, max_units, timeout_ms, enabled, updated_at) VALUES ('echo.transcribe', 'echo', '語音轉文字', 2, 30, NULL, 1, 0)")
       .run();

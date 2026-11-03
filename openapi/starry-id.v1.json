@@ -449,6 +449,35 @@
           }
         ]
       },
+      "LinkConflict": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Error"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "mergeable": {
+                "type": "boolean",
+                "description": "IDENTITY_IN_USE only: whether resending with merge_other_account: true would merge"
+              },
+              "merge_blocked": {
+                "type": "string",
+                "enum": [
+                  "already_has_provider",
+                  "staff",
+                  "suspended",
+                  "other_sign_in",
+                  "purchases"
+                ]
+              },
+              "other_account_created_at": {
+                "type": "integer"
+              }
+            }
+          }
+        ]
+      },
       "Entitlements": {
         "type": "object",
         "properties": {
@@ -2090,7 +2119,7 @@
           "Account"
         ],
         "summary": "Link Sign in with Apple to the signed-in member",
-        "description": "Needs a fresh nonce and ID token for that provider, issued for the same App.",
+        "description": "Needs a fresh nonce and ID token for that provider, issued for the same App. When that sign-in already made a separate Starry account, 409 IDENTITY_IN_USE says whether it can be merged; resend with merge_other_account: true after the member agrees.",
         "security": [
           {
             "bearerAuth": []
@@ -2117,6 +2146,10 @@
                     "type": "string",
                     "maxLength": 1024,
                     "description": "Apple only; lets Starry revoke the token at account deletion"
+                  },
+                  "merge_other_account": {
+                    "type": "boolean",
+                    "description": "If this sign-in already made its own Starry account, merge that account into this one. Ask the member first; the other account is deleted."
                   }
                 },
                 "required": [
@@ -2140,6 +2173,10 @@
                     },
                     "linked": {
                       "type": "boolean"
+                    },
+                    "merged": {
+                      "type": "boolean",
+                      "description": "true when a separate Starry account made earlier with this sign-in was merged into this one"
                     }
                   },
                   "required": [
@@ -2151,7 +2188,7 @@
             }
           },
           "201": {
-            "description": "Linked",
+            "description": "Linked (or merged)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2162,6 +2199,10 @@
                     },
                     "linked": {
                       "type": "boolean"
+                    },
+                    "merged": {
+                      "type": "boolean",
+                      "description": "true when a separate Starry account made earlier with this sign-in was merged into this one"
                     }
                   },
                   "required": [
@@ -2203,11 +2244,11 @@
             }
           },
           "409": {
-            "description": "Conflict with the current state",
+            "description": "The sign-in belongs to another Starry account, or this provider is already linked",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/LinkConflict"
                 }
               }
             }
@@ -2251,7 +2292,7 @@
           "Account"
         ],
         "summary": "Link Google to the signed-in member",
-        "description": "Needs a fresh nonce and ID token for that provider, issued for the same App.",
+        "description": "Needs a fresh nonce and ID token for that provider, issued for the same App. When that sign-in already made a separate Starry account, 409 IDENTITY_IN_USE says whether it can be merged; resend with merge_other_account: true after the member agrees.",
         "security": [
           {
             "bearerAuth": []
@@ -2278,6 +2319,10 @@
                     "type": "string",
                     "maxLength": 1024,
                     "description": "Apple only; lets Starry revoke the token at account deletion"
+                  },
+                  "merge_other_account": {
+                    "type": "boolean",
+                    "description": "If this sign-in already made its own Starry account, merge that account into this one. Ask the member first; the other account is deleted."
                   }
                 },
                 "required": [
@@ -2301,6 +2346,10 @@
                     },
                     "linked": {
                       "type": "boolean"
+                    },
+                    "merged": {
+                      "type": "boolean",
+                      "description": "true when a separate Starry account made earlier with this sign-in was merged into this one"
                     }
                   },
                   "required": [
@@ -2312,7 +2361,7 @@
             }
           },
           "201": {
-            "description": "Linked",
+            "description": "Linked (or merged)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2323,6 +2372,10 @@
                     },
                     "linked": {
                       "type": "boolean"
+                    },
+                    "merged": {
+                      "type": "boolean",
+                      "description": "true when a separate Starry account made earlier with this sign-in was merged into this one"
                     }
                   },
                   "required": [
@@ -2364,11 +2417,11 @@
             }
           },
           "409": {
-            "description": "Conflict with the current state",
+            "description": "The sign-in belongs to another Starry account, or this provider is already linked",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Error"
+                  "$ref": "#/components/schemas/LinkConflict"
                 }
               }
             }

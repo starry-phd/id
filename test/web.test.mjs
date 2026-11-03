@@ -229,7 +229,7 @@ describe('web account center, support form and Admin Lite', () => {
     const target = await userIdOf('battery-member');
     let account = await (await worker.call('/account', get(memberCookie))).text();
     assert.match(account, /Starry Battery/);
-    assert.match(account, /本月剩餘 <strong>100<\/strong>/);
+    assert.match(account, /本月剩餘 <strong>10<\/strong> 顆/);
 
     const adminCookie = await webSignIn('battery-admin');
     await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(await userIdOf('battery-admin'), Date.now()).run();
@@ -239,11 +239,11 @@ describe('web account center, support form and Admin Lite', () => {
     const refused = await worker.call(`/admin/members/${target}/battery`, form({ delta: '20', reason: '' }, adminCookie));
     assert.match(await refused.text(), /請填寫非 0 的整數/);
     const adjusted = await worker.call(`/admin/members/${target}/battery`, form({ delta: '20', reason: '補償' }, adminCookie));
-    assert.match(await adjusted.text(), /已調整，本月額度現為 120/);
+    assert.match(await adjusted.text(), /已調整，本月額度現為 30 顆/);
     const self = await worker.call(`/admin/members/${await userIdOf('battery-admin')}/battery`, form({ delta: '20', reason: '自己' }, adminCookie));
     assert.match(await self.text(), /不能調整自己的 Battery/);
     account = await (await worker.call('/account', get(memberCookie))).text();
-    assert.match(account, /本月剩餘 <strong>120<\/strong>/);
+    assert.match(account, /本月剩餘 <strong>30<\/strong>/);
     assert.match(account, /客服調整/);
     assert.doesNotMatch(account, /補償/, 'members never see the staff reason');
     assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.battery_adjusted'").first('n'), 1);
@@ -363,7 +363,10 @@ describe('web account center, support form and Admin Lite', () => {
     const stolen = await signJwt(keys.apple, idTokenClaims('apple', { sub: 'apple-link-1', nonce: otherNonce, aud: WEB_APPLE_AUDIENCE }));
     const taken = await worker.call('/account/link', jsonPost({ provider: 'apple', id_token: stolen, nonce: otherNonce }, other));
     assert.equal(taken.status, 409);
-    assert.equal((await taken.json()).error.code, 'IDENTITY_IN_USE');
+    const takenBody = await taken.json();
+    assert.equal(takenBody.error.code, 'IDENTITY_IN_USE');
+    assert.equal(takenBody.merge_blocked, 'other_sign_in', 'an account that also has Google is never merged away');
+    assert.equal(takenBody.merge, undefined);
 
     await worker.db.prepare('UPDATE sessions SET created_at = created_at - 3600000 WHERE session_id = ?').bind(sessionIdOf(other)).run();
     const stale = await (await worker.call('/account/link', get(other))).text();
@@ -375,6 +378,51 @@ describe('web account center, support form and Admin Lite', () => {
     const reauth = await worker.call('/account/logout', form({ next: '/account/link' }, other));
     assert.equal(reauth.headers.get('location'), '/account?next=%2Faccount%2Flink');
     assert.equal((await worker.call('/account/link', jsonPost({ provider: 'apple', id_token: stolen, nonce: otherNonce }))).status, 401);
+  });
+
+  test('Google and Apple used separately: linking offers to merge the duplicate account', async () => {
+    const main = await webSignIn('merge-google');
+    const mainId = await userIdOf('merge-google');
+    // The same person signs in with Apple on the web, which creates a second Starry account.
+    const loginNonce = pageNonce(await (await worker.call('/account')).text());
+    const appleLogin = await signJwt(keys.apple, idTokenClaims('apple', { sub: 'merge-apple', nonce: loginNonce, aud: WEB_APPLE_AUDIENCE }));
+    const dupSession = await worker.call('/account/session', jsonPost({ provider: 'apple', id_token: appleLogin, nonce: loginNonce }));
+    assert.equal(dupSession.status, 200);
+    const dupCookie = (dupSession.headers.get('set-cookie') ?? '').split(';')[0];
+    const dupId = (await worker.db.prepare("SELECT user_id FROM auth_identities WHERE provider = 'apple' AND subject = 'merge-apple'").first()).user_id;
+    assert.notEqual(dupId, mainId);
+    assert.equal((await worker.call('/support', form({ category: 'account', message: '我有兩個帳號' }, dupCookie))).status < 400, true);
+
+    const linkPage = await (await worker.call('/account/link', get(main))).text();
+    assert.match(linkPage, /merge-offer/);
+    const nonce = pageNonce(linkPage);
+    const appleToken = await signJwt(keys.apple, idTokenClaims('apple', { sub: 'merge-apple', nonce, aud: WEB_APPLE_AUDIENCE }));
+    const offer = await worker.call('/account/link', jsonPost({ provider: 'apple', id_token: appleToken, nonce }, main));
+    assert.equal(offer.status, 409);
+    const { merge } = await offer.json();
+    assert.equal(merge.provider, 'apple');
+    assert.equal(typeof merge.ticket, 'string');
+    assert.equal(typeof merge.created_at, 'number');
+    assert.doesNotMatch(merge.ticket, new RegExp(dupId), 'the other member ID stays sealed');
+
+    assert.equal((await worker.call('/account/link/merge', jsonPost({ ticket: 'v1.x.y' }, main))).status, 400);
+    const stranger = await webSignIn('merge-stranger');
+    assert.equal((await worker.call('/account/link/merge', jsonPost({ ticket: merge.ticket }, stranger))).status, 400, 'a ticket only works for the member who proved both sign-ins');
+    const done = await worker.call('/account/link/merge', jsonPost({ ticket: merge.ticket }, main));
+    assert.equal(done.status, 200, await done.clone().text());
+    assert.deepEqual(await done.json(), { ok: true, result: 'merged' });
+    assert.equal((await worker.call('/account/link/merge', jsonPost({ ticket: merge.ticket }, main))).status, 409, 'a ticket works once');
+
+    const page = await (await worker.call('/account?notice=merged', get(main))).text();
+    assert.match(page, /已合併帳號/);
+    assert.match(page, /<li>Apple/);
+    assert.match(await (await worker.call('/account', get(dupCookie))).text(), /登入 Starry/, 'the duplicate account is signed out');
+    assert.equal(await worker.db.prepare('SELECT COUNT(*) AS n FROM users WHERE user_id = ?').bind(dupId).first('n'), 0);
+    assert.equal(await worker.db.prepare('SELECT COUNT(*) AS n FROM support_tickets WHERE user_id = ?').bind(mainId).first('n'), 1, 'its support ticket moved over');
+    const again = pageNonce(await (await worker.call('/account')).text());
+    const appleAgain = await signJwt(keys.apple, idTokenClaims('apple', { sub: 'merge-apple', nonce: again, aud: WEB_APPLE_AUDIENCE }));
+    assert.equal((await worker.call('/account/session', jsonPost({ provider: 'apple', id_token: appleAgain, nonce: again }))).status, 200);
+    assert.equal((await worker.db.prepare("SELECT user_id FROM auth_identities WHERE provider = 'apple' AND subject = 'merge-apple'").first()).user_id, mainId, 'Apple now signs in to the merged account');
   });
 
   test('the web login page sends the Apple authorization code for revocation', async () => {
