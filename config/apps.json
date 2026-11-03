@@ -32,7 +32,9 @@
       "config": {},
       "auth": {
         "apple_audiences": [],
-        "google_audiences": []
+        "google_audiences": [
+          "529568041037-j9gd4baq8k239qv7an2f53rh3srbgtnm.apps.googleusercontent.com"
+        ]
       }
     }
   ]
