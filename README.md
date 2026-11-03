@@ -31,7 +31,8 @@ Starry ID 會員與登入、App Registry、購買權益投影、推播 Token、�
 
 | 路徑 | 說明 | 規格 |
 |---|---|---|
-| `/account` | 登入（Google／Apple 網頁登入）、個人資料、同意條款、刪除與撤回 | S-WEB-01 |
+| `/account` | 登入（Google／Apple 網頁登入）、個人資料、同意條款、刪除與撤回、登入中的裝置（登出單一裝置／所有裝置） | S-WEB-01、S-ID-05 |
+| `/account/link` | 加綁另一種登入方式（需 10 分鐘內登入過） | S-ID-02 |
 | `/privacy`、`/terms` | 隱私權政策、服務條款（草案，待業主確認） | S-WEB-01 |
 | `/support` | 客服與檢舉表單（訪客與會員；設定 Turnstile 後啟用驗證） | S-WEB-02 |
 | `/admin` | Admin Lite：會員查詢（遮罩）、停權／復權、角色、客服單、App 狀態、稽核 | S-ADM-01 |

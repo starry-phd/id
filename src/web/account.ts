@@ -4,12 +4,15 @@ import { html, raw } from 'hono/html';
 import { audiencesFor, getApp, type AppEntry } from '../apps/registry';
 import { withEffectiveStatus } from '../apps/status';
 import type { Provider } from '../auth/provider-keys';
-import { readProviderRequest, verifyProviderRequest } from '../auth/routes';
+import { background, readProviderRequest, verifyProviderRequest } from '../auth/routes';
 import type { AppBindings } from '../env';
+import { rememberAppleToken } from '../identity/apple';
+import { listActiveSessions, logoutEverywhere, revokeOwnSession } from '../identity/devices';
 import { cancelDeletion, DELETION_GRACE_MS, requestDeletion } from '../identity/lifecycle';
+import { linkIdentity, type LinkResult } from '../identity/link';
 import { acceptConsents, consentRequired, findOrCreateMember, PROFILE_SQL, updateProfile, type ProfileChanges, type ProfileRow } from '../identity/members';
 import { issueNonce } from '../identity/nonces';
-import { claimOwner, hasRole, roleOf } from '../identity/roles';
+import { claimOwner, hasRole, isRecentLogin, roleOf } from '../identity/roles';
 import { createWebSession, endWebSession, WEB_APP_ID, WEB_SESSION_ABSOLUTE_MS } from '../identity/web-sessions';
 import { errorBody } from '../lib/errors';
 import { boundedString, isBirthday, isLocale, readJsonObject } from '../lib/validate';
@@ -56,7 +59,68 @@ function safeNext(value: string | undefined): string {
   return value && /^\/(account|admin)(\/[A-Za-z0-9/_-]*)?$/.test(value) ? value : '/account';
 }
 
-async function loginPage(c: WebContext, message?: string): Promise<Response> {
+interface ProviderWidgetConfig {
+  nonce: string;
+  /** Where the page posts { provider, id_token, nonce, authorization_code }. */
+  endpoint: '/account/session' | '/account/link';
+  /** Where to go after a successful response. */
+  next: string;
+  google: string | null;
+  apple: string | null;
+}
+
+/**
+ * Google Identity Services and Sign in with Apple JS buttons. Both return an ID token bound to
+ * the server nonce; Apple also returns a one-time authorization code, which the server exchanges
+ * for a refresh token so it can revoke Apple access when the account is deleted (S-ID-06).
+ */
+function providerWidgets(c: WebContext, cfg: ProviderWidgetConfig, appleLabel: string): { body: Html; scripts: Html } {
+  const cspNonce = c.get('cspNonce');
+  const config = JSON.stringify(cfg);
+  const body = html`${cfg.google ? html`<div id="google-button"></div>` : ''}
+  ${cfg.apple ? html`<button id="apple-button" type="button" style="background:#000;border-color:#000">${appleLabel}</button>` : ''}
+  <p id="login-error" class="danger" role="alert"></p>`;
+  const scripts = html`${cfg.google ? html`<script src="https://accounts.google.com/gsi/client" async nonce="${cspNonce}"></script>` : ''}
+${cfg.apple ? html`<script src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/zh_TW/appleid.auth.js" async nonce="${cspNonce}"></script>` : ''}
+<script nonce="${cspNonce}">
+const cfg = ${raw(config.replace(/</g, '\\u003c'))};
+const fail = (text) => { document.getElementById('login-error').textContent = text; };
+const MESSAGES = {
+  ACCOUNT_SUSPENDED: '此帳號已停權，請聯絡客服。',
+  IDENTITY_IN_USE: '這個登入帳號已屬於另一位 Starry 會員，無法加綁。',
+  PROVIDER_ALREADY_LINKED: '您的 Starry 帳號已經綁定這種登入方式。',
+  REAUTH_REQUIRED: '為了安全，請重新登入後再操作。',
+};
+async function send(provider, idToken, code) {
+  const payload = { provider, id_token: idToken, nonce: cfg.nonce };
+  if (code) payload.authorization_code = code;
+  const res = await fetch(cfg.endpoint, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
+  if (res.ok) { location.href = cfg.next; return; }
+  const body = await res.json().catch(() => ({}));
+  fail(MESSAGES[body?.error?.code] ?? '操作失敗，請重新整理頁面後再試一次。');
+}
+window.addEventListener('load', () => {
+  if (cfg.google && window.google?.accounts?.id) {
+    google.accounts.id.initialize({ client_id: cfg.google, nonce: cfg.nonce, callback: (r) => send('google', r.credential), ux_mode: 'popup' });
+    google.accounts.id.renderButton(document.getElementById('google-button'), { theme: 'outline', size: 'large', text: cfg.endpoint === '/account/link' ? 'continue_with' : 'signin_with', locale: 'zh-TW' });
+  }
+  if (cfg.apple && window.AppleID) {
+    AppleID.auth.init({ clientId: cfg.apple, scope: 'email', redirectURI: location.origin + '/account', nonce: cfg.nonce, usePopup: true });
+    document.getElementById('apple-button').addEventListener('click', async () => {
+      try { const r = await AppleID.auth.signIn(); await send('apple', r.authorization.id_token, r.authorization.code); } catch { fail('Apple 登入已取消或失敗。'); }
+    });
+  }
+});
+</script>`;
+  return { body, scripts };
+}
+
+/** The redirect URI the web Apple flow registers (Services ID Return URL). */
+function appleRedirectUri(c: WebContext): string {
+  return `${new URL(c.req.url).origin}/account`;
+}
+
+async function loginPage(c: WebContext, message?: string, tone: 'danger' | 'info' = 'danger'): Promise<Response> {
   const app = await webApp(c);
   const googleClient = app ? audiencesFor(c.env, app, 'google')[0] : undefined;
   const appleClient = app ? audiencesFor(c.env, app, 'apple')[0] : undefined;
@@ -65,42 +129,15 @@ async function loginPage(c: WebContext, message?: string): Promise<Response> {
     return c.html(page(c, '登入', html`<h1>登入 Starry</h1><div class="banner">網頁登入尚未開放。請在繁星 App 內登入與管理帳號；如需協助請使用<a href="/support">客服表單</a>。</div>`));
   }
   const nonce = await issueNonce(c.env.DB_IDENTITY, WEB_APP_ID, Date.now());
-  const cspNonce = c.get('cspNonce');
-  const config = JSON.stringify({ nonce, next, google: googleClient ?? null, apple: appleClient ?? null });
+  const widgets = providerWidgets(c, { nonce, endpoint: '/account/session', next, google: googleClient ?? null, apple: appleClient ?? null }, '使用 Apple 登入');
   const body = html`<h1>登入 Starry</h1>
 <p>使用您在繁星 App 中使用的 Apple 或 Google 帳號登入。</p>
-${message ? html`<div class="banner danger">${message}</div>` : ''}
+${message ? html`<div class="banner${tone === 'danger' ? ' danger' : ''}">${message}</div>` : ''}
 <div class="card">
-  ${googleClient ? html`<div id="google-button"></div>` : ''}
-  ${appleClient ? html`<button id="apple-button" type="button" style="background:#000;border-color:#000">使用 Apple 登入</button>` : ''}
-  <p id="login-error" class="danger" role="alert"></p>
+  ${widgets.body}
 </div>
 <p class="muted">登入即表示您同意<a href="/terms">服務條款</a>與<a href="/privacy">隱私權政策</a>。</p>`;
-  const scripts = html`${googleClient ? html`<script src="https://accounts.google.com/gsi/client" async nonce="${cspNonce}"></script>` : ''}
-${appleClient ? html`<script src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/zh_TW/appleid.auth.js" async nonce="${cspNonce}"></script>` : ''}
-<script nonce="${cspNonce}">
-const cfg = ${raw(config.replace(/</g, '\\u003c'))};
-const fail = (text) => { document.getElementById('login-error').textContent = text; };
-async function send(provider, idToken) {
-  const res = await fetch('/account/session', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider, id_token: idToken, nonce: cfg.nonce }) });
-  if (res.ok) { location.href = cfg.next; return; }
-  const body = await res.json().catch(() => ({}));
-  fail(body?.error?.code === 'ACCOUNT_SUSPENDED' ? '此帳號已停權，請聯絡客服。' : '登入失敗，請重新整理頁面後再試一次。');
-}
-window.addEventListener('load', () => {
-  if (cfg.google && window.google?.accounts?.id) {
-    google.accounts.id.initialize({ client_id: cfg.google, nonce: cfg.nonce, callback: (r) => send('google', r.credential), ux_mode: 'popup' });
-    google.accounts.id.renderButton(document.getElementById('google-button'), { theme: 'outline', size: 'large', text: 'signin_with', locale: 'zh-TW' });
-  }
-  if (cfg.apple && window.AppleID) {
-    AppleID.auth.init({ clientId: cfg.apple, scope: 'email', redirectURI: location.origin + '/account', nonce: cfg.nonce, usePopup: true });
-    document.getElementById('apple-button').addEventListener('click', async () => {
-      try { const r = await AppleID.auth.signIn(); await send('apple', r.authorization.id_token); } catch { fail('Apple 登入已取消或失敗。'); }
-    });
-  }
-});
-</script>`;
-  return c.html(page(c, '登入', body, { scripts }));
+  return c.html(page(c, '登入', body, { scripts: widgets.scripts }));
 }
 
 /** POST /account/session — the page's script sends the provider ID token here. */
@@ -119,7 +156,14 @@ accountApp.post('/session', async (c) => {
   const db = c.env.DB_IDENTITY;
   const { member } = await findOrCreateMember(db, verified.identity, { appId: WEB_APP_ID, requestId }, now);
   if (member.status === 'suspended') return c.json(errorBody('ACCOUNT_SUSPENDED', 'Account suspended', requestId), 403);
-  const session = await createWebSession(db, { userId: member.user_id, sessionVersion: member.session_version, provider, deviceLabel: 'web', requestId }, now);
+  if (provider === 'apple' && request.authorizationCode) {
+    const pending = background(
+      c,
+      rememberAppleToken(db, c.env, (url, init) => fetch(url, init), { userId: member.user_id, subject: verified.identity.subject, clientId: verified.identity.audience, code: request.authorizationCode, redirectUri: appleRedirectUri(c), appId: WEB_APP_ID, requestId }, now),
+    );
+    if (pending) await pending;
+  }
+  const session = await createWebSession(db, { userId: member.user_id, sessionVersion: member.session_version, provider, deviceLabel: webDeviceLabel(c), requestId }, now);
   setCookie(c, SESSION_COOKIE, session.cookieValue, { prefix: 'host', path: '/', secure: true, httpOnly: true, sameSite: 'Lax', maxAge: Math.floor(WEB_SESSION_ABSOLUTE_MS / 1000) });
   return c.json({ ok: true });
 });
@@ -128,8 +172,35 @@ accountApp.post('/logout', async (c) => {
   const web = c.get('web');
   if (web) await endWebSession(c.env.DB_IDENTITY, { sessionId: web.sessionId, userId: web.userId, requestId: c.get('requestId') }, Date.now());
   deleteCookie(c, SESSION_COOKIE, { prefix: 'host', path: '/', secure: true });
-  return c.redirect('/account', 303);
+  const next = (await readForm(c)).next;
+  return c.redirect(next ? `/account?next=${encodeURIComponent(safeNext(next))}` : '/account', 303);
 });
+
+/** Short, non-identifying label for a web session, e.g. "網頁：iOS Safari". */
+function webDeviceLabel(c: WebContext): string {
+  const ua = c.req.header('user-agent') ?? '';
+  const os = /iPhone|iPad/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android' : /Mac OS X/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : /Linux/.test(ua) ? 'Linux' : '';
+  const browser = /Edg\//.test(ua) ? 'Edge' : /CriOS|Chrome\//.test(ua) ? 'Chrome' : /FxiOS|Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : '';
+  const detail = [os, browser].filter((part) => part !== '').join(' ');
+  return detail ? `網頁：${detail}` : '網頁';
+}
+
+const NOTICES: Record<string, string> = {
+  linked: '已加綁新的登入方式。',
+  session_revoked: '已登出該裝置。',
+  logged_out_everywhere: '已登出所有裝置與 App。',
+};
+
+function appLabel(appId: string): string {
+  if (appId === WEB_APP_ID) return 'Starry 帳號中心（網頁）';
+  return getApp(appId)?.name ?? appId;
+}
+
+/** Providers the web account center can link that this member does not have yet. */
+function linkableProviders(c: WebContext, app: AppEntry, linked: readonly string[]): { google: string | null; apple: string | null } {
+  const pick = (provider: Provider) => (linked.includes(provider) ? null : (audiencesFor(c.env, app, provider)[0] ?? null));
+  return { google: pick('google'), apple: pick('apple') };
+}
 
 interface AccountView {
   createdAt: number;
@@ -154,15 +225,21 @@ const PROVIDER_NAMES: Record<string, string> = { apple: 'Apple', google: 'Google
 
 accountApp.get('/', async (c) => {
   const web = c.get('web');
-  if (!web) return loginPage(c);
+  const notice = NOTICES[c.req.query('notice') ?? ''];
+  if (!web) return notice ? loginPage(c, notice, 'info') : loginPage(c);
   const db = c.env.DB_IDENTITY;
+  const now = Date.now();
   const account = await loadAccount(db, web.userId);
   if (!account) return loginPage(c, '找不到此帳號，請重新登入。');
   const needsConsent = await consentRequired(db, web.userId, c.env.TERMS_VERSION, c.env.PRIVACY_VERSION);
   const role = await roleOf(db, c.env.OWNER_USER_IDS, web.userId);
   const p = account.profile;
   const pending = web.status === 'pending_deletion' && account.deletionRequestedAt !== null;
+  const app = await webApp(c);
+  const linkable = app && !pending ? linkableProviders(c, app, account.identities.map((i) => i.provider)) : { google: null, apple: null };
+  const sessions = pending ? [] : await listActiveSessions(db, web.userId, now);
   const body = html`<h1>${p.display_name ?? '我的帳號'}</h1>
+${notice ? html`<div class="banner">${notice}</div>` : ''}
 ${pending
   ? html`<div class="banner danger"><strong>帳號將於 ${formatTime((account.deletionRequestedAt ?? 0) + DELETION_GRACE_MS)} 永久刪除。</strong><br>在此之前可以撤回，撤回後帳號立即恢復。
 <form method="post" action="/account/delete/cancel"><button type="submit">撤回刪除申請</button></form></div>`
@@ -181,11 +258,123 @@ ${!pending && needsConsent
 <h2>登入方式</h2>
 <div class="card">
   <ul>${account.identities.map((i) => html`<li>${PROVIDER_NAMES[i.provider] ?? i.provider}${i.email ? html`：${i.email}` : ''}</li>`)}</ul>
-  <p class="muted">Email 由登入服務提供，只用於聯絡，無法在此修改。可在繁星 App 內加綁另一種登入方式。</p>
+  <p class="muted">Email 由登入服務提供，只用於聯絡，無法在此修改。</p>
+  ${linkable.google || linkable.apple ? html`<a class="button" href="/account/link">加綁${linkable.apple && linkable.google ? '其他' : linkable.apple ? ' Apple ' : ' Google '}登入方式</a>` : ''}
 </div>
+${pending
+  ? ''
+  : html`<h2>登入中的裝置</h2>
+<div class="card">
+  <table>
+    <tr><th>App</th><th>裝置</th><th>最後使用</th><th></th></tr>
+    ${sessions.map(
+      (s) => html`<tr><td>${appLabel(s.appId)}</td><td>${s.deviceLabel ?? '—'}</td><td>${formatTime(s.lastUsedAt)}</td><td>${s.sessionId === web.sessionId
+        ? html`<span class="muted">目前這個瀏覽器</span>`
+        : html`<form class="inline" method="post" action="/account/sessions/${s.sessionId}/revoke"><button class="secondary" type="submit">登出</button></form>`}</td></tr>`,
+    )}
+  </table>
+  <form method="post" action="/account/logout-all"><button class="secondary" type="submit">登出所有裝置</button></form>
+  <p class="muted">「登出所有裝置」會讓所有繁星 App 與網頁立即登出，包括目前這個瀏覽器。手機遺失時請使用。</p>
+</div>`}
 ${role && hasRole(role, 'support') ? html`<p><a class="button" href="/admin">進入 Admin Lite</a></p>` : ''}
 ${pending ? '' : html`<h2>刪除帳號</h2><p class="muted">刪除後 7 天內可撤回，期滿永久清除個人資料。</p><a href="/account/delete">申請刪除帳號</a>`}`;
   return c.html(page(c, '我的帳號', body));
+});
+
+/** POST /account/sessions/:id/revoke — ends one of the member's other sessions (S-ID-05). */
+accountApp.post('/sessions/:id/revoke', async (c) => {
+  const web = c.get('web');
+  if (!web || web.status !== 'active') return c.redirect('/account', 303);
+  const sessionId = c.req.param('id');
+  if (sessionId === web.sessionId) return c.redirect('/account', 303);
+  const revoked = await revokeOwnSession(c.env.DB_IDENTITY, { userId: web.userId, sessionId, appId: WEB_APP_ID, requestId: c.get('requestId') }, Date.now());
+  return c.redirect(revoked ? '/account?notice=session_revoked' : '/account', 303);
+});
+
+/** POST /account/logout-all — ends every session in every Starry App, including this one (S-ID-05). */
+accountApp.post('/logout-all', async (c) => {
+  const web = c.get('web');
+  if (web) await logoutEverywhere(c.env.DB_IDENTITY, { userId: web.userId, appId: WEB_APP_ID, requestId: c.get('requestId') }, Date.now());
+  deleteCookie(c, SESSION_COOKIE, { prefix: 'host', path: '/', secure: true });
+  return c.redirect(web ? '/account?notice=logged_out_everywhere' : '/account', 303);
+});
+
+function linkPage(c: WebContext, body: Html, scripts?: Html): Html {
+  return page(c, '加綁登入方式', html`<h1>加綁登入方式</h1>${body}<p><a href="/account">回到帳號中心</a></p>`, scripts ? { scripts } : {});
+}
+
+/** GET /account/link — adds the other sign-in method from the web (S-ID-02). Needs a login within 10 minutes. */
+accountApp.get('/link', async (c) => {
+  const web = c.get('web');
+  if (!web) return c.redirect('/account?next=/account/link', 303);
+  if (web.status !== 'active') return c.redirect('/account', 303);
+  const app = await webApp(c);
+  if (!app) return c.redirect('/account', 303);
+  const db = c.env.DB_IDENTITY;
+  const linked = await db.prepare('SELECT provider FROM auth_identities WHERE user_id = ?').bind(web.userId).all<{ provider: string }>();
+  const providers = linkableProviders(c, app, (linked.results ?? []).map((r) => r.provider));
+  if (!providers.google && !providers.apple) {
+    return c.html(linkPage(c, html`<div class="banner">您的帳號已綁定所有可用的登入方式。</div>`));
+  }
+  const now = Date.now();
+  if (!isRecentLogin(web.createdAt, now)) {
+    return c.html(
+      linkPage(
+        c,
+        html`<div class="card"><p>為了確認是您本人，加綁前請重新登入。</p>
+<form method="post" action="/account/logout"><input type="hidden" name="next" value="/account/link"><button type="submit">重新登入</button></form></div>`,
+      ),
+    );
+  }
+  const nonce = await issueNonce(db, WEB_APP_ID, now);
+  const widgets = providerWidgets(c, { nonce, endpoint: '/account/link', next: '/account?notice=linked', google: providers.google, apple: providers.apple }, '綁定 Apple 帳號');
+  return c.html(
+    linkPage(
+      c,
+      html`<p>加綁後，可以用任一種方式登入同一個 Starry 帳號。請用要加綁的帳號完成登入。</p>
+<div class="card">${widgets.body}</div>
+<p class="muted">已經屬於其他 Starry 會員的 Apple 或 Google 帳號無法加綁。</p>`,
+      widgets.scripts,
+    ),
+  );
+});
+
+const LINK_FAILURES: Record<Exclude<LinkResult, 'linked' | 'already_linked'>, { status: 409; code: 'IDENTITY_IN_USE' | 'PROVIDER_ALREADY_LINKED'; message: string }> = {
+  identity_in_use: { status: 409, code: 'IDENTITY_IN_USE', message: 'This sign-in already belongs to another Starry account' },
+  provider_in_use: { status: 409, code: 'PROVIDER_ALREADY_LINKED', message: 'A different sign-in of this provider is already linked' },
+};
+
+/** POST /account/link — the link page's script sends the new provider's ID token here. */
+accountApp.post('/link', async (c) => {
+  const requestId = c.get('requestId');
+  const web = c.get('web');
+  if (!web || web.status !== 'active') return c.json(errorBody('UNAUTHORIZED', 'Sign in first', requestId), 401);
+  const now = Date.now();
+  if (!isRecentLogin(web.createdAt, now)) return c.json(errorBody('REAUTH_REQUIRED', 'Sign in again before linking', requestId), 403);
+  const body = await readJsonObject(c);
+  const requested = body?.provider;
+  const provider: Provider | null = requested === 'apple' || requested === 'google' ? requested : null;
+  const request = readProviderRequest(body);
+  if (!provider || !request) return c.json(errorBody('BAD_REQUEST', 'provider, id_token and nonce are required', requestId), 400);
+  const app = await webApp(c);
+  if (!app) return c.json(errorBody('APP_UNAVAILABLE', 'Web sign-in is not available', requestId), 403);
+  const verified = await verifyProviderRequest(c, provider, app, request, `account.link.${provider}`, web.userId);
+  if (!verified.ok) return verified.response;
+  const db = c.env.DB_IDENTITY;
+  const { identity } = verified;
+  const outcome = await linkIdentity(db, { userId: web.userId, appId: WEB_APP_ID, requestId }, { provider, subject: identity.subject, email: identity.email, isPrivateRelay: identity.isPrivateRelay }, now);
+  if (outcome === 'identity_in_use' || outcome === 'provider_in_use') {
+    const failure = LINK_FAILURES[outcome];
+    return c.json(errorBody(failure.code, failure.message, requestId), failure.status);
+  }
+  if (provider === 'apple' && request.authorizationCode && outcome === 'linked') {
+    const pending = background(
+      c,
+      rememberAppleToken(db, c.env, (url, init) => fetch(url, init), { userId: web.userId, subject: identity.subject, clientId: identity.audience, code: request.authorizationCode, redirectUri: appleRedirectUri(c), appId: WEB_APP_ID, requestId }, now),
+    );
+    if (pending) await pending;
+  }
+  return c.json({ ok: true, result: outcome });
 });
 
 accountApp.post('/consent', async (c) => {

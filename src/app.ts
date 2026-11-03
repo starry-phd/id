@@ -85,6 +85,7 @@ app.openapi(jwksRoute, async (c) => {
 app.use('/v1/*', limitByIp('RL_API'));
 app.use('/v1/auth/*', limitByIp('RL_AUTH'));
 app.use('/account/session', limitByIp('RL_WEB'));
+app.use('/account/link', limitByIp('RL_WEB'));
 app.use('/support', limitByIp('RL_WEB'));
 
 app.route('/v1/apps', appRoutes);
