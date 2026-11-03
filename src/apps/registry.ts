@@ -15,9 +15,9 @@ export interface AppEntry {
   config: Readonly<Record<string, unknown>>;
   /** Accepted ID-token audiences per provider: iOS bundle ID, Apple Services ID, Google client IDs. */
   auth: Readonly<Record<Provider, readonly string[]>>;
-  /** HTTPS origins of the App's web version: allowed for CORS on /v1 and as Apple redirect_uri. */
+  /** HTTPS origins of the App's web version: CORS on /v1, Apple redirect_uri, and sign-in relay return pages. */
   web_origins: readonly string[];
-  /** App deep links the Apple web sign-in relay may return to (Android), e.g. echostarry://auth/apple. */
+  /** App deep links the sign-in relay may return to (Android), e.g. echostarry://auth/apple. */
   return_urls: readonly string[];
 }
 

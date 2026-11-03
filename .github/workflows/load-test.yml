@@ -1,0 +1,35 @@
+name: Load test
+
+# Manually run before launch or after big changes (spec 11.10, simplified). Runs the built Worker
+# in local workerd + D1 on the runner with test sign-in keys: no Cloudflare resources, no secrets.
+on:
+  workflow_dispatch:
+    inputs:
+      members:
+        description: Virtual members
+        default: '1000'
+      concurrency:
+        description: Members active at the same time
+        default: '100'
+
+permissions:
+  contents: read
+
+jobs:
+  load:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - name: Run
+        env:
+          MEMBERS: ${{ inputs.members }}
+          CONCURRENCY: ${{ inputs.concurrency }}
+        run: node scripts/load-test.mjs "$MEMBERS" "$CONCURRENCY"

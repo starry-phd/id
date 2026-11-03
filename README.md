@@ -42,13 +42,15 @@ Starry ID 會員與登入、App Registry、購買權益投影與每日對帳、S
 | `/privacy`、`/terms` | 隱私權政策（版本 2026-11-03.2）、服務條款（版本 2026-11-03） | S-WEB-01 |
 | `/support` | 客服與檢舉表單（訪客與會員；附件選填：PNG／JPEG／WebP／PDF ≤ 2 MB，以檔案內容判斷類型；設定 Turnstile 後啟用驗證） | S-WEB-02 |
 | `/admin` | Admin Lite：會員查詢（遮罩）、停權／復權、角色、Battery 人工調整（Admin）與每月額度／任務消耗設定（Owner）、客服單（含附件下載、Email 回覆）、App 狀態、稽核、API 文件 | S-ADM-01、S-BAT-02/05 |
+| `/auth/{apple\|google}/start`、`/callback` | 登入中繼：App 的 Android 版與網頁版經由 id.starry.phd 登入 Apple／Google，再回到已登記的 deep link 或網頁（Apple、Google 只需設定一次） | S-ID-01 |
 | `/account/claim-owner` | 一次性設定 Owner（設定 `OWNER_CLAIM_CODE` 時才出現） | S-ID-10 |
 
 ## 背景作業
 
 - 每分鐘 Cron：釋放逾時的 Battery 預留（S-BAT-03）。
 - 每日 03:17（台灣）Cron：清除刪帳期滿會員（含 Battery 與權益資料）、撤銷 Apple Token、刪除已移除客服單的附件、刪除 RevenueCat 客戶、處理未完成的 Webhook 事件、與 RevenueCat 對帳（每次最多 200 組會員／App，最久未比對的優先）、清理過期 nonce／Session／客服單、稽核保留期（一般 90 天、安全 1 年）、Battery 帳本保留 1 年。
-- GitHub Actions：每 15 分鐘外部探測（故障開一張 Issue、恢復自動關閉）、每週匯出三個 D1 到 R2 `starry-backups`、手動維運工作（`Ops`：刪除 `OWNER_CLAIM_CODE`、建立 Turnstile）。
+- 錯誤監控：設定 `SENTRY_DSN`（變數）後，伺服器錯誤與排程失敗會送到 Sentry（不含會員資料）。
+- GitHub Actions：每 15 分鐘外部探測（故障開一張 Issue、恢復自動關閉）、每週匯出三個 D1 到 R2 `starry-backups`、手動維運工作（`Ops`：刪除 `OWNER_CLAIM_CODE`、建立 Turnstile）、手動壓力測試（`Load test`，見 `docs/load-test.md`）。
 
 ## Secrets
 

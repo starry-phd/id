@@ -61,6 +61,8 @@ jobs:
       - run: npm run lint
       - name: Build bundle and run local workerd + D1 tests
         run: npm test
+      - name: Load test (300 members, 50 at a time, local workerd + D1)
+        run: node scripts/load-test.mjs 300 50
       - name: Validate the production configuration
         run: npx wrangler deploy --dry-run --outdir dist-production
       - name: OpenAPI document matches the code

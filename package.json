@@ -15,7 +15,8 @@
     "check": "npm run typecheck && npm run lint && npm test",
     "dev": "wrangler dev --env staging",
     "test:unit": "tsx --test --test-force-exit --test-timeout=60000 \"test/unit/*.test.ts\"",
-    "openapi": "tsx scripts/export-openapi.ts"
+    "openapi": "tsx scripts/export-openapi.ts",
+    "loadtest": "npm run build && node scripts/load-test.mjs"
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.6.3",

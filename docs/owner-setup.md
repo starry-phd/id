@@ -79,23 +79,34 @@ Apple Developer → Keys → 建立啟用 Sign in with Apple 的 Key，下載 .p
 
 GitHub Ruleset「Protect main」（Active、Bypass 清單為空）：必須經 PR 合併（只允許 Squash）、必須通過 Repository policy 與 Required validation、線性歷史、禁止強制推送與刪除。緊急時到 Settings → Rules → Rulesets 暫時改為 Disabled，處理完改回 Active。
 
-## 11. 繁星回聲接入 Starry ID（2026-11-03）
+## 11. 繁星回聲接入 Starry ID（2026-11-03，已改用 Starry 登入中繼）
 
-以下都可用手機完成。做完任何一段都可以先告訴 Claude。
+以下都可用手機完成，做完任何一段都可以先告訴 Claude。App 網頁版與 Android 的登入都經過 `id.starry.phd`，所以 Apple 與 Google 的網頁設定只要做這一次；以後新增 App 網頁版或換網域，只要 Claude 改設定檔，不必再進後台。
 
-### A. Google（Google Cloud Console，與「Starry ID Web」同一個專案）
+### A. Google（console.cloud.google.com → 左上選單 →「API 和服務」→「憑證」）
 
-1. 手機瀏覽器開 console.cloud.google.com → 左上選單 →「API 和服務」→「憑證」。
-2. 點「Starry ID Web」（網頁應用程式用戶端）→「已授權的 JavaScript 來源」→「新增 URI」→ 填 `https://echo-starry.starry-phd.workers.dev` → 儲存。
-3. 回到「憑證」→「建立憑證」→「OAuth 用戶端 ID」→ 應用程式類型「iOS」→ 名稱「繁星回聲 iOS」→ 軟體包 ID `phd.starry.echo` → 建立。把畫面上的「用戶端 ID」傳給 Claude。
-4. 再「建立憑證」→「OAuth 用戶端 ID」→ 類型「Android」→ 名稱「繁星回聲 Android（上傳金鑰）」→ 套件名稱 `phd.starry.echo` → SHA-1 憑證指紋填繁星回聲的 AI 給你的值 → 建立。Google Play 應用程式簽署金鑰的 SHA-1 再建一個「繁星回聲 Android（Play 簽署）」。Android 的用戶端 ID 不用給 Claude。
+1. 點「Starry ID Web」（網頁應用程式用戶端）→「已授權的重新導向 URI」→「新增 URI」，加入兩個：
+   - `https://id.starry.phd/auth/google/callback`
+   - `https://starry-id-staging.starry-phd.workers.dev/auth/google/callback`
+
+   → 儲存。不必加入繁星回聲網頁版的網址。
+2. 「建立憑證」→「OAuth 用戶端 ID」→ 類型「iOS」→ 名稱「繁星回聲 iOS」→ 軟體包 ID `phd.starry.echo` → 建立。把「用戶端 ID」傳給 Claude。
+3. 「建立憑證」→「OAuth 用戶端 ID」→ 類型「Android」→ 名稱「繁星回聲 Android（上傳金鑰）」→ 套件名稱 `phd.starry.echo` → SHA-1 填繁星回聲的 AI 給你的值 → 建立。Google Play 應用程式簽署金鑰的 SHA-1 再建一個「繁星回聲 Android（Play 簽署）」。Android 的用戶端 ID 不用給 Claude。
 
 ### B. Apple（developer.apple.com → Certificates, Identifiers & Profiles → Identifiers）
 
 1. 點 `phd.starry.echo`（若還沒有，請繁星回聲的 AI 先以 EAS 建立）→ 勾選「Sign in with Apple」→ 右邊「Edit」→ 選「Group with an existing primary App ID」→ 選 `phd.starry.app` → Save → Continue → Save。這讓同一個人在繁星回聲與帳號中心是同一個 Apple 身分。
 2. 右上角篩選改成「Services IDs」→ 點 `phd.starry.id.web` → Sign in with Apple 右邊「Configure」：
-   - Domains and Subdomains 加入：`echo-starry.starry-phd.workers.dev`、`starry-id-staging.starry-phd.workers.dev`
-   - Return URLs 加入：`https://id.starry.phd/auth/apple/callback`、`https://starry-id-staging.starry-phd.workers.dev/auth/apple/callback`、`https://echo-starry.starry-phd.workers.dev/`
+   - Domains and Subdomains 加入：`starry-id-staging.starry-phd.workers.dev`
+   - Return URLs 加入：`https://id.starry.phd/auth/apple/callback`、`https://starry-id-staging.starry-phd.workers.dev/auth/apple/callback`
    - Next → Done → Continue → Save。原有的 `id.starry.phd` 與 `https://id.starry.phd/account` 不要刪。
-   - 如果 Apple 不接受 workers.dev 網域，告訴 Claude，改為替繁星回聲網頁版設定 starry.phd 底下的網域。
+
+## 12. Sentry 錯誤監控（選用，免費方案）
+
+程式已完成，設定 DSN 後才會送出錯誤（只送錯誤類型、訊息、程式位置與請求編號，不含會員資料或 Token）。建立新帳號依規格需業主自行決定。
+
+1. 手機開 sentry.io → Get Started，用 starry.phd@gmail.com 註冊（選免費的 Developer 方案）。
+2. 建立專案：平台選「Cloudflare Workers」（找不到就選「Node.js」），專案名稱 `starry-id`。
+3. 畫面上會出現 DSN（`https://…@….ingest.sentry.io/…`），複製傳給 Claude。DSN 是公開金鑰，可以直接貼在對話裡。
+4. Claude 把它寫進 `wrangler.jsonc` 的 `SENTRY_DSN` 並部署；之後伺服器錯誤與排程失敗會寄到你的 Sentry 信箱。
 

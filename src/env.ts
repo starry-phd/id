@@ -40,6 +40,8 @@ export interface Env {
   /** Sender and support mailbox for system email, e.g. support@starry.phd for both sending and the support mailbox. */
   EMAIL_FROM?: string;
   SUPPORT_EMAIL?: string;
+  /** Sentry DSN (public key, set as a variable) for error monitoring; without it nothing is sent. */
+  SENTRY_DSN?: string;
   /** Turnstile for the public support form (S-WEB-02); without the secret the form relies on rate limits. */
   TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;

@@ -4,6 +4,7 @@ import { batteryRetention, forgetBatteryMembers, releaseExpired } from './batter
 import { reconcileWithRevenueCat } from './billing/reconcile';
 import { forgetMembers, perAppSecrets, processPendingEvents, processRevenueCatDeletions } from './billing/revenuecat';
 import type { Env } from './env';
+import { reportError } from './lib/error-report';
 import { runDailyMaintenance } from './identity/maintenance';
 import { WEB_APP_ID } from './identity/web-sessions';
 
@@ -52,6 +53,7 @@ async function scheduled(controller: ScheduledController, env: Env): Promise<voi
     else await daily(env, now);
   } catch (error) {
     console.error(JSON.stringify({ level: 'error', event: `maintenance.${job}`, message: error instanceof Error ? error.message : 'failed' }));
+    await reportError(env.SENTRY_DSN, error, { kind: 'scheduled', environment: env.STARRY_ENV, where: job });
     throw error;
   }
 }

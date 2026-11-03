@@ -14,6 +14,7 @@ const nodeGlobals = {
   URLSearchParams: 'readonly',
   TextEncoder: 'readonly',
   TextDecoder: 'readonly',
+  performance: 'readonly',
 };
 
 export default tseslint.config(

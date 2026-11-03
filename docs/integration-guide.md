@@ -142,15 +142,18 @@ Google Client 由業主建立（步驟見 `docs/owner-setup.md` 第 11 步），
 
 - **iOS**：iOS Client ID（`iosClientId`）與其反轉網址當 URL scheme。
 - **Android**：不需要在程式中放 Android Client ID；`webClientId`（Credential Manager 的 `serverClientId`）用上面的 Web Client ID，ID Token 的 aud 會是它。Google 依套件名稱＋簽章 SHA-1 辨識 App，所以 EAS 的上傳金鑰與 Google Play 應用程式簽署金鑰的 SHA-1 都要登記（請把 SHA-1 交給業主）。
-- **網頁版**：Google Identity Services 的 `client_id` 也用同一個 Web Client ID。
+- **網頁版**：不需要 Google 用戶端設定，走 Starry 登入中繼（11.2）。
 
-### 11.2 網頁版登入
+### 11.2 網頁版登入（2026-11-03 更新：改用 Starry 登入中繼）
 
-- (a) 是。網頁版以 Google Identity Services／Sign in with Apple JS 取得 ID Token，呼叫 `POST /v1/auth/{google|apple}`，`app_id` 為 `echo`；nonce 一樣由 `POST /v1/auth/nonce` 取得。
-  - Google：`google.accounts.id.initialize({ client_id: <Web Client ID>, nonce })`。
-  - Apple：`AppleID.auth.init({ clientId: 'phd.starry.id.web', scope: 'email', redirectURI: 'https://echo-starry.starry-phd.workers.dev/', nonce, usePopup: true })`，nonce 傳原值（Apple JS 不會雜湊；後端原值與 SHA-256 兩種都接受）。登入請求附 `authorization_code` 與 `redirect_uri`（必須與 `redirectURI` 一字不差），Starry 才能在刪帳時撤銷 Apple Token。
+- (a) 網頁版**不必**自己載入 Google Identity Services／Sign in with Apple JS，也不必向 Apple、Google 登記自己的網域。改用 Starry 的登入中繼（與 Android 的 Apple 登入同一套，見 11.3）：
+  1. `POST /v1/auth/nonce` `{"app_id":"echo"}`，把原值 nonce 存在 `sessionStorage`（整頁跳轉後還要用）。
+  2. 整頁導向 `https://id.starry.phd/auth/{google|apple}/start?app_id=echo&nonce=<SHA-256(nonce) 十六進位小寫>&return=<回傳網址>&state=<隨機字串>`。回傳網址必須在 `web_origins` 之內，例如 `https://echo-starry.starry-phd.workers.dev/auth/done`（路徑由 App 自訂）。
+  3. 登入完成後回到 `<回傳網址>#id_token=…&state=…`（Apple 另有 `code`；失敗為 `#error=…&state=…`）。結果放在 `#` 之後，不會送到任何伺服器。讀取後請立刻用 `history.replaceState` 清掉網址中的 `#`。
+  4. 核對 `state`，呼叫 `POST /v1/auth/{google|apple}`：`{"app_id":"echo","id_token":…,"nonce":<原值>}`；Apple 另附 `"authorization_code":<code>,"redirect_uri":"https://id.starry.phd/auth/apple/callback"`。
+  - 網頁版換網域（例如上線到 `echo.starry.phd`）或新增其他 App 網頁版時，只需由 Claude 修改 `config/apps.json` 的 `web_origins`，業主不必再到 Apple、Google 後台設定。
 - (b) 已開放 CORS（production 與 staging）：Origin `https://echo-starry.starry-phd.workers.dev`；允許標頭 `authorization`、`content-type`、`if-match`；方法 GET／POST／PUT／PATCH／DELETE／OPTIONS（預檢回 204）；公開標頭 `etag`、`x-request-id`、`retry-after`；不使用 Cookie（不要設 `credentials: 'include'`）。頭像 `avatar_url` 是相對路徑，加上 API 網址即可用 `<img>` 跨網域顯示。
-- (c) 建議 Access Token 只放記憶體；Refresh Token 放 `sessionStorage`（關閉分頁即清除，重新整理不必重登），不要放 `localStorage`。Starry 的 Refresh Token 每次使用都會換新，舊的被重用會撤銷整個 Session，可降低外洩風險。網頁版請設定嚴格 CSP，除了 Google／Apple 的登入腳本不載入第三方腳本。若要更保守，只放記憶體，重新整理後用 Google 的 `auto_select` 重新取得 ID Token。
+- (c) 建議 Access Token 只放記憶體；Refresh Token 放 `sessionStorage`（關閉分頁即清除，重新整理不必重登），不要放 `localStorage`。Starry 的 Refresh Token 每次使用都會換新，舊的被重用會撤銷整個 Session，可降低外洩風險。網頁版請設定嚴格 CSP，不載入不必要的第三方腳本。
 
 ### 11.3 Android 的 Apple 登入（網頁流程，已部署）
 
@@ -161,8 +164,8 @@ Google Client 由業主建立（步驟見 `docs/owner-setup.md` 第 11 步），
 4. Starry 把瀏覽器導到 Apple；Apple 以 form_post 回到 `https://id.starry.phd/auth/apple/callback`；Starry 再導回 `echostarry://auth/apple?id_token=…&code=…&state=…`（取消或失敗為 `?error=…&state=…`）。
 5. App 核對 `state` 後呼叫 `POST /v1/auth/apple`：`{"app_id":"echo","id_token":…,"nonce":<原值>,"authorization_code":<code>,"redirect_uri":"https://id.starry.phd/auth/apple/callback"}`。
 6. 交給 Apple 的只有雜湊；攔截到回傳網址的人沒有原值 nonce，無法登入。
-7. App 的 `app.json` 要宣告 scheme `echostarry`。iOS 用原生 `expo-apple-authentication`（aud 為 `phd.starry.echo`），不經過中繼。
-8. 業主要在 Services ID 加入 Return URL（`docs/owner-setup.md` 第 11 步）。staging 的中繼網址為 `https://starry-id-staging.starry-phd.workers.dev/auth/apple/start`。
+7. App 的 `app.json` 要宣告 scheme `echostarry`。iOS 用原生 `expo-apple-authentication`（aud 為 `phd.starry.echo`），Android 的 Google 登入用原生套件，兩者都不經過中繼。
+8. staging 的中繼網址為 `https://starry-id-staging.starry-phd.workers.dev/auth/{apple|google}/start`。
 
 ### 11.4 環境
 
