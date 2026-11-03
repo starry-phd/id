@@ -134,7 +134,7 @@ Battery 是 Starry 會員共用的免費 AI 用量月額度（規格 S-BAT），
 | `ios_bundle_id`、`android_package` | `phd.starry.echo` |
 | `apple_audiences` | `phd.starry.echo`（iOS 原生）、`phd.starry.id.web`（Android 與網頁版的 Apple 網頁流程） |
 | `google_audiences` | `529568041037-j9gd4baq8k239qv7an2f53rh3srbgtnm.apps.googleusercontent.com`（Web Client「Starry ID Web」）。業主建立 iOS Client 後會再加入 iOS Client ID |
-| `web_origins` | `https://echo-starry.starry-phd.workers.dev`（CORS 與 Apple redirect_uri 白名單） |
+| `web_origins` | `https://echo.starry.phd`（CORS 與 Apple redirect_uri 白名單） |
 | `return_urls` | `echostarry://auth/apple`（Android Apple 登入中繼的回傳網址） |
 | `min_version` | `0.0.0`；上架後要強制更新時，告訴 Claude 要改成哪一版 |
 
@@ -148,11 +148,11 @@ Google Client 由業主建立（步驟見 `docs/owner-setup.md` 第 11 步），
 
 - (a) 網頁版**不必**自己載入 Google Identity Services／Sign in with Apple JS，也不必向 Apple、Google 登記自己的網域。改用 Starry 的登入中繼（與 Android 的 Apple 登入同一套，見 11.3）：
   1. `POST /v1/auth/nonce` `{"app_id":"echo"}`，把原值 nonce 存在 `sessionStorage`（整頁跳轉後還要用）。
-  2. 整頁導向 `https://id.starry.phd/auth/{google|apple}/start?app_id=echo&nonce=<SHA-256(nonce) 十六進位小寫>&return=<回傳網址>&state=<隨機字串>`。回傳網址必須在 `web_origins` 之內，例如 `https://echo-starry.starry-phd.workers.dev/auth/done`（路徑由 App 自訂）。
+  2. 整頁導向 `https://id.starry.phd/auth/{google|apple}/start?app_id=echo&nonce=<SHA-256(nonce) 十六進位小寫>&return=<回傳網址>&state=<隨機字串>`。回傳網址必須在 `web_origins` 之內，例如 `https://echo.starry.phd/auth/done`（路徑由 App 自訂）。
   3. 登入完成後回到 `<回傳網址>#id_token=…&state=…`（Apple 另有 `code`；失敗為 `#error=…&state=…`）。結果放在 `#` 之後，不會送到任何伺服器。讀取後請立刻用 `history.replaceState` 清掉網址中的 `#`。
   4. 核對 `state`，呼叫 `POST /v1/auth/{google|apple}`：`{"app_id":"echo","id_token":…,"nonce":<原值>}`；Apple 另附 `"authorization_code":<code>,"redirect_uri":"https://id.starry.phd/auth/apple/callback"`。
   - 網頁版換網域（例如上線到 `echo.starry.phd`）或新增其他 App 網頁版時，只需由 Claude 修改 `config/apps.json` 的 `web_origins`，業主不必再到 Apple、Google 後台設定。
-- (b) 已開放 CORS（production 與 staging）：Origin `https://echo-starry.starry-phd.workers.dev`；允許標頭 `authorization`、`content-type`、`if-match`；方法 GET／POST／PUT／PATCH／DELETE／OPTIONS（預檢回 204）；公開標頭 `etag`、`x-request-id`、`retry-after`；不使用 Cookie（不要設 `credentials: 'include'`）。頭像 `avatar_url` 是相對路徑，加上 API 網址即可用 `<img>` 跨網域顯示。
+- (b) 已開放 CORS（production 與 staging）：Origin `https://echo.starry.phd`；允許標頭 `authorization`、`content-type`、`if-match`；方法 GET／POST／PUT／PATCH／DELETE／OPTIONS（預檢回 204）；公開標頭 `etag`、`x-request-id`、`retry-after`；不使用 Cookie（不要設 `credentials: 'include'`）。頭像 `avatar_url` 是相對路徑，加上 API 網址即可用 `<img>` 跨網域顯示。
 - (c) 建議 Access Token 只放記憶體；Refresh Token 放 `sessionStorage`（關閉分頁即清除，重新整理不必重登），不要放 `localStorage`。Starry 的 Refresh Token 每次使用都會換新，舊的被重用會撤銷整個 Session，可降低外洩風險。網頁版請設定嚴格 CSP，不載入不必要的第三方腳本。
 
 ### 11.3 Android 的 Apple 登入（網頁流程，已部署）

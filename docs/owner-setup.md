@@ -87,9 +87,8 @@ GitHub Ruleset「Protect main」（Active、Bypass 清單為空）：必須經 P
 
 1. 點「Starry ID Web」（網頁應用程式用戶端）→「已授權的重新導向 URI」→「新增 URI」，加入兩個：
    - `https://id.starry.phd/auth/google/callback`
-   - `https://starry-id-staging.starry-phd.workers.dev/auth/google/callback`
 
-   → 儲存。不必加入繁星回聲網頁版的網址。
+   → 儲存。不必加入繁星回聲網頁版（`echo.starry.phd`）的網址，也不必加 workers.dev。
 2. 「建立憑證」→「OAuth 用戶端 ID」→ 類型「iOS」→ 名稱「繁星回聲 iOS」→ 軟體包 ID `phd.starry.echo` → 建立。把「用戶端 ID」傳給 Claude。
 3. 「建立憑證」→「OAuth 用戶端 ID」→ 類型「Android」→ 名稱「繁星回聲 Android（上傳金鑰）」→ 套件名稱 `phd.starry.echo` → SHA-1 填繁星回聲的 AI 給你的值 → 建立。Google Play 應用程式簽署金鑰的 SHA-1 再建一個「繁星回聲 Android（Play 簽署）」。Android 的用戶端 ID 不用給 Claude。
 
@@ -97,9 +96,9 @@ GitHub Ruleset「Protect main」（Active、Bypass 清單為空）：必須經 P
 
 1. 點 `phd.starry.echo`（若還沒有，請繁星回聲的 AI 先以 EAS 建立）→ 勾選「Sign in with Apple」→ 右邊「Edit」→ 選「Group with an existing primary App ID」→ 選 `phd.starry.app` → Save → Continue → Save。這讓同一個人在繁星回聲與帳號中心是同一個 Apple 身分。
 2. 右上角篩選改成「Services IDs」→ 點 `phd.starry.id.web` → Sign in with Apple 右邊「Configure」：
-   - Domains and Subdomains 加入：`starry-id-staging.starry-phd.workers.dev`
-   - Return URLs 加入：`https://id.starry.phd/auth/apple/callback`、`https://starry-id-staging.starry-phd.workers.dev/auth/apple/callback`
-   - Next → Done → Continue → Save。原有的 `id.starry.phd` 與 `https://id.starry.phd/account` 不要刪。
+   - Domains and Subdomains：只留 `id.starry.phd`（不必加 `echo.starry.phd`、不必加 workers.dev）
+   - Return URLs 加入：`https://id.starry.phd/auth/apple/callback`（原有的 `https://id.starry.phd/account` 保留）
+   - Next → Done → Continue → Save。
 
 ## 12. Sentry 錯誤監控（選用，免費方案）
 

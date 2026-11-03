@@ -4,7 +4,7 @@ import { authBindings, GOOGLE_AUDIENCE, idTokenClaims, sha256Hex, signJwt } from
 import { startWorker } from './helpers.mjs';
 
 // Values from config/apps.json (echo) and the account center's Apple Services ID.
-const ECHO_WEB = 'https://echo-starry.starry-phd.workers.dev';
+const ECHO_WEB = 'https://echo.starry.phd';
 const SERVICES_ID = 'phd.starry.id.web';
 const RETURN = 'echostarry://auth/apple';
 const json = (body, headers = {}) => ({ method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) });
@@ -86,7 +86,7 @@ describe('App web versions and Android Apple sign-in', () => {
     assert.equal(google.searchParams.get('response_type'), 'id_token');
     assert.equal(google.searchParams.get('response_mode'), 'form_post');
     assert.equal(google.searchParams.get('nonce'), sha256Hex(nonce));
-    for (const bad of [`https://evil.example/login`, 'http://echo-starry.starry-phd.workers.dev/login', `${ECHO_WEB}/x#frag`]) {
+    for (const bad of [`https://evil.example/login`, 'http://echo.starry.phd/login', `${ECHO_WEB}/x#frag`]) {
       assert.equal((await worker.call(`/auth/google/start?${new URLSearchParams({ app_id: 'echo', nonce: sha256Hex(nonce), return: bad })}`, { redirect: 'manual' })).status, 400, bad);
     }
     assert.equal((await worker.call('/auth/github/start?app_id=echo')).status, 404);
