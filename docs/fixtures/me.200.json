@@ -1,0 +1,114 @@
+{
+  "user_id": "0193a5b2-7c4d-7e8f-9a01-23456789abcd",
+  "status": "active",
+  "created_at": 1793680000000,
+  "deletion_requested_at": null,
+  "deletion_purge_at": null,
+  "profile": {
+    "display_name": "小星",
+    "avatar_url": null,
+    "birthday": "1990-02-28",
+    "locale": "zh-TW",
+    "contact_email": "me@example.com",
+    "contact_email_verified": false,
+    "phone": "+886912345678",
+    "country": "TW",
+    "region": "臺北市",
+    "city": "大安區",
+    "motto": "慢慢來，比較快。",
+    "derived": {
+      "zodiac": "pisces",
+      "zodiac_name": "雙魚座",
+      "talent_numbers": [
+        31
+      ],
+      "life_path_number": 4,
+      "grid": [
+        {
+          "number": 1,
+          "count": 2
+        },
+        {
+          "number": 2,
+          "count": 2
+        },
+        {
+          "number": 3,
+          "count": 1
+        },
+        {
+          "number": 4,
+          "count": 1
+        },
+        {
+          "number": 5,
+          "count": 0
+        },
+        {
+          "number": 6,
+          "count": 0
+        },
+        {
+          "number": 7,
+          "count": 0
+        },
+        {
+          "number": 8,
+          "count": 1
+        },
+        {
+          "number": 9,
+          "count": 2
+        }
+      ],
+      "lines": [
+        "1-2-3"
+      ]
+    },
+    "visibility": {
+      "display_name": "public",
+      "avatar": "public",
+      "birthday": "public",
+      "derived": "private",
+      "location": "private",
+      "phone": "private",
+      "motto": "public",
+      "contact_email": "private"
+    },
+    "field_updated_at": {
+      "display_name": {
+        "updated_at": 1793690000000,
+        "source": "member"
+      },
+      "phone": {
+        "updated_at": 1793690000000,
+        "source": "member"
+      }
+    },
+    "version": 2,
+    "updated_at": 1793690000000
+  },
+  "public_profile": {
+    "display_name": "小星",
+    "avatar_url": null,
+    "birthday_month_day": "02-28",
+    "zodiac_name": null,
+    "life_path_number": null,
+    "location": null,
+    "phone": null,
+    "motto": "慢慢來，比較快。",
+    "contact_email": null
+  },
+  "identities": [
+    {
+      "provider": "google",
+      "email": "me@gmail.com",
+      "email_is_private_relay": false
+    }
+  ],
+  "consent": {
+    "terms_version": "2026-11-03",
+    "privacy_version": "2026-11-03.2",
+    "required": false
+  }
+}

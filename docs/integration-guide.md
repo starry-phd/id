@@ -122,3 +122,68 @@ Battery 是 Starry 會員共用的免費 AI 用量月額度（規格 S-BAT），
 5. RevenueCat（要販售時）：為這款 App 建立獨立專案（S-BIL-01），Webhook URL `https://id.starry.phd/v1/billing/revenuecat/<app_id>`，再依 `docs/owner-setup.md` 第 6 步設定 Secrets。
 6. Battery（要用 AI 時）：見第 9 節。
 7. 合併到 main 自動部署後，App 以 `GET /v1/apps/<app_id>/config` 確認狀態，依第 1～8 節串接。
+
+## 11. 繁星回聲對接回覆（2026-11-03）
+
+回覆繁星回聲開發 AI 的「繁星回聲 App ↔ Starry ID 串接對接單」，編號對應對接單第二節。第三節「App 端實作」核對無誤。
+
+### 11.1 App 登記（`config/apps.json` 的 `echo`，已部署）
+
+| 欄位 | 值 |
+|---|---|
+| `ios_bundle_id`、`android_package` | `phd.starry.echo` |
+| `apple_audiences` | `phd.starry.echo`（iOS 原生）、`phd.starry.id.web`（Android 與網頁版的 Apple 網頁流程） |
+| `google_audiences` | `529568041037-j9gd4baq8k239qv7an2f53rh3srbgtnm.apps.googleusercontent.com`（Web Client「Starry ID Web」）。業主建立 iOS Client 後會再加入 iOS Client ID |
+| `web_origins` | `https://echo-starry.starry-phd.workers.dev`（CORS 與 Apple redirect_uri 白名單） |
+| `return_urls` | `echostarry://auth/apple`（Android Apple 登入中繼的回傳網址） |
+| `min_version` | `0.0.0`；上架後要強制更新時，告訴 Claude 要改成哪一版 |
+
+Google Client 由業主建立（步驟見 `docs/owner-setup.md` 第 11 步），App 端設定：
+
+- **iOS**：iOS Client ID（`iosClientId`）與其反轉網址當 URL scheme。
+- **Android**：不需要在程式中放 Android Client ID；`webClientId`（Credential Manager 的 `serverClientId`）用上面的 Web Client ID，ID Token 的 aud 會是它。Google 依套件名稱＋簽章 SHA-1 辨識 App，所以 EAS 的上傳金鑰與 Google Play 應用程式簽署金鑰的 SHA-1 都要登記（請把 SHA-1 交給業主）。
+- **網頁版**：Google Identity Services 的 `client_id` 也用同一個 Web Client ID。
+
+### 11.2 網頁版登入
+
+- (a) 是。網頁版以 Google Identity Services／Sign in with Apple JS 取得 ID Token，呼叫 `POST /v1/auth/{google|apple}`，`app_id` 為 `echo`；nonce 一樣由 `POST /v1/auth/nonce` 取得。
+  - Google：`google.accounts.id.initialize({ client_id: <Web Client ID>, nonce })`。
+  - Apple：`AppleID.auth.init({ clientId: 'phd.starry.id.web', scope: 'email', redirectURI: 'https://echo-starry.starry-phd.workers.dev/', nonce, usePopup: true })`，nonce 傳原值（Apple JS 不會雜湊；後端原值與 SHA-256 兩種都接受）。登入請求附 `authorization_code` 與 `redirect_uri`（必須與 `redirectURI` 一字不差），Starry 才能在刪帳時撤銷 Apple Token。
+- (b) 已開放 CORS（production 與 staging）：Origin `https://echo-starry.starry-phd.workers.dev`；允許標頭 `authorization`、`content-type`、`if-match`；方法 GET／POST／PUT／PATCH／DELETE／OPTIONS（預檢回 204）；公開標頭 `etag`、`x-request-id`、`retry-after`；不使用 Cookie（不要設 `credentials: 'include'`）。頭像 `avatar_url` 是相對路徑，加上 API 網址即可用 `<img>` 跨網域顯示。
+- (c) 建議 Access Token 只放記憶體；Refresh Token 放 `sessionStorage`（關閉分頁即清除，重新整理不必重登），不要放 `localStorage`。Starry 的 Refresh Token 每次使用都會換新，舊的被重用會撤銷整個 Session，可降低外洩風險。網頁版請設定嚴格 CSP，除了 Google／Apple 的登入腳本不載入第三方腳本。若要更保守，只放記憶體，重新整理後用 Google 的 `auto_select` 重新取得 ID Token。
+
+### 11.3 Android 的 Apple 登入（網頁流程，已部署）
+
+1. `POST /v1/auth/nonce` `{"app_id":"echo"}`，原值 nonce 只留在 App 記憶體。
+2. `nonceHash` = nonce 的 SHA-256 十六進位小寫字串（`expo-crypto` 的 `digestStringAsync(SHA256, nonce)`）。
+3. `expo-web-browser` 的 `openAuthSessionAsync(url, 'echostarry://auth/apple')`，其中 url 為：
+   `https://id.starry.phd/auth/apple/start?app_id=echo&nonce=<nonceHash>&return=echostarry%3A%2F%2Fauth%2Fapple&state=<隨機字串>`
+4. Starry 把瀏覽器導到 Apple；Apple 以 form_post 回到 `https://id.starry.phd/auth/apple/callback`；Starry 再導回 `echostarry://auth/apple?id_token=…&code=…&state=…`（取消或失敗為 `?error=…&state=…`）。
+5. App 核對 `state` 後呼叫 `POST /v1/auth/apple`：`{"app_id":"echo","id_token":…,"nonce":<原值>,"authorization_code":<code>,"redirect_uri":"https://id.starry.phd/auth/apple/callback"}`。
+6. 交給 Apple 的只有雜湊；攔截到回傳網址的人沒有原值 nonce，無法登入。
+7. App 的 `app.json` 要宣告 scheme `echostarry`。iOS 用原生 `expo-apple-authentication`（aud 為 `phd.starry.echo`），不經過中繼。
+8. 業主要在 Services ID 加入 Return URL（`docs/owner-setup.md` 第 11 步）。staging 的中繼網址為 `https://starry-id-staging.starry-phd.workers.dev/auth/apple/start`。
+
+### 11.4 環境
+
+| 環境 | API 網址 | Access Token `iss` | 狀態 |
+|---|---|---|---|
+| production | `https://id.starry.phd` | `starry-id:production` | 已部署，`/v1/health` 為 ok |
+| staging | `https://starry-id-staging.starry-phd.workers.dev` | `starry-id:staging` | 已部署，`/v1/health` 為 ok |
+
+每次合併到 main 都會自動部署 staging → production，並以 `/v1/health` 做 smoke test，失敗自動回滾。staging 與 production 的資料庫和簽章金鑰各自獨立，帳號不互通；App 設定共用同一份 `config/apps.json`。
+
+### 11.5 契約穩定
+
+同意。`openapi/starry-id.v1.json` 視為對外契約，CI 以 oasdiff 擋下破壞性變更；破壞性改版走 `/v2`。所有變更記在 [`docs/api-changelog.md`](api-changelog.md)。請 App 容忍回應中多出的欄位。
+
+### 11.6 測試範例
+
+[`docs/fixtures/`](fixtures/README.md) 提供主要端點的成功與錯誤回應範例與錯誤碼對照表。CI 會實際呼叫 API 比對範例的欄位與型別，範例過時就無法合併。
+
+### 11.7 對接單以外，App 需要知道的變更
+
+- **會員資料欄位**（ADR 0006）：`profile` 新增聯絡 Email、手機、國家／省州／城市、座右銘、生日推算資訊（星座、天賦數、生命靈數、九宮格）、公開設定、各欄最後修改時間。`PATCH /v1/me/profile` 只送要改的欄位；顯示名稱為 null 時顯示「繁星會員」的做法不變。
+- **帳號合併**：加綁時若回 409 `IDENTITY_IN_USE` 且 `mergeable: true`，請詢問會員後帶 `merge_other_account: true` 重送（第 4 節）。
+- **隱私權政策** 版本為 `2026-11-03.2`；會員登入後 `consent_required` 為 true 時請顯示同意流程。
+- **交接 Issue**：舊 Repo 的 #220 已隨舊 Repo 刪除，starry-phd/id 的交接 Issue 是 [#2](https://github.com/starry-phd/id/issues/2)。
