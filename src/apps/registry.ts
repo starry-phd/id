@@ -28,7 +28,7 @@ const SCOPE = /^[a-z]+:[a-z]+$/;
 const AUDIENCE = /^[A-Za-z0-9._:-]{1,200}$/;
 const WEB_ORIGIN = /^https:\/\/[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+(:\d{1,5})?$/;
 // Custom-scheme deep links only, so the relay can never send tokens to a web page.
-const RETURN_URL = /^(?!(?:https?|javascript|data|file|intent|blob|about):)[a-z][a-z0-9+.-]{1,30}:\/\/[A-Za-z0-9._~\/-]{1,100}$/;
+const RETURN_URL = /^(?!(?:https?|javascript|data|file|intent|blob|about):)[a-z][a-z0-9+.-]{1,30}:\/\/[A-Za-z0-9._~/-]{1,100}$/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
