@@ -10,7 +10,7 @@ const fixture = (name) => JSON.parse(readFileSync(`docs/fixtures/${name}`, 'utf8
 const json = (body, headers = {}) => ({ method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) });
 const authed = (token, init = {}) => ({ ...init, headers: { ...(init.headers ?? {}), authorization: `Bearer ${token}` } });
 // Objects whose keys are data (one entry per changed field), compared value by value.
-const RECORDS = new Set(['$.profile.field_updated_at']);
+const RECORD_SUFFIXES = ['.profile.field_updated_at'];
 
 function assertShape(actual, expected, path = '$') {
   if (expected === null || actual === null) return; // nullable either way
@@ -21,7 +21,7 @@ function assertShape(actual, expected, path = '$') {
   }
   if (typeof expected === 'object') {
     assert.equal(typeof actual, 'object', `${path} should be an object`);
-    if (RECORDS.has(path)) {
+    if (RECORD_SUFFIXES.some((suffix) => path.endsWith(suffix))) {
       const sample = Object.values(expected)[0];
       for (const [key, value] of Object.entries(actual)) assertShape(value, sample, `${path}.${key}`);
       return;
