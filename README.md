@@ -53,6 +53,7 @@ Starry ID 會員與登入、App Registry、購買權益投影、推播 Token、�
 | `APPLE_TEAM_ID`、`APPLE_KEY_ID`、`APPLE_PRIVATE_KEY` | Workers Secret | 業主（Sign in with Apple 金鑰） |
 | `REVENUECAT_WEBHOOK_AUTH`、`REVENUECAT_API_KEYS` | Workers Secret（JSON，每款 App 一筆） | 業主（RevenueCat 專案建立後） |
 | `TURNSTILE_SECRET_KEY`；`TURNSTILE_SITE_KEY`（變數） | Workers | 業主（選用） |
+| `send_email` 綁定 `EMAIL`；`EMAIL_FROM`、`SUPPORT_EMAIL`（變數） | wrangler.jsonc | Claude（業主完成 Email Service 設定後加入綁定；沒有綁定時不寄任何信） |
 
 各 App 的 Apple／Google client ID 寫在 `config/apps.json` 的 `auth`（不是秘密）；清單為空時該登入方式回 503。
 

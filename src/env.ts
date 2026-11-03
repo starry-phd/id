@@ -1,4 +1,5 @@
 import type { RateLimiter } from './lib/rate-limit';
+import type { EmailSender } from './notify/email';
 
 export type StarryEnvironment = 'development' | 'staging' | 'production';
 
@@ -30,6 +31,11 @@ export interface Env {
   REVENUECAT_API_KEYS?: string;
   /** Secret: 32 random bytes, base64url; seals stored third-party tokens. */
   DATA_ENCRYPTION_KEY?: string;
+  /** Cloudflare Email Service send_email binding (S-NTF-02); without it no email is sent. */
+  EMAIL?: EmailSender;
+  /** Sender and support mailbox for system email, e.g. noreply@starry.phd and support@starry.phd. */
+  EMAIL_FROM?: string;
+  SUPPORT_EMAIL?: string;
   /** Turnstile for the public support form (S-WEB-02); without the secret the form relies on rate limits. */
   TURNSTILE_SITE_KEY?: string;
   TURNSTILE_SECRET_KEY?: string;

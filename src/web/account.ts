@@ -7,6 +7,7 @@ import type { Provider } from '../auth/provider-keys';
 import { background, readProviderRequest, verifyProviderRequest } from '../auth/routes';
 import type { AppBindings } from '../env';
 import { rememberAppleToken } from '../identity/apple';
+import { mailSettings, notifyDeletionRequested } from '../notify/email';
 import { listActiveSessions, logoutEverywhere, revokeOwnSession } from '../identity/devices';
 import { cancelDeletion, DELETION_GRACE_MS, requestDeletion } from '../identity/lifecycle';
 import { linkIdentity, type LinkResult } from '../identity/link';
@@ -468,6 +469,8 @@ accountApp.post('/delete', async (c) => {
   deleteCookie(c, SESSION_COOKIE, { prefix: 'host', path: '/', secure: true });
   c.set('web', null);
   if (!result.ok) return c.redirect('/account', 303);
+  const pending = background(c, notifyDeletionRequested(c.env.DB_IDENTITY, mailSettings(c.env, new URL(c.req.url).origin), web.userId, result.purgeAt));
+  if (pending) await pending;
   return c.html(
     page(
       c,

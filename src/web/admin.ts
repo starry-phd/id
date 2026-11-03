@@ -6,7 +6,9 @@ import type { AppBindings } from '../env';
 import { listAudit } from '../identity/audit-query';
 import { hasRole, isRecentLogin, restoreMember, roleOf, searchMembers, setStaffRole, suspendMember, type Role, type StaffActor, type StatusChangeResult } from '../identity/roles';
 import { auditStatement } from '../lib/audit';
+import { mailSettings } from '../notify/email';
 import { ATTACHMENT_EXTENSIONS, getAttachment, listAttachments } from '../support/attachments';
+import { listReplies, replyRecipient, replyToTicket } from '../support/replies';
 import { CATEGORY_LABELS, getTicket, listTickets, setTicketStatus } from '../support/tickets';
 import { formatTime, page, readForm, sameOrigin, webContext, type Html, type WebContext } from './layout';
 
@@ -203,6 +205,9 @@ async function ticketPage(c: WebContext, actor: StaffActor, ticketId: string, me
   if (!t) return c.html(adminPage(c, '找不到客服單', html`<h1>找不到客服單</h1>`), 404);
   await auditStatement(db, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.ticket_viewed', targetType: 'ticket', targetId: t.ticket_id, result: 'success', requestId: actor.requestId, retention: 'general' }, Date.now()).run();
   const attachments = await listAttachments(db, t.ticket_id);
+  const replies = await listReplies(db, t.ticket_id);
+  const canEmail = mailSettings(c.env, new URL(c.req.url).origin) !== null;
+  const recipient = await replyRecipient(db, t);
   return c.html(
     adminPage(
       c,
@@ -218,6 +223,23 @@ ${attachments.map(
   (a) => html`<p><strong>附件：</strong><a href="/admin/tickets/${t.ticket_id}/attachments/${a.attachment_id}">下載 ${ATTACHMENT_EXTENSIONS[a.content_type].toUpperCase()}（${Math.max(1, Math.round(a.size_bytes / 1024))} KB）</a><br><span class="muted">使用者上傳的檔案，請勿在登入中的電腦上直接開啟可疑檔案。</span></p>`,
 )}
 </div>
+${replies.length > 0
+  ? html`<h2>回覆紀錄</h2>${replies.map(
+      (r) => html`<div class="card"><p class="muted">${formatTime(r.created_at)}｜${r.delivery === 'sent' ? '已寄出' : html`<span class="danger">寄送失敗（${r.error_code ?? '未知'}）</span>`}</p><p style="white-space:pre-wrap">${r.body}</p></div>`,
+    )}`
+  : ''}
+<h2>以 Email 回覆</h2>
+${!canEmail
+  ? html`<p class="muted">系統 Email 尚未啟用（需業主完成 Email Service 設定），請暫時用客服信箱直接回覆。</p>`
+  : !recipient
+    ? html`<p class="muted">找不到可回覆的 Email（會員的登入方式沒有提供 Email）。</p>`
+    : html`<form method="post" action="/admin/tickets/${t.ticket_id}/reply" class="card">
+<p class="muted">寄給：${recipient}（信中會附上原始訊息，回信會寄到客服信箱）</p>
+<label for="reply">回覆內容（最多 2000 字）</label><textarea id="reply" name="reply" maxlength="2000" rows="6" required></textarea>
+${t.status === 'open' ? html`<label><input type="checkbox" name="close" value="yes" style="width:auto" checked> 寄出後結案</label>` : ''}
+<button type="submit">寄出回覆</button>
+</form>`}
+<h2>狀態與內部備註</h2>
 <form method="post" action="/admin/tickets/${t.ticket_id}/status" class="card">
 <label for="note">內部備註（選填，最多 1000 字）</label><textarea id="note" name="note" maxlength="1000" rows="3"></textarea>
 <input type="hidden" name="status" value="${t.status === 'open' ? 'closed' : 'open'}">
@@ -252,6 +274,25 @@ adminApp.get('/tickets/:id/attachments/:attachmentId', async (c) => {
       'cache-control': 'private, no-store',
     },
   });
+});
+
+/** POST /admin/tickets/:id/reply — emails the reply to the sender and keeps it with the ticket (S-NTF-02). */
+adminApp.post('/tickets/:id/reply', async (c) => {
+  const actor = await staff(c, 'support');
+  if (actor instanceof Response) return actor;
+  const db = c.env.DB_IDENTITY;
+  const ticketId = c.req.param('id');
+  const ticket = await getTicket(db, ticketId);
+  if (!ticket) return ticketPage(c, actor, ticketId, '找不到客服單。');
+  const mail = mailSettings(c.env, new URL(c.req.url).origin);
+  if (!mail) return ticketPage(c, actor, ticketId, '系統 Email 尚未啟用。');
+  const form = await readForm(c);
+  const now = Date.now();
+  const result = await replyToTicket(db, mail, actor, ticket, form.reply ?? '', now);
+  if (!result.ok) return ticketPage(c, actor, ticketId, result.reason === 'invalid' ? '回覆內容需為 1～2000 字。' : '找不到可回覆的 Email。');
+  if (result.reply.delivery === 'failed') return ticketPage(c, actor, ticketId, `寄送失敗（${result.reply.error_code ?? '未知'}），回覆已保存，請稍後再試或改用客服信箱。`);
+  if (form.close === 'yes' && ticket.status === 'open') await setTicketStatus(db, actor, ticketId, 'closed', null, now);
+  return ticketPage(c, actor, ticketId, form.close === 'yes' && ticket.status === 'open' ? '已寄出回覆並結案。' : '已寄出回覆。');
 });
 
 adminApp.post('/tickets/:id/status', async (c) => {

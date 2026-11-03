@@ -54,12 +54,22 @@ Apple Developer → Keys → 建立啟用 Sign in with Apple 的 Key，下載 .p
    - `REVENUECAT_WEBHOOK_AUTH`：`{"echo":"上一步自訂的長字串"}`
    - `REVENUECAT_API_KEYS`：`{"echo":"sk_..."}`
 
-## 7. 其他
+## 7. 系統 Email（S-NTF-02，業主 2026-11-03 核准 Workers Paid）
+
+1. 升級 Workers Paid（每月 5 美元，含每月 3,000 封信）：Cloudflare → Workers 和 Pages → 方案 → Workers Paid。
+2. 客服信箱：運算 → Email Service → Email Routing → 網域 `starry.phd` → 自訂地址 `support` 轉寄到業主 Gmail → 新增記錄並啟用；到 Gmail 點驗證信。
+3. 寄信網域：Email Service → Email Sending → Onboard Domain → `starry.phd` → Done（自動加入 `cf-bounce` 的 MX／SPF／DKIM 與 `_dmarc` 記錄）。
+4. Apple 隱藏信箱：Apple Developer → Services → Sign in with Apple for Email Communication → Configure → 加入網域 `starry.phd` 與寄件人 `noreply@starry.phd`。
+5. 告訴 Claude 完成；Claude 在 `wrangler.jsonc` 加入 `send_email` 綁定 `EMAIL` 並部署，寄一封測試信確認。
+
+寄出的信：刪帳申請確認（寄給會員）、Admin Lite 回覆客服單（寄給提問者）、新客服單通知（寄到 support@starry.phd）。不寄行銷信。
+
+## 8. 其他
 
 - 法律文件：審閱 https://id.starry.phd/privacy 與 /terms，補上【待業主確認】的經營者名稱、客服信箱與管轄法院。確認後 Claude 會把版本從 `draft-2026-11-03` 改為正式版本。
 - 選用：Cloudflare Turnstile 建立 Widget（網域 `id.starry.phd`），把 Site Key 與 Secret Key 給 Claude 設定，用於客服表單防濫用。
 - 規格「需要業主處理的外部事項」：Google Play 帳號類型（G-03）、App Store 付費協議（G-02）、GitHub 帳號整併（G-01）。
 
-## 8. 已完成：main 分支保護
+## 9. 已完成：main 分支保護
 
 GitHub Ruleset「Protect main」（Active、Bypass 清單為空）：必須經 PR 合併（只允許 Squash）、必須通過 Repository policy 與 Required validation、線性歷史、禁止強制推送與刪除。緊急時到 Settings → Rules → Rulesets 暫時改為 Disabled，處理完改回 Active。

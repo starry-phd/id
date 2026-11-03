@@ -24,7 +24,7 @@ export const PRIVACY_POLICY: LegalDocument = {
       title: '一、經營者與聯絡方式',
       items: [
         '經營者：【待業主確認：個人或公司名稱】',
-        '聯絡方式：本網站「客服與檢舉」表單（https://id.starry.phd/support），或客服信箱【待業主確認】。',
+        '聯絡方式：本網站「客服與檢舉」表單（https://id.starry.phd/support），或客服信箱 support@starry.phd。',
       ],
     },
     {
