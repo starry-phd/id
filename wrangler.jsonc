@@ -18,6 +18,8 @@
     { "name": "RL_API", "namespace_id": "1002", "simple": { "limit": 300, "period": 60 } },
     { "name": "RL_WEB", "namespace_id": "1003", "simple": { "limit": 20, "period": 60 } }
   ],
+  // Cloudflare Email Service sending (S-NTF-02). Sender domain starry.phd is onboarded and verified.
+  "send_email": [{ "name": "EMAIL" }],
   "r2_buckets": [
     { "binding": "AVATARS", "bucket_name": "starry-avatars" },
     { "binding": "SUPPORT_FILES", "bucket_name": "starry-support-files" }
@@ -46,6 +48,7 @@
         { "name": "RL_API", "namespace_id": "2002", "simple": { "limit": 300, "period": 60 } },
         { "name": "RL_WEB", "namespace_id": "2003", "simple": { "limit": 20, "period": 60 } }
       ],
+      "send_email": [{ "name": "EMAIL" }],
       "r2_buckets": [
         { "binding": "AVATARS", "bucket_name": "starry-avatars-staging" },
         { "binding": "SUPPORT_FILES", "bucket_name": "starry-support-files-staging" }
