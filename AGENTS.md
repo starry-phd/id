@@ -61,6 +61,9 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 
 ## 尚未完成（依序）
 
-1. App 接入：每款 App 在 `config/apps.json` 登記（Bundle ID、Android package、Google iOS／Android Client ID），Apple App ID 掛到群組主 App ID `phd.starry.app`；App 端以 `openapi/starry-id.v1.json` 產生型別。串接方式見 `docs/integration-guide.md`。
-2. 業主外部設定：`docs/owner-setup.md`。
-3. 依需求再做：Battery（S-BAT，第一款付費 AI App 開工時）、RevenueCat 每日全量對帳。系統 Email（S-NTF-02）程式已完成，等業主完成 `docs/owner-setup.md` 第 7 步後加入 `send_email` 綁定。
+規格 v2.0 中屬於本 Repo 的開發項目已全部完成並部署（2026-11-03；Battery 依業主同日指示提前完成，不等 S-BAT-07 的觸發條件）。其餘為外部或其他 Repo 的工作：
+
+1. App 接入：每款 App 依 `docs/integration-guide.md` 第 10 節在 `config/apps.json` 登記（Bundle ID、Android package、Apple／Google audiences），Apple App ID 掛到群組主 App ID `phd.starry.app`；App 端以 `openapi/starry-id.v1.json` 產生型別。
+2. 使用 Battery 的 App：Owner 在 Admin Lite 建立任務類型，Claude 把該 App 後端的服務金鑰加入 `BATTERY_SERVICE_KEYS`。
+3. 使用 RevenueCat 的 App：業主依 `docs/owner-setup.md` 第 6 步設定 Webhook 與 API Key；設定後每日對帳自動涵蓋。
+4. 業主外部事項：`docs/owner-setup.md`（Google Play 帳號類型、App Store 付費協議、GitHub 帳號整併等）。

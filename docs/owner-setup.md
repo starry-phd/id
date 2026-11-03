@@ -22,7 +22,7 @@
 1. Cloudflare → Workers & Pages → `starry-id` → Settings → Variables and Secrets → Add → 類型 Secret，名稱 `OWNER_CLAIM_CODE`，值自訂一組 12 字以上的密語。
 2. 用手機開 https://id.starry.phd/account 登入（網頁登入需先完成第 4 步的 Google Web Client）。
 3. 開 https://id.starry.phd/account/claim-owner，輸入密語。
-4. 回到 Cloudflare 刪除 `OWNER_CLAIM_CODE`。
+4. ~~回到 Cloudflare 刪除 `OWNER_CLAIM_CODE`~~：改由 Claude 執行 GitHub Actions →「Ops」→ `remove-owner-claim-code` 刪除。
 
 ## 4. 登入用的 Client ID（上架前）
 
@@ -62,14 +62,18 @@ Apple Developer → Keys → 建立啟用 Sign in with Apple 的 Key，下載 .p
 4. Apple 隱藏信箱：Apple Developer → Services → Sign in with Apple for Email Communication → Configure → 加入網域 `starry.phd` 與寄件人 `support@starry.phd`（與客服信箱共用）。
 5. 告訴 Claude 完成；Claude 在 `wrangler.jsonc` 加入 `send_email` 綁定 `EMAIL` 並部署，寄一封測試信確認。
 
-寄出的信：刪帳申請確認（寄給會員）、Admin Lite 回覆客服單（寄給提問者）、新客服單通知（寄到 support@starry.phd）。不寄行銷信。
+已於 2026-11-03 全部完成並實測。寄出的信：刪帳申請確認（寄給會員）、Admin Lite 回覆客服單（寄給提問者）、新客服單通知（寄到 support@starry.phd）、客服人員調整會員 Battery 的通知（只寫項目、不寫數字）。不寄行銷信。
 
 ## 8. 其他
 
-- 法律文件：審閱 https://id.starry.phd/privacy 與 /terms，補上【待業主確認】的經營者名稱、客服信箱與管轄法院。確認後 Claude 會把版本從 `draft-2026-11-03` 改為正式版本。
-- 選用：Cloudflare Turnstile 建立 Widget（網域 `id.starry.phd`），把 Site Key 與 Secret Key 給 Claude 設定，用於客服表單防濫用。
+- 法律文件：業主 2026-11-03 授權 Claude 定稿，正式版本 `2026-11-03`（經營者 CHIEN-LUNG TU，管轄法院臺灣臺北地方法院）。業主可隨時審閱 https://id.starry.phd/privacy 與 /terms；修改內容會更新版本並請所有會員重新同意。
+- Turnstile（客服表單防濫用）：Claude 以 GitHub Actions →「Ops」→ `setup-turnstile` 建立。若 Cloudflare API Token 沒有 Turnstile 權限，業主只需編輯 Token（My Profile → API Tokens → 該 Token → Edit）加入「Account｜Turnstile｜Edit」，Claude 再重新執行。
 - 規格「需要業主處理的外部事項」：Google Play 帳號類型（G-03）、App Store 付費協議（G-02）、GitHub 帳號整併（G-01）。
 
-## 9. 已完成：main 分支保護
+## 9. Starry Battery
+
+不需要業主設定。Owner 可在 Admin Lite →「Battery」調整每位會員的每月額度（預設 100）與各 AI 任務的消耗；App 後端的服務金鑰由 Claude 在該 App 開始使用 AI 時設定。
+
+## 10. 已完成：main 分支保護
 
 GitHub Ruleset「Protect main」（Active、Bypass 清單為空）：必須經 PR 合併（只允許 Squash）、必須通過 Repository policy 與 Required validation、線性歷史、禁止強制推送與刪除。緊急時到 Settings → Rules → Rulesets 暫時改為 Disabled，處理完改回 Active。

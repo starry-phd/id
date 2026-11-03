@@ -1,0 +1,89 @@
+name: Ops
+
+# Manually run one-off Cloudflare settings with the repository's Cloudflare token, so the owner
+# does not have to click through the dashboard. Secrets are piped straight into
+# `wrangler secret put` and never printed.
+#   remove-owner-claim-code: deletes the one-time OWNER_CLAIM_CODE secret (staging and production)
+#                            after the owner has claimed the Owner role.
+#   setup-turnstile:         creates (or reuses) the Turnstile widget for the support form and
+#                            stores its secret as TURNSTILE_SECRET_KEY; prints the public site key,
+#                            which then goes into wrangler.jsonc as TURNSTILE_SITE_KEY.
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: What to do
+        required: true
+        type: choice
+        options:
+          - remove-owner-claim-code
+          - setup-turnstile
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ops
+  cancel-in-progress: false
+
+jobs:
+  ops:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      TASK: ${{ inputs.task }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Remove OWNER_CLAIM_CODE
+        if: env.TASK == 'remove-owner-claim-code'
+        run: |
+          set -euo pipefail
+          for target in "--env staging" ""; do
+            # shellcheck disable=SC2086
+            if npx wrangler secret list $target 2>/dev/null | grep -qw OWNER_CLAIM_CODE; then
+              # shellcheck disable=SC2086
+              # Non-interactive runs answer the confirmation prompt with yes.
+              npx wrangler secret delete OWNER_CLAIM_CODE $target
+              echo "Deleted OWNER_CLAIM_CODE (${target:-production})"
+            else
+              echo "OWNER_CLAIM_CODE not present (${target:-production})"
+            fi
+          done
+      - name: Set up Turnstile for the support form
+        if: env.TASK == 'setup-turnstile'
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/challenges/widgets"
+          auth="Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"
+          name="Starry ID support form"
+          list=$(curl -sS -H "$auth" "$api?per_page=50")
+          if [ "$(jq -r '.success' <<<"$list")" != "true" ]; then
+            echo "::error::Cloudflare refused to list Turnstile widgets: $(jq -c '.errors' <<<"$list"). The API token needs the permission Account > Turnstile > Edit."
+            exit 1
+          fi
+          sitekey=$(jq -r --arg n "$name" '.result[] | select(.name == $n) | .sitekey' <<<"$list" | head -1)
+          if [ -z "$sitekey" ]; then
+            body=$(jq -n --arg n "$name" '{name: $n, mode: "managed", domains: ["id.starry.phd", "starry-id-staging.starry-phd.workers.dev"]}')
+            created=$(curl -sS -X POST -H "$auth" -H "content-type: application/json" --data "$body" "$api")
+            [ "$(jq -r '.success' <<<"$created")" = "true" ] || { echo "::error::Could not create the widget: $(jq -c '.errors' <<<"$created")"; exit 1; }
+            sitekey=$(jq -r '.result.sitekey' <<<"$created")
+            secret=$(jq -r '.result.secret' <<<"$created")
+            echo "Created widget"
+          else
+            secret=$(curl -sS -H "$auth" "$api/$sitekey" | jq -r '.result.secret')
+            echo "Reusing widget"
+          fi
+          echo "::add-mask::$secret"
+          [ -n "$secret" ] && [ "$secret" != "null" ] || { echo "::error::No widget secret returned"; exit 1; }
+          printf '%s' "$secret" | npx wrangler secret put TURNSTILE_SECRET_KEY --env staging >/dev/null
+          printf '%s' "$secret" | npx wrangler secret put TURNSTILE_SECRET_KEY >/dev/null
+          echo "TURNSTILE_SITE_KEY=${sitekey}"
+          echo "Turnstile site key (public): \`${sitekey}\`" >> "$GITHUB_STEP_SUMMARY"

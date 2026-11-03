@@ -20,4 +20,4 @@
 
 - 上線前業主需提供 Echo 的 iOS bundle ID、Apple Services ID 與 Google client ID，填入 `config/apps.json`。
 - 每個環境需設定 `ACCESS_TOKEN_PRIVATE_JWK` Workers Secret（可在取得 Cloudflare API Token 後由 CI 一次設定）。
-- 服務條款與隱私權政策目前版本為 `draft-2026-11-03`；正式文件上線時更新 `TERMS_VERSION`／`PRIVACY_VERSION`，所有會員會被要求重新同意。
+- 服務條款與隱私權政策目前版本為 `2026-11-03`（業主 2026-11-03 授權 Claude 定稿，取代草案 `draft-2026-11-03`）。內容修改時更新 `TERMS_VERSION`／`PRIVACY_VERSION`，所有會員會被要求重新同意。
