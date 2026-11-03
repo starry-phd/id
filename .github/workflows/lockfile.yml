@@ -1,0 +1,45 @@
+name: Lockfile
+
+# Manually run: resolves package-lock.json on GitHub's runners (the development container
+# cannot reach the npm registry) and pushes it to the branch "chore/package-lock".
+# A pull request from that branch then goes through the normal CI and review.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lockfile
+  cancel-in-progress: false
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Resolve the lockfile
+        run: npm install --package-lock-only --no-audit --no-fund
+      - name: Verify it installs and passes the unit tests
+        run: |
+          npm ci --no-audit --no-fund
+          npm run test:unit
+      - name: Push to chore/package-lock
+        run: |
+          if git diff --quiet -- package-lock.json && git ls-files --error-unmatch package-lock.json >/dev/null 2>&1; then
+            echo "::notice::package-lock.json is already up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B chore/package-lock
+          git add package-lock.json
+          git commit -m "Add package-lock.json resolved by the Lockfile workflow"
+          git push --force origin chore/package-lock
+          echo "::notice::Pushed chore/package-lock; open a pull request from it."
