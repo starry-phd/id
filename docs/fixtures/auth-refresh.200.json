@@ -1,0 +1,7 @@
+{
+  "token_type": "Bearer",
+  "access_token": "<access token: JWT, ES256, 15 minutes>",
+  "expires_in": 900,
+  "refresh_token": "<refresh token: opaque, 30 days, replace on every refresh>",
+  "refresh_expires_in": 2592000
+}

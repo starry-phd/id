@@ -1,0 +1,12 @@
+{
+  "app_id": "echo",
+  "entitlements": [
+    {
+      "entitlement": "pro",
+      "expires_at": 1796280000000,
+      "product_id": "echo_monthly",
+      "store": "APP_STORE",
+      "environment": "PRODUCTION"
+    }
+  ]
+}

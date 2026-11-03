@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Sign-in required",
+    "request_id": "5f0c8a2e-1b7d-4c3a-9e6f-2a4b8c1d3e5f"
+  }
+}
