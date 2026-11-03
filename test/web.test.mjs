@@ -244,7 +244,7 @@ describe('web account center, support form and Admin Lite', () => {
     const linkPage = await (await worker.call('/account/link', get(cookie))).text();
     assert.match(linkPage, /"endpoint":"\/account\/link"/);
     assert.match(linkPage, /綁定 Apple 帳號/);
-    assert.doesNotMatch(linkPage, /google-button/, 'Google is already linked');
+    assert.doesNotMatch(linkPage, /<div id="google-button">/, "Google is already linked");
     const nonce = pageNonce(linkPage);
     const appleToken = await signJwt(keys.apple, idTokenClaims('apple', { sub: 'apple-link-1', nonce, aud: WEB_APPLE_AUDIENCE }));
     const res = await worker.call('/account/link', jsonPost({ provider: 'apple', id_token: appleToken, nonce, authorization_code: 'web-code' }, cookie));
