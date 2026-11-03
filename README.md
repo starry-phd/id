@@ -34,13 +34,13 @@ Starry ID 會員與登入、App Registry、購買權益投影、推播 Token、�
 | `/account` | 登入（Google／Apple 網頁登入）、個人資料、同意條款、刪除與撤回、登入中的裝置（登出單一裝置／所有裝置） | S-WEB-01、S-ID-05 |
 | `/account/link` | 加綁另一種登入方式（需 10 分鐘內登入過） | S-ID-02 |
 | `/privacy`、`/terms` | 隱私權政策、服務條款（草案，待業主確認） | S-WEB-01 |
-| `/support` | 客服與檢舉表單（訪客與會員；設定 Turnstile 後啟用驗證） | S-WEB-02 |
-| `/admin` | Admin Lite：會員查詢（遮罩）、停權／復權、角色、客服單、App 狀態、稽核 | S-ADM-01 |
+| `/support` | 客服與檢舉表單（訪客與會員；附件選填：PNG／JPEG／WebP／PDF ≤ 2 MB，以檔案內容判斷類型；設定 Turnstile 後啟用驗證） | S-WEB-02 |
+| `/admin` | Admin Lite：會員查詢（遮罩）、停權／復權、角色、客服單（含附件下載）、App 狀態、稽核 | S-ADM-01 |
 | `/account/claim-owner` | 一次性設定 Owner（設定 `OWNER_CLAIM_CODE` 時才出現） | S-ID-10 |
 
 ## 背景作業
 
-- 每日 03:17（台灣）Cron：清除刪帳期滿會員、撤銷 Apple Token、刪除 RevenueCat 客戶、處理未完成的 Webhook 事件、清理過期 nonce／Session／客服單、稽核保留期（一般 90 天、安全 1 年）。
+- 每日 03:17（台灣）Cron：清除刪帳期滿會員、撤銷 Apple Token、刪除已移除客服單的附件、刪除 RevenueCat 客戶、處理未完成的 Webhook 事件、清理過期 nonce／Session／客服單、稽核保留期（一般 90 天、安全 1 年）。
 - GitHub Actions：每 15 分鐘外部探測（故障開一張 Issue、恢復自動關閉）、每週匯出 D1 到 R2 `starry-backups`。
 
 ## Secrets
@@ -76,8 +76,8 @@ docs/           ADR、業主設定、App 串接說明
 
 | 環境 | Worker | D1 | R2 |
 |---|---|---|---|
-| staging | `starry-id-staging`（workers.dev） | `starry-identity-staging`、`starry-billing-staging` | `starry-avatars-staging` |
-| production | `starry-id`（https://id.starry.phd） | `starry-identity`、`starry-billing` | `starry-avatars`、`starry-backups` |
+| staging | `starry-id-staging`（workers.dev） | `starry-identity-staging`、`starry-billing-staging` | `starry-avatars-staging`、`starry-support-files-staging` |
+| production | `starry-id`（https://id.starry.phd） | `starry-identity`、`starry-billing` | `starry-avatars`、`starry-support-files`、`starry-backups` |
 
 ## 指令
 

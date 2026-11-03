@@ -100,7 +100,14 @@ function splitSql(sql) {
     .join(' ')
     .split(';')
     .map((statement) => statement.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .reduce((statements, piece) => {
+      // CREATE TRIGGER bodies contain ';' — keep them together until their END.
+      const last = statements[statements.length - 1];
+      if (last && /^CREATE\s+TRIGGER\b/i.test(last) && !/\bEND$/i.test(last)) statements[statements.length - 1] = `${last}; ${piece}`;
+      else statements.push(piece);
+      return statements;
+    }, []);
 }
 
 /** A fresh in-memory database with every migration in `dir` applied in order. */

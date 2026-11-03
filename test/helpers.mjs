@@ -13,7 +13,14 @@ export function splitSql(sql) {
     .join(' ')
     .split(';')
     .map((statement) => statement.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .reduce((statements, piece) => {
+      // CREATE TRIGGER bodies contain ';' — keep them together until their END.
+      const last = statements[statements.length - 1];
+      if (last && /^CREATE\s+TRIGGER\b/i.test(last) && !/\bEND$/i.test(last)) statements[statements.length - 1] = `${last}; ${piece}`;
+      else statements.push(piece);
+      return statements;
+    }, []);
 }
 
 /** Applies every migration in order, exactly as `wrangler d1 migrations apply` would. */
@@ -37,7 +44,7 @@ export async function startWorker({ migrate = true, bindings = {} } = {}) {
     scriptPath: 'dist/index.js',
     compatibilityDate: COMPATIBILITY_DATE,
     d1Databases: { DB_IDENTITY: 'starry-identity-test', DB_BILLING: 'starry-billing-test' },
-    r2Buckets: { AVATARS: 'starry-avatars-test' },
+    r2Buckets: { AVATARS: 'starry-avatars-test', SUPPORT_FILES: 'starry-support-files-test' },
     bindings: { STARRY_ENV: 'development', ...bindings },
   });
   let db;
