@@ -59,3 +59,7 @@ Apple Developer → Keys → 建立啟用 Sign in with Apple 的 Key，下載 .p
 - 法律文件：審閱 https://id.starry.phd/privacy 與 /terms，補上【待業主確認】的經營者名稱、客服信箱與管轄法院。確認後 Claude 會把版本從 `draft-2026-11-03` 改為正式版本。
 - 選用：Cloudflare Turnstile 建立 Widget（網域 `id.starry.phd`），把 Site Key 與 Secret Key 給 Claude 設定，用於客服表單防濫用。
 - 規格「需要業主處理的外部事項」：Google Play 帳號類型（G-03）、App Store 付費協議（G-02）、GitHub 帳號整併（G-01）。
+
+## 8. 已完成：main 分支保護
+
+GitHub Ruleset「Protect main」（Active、Bypass 清單為空）：必須經 PR 合併（只允許 Squash）、必須通過 Repository policy 與 Required validation、線性歷史、禁止強制推送與刪除。緊急時到 Settings → Rules → Rulesets 暫時改為 Disabled，處理完改回 Active。
