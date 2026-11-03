@@ -67,12 +67,13 @@ Apple Developer → Keys → 建立啟用 Sign in with Apple 的 Key，下載 .p
 ## 8. 其他
 
 - 法律文件：業主 2026-11-03 授權 Claude 定稿，正式版本 `2026-11-03`（經營者 CHIEN-LUNG TU，管轄法院臺灣臺北地方法院）。業主可隨時審閱 https://id.starry.phd/privacy 與 /terms；修改內容會更新版本並請所有會員重新同意。
-- Turnstile（客服表單防濫用）：Claude 以 GitHub Actions →「Ops」→ `setup-turnstile` 建立。若 Cloudflare API Token 沒有 Turnstile 權限，業主只需編輯 Token（My Profile → API Tokens → 該 Token → Edit）加入「Account｜Turnstile｜Edit」，Claude 再重新執行。
+- Turnstile（客服表單防濫用）：已完成。業主 2026-11-03 執行 GitHub Actions →「Ops」→ `setup-turnstile` 建立 Widget「Starry ID support form」（網域 id.starry.phd 與 staging），Secret 已設定，公開 Site Key 寫在 `wrangler.jsonc`。
+- `OWNER_CLAIM_CODE`：已確認正式與 staging 都不存在（Ops `remove-owner-claim-code`，2026-11-03）。
 - 規格「需要業主處理的外部事項」：Google Play 帳號類型（G-03）、App Store 付費協議（G-02）、GitHub 帳號整併（G-01）。
 
 ## 9. Starry Battery
 
-不需要業主設定。Owner 可在 Admin Lite →「Battery」調整每位會員的每月額度（預設 100）與各 AI 任務的消耗；App 後端的服務金鑰由 Claude 在該 App 開始使用 AI 時設定。
+不需要業主設定。Owner 可在 Admin Lite →「Battery」調整每位會員的每月額度（預設 10 顆，業主 2026-11-03 指定）與各 AI 任務的消耗；App 後端的服務金鑰由 Claude 在該 App 開始使用 AI 時設定。
 
 ## 10. 已完成：main 分支保護
 

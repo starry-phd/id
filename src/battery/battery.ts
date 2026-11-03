@@ -39,7 +39,7 @@ export interface BatteryPolicy {
   updated_by: string | null;
 }
 
-const FALLBACK_POLICY: BatteryPolicy = { monthly_allowance: 100, default_timeout_ms: 180_000, updated_at: 0, updated_by: null };
+const FALLBACK_POLICY: BatteryPolicy = { monthly_allowance: 10, default_timeout_ms: 180_000, updated_at: 0, updated_by: null };
 
 export async function getPolicy(db: D1Database): Promise<BatteryPolicy> {
   const row = await db.prepare('SELECT monthly_allowance, default_timeout_ms, updated_at, updated_by FROM battery_policy WHERE id = 1').first<BatteryPolicy>();

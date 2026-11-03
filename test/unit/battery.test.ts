@@ -18,6 +18,8 @@ const asD1 = (db: Db) => db as unknown as D1Database;
 async function setup() {
   const db = migratedDb('migrations/battery');
   const d = asD1(db);
+  // These tests use a 100 allowance for easy arithmetic; the shipped default (10) is checked below.
+  db.sqlite.exec('UPDATE battery_policy SET monthly_allowance = 100');
   assert.ok(await upsertTaskType(d, { taskType: 'echo.transcribe', appId: 'echo', label: '語音轉文字', unitCost: 2, maxUnits: 30, timeoutMs: null, enabled: true }, 'owner', NOW));
   return { db, d };
 }
@@ -32,6 +34,14 @@ describe('periods', () => {
     assert.equal(periodOf(Date.UTC(2026, 10, 30, 16, 0, 0)), '2026-12', '00:00 on Dec 1 in Taiwan');
     assert.equal(nextResetAt(NOW), Date.UTC(2026, 10, 30, 16, 0, 0));
     assert.equal(nextResetAt(Date.UTC(2026, 11, 20)), Date.UTC(2026, 11, 31, 16, 0, 0), 'December rolls into next year');
+  });
+});
+
+describe('defaults', () => {
+  test('every member gets 10 Battery a month until the Owner changes it', async () => {
+    const d = asD1(migratedDb('migrations/battery'));
+    assert.equal((await getPolicy(d)).monthly_allowance, 10);
+    assert.equal((await getBalance(d, USER, NOW)).remaining, 10);
   });
 });
 

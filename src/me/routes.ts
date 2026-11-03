@@ -1,6 +1,6 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
-  apiRouter, bearer, EntitlementsSchema, errorResponses, json, jsonBody, MeSchema, NotificationPreferencesSchema,
+  apiRouter, bearer, EntitlementsSchema, ErrorSchema, errorResponses, json, jsonBody, MeSchema, NotificationPreferencesSchema,
   ProfileResponseSchema, ProviderRequestSchema, VersionConflictSchema,
 } from '../api/openapi';
 import { getApp } from '../apps/registry';
@@ -14,6 +14,7 @@ import { rememberAppleToken } from '../identity/apple';
 import { MAX_AVATAR_BYTES, r2Store, removeAvatar, setAvatar, signedAvatarPath } from '../identity/avatars';
 import { cancelDeletion, DELETION_GRACE_MS, requestDeletion } from '../identity/lifecycle';
 import { linkIdentity } from '../identity/link';
+import { completeMerge, findMergeCandidate } from '../identity/merge';
 import { acceptConsents } from '../identity/members';
 import { auditStatement } from '../lib/audit';
 import { errorBody } from '../lib/errors';
@@ -234,7 +235,23 @@ meRoutes.openapi(cancelDeletionRoute, async (c) => {
   return c.json({ status: 'active' }, 200);
 });
 
-const LinkResultSchema = z.object({ provider: z.string(), linked: z.boolean() });
+const LinkResultSchema = z.object({
+  provider: z.string(),
+  linked: z.boolean(),
+  merged: z.boolean().optional().openapi({ description: 'true when a separate Starry account made earlier with this sign-in was merged into this one' }),
+});
+
+const LinkRequestSchema = ProviderRequestSchema.extend({
+  merge_other_account: z.boolean().optional().openapi({
+    description: 'If this sign-in already made its own Starry account, merge that account into this one. Ask the member first; the other account is deleted.',
+  }),
+});
+
+const LinkConflictSchema = ErrorSchema.extend({
+  mergeable: z.boolean().optional().openapi({ description: 'IDENTITY_IN_USE only: whether resending with merge_other_account: true would merge' }),
+  merge_blocked: z.enum(['already_has_provider', 'staff', 'suspended', 'other_sign_in', 'purchases']).optional(),
+  other_account_created_at: z.number().int().optional(),
+}).openapi('LinkConflict');
 
 function linkRoute<P extends Provider>(provider: P) {
   return createRoute({
@@ -242,14 +259,16 @@ function linkRoute<P extends Provider>(provider: P) {
     path: `/identities/${provider}` as `/identities/${P}`,
     tags: ['Account'],
     summary: `Link ${provider === 'apple' ? 'Sign in with Apple' : 'Google'} to the signed-in member`,
-    description: 'Needs a fresh nonce and ID token for that provider, issued for the same App.',
+    description:
+      'Needs a fresh nonce and ID token for that provider, issued for the same App. When that sign-in already made a separate Starry account, 409 IDENTITY_IN_USE says whether it can be merged; resend with merge_other_account: true after the member agrees.',
     security: bearer,
     middleware: [requireAuth] as const,
-    request: { body: jsonBody(ProviderRequestSchema) },
+    request: { body: jsonBody(LinkRequestSchema) },
     responses: {
-      201: json(LinkResultSchema, 'Linked'),
+      201: json(LinkResultSchema, 'Linked (or merged)'),
       200: json(LinkResultSchema, 'Already linked to this member'),
-      ...errorResponses(400, 401, 403, 409, 415, 429, 503),
+      409: json(LinkConflictSchema, 'The sign-in belongs to another Starry account, or this provider is already linked'),
+      ...errorResponses(400, 401, 403, 415, 429, 503),
     },
   });
 }
@@ -257,7 +276,7 @@ function linkRoute<P extends Provider>(provider: P) {
 /**
  * POST /v1/me/identities/apple | google — links the other sign-in method (S-ID-02).
  */
-async function link(c: Context<AppBindings>, provider: Provider, body: z.infer<typeof ProviderRequestSchema>) {
+async function link(c: Context<AppBindings>, provider: Provider, body: z.infer<typeof LinkRequestSchema>) {
   const { userId, appId } = c.get('auth');
   const requestId = c.get('requestId');
   const request = readProviderRequest(body);
@@ -268,16 +287,42 @@ async function link(c: Context<AppBindings>, provider: Provider, body: z.infer<t
   const verified = await verifyProviderRequest(c, provider, app, request, `account.link.${provider}`, userId);
   if (!verified.ok) return verified.response;
   const now = Date.now();
-  const outcome = await linkIdentity(c.env.DB_IDENTITY, { userId, appId, requestId }, { provider, subject: verified.identity.subject, email: verified.identity.email, isPrivateRelay: verified.identity.isPrivateRelay }, now);
-  if (outcome === 'identity_in_use') return fail(c, 409, 'IDENTITY_IN_USE', 'This sign-in already belongs to another Starry account');
+  const identity = { provider, subject: verified.identity.subject, email: verified.identity.email, isPrivateRelay: verified.identity.isPrivateRelay };
+  let outcome: 'linked' | 'already_linked' | 'provider_in_use' | 'identity_in_use' | 'merged' = await linkIdentity(c.env.DB_IDENTITY, { userId, appId, requestId }, identity, now);
+  if (outcome === 'identity_in_use') {
+    const found = await findMergeCandidate(c.env.DB_IDENTITY, c.env.DB_BILLING, c.env.OWNER_USER_IDS, userId, identity);
+    const mergeable = Boolean(found && !found.blocker);
+    if (found && mergeable && body.merge_other_account === true) {
+      const merged = await completeMerge(
+        { db: c.env.DB_IDENTITY, battery: c.env.DB_BATTERY, ...(c.env.AVATARS ? { avatars: c.env.AVATARS } : {}) },
+        { userId, appId, requestId },
+        identity,
+        found.candidate.userId,
+        now,
+      );
+      if (merged) outcome = 'merged';
+    }
+    if (outcome === 'identity_in_use') {
+      return c.json(
+        {
+          ...errorBody('IDENTITY_IN_USE', 'This sign-in already belongs to another Starry account', requestId),
+          mergeable,
+          ...(found?.blocker ? { merge_blocked: found.blocker } : {}),
+          ...(found ? { other_account_created_at: found.candidate.createdAt } : {}),
+        },
+        409,
+      );
+    }
+  }
   if (outcome === 'provider_in_use') return fail(c, 409, 'PROVIDER_ALREADY_LINKED', `A different ${provider} sign-in is already linked`);
-  if (provider === 'apple' && request.authorizationCode && outcome === 'linked') {
+  if (provider === 'apple' && request.authorizationCode && (outcome === 'linked' || outcome === 'merged')) {
     const pending = background(
       c,
       rememberAppleToken(c.env.DB_IDENTITY, c.env, (url, init) => fetch(url, init), { userId, subject: verified.identity.subject, clientId: verified.identity.audience, code: request.authorizationCode, appId, requestId }, now),
     );
     if (pending) await pending;
   }
+  if (outcome === 'merged') return c.json({ provider, linked: true, merged: true }, 201);
   if (outcome === 'linked') return c.json({ provider, linked: true }, 201);
   return c.json({ provider, linked: true }, 200);
 }

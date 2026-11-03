@@ -41,7 +41,7 @@ App 啟動時呼叫 `GET /v1/apps/{app_id}/config`：
 |---|---|
 | 個人資料 | `GET /v1/me`；`PATCH /v1/me/profile` 帶 `If-Match: "<version>"`，409 時以回應中的最新資料提示使用者 |
 | 頭像 | App 裁切成正方形、壓縮到 256 KB 內，`PUT /v1/me/avatar`（`Content-Type: image/webp`）；顯示用 `profile.avatar_url`（1 小時有效，需要時重新取 `/v1/me`）；沒有頭像時顯示名稱第一個字 |
-| 加綁登入方式 | 重新取 nonce 並以另一個供應商登入取得 ID Token，`POST /v1/me/identities/{provider}` |
+| 加綁登入方式 | 重新取 nonce 並以另一個供應商登入取得 ID Token，`POST /v1/me/identities/{provider}`。若回 409 `IDENTITY_IN_USE` 且 `mergeable: true`，代表會員之前用這個登入方式另外建立過 Starry 帳號：向會員說明「另一個帳號會被刪除、只保留目前帳號」，同意後帶 `"merge_other_account": true` 重送即合併（回 201 `merged: true`）。`merge_blocked` 有值時（有購買紀錄、管理人員、已停權、另有登入方式）請引導聯絡客服 |
 | 登出 | 先 `DELETE /v1/me/push-tokens`，再 `POST /v1/auth/logout`，最後 RevenueCat `logOut()` |
 | 登出所有裝置 | `POST /v1/auth/logout-all` |
 | 刪除帳號（Apple 與 Google 皆要求 App 內入口） | 說明 7 天撤回期與「不會自動取消訂閱」，確認後 `POST /v1/me/deletion` `{"confirm": true}`，成功後清除本機 Token |

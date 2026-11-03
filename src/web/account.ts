@@ -12,11 +12,13 @@ import { mailSettings, notifyDeletionRequested } from '../notify/email';
 import { listActiveSessions, logoutEverywhere, revokeOwnSession } from '../identity/devices';
 import { cancelDeletion, DELETION_GRACE_MS, requestDeletion } from '../identity/lifecycle';
 import { linkIdentity, type LinkResult } from '../identity/link';
+import { completeMerge, findMergeCandidate, type MergeBlocker } from '../identity/merge';
 import { acceptConsents, consentRequired, findOrCreateMember, PROFILE_SQL, updateProfile, type ProfileChanges, type ProfileRow } from '../identity/members';
 import { issueNonce } from '../identity/nonces';
 import { claimOwner, hasRole, isRecentLogin, roleOf } from '../identity/roles';
 import { createWebSession, endWebSession, WEB_APP_ID, WEB_SESSION_ABSOLUTE_MS } from '../identity/web-sessions';
 import { errorBody } from '../lib/errors';
+import { open as unseal, seal } from '../lib/sealed';
 import { boundedString, isBirthday, isLocale, readJsonObject } from '../lib/validate';
 import { formatTime, page, readForm, sameOrigin, SESSION_COOKIE, webContext, type Html, type WebContext } from './layout';
 import { PRIVACY_POLICY, TERMS_OF_SERVICE, type LegalDocument } from './legal';
@@ -81,7 +83,8 @@ function providerWidgets(c: WebContext, cfg: ProviderWidgetConfig, appleLabel: s
   const config = JSON.stringify(cfg);
   const body = html`${cfg.google ? html`<div id="google-button"></div>` : ''}
   ${cfg.apple ? html`<button id="apple-button" type="button" style="background:#000;border-color:#000">${appleLabel}</button>` : ''}
-  <p id="login-error" class="danger" role="alert"></p>`;
+  <p id="login-error" class="danger" role="alert"></p>
+  ${cfg.endpoint === '/account/link' ? html`<div id="merge-offer"></div>` : ''}`;
   const scripts = html`${cfg.google ? html`<script src="https://accounts.google.com/gsi/client" async nonce="${cspNonce}"></script>` : ''}
 ${cfg.apple ? html`<script src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/zh_TW/appleid.auth.js" async nonce="${cspNonce}"></script>` : ''}
 <script nonce="${cspNonce}">
@@ -92,14 +95,47 @@ const MESSAGES = {
   IDENTITY_IN_USE: '這個登入帳號已屬於另一位 Starry 會員，無法加綁。',
   PROVIDER_ALREADY_LINKED: '您的 Starry 帳號已經綁定這種登入方式。',
   REAUTH_REQUIRED: '為了安全，請重新登入後再操作。',
+  CONFLICT: '帳號狀態已改變，請重新整理頁面後再試一次。',
 };
+const MERGE_BLOCKED = {
+  already_has_provider: '您的帳號已經綁定另一個同類型的登入帳號，無法再加綁。',
+  staff: '這個登入帳號屬於管理人員帳號，無法合併。',
+  suspended: '用這個登入建立的帳號已被停權，無法合併，請聯絡客服。',
+  other_sign_in: '用這個登入建立的帳號還綁定了其他登入方式，請聯絡客服協助合併。',
+  purchases: '用這個登入建立的帳號有購買紀錄，為保護您的購買，請聯絡客服協助合併。',
+};
+const explain = (body, fallback) => (body && body.merge_blocked && MERGE_BLOCKED[body.merge_blocked]) || MESSAGES[body?.error?.code] || fallback;
+function offerMerge(m) {
+  const box = document.getElementById('merge-offer');
+  if (!box) return;
+  const name = m.provider === 'apple' ? 'Apple' : 'Google';
+  const when = new Date(m.created_at).toLocaleDateString('zh-TW');
+  const question = document.createElement('p');
+  question.textContent = '這個 ' + name + ' 帳號在 ' + when + ' 已經建立了另一個 Starry 帳號' + (m.display_name ? '「' + m.display_name + '」' : '') + '。要把它合併到目前這個帳號嗎？';
+  const note = document.createElement('p');
+  note.className = 'muted';
+  note.textContent = '合併後只保留目前這個帳號，之後用 Apple 或 Google 都會登入這裡。另一個帳號的客服紀錄會移過來；它的個人資料、同意紀錄與 Battery 使用紀錄會刪除，用它登入的裝置會被登出。';
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = '合併帳號';
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    const res = await fetch(cfg.endpoint + '/merge', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ticket: m.ticket }) });
+    if (res.ok) { location.href = '/account?notice=merged'; return; }
+    button.disabled = false;
+    fail(explain(await res.json().catch(() => ({})), '合併失敗，請重新整理頁面後再試一次。'));
+  });
+  box.replaceChildren(question, note, button);
+  fail('');
+}
 async function send(provider, idToken, code) {
   const payload = { provider, id_token: idToken, nonce: cfg.nonce };
   if (code) payload.authorization_code = code;
   const res = await fetch(cfg.endpoint, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) });
   if (res.ok) { location.href = cfg.next; return; }
   const body = await res.json().catch(() => ({}));
-  fail(MESSAGES[body?.error?.code] ?? '操作失敗，請重新整理頁面後再試一次。');
+  if (body && body.merge) { offerMerge(body.merge); return; }
+  fail(explain(body, '操作失敗，請重新整理頁面後再試一次。'));
 }
 window.addEventListener('load', () => {
   if (cfg.google && window.google?.accounts?.id) {
@@ -191,6 +227,7 @@ const NOTICES: Record<string, string> = {
   linked: '已加綁新的登入方式。',
   session_revoked: '已登出該裝置。',
   logged_out_everywhere: '已登出所有裝置與 App。',
+  merged: '已合併帳號。現在用 Apple 或 Google 都會登入這個帳號。',
 };
 
 function appLabel(appId: string): string {
@@ -284,7 +321,7 @@ ${pending
 ${battery && batteryActivity
   ? html`<h2>Starry Battery</h2>
 <div class="card">
-  <p>本月剩餘 <strong>${battery.remaining}</strong> ／ ${battery.allowance}${battery.reserved > 0 ? html`（處理中 ${battery.reserved}）` : ''}<br>
+  <p>本月剩餘 <strong>${battery.remaining}</strong> 顆 ／ 共 ${battery.allowance} 顆${battery.reserved > 0 ? html`（處理中 ${battery.reserved} 顆）` : ''}<br>
   <span class="muted">每月 1 日恢復，下次：${formatTime(battery.resets_at)}。Battery 是免費的 AI 使用額度，所有繁星 App 共用，不能購買或轉讓。</span></p>
   ${batteryActivity.entries.length > 0
     ? html`<table><tr><th>時間</th><th>項目</th><th>數量</th></tr>${batteryActivity.entries.map(
@@ -350,7 +387,7 @@ accountApp.get('/link', async (c) => {
       c,
       html`<p>加綁後，可以用任一種方式登入同一個 Starry 帳號。請用要加綁的帳號完成登入。</p>
 <div class="card">${widgets.body}</div>
-<p class="muted">已經屬於其他 Starry 會員的 Apple 或 Google 帳號無法加綁。</p>`,
+<p class="muted">如果這個 Apple 或 Google 帳號之前單獨登入過、建立了另一個 Starry 帳號，完成登入後可以選擇把它合併到目前這個帳號。</p>`,
       widgets.scripts,
     ),
   );
@@ -380,7 +417,21 @@ accountApp.post('/link', async (c) => {
   const db = c.env.DB_IDENTITY;
   const { identity } = verified;
   const outcome = await linkIdentity(db, { userId: web.userId, appId: WEB_APP_ID, requestId }, { provider, subject: identity.subject, email: identity.email, isPrivateRelay: identity.isPrivateRelay }, now);
-  if (outcome === 'identity_in_use' || outcome === 'provider_in_use') {
+  if (outcome === 'identity_in_use') {
+    // The sign-in made its own Starry account earlier: offer to merge it (S-ID-02 amendment).
+    const found = await findMergeCandidate(db, c.env.DB_BILLING, c.env.OWNER_USER_IDS, web.userId, { provider, subject: identity.subject });
+    const key = c.env.DATA_ENCRYPTION_KEY;
+    if (found && !found.blocker && key) {
+      const ticket: MergeTicket = { into: web.userId, from: found.candidate.userId, provider, subject: identity.subject, email: identity.email, relay: identity.isPrivateRelay, exp: now + MERGE_TICKET_MS };
+      const sealed = await seal(key, MERGE_CONTEXT, JSON.stringify(ticket));
+      if (sealed) {
+        const merge = { ticket: sealed, provider, created_at: found.candidate.createdAt, display_name: found.candidate.displayName };
+        return c.json({ ...errorBody('IDENTITY_IN_USE', LINK_FAILURES.identity_in_use.message, requestId), merge }, 409);
+      }
+    }
+    return c.json({ ...errorBody('IDENTITY_IN_USE', LINK_FAILURES.identity_in_use.message, requestId), ...(found?.blocker ? { merge_blocked: found.blocker } : {}) }, 409);
+  }
+  if (outcome === 'provider_in_use') {
     const failure = LINK_FAILURES[outcome];
     return c.json(errorBody(failure.code, failure.message, requestId), failure.status);
   }
@@ -392,6 +443,62 @@ accountApp.post('/link', async (c) => {
     if (pending) await pending;
   }
   return c.json({ ok: true, result: outcome });
+});
+
+const MERGE_CONTEXT = 'account-merge-v1';
+const MERGE_TICKET_MS = 10 * 60 * 1000;
+
+/** What the member proved when linking; sealed so the page cannot change it or see the other member ID. */
+interface MergeTicket {
+  into: string;
+  from: string;
+  provider: Provider;
+  subject: string;
+  email: string | null;
+  relay: boolean;
+  exp: number;
+}
+
+function readTicket(raw: string | null): MergeTicket | null {
+  if (!raw) return null;
+  try {
+    const t = JSON.parse(raw) as Partial<MergeTicket>;
+    const ok =
+      typeof t.into === 'string' && typeof t.from === 'string' && (t.provider === 'apple' || t.provider === 'google') &&
+      typeof t.subject === 'string' && (t.email === null || typeof t.email === 'string') && typeof t.relay === 'boolean' && typeof t.exp === 'number';
+    return ok ? (t as MergeTicket) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** POST /account/link/merge — confirms merging the duplicate account found while linking. */
+accountApp.post('/link/merge', async (c) => {
+  const requestId = c.get('requestId');
+  const web = c.get('web');
+  if (!web || web.status !== 'active') return c.json(errorBody('UNAUTHORIZED', 'Sign in first', requestId), 401);
+  const now = Date.now();
+  if (!isRecentLogin(web.createdAt, now)) return c.json(errorBody('REAUTH_REQUIRED', 'Sign in again before merging', requestId), 403);
+  const body = await readJsonObject(c);
+  const key = c.env.DATA_ENCRYPTION_KEY;
+  const rawTicket = body?.ticket;
+  const sealed = typeof rawTicket === 'string' && rawTicket.length <= 4096 ? rawTicket : null;
+  const ticket = readTicket(sealed && key ? await unseal(key, MERGE_CONTEXT, sealed) : null);
+  if (!ticket || ticket.into !== web.userId || ticket.exp <= now) return c.json(errorBody('BAD_REQUEST', 'The merge request expired; link again', requestId), 400);
+  const db = c.env.DB_IDENTITY;
+  const found = await findMergeCandidate(db, c.env.DB_BILLING, c.env.OWNER_USER_IDS, web.userId, { provider: ticket.provider, subject: ticket.subject });
+  if (!found || found.candidate.userId !== ticket.from) return c.json(errorBody('CONFLICT', 'The accounts changed; link again', requestId), 409);
+  const blocker: MergeBlocker | null = found.blocker;
+  if (blocker) return c.json({ ...errorBody('IDENTITY_IN_USE', LINK_FAILURES.identity_in_use.message, requestId), merge_blocked: blocker }, 409);
+  const merged = await completeMerge(
+    { db, battery: c.env.DB_BATTERY, ...(c.env.AVATARS ? { avatars: c.env.AVATARS } : {}) },
+    { userId: web.userId, appId: WEB_APP_ID, requestId },
+    { provider: ticket.provider, subject: ticket.subject, email: ticket.email, isPrivateRelay: ticket.relay },
+    ticket.from,
+    now,
+  );
+  if (!merged) return c.json(errorBody('CONFLICT', 'The accounts changed; link again', requestId), 409);
+  return c.json({ ok: true, result: 'merged' });
 });
 
 accountApp.post('/consent', async (c) => {
