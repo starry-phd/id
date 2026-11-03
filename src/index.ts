@@ -12,12 +12,14 @@ async function scheduled(controller: ScheduledController, env: Env): Promise<voi
   const storeApps = [...appRegistry.keys()].filter((id) => id !== WEB_APP_ID);
   try {
     const avatars = env.AVATARS;
+    const supportFiles = env.SUPPORT_FILES;
     const report = await runDailyMaintenance(
       {
         db: env.DB_IDENTITY,
         secrets: env,
         fetch: fetcher,
         ...(avatars ? { deleteObjects: (keys: string[]) => avatars.delete(keys) } : {}),
+        ...(supportFiles ? { supportFiles } : {}),
         onPurged: (userIds) => forgetMembers(env.DB_BILLING, userIds, storeApps, now),
       },
       now,

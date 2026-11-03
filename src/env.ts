@@ -10,6 +10,8 @@ export interface Env {
   DB_BILLING: D1Database;
   /** Private R2 bucket for avatars (S-ID-08); reads only through signed URLs. */
   AVATARS?: R2Bucket;
+  /** Private R2 bucket for support ticket attachments (S-WEB-02); staff read them through Admin Lite. */
+  SUPPORT_FILES?: R2Bucket;
   /** Current legal document versions; members must accept these (spec S-ID-09). */
   TERMS_VERSION: string;
   PRIVACY_VERSION: string;

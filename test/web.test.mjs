@@ -138,6 +138,61 @@ describe('web account center, support form and Admin Lite', () => {
     assert.equal(rows[1].user_id, await userIdOf('support-member'));
   });
 
+  /** A multipart/form-data body built by hand, as a browser would send the support form. */
+  function multipart(fields, file) {
+    const boundary = `----starry-test-${Math.random().toString(16).slice(2)}`;
+    const parts = Object.entries(fields).map(([name, value]) => Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`));
+    if (file) {
+      parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="attachment"; filename="${file.name}"\r\nContent-Type: ${file.type}\r\n\r\n`), file.bytes, Buffer.from('\r\n'));
+    }
+    parts.push(Buffer.from(`--${boundary}--\r\n`));
+    return { body: Buffer.concat(parts), contentType: `multipart/form-data; boundary=${boundary}` };
+  }
+
+  test('support attachments are checked by content, stored privately and downloadable by staff only (S-WEB-02)', async () => {
+    const formPage = await (await worker.call('/support')).text();
+    assert.match(formPage, /enctype="multipart\/form-data"/);
+    assert.match(formPage, /name="attachment"/);
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 1, 2, 3]);
+    const post = (fields, file) => {
+      const body = multipart(fields, file);
+      return worker.call('/support', { method: 'POST', redirect: 'manual', headers: { 'content-type': body.contentType, origin: ORIGIN }, body: body.body });
+    };
+    const fields = { category: 'account', email: 'attach@example.com', message: '登入錯誤截圖' };
+    const disguised = await post(fields, { name: 'shot.png', type: 'image/png', bytes: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>') });
+    assert.match(await disguised.text(), /附件只接受/);
+    const big = Buffer.alloc(2 * 1024 * 1024 + 1);
+    png.copy(big);
+    assert.match(await (await post(fields, { name: 'big.png', type: 'image/png', bytes: big })).text(), /附件超過 2 MB/);
+    assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM support_tickets WHERE contact_email = 'attach@example.com'").first('n'), 0, 'rejected files create no ticket');
+
+    const sent = await post(fields, { name: 'shot.png', type: 'image/png', bytes: png });
+    assert.equal(sent.status, 200);
+    const done = await sent.text();
+    assert.match(done, /案件編號/);
+    assert.doesNotMatch(done, /附件沒有上傳成功/);
+    const row = await worker.db
+      .prepare("SELECT a.ticket_id, a.attachment_id, a.object_key, a.content_type, a.size_bytes FROM support_attachments a JOIN support_tickets t ON t.ticket_id = a.ticket_id WHERE t.contact_email = 'attach@example.com'")
+      .first();
+    assert.deepEqual([row.content_type, row.size_bytes], ['image/png', png.length]);
+    const stored = await (await worker.mf.getR2Bucket('SUPPORT_FILES')).get(row.object_key);
+    assert.deepEqual(Buffer.from(await stored.arrayBuffer()), png);
+
+    const url = `/admin/tickets/${row.ticket_id}/attachments/${row.attachment_id}`;
+    assert.equal((await worker.call(url, get())).status, 303, 'visitors are sent to sign in');
+    assert.equal((await worker.call(url, get(await webSignIn('attach-member')))).status, 403, 'members without a staff role are refused');
+    const support = await webSignIn('attach-support');
+    await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'support', ?)").bind(await userIdOf('attach-support'), Date.now()).run();
+    assert.ok((await (await worker.call(`/admin/tickets/${row.ticket_id}`, get(support))).text()).includes(url), 'the ticket page links the file');
+    const download = await worker.call(url, get(support));
+    assert.equal(download.status, 200);
+    assert.equal(download.headers.get('content-type'), 'image/png');
+    assert.match(download.headers.get('content-disposition') ?? '', /^attachment; filename="ticket-[0-9a-f]{8}\.png"$/);
+    assert.equal(download.headers.get('x-content-type-options'), 'nosniff');
+    assert.deepEqual(Buffer.from(await download.arrayBuffer()), png);
+    assert.equal((await worker.call(`/admin/tickets/01900000-0000-7000-8000-000000000000/attachments/${row.attachment_id}`, get(support))).status, 404);
+  });
+
   test('Admin Lite requires a staff role; admins suspend and restore members', async () => {
     const memberCookie = await webSignIn('plain-member');
     const plain = await worker.call('/admin', get(memberCookie));

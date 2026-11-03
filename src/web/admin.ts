@@ -6,6 +6,7 @@ import type { AppBindings } from '../env';
 import { listAudit } from '../identity/audit-query';
 import { hasRole, isRecentLogin, restoreMember, roleOf, searchMembers, setStaffRole, suspendMember, type Role, type StaffActor, type StatusChangeResult } from '../identity/roles';
 import { auditStatement } from '../lib/audit';
+import { ATTACHMENT_EXTENSIONS, getAttachment, listAttachments } from '../support/attachments';
 import { CATEGORY_LABELS, getTicket, listTickets, setTicketStatus } from '../support/tickets';
 import { formatTime, page, readForm, sameOrigin, webContext, type Html, type WebContext } from './layout';
 
@@ -201,6 +202,7 @@ async function ticketPage(c: WebContext, actor: StaffActor, ticketId: string, me
   const t = await getTicket(db, ticketId);
   if (!t) return c.html(adminPage(c, '找不到客服單', html`<h1>找不到客服單</h1>`), 404);
   await auditStatement(db, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.ticket_viewed', targetType: 'ticket', targetId: t.ticket_id, result: 'success', requestId: actor.requestId, retention: 'general' }, Date.now()).run();
+  const attachments = await listAttachments(db, t.ticket_id);
   return c.html(
     adminPage(
       c,
@@ -212,6 +214,9 @@ ${message ? html`<div class="banner">${message}</div>` : ''}
 <p style="white-space:pre-wrap">${t.message}</p>
 <p><strong>回覆對象：</strong>${t.contact_email ?? '（會員，請以會員登入 Email 回覆）'}${t.user_id ? html`<br><a href="/admin/members/${t.user_id}">查看會員</a>` : ''}</p>
 ${t.staff_note ? html`<p><strong>內部備註：</strong>${t.staff_note}</p>` : ''}
+${attachments.map(
+  (a) => html`<p><strong>附件：</strong><a href="/admin/tickets/${t.ticket_id}/attachments/${a.attachment_id}">下載 ${ATTACHMENT_EXTENSIONS[a.content_type].toUpperCase()}（${Math.max(1, Math.round(a.size_bytes / 1024))} KB）</a><br><span class="muted">使用者上傳的檔案，請勿在登入中的電腦上直接開啟可疑檔案。</span></p>`,
+)}
 </div>
 <form method="post" action="/admin/tickets/${t.ticket_id}/status" class="card">
 <label for="note">內部備註（選填，最多 1000 字）</label><textarea id="note" name="note" maxlength="1000" rows="3"></textarea>
@@ -226,6 +231,27 @@ adminApp.get('/tickets/:id', async (c) => {
   const actor = await staff(c, 'support');
   if (actor instanceof Response) return actor;
   return ticketPage(c, actor, c.req.param('id'));
+});
+
+/** Streams a ticket attachment as a download; never rendered inline (S-WEB-02). */
+adminApp.get('/tickets/:id/attachments/:attachmentId', async (c) => {
+  const actor = await staff(c, 'support');
+  if (actor instanceof Response) return actor;
+  const db = c.env.DB_IDENTITY;
+  const attachment = await getAttachment(db, c.req.param('id'), c.req.param('attachmentId'));
+  const object = attachment ? await c.env.SUPPORT_FILES?.get(attachment.object_key) : null;
+  if (!attachment || !object) return c.html(adminPage(c, '找不到附件', html`<h1>找不到附件</h1>`), 404);
+  await auditStatement(db, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.ticket_attachment_viewed', targetType: 'ticket', targetId: attachment.ticket_id, result: 'success', requestId: actor.requestId, retention: 'general' }, Date.now()).run();
+  const filename = `ticket-${attachment.ticket_id.slice(-8)}.${ATTACHMENT_EXTENSIONS[attachment.content_type]}`;
+  return new Response(object.body, {
+    headers: {
+      'content-type': attachment.content_type,
+      'content-length': String(attachment.size_bytes),
+      'content-disposition': `attachment; filename="${filename}"`,
+      'x-content-type-options': 'nosniff',
+      'cache-control': 'private, no-store',
+    },
+  });
 });
 
 adminApp.post('/tickets/:id/status', async (c) => {

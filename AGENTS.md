@@ -63,4 +63,4 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 
 1. App 接入：每款 App 在 `config/apps.json` 登記（Bundle ID、Android package、Google iOS／Android Client ID），Apple App ID 掛到群組主 App ID `phd.starry.app`；App 端以 `openapi/starry-id.v1.json` 產生型別。串接方式見 `docs/integration-guide.md`。
 2. 業主外部設定：`docs/owner-setup.md`。
-3. 依需求再做：Battery（S-BAT，第一款付費 AI App 開工時）、系統 Email（S-NTF-02，需客服信箱與寄信服務）、客服附件、RevenueCat 每日全量對帳。
+3. 依需求再做：Battery（S-BAT，第一款付費 AI App 開工時）、系統 Email（S-NTF-02，需客服信箱與寄信服務）、RevenueCat 每日全量對帳。
