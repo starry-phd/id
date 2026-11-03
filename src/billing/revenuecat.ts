@@ -221,6 +221,7 @@ export async function forgetMembers(db: D1Database, userIds: string[], appIds: s
     await db.batch([
       db.prepare('DELETE FROM entitlements WHERE user_id = ?').bind(userId),
       db.prepare("UPDATE rc_events SET app_user_id = 'deleted', payload = '{}' WHERE app_user_id = ?").bind(userId),
+      db.prepare('DELETE FROM reconcile_state WHERE user_id = ?').bind(userId),
       ...appIds.map((appId) =>
         db
           .prepare('INSERT INTO revenuecat_deletions (job_id, app_id, app_user_id, next_attempt_at, created_at) VALUES (?, ?, ?, ?, ?)')

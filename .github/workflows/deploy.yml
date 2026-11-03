@@ -48,6 +48,7 @@ jobs:
         run: |
           npx wrangler d1 migrations apply starry-identity-staging --remote --env staging
           npx wrangler d1 migrations apply starry-billing-staging --remote --env staging
+          npx wrangler d1 migrations apply starry-battery-staging --remote --env staging
       - name: Deploy Worker (staging)
         id: deploy
         if: steps.gate.outputs.enabled == 'true'
@@ -92,6 +93,7 @@ jobs:
         run: |
           npx wrangler d1 migrations apply starry-identity --remote
           npx wrangler d1 migrations apply starry-billing --remote
+          npx wrangler d1 migrations apply starry-battery --remote
       - name: Deploy Worker (production)
         id: deploy
         run: |

@@ -224,6 +224,45 @@ describe('web account center, support form and Admin Lite', () => {
     assert.equal((await worker.call('/admin/tickets', get(adminCookie))).status, 200);
   });
 
+  test('Battery in Admin Lite: admins adjust a member, only the owner sets policy and task costs (S-BAT-02/05)', async () => {
+    const memberCookie = await webSignIn('battery-member');
+    const target = await userIdOf('battery-member');
+    let account = await (await worker.call('/account', get(memberCookie))).text();
+    assert.match(account, /Starry Battery/);
+    assert.match(account, /本月剩餘 <strong>100<\/strong>/);
+
+    const adminCookie = await webSignIn('battery-admin');
+    await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(await userIdOf('battery-admin'), Date.now()).run();
+    assert.match(await (await worker.call('/admin/battery', get(adminCookie))).text(), /只有 Owner 可以修改/);
+    assert.equal((await worker.call('/admin/battery/policy', form({ allowance: '500', timeout: '60' }, adminCookie))).status, 403, 'admins cannot change the policy');
+    assert.match(await (await worker.call(`/admin/members/${target}`, get(adminCookie))).text(), /調整本月額度/);
+    const refused = await worker.call(`/admin/members/${target}/battery`, form({ delta: '20', reason: '' }, adminCookie));
+    assert.match(await refused.text(), /請填寫非 0 的整數/);
+    const adjusted = await worker.call(`/admin/members/${target}/battery`, form({ delta: '20', reason: '補償' }, adminCookie));
+    assert.match(await adjusted.text(), /已調整，本月額度現為 120/);
+    const self = await worker.call(`/admin/members/${await userIdOf('battery-admin')}/battery`, form({ delta: '20', reason: '自己' }, adminCookie));
+    assert.match(await self.text(), /不能調整自己的 Battery/);
+    account = await (await worker.call('/account', get(memberCookie))).text();
+    assert.match(account, /本月剩餘 <strong>120<\/strong>/);
+    assert.match(account, /客服調整/);
+    assert.doesNotMatch(account, /補償/, 'members never see the staff reason');
+    assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.battery_adjusted'").first('n'), 1);
+
+    const ownerCookie = await webSignIn('battery-owner');
+    await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'owner', ?)").bind(await userIdOf('battery-owner'), Date.now()).run();
+    const policy = await worker.call('/admin/battery/policy', form({ allowance: '150', timeout: '120' }, ownerCookie));
+    assert.match(await policy.text(), /已更新每月額度/);
+    const task = await worker.call('/admin/battery/tasks', form({ app_id: 'echo', name: 'transcribe', label: '語音轉文字', unit_cost: '2', max_units: '30', timeout: '', enabled: '1' }, ownerCookie));
+    const taskPage = await task.text();
+    assert.match(taskPage, /已儲存 echo.transcribe/);
+    assert.match(taskPage, /語音轉文字/);
+    const bad = await worker.call('/admin/battery/tasks', form({ app_id: 'account', name: 'x1', label: 'x', unit_cost: '1', max_units: '1' }, ownerCookie));
+    assert.match(await bad.text(), /請選擇 App/);
+    assert.match(await (await worker.call('/account', get(memberCookie))).text(), /本月剩餘 <strong>170<\/strong>/, 'a new monthly allowance applies this month too');
+    // The owner-claim test below needs a database without an owner.
+    await worker.db.prepare('DELETE FROM user_roles WHERE user_id = ?').bind(await userIdOf('battery-owner')).run();
+  });
+
   test('an admin kill switch disables one App for sign-in and remote config', async () => {
     const adminCookie = await webSignIn('staff-killer');
     await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(await userIdOf('staff-killer'), Date.now()).run();

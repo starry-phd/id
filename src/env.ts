@@ -9,6 +9,8 @@ export interface Env {
   DB_IDENTITY: D1Database;
   /** RevenueCat entitlement projection (S-BIL-04). */
   DB_BILLING: D1Database;
+  /** Starry Battery (S-BAT-06): monthly allowance, reservations and ledger; only src/battery writes it. */
+  DB_BATTERY: D1Database;
   /** Private R2 bucket for avatars (S-ID-08); reads only through signed URLs. */
   AVATARS?: R2Bucket;
   /** Private R2 bucket for support ticket attachments (S-WEB-02); staff read them through Admin Lite. */
@@ -29,6 +31,8 @@ export interface Env {
   /** Secrets, JSON per App: RevenueCat webhook Authorization values and secret API keys, e.g. {"echo": "..."}. */
   REVENUECAT_WEBHOOK_AUTH?: string;
   REVENUECAT_API_KEYS?: string;
+  /** Secret, JSON per App: service keys (32+ chars) that App backends present to spend Battery, e.g. {"echo": "..."}. */
+  BATTERY_SERVICE_KEYS?: string;
   /** Secret: 32 random bytes, base64url; seals stored third-party tokens. */
   DATA_ENCRYPTION_KEY?: string;
   /** Cloudflare Email Service send_email binding (S-NTF-02); without it no email is sent. */

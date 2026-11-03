@@ -2,11 +2,14 @@ import { Hono } from 'hono';
 import { html } from 'hono/html';
 import { appRegistry, type AppStatus } from '../apps/registry';
 import { listAppStatusOverrides, setAppStatusOverride } from '../apps/status';
+import { background } from '../auth/routes';
+import { adjustAllowance, getBalance, getPolicy, listTaskTypes, setPolicy, staffLedger, upsertTaskType } from '../battery/battery';
 import type { AppBindings } from '../env';
 import { listAudit } from '../identity/audit-query';
+import { WEB_APP_ID } from '../identity/web-sessions';
 import { hasRole, isRecentLogin, restoreMember, roleOf, searchMembers, setStaffRole, suspendMember, type Role, type StaffActor, type StatusChangeResult } from '../identity/roles';
 import { auditStatement } from '../lib/audit';
-import { mailSettings } from '../notify/email';
+import { mailSettings, notifyStaffChange } from '../notify/email';
 import { ATTACHMENT_EXTENSIONS, getAttachment, listAttachments } from '../support/attachments';
 import { listReplies, replyRecipient, replyToTicket } from '../support/replies';
 import { CATEGORY_LABELS, getTicket, listTickets, setTicketStatus } from '../support/tickets';
@@ -14,8 +17,9 @@ import { formatTime, page, readForm, sameOrigin, webContext, type Html, type Web
 
 /**
  * Spec S-ADM-01 Admin Lite: server-rendered, phone-friendly, Starry ID sign-in plus a
- * role check on every request. Support can read; Admin can suspend, restore and switch
- * App status; only the Owner manages staff roles. Sensitive writes need a sign-in from the
+ * role check on every request. Support can read; Admin can suspend, restore, adjust a
+ * member's Battery and switch App status; only the Owner manages staff roles and the
+ * Battery policy. Sensitive writes need a sign-in from the
  * last 10 minutes (S-ID-10).
  */
 export const adminApp = new Hono<AppBindings>();
@@ -56,7 +60,7 @@ async function needsReauth(c: WebContext): Promise<Response | null> {
   );
 }
 
-const nav = html`<p><a href="/admin/members">會員</a>&emsp;<a href="/admin/tickets">客服單</a>&emsp;<a href="/admin/apps">App 狀態</a>&emsp;<a href="/admin/audit">稽核紀錄</a></p>`;
+const nav = html`<p><a href="/admin/members">會員</a>&emsp;<a href="/admin/tickets">客服單</a>&emsp;<a href="/admin/battery">Battery</a>&emsp;<a href="/admin/apps">App 狀態</a>&emsp;<a href="/admin/audit">稽核紀錄</a></p>`;
 
 function adminPage(c: WebContext, title: string, body: Html): Html {
   return page(c, title, html`${nav}${body}`, { admin: true });
@@ -111,6 +115,9 @@ async function memberPage(c: WebContext, actor: StaffActor, userId: string, mess
   if (!m) return c.html(adminPage(c, '找不到會員', html`<h1>找不到會員</h1>`), 404);
   await auditStatement(db, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.member_viewed', targetType: 'user', targetId: m.user_id, result: 'success', requestId: actor.requestId, retention: 'general' }, Date.now()).run();
   const canModerate = hasRole(actor.role, 'admin') && m.role !== 'owner' && m.user_id !== actor.userId;
+  const canAdjust = hasRole(actor.role, 'admin') && m.user_id !== actor.userId;
+  const now = Date.now();
+  const [balance, ledger] = await Promise.all([getBalance(c.env.DB_BATTERY, m.user_id, now), staffLedger(c.env.DB_BATTERY, m.user_id, 10)]);
   return c.html(
     adminPage(
       c,
@@ -124,6 +131,21 @@ ${message ? html`<div class="banner">${message}</div>` : ''}
 <strong>登入方式：</strong>${m.providers.join('、')}（${m.emails.filter((e) => e !== null).join('、') || '無 Email'}）<br>
 <strong>加入：</strong>${formatTime(m.created_at)}</p>
 <p><a href="/admin/audit?member=${m.user_id}">查看此會員的稽核紀錄</a></p>
+</div>
+<h2>Starry Battery（${balance.period}）</h2>
+<div class="card">
+<p>本月額度 <strong>${balance.allowance}</strong>｜已使用 ${balance.used}｜預留中 ${balance.reserved}｜剩餘 <strong>${balance.remaining}</strong><br>
+<span class="muted">下次恢復：${formatTime(balance.resets_at)}</span></p>
+${ledger.length > 0
+  ? html`<table><thead><tr><th>時間</th><th>項目</th><th>數量</th></tr></thead><tbody>
+${ledger.map((e) => html`<tr><td>${formatTime(e.created_at)}</td><td>${e.kind === 'usage' ? html`${e.task_label ?? e.task_type ?? ''}<br><span class="muted">${e.app_id ?? ''}</span>` : html`人工調整：${e.reason ?? ''}`}</td><td>${e.kind === 'usage' ? `-${e.amount}` : e.amount > 0 ? `+${e.amount}` : `${e.amount}`}</td></tr>`)}
+</tbody></table>`
+  : html`<p class="muted">沒有使用紀錄。</p>`}
+${canAdjust
+  ? html`<form method="post" action="/admin/members/${m.user_id}/battery"><label for="delta">調整本月額度（正數增加、負數減少，不能低於已使用＋預留）</label><input id="delta" name="delta" type="number" step="1" required>
+<label for="battery-reason">原因（必填，最多 200 字，會員看不到）</label><input id="battery-reason" name="reason" maxlength="200" required><button type="submit">調整</button>
+<p class="muted">調整後會寄通知信給會員，只說明額度被調整，不寫數字。</p></form>`
+  : ''}
 </div>
 ${canModerate && m.status === 'active'
   ? html`<h2>停權</h2><form method="post" action="/admin/members/${m.user_id}/suspend" class="card"><label for="reason">原因（必填，最多 200 字，會員看不到）</label><input id="reason" name="reason" maxlength="200" required><button class="danger" type="submit">停權</button></form>`
@@ -175,6 +197,115 @@ adminApp.post('/members/:id/role', async (c) => {
   if (role === undefined) return memberPage(c, actor, c.req.param('id'), '請選擇角色。');
   const result = await setStaffRole(c.env.DB_IDENTITY, c.env.OWNER_USER_IDS, actor, c.req.param('id'), role, Date.now());
   return memberPage(c, actor, c.req.param('id'), RESULT_TEXT[result]);
+});
+
+adminApp.post('/members/:id/battery', async (c) => {
+  const actor = await staff(c, 'admin');
+  if (actor instanceof Response) return actor;
+  const reauth = await needsReauth(c);
+  if (reauth) return reauth;
+  const userId = c.req.param('id');
+  if (userId === actor.userId) return memberPage(c, actor, userId, '不能調整自己的 Battery。');
+  const exists = await c.env.DB_IDENTITY.prepare('SELECT 1 AS ok FROM users WHERE user_id = ?').bind(userId).first();
+  if (!exists) return memberPage(c, actor, userId);
+  const form = await readForm(c);
+  const delta = Number(form.delta);
+  const now = Date.now();
+  const result = await adjustAllowance(c.env.DB_BATTERY, { userId, delta, reason: form.reason ?? '', actorUserId: actor.userId }, now);
+  if (!result.ok) {
+    return memberPage(c, actor, userId, result.reason === 'too_low' ? '調整後的額度不能低於本月已使用＋預留中的數量。' : '請填寫非 0 的整數與 1～200 字的原因。');
+  }
+  const db = c.env.DB_IDENTITY;
+  await auditStatement(db, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.battery_adjusted', targetType: 'user', targetId: userId, result: 'success', requestId: actor.requestId, retention: 'security' }, now).run();
+  const notice = background(c, notifyStaffChange(db, mailSettings(c.env, new URL(c.req.url).origin), userId, 'Starry Battery 本月額度'));
+  if (notice) await notice;
+  return memberPage(c, actor, userId, `已調整，本月額度現為 ${result.balance.allowance}。`);
+});
+
+const TIMEOUT_SECONDS = (ms: number | null) => (ms === null ? '' : String(Math.round(ms / 1000)));
+
+async function batteryPage(c: WebContext, actor: StaffActor, message?: string): Promise<Response> {
+  const db = c.env.DB_BATTERY;
+  const [policy, tasks] = await Promise.all([getPolicy(db), listTaskTypes(db)]);
+  const owner = actor.role === 'owner';
+  const apps = [...appRegistry.values()].filter((a) => a.app_id !== WEB_APP_ID);
+  return c.html(
+    adminPage(
+      c,
+      'Battery',
+      html`<h1>Starry Battery</h1>
+${message ? html`<div class="banner">${message}</div>` : ''}
+<p class="muted">Starry 會員共用的免費 AI 用量月額度，每月 1 日（台灣時間）恢復，不累積、不能購買或轉讓。App 後端預留額度、成功才扣除，失敗或逾時自動歸還。</p>
+<h2>每月額度</h2>
+<div class="card">
+<p>每位會員每月 <strong>${policy.monthly_allowance}</strong>｜預設逾時 ${TIMEOUT_SECONDS(policy.default_timeout_ms)} 秒${policy.updated_at ? html`<br><span class="muted">最後修改：${formatTime(policy.updated_at)}</span>` : ''}</p>
+${owner
+  ? html`<form method="post" action="/admin/battery/policy"><label for="allowance">每月額度（0～1000000）</label><input id="allowance" name="allowance" type="number" min="0" max="1000000" step="1" value="${policy.monthly_allowance}" required>
+<label for="timeout">預設逾時秒數（10～3600）</label><input id="timeout" name="timeout" type="number" min="10" max="3600" step="1" value="${TIMEOUT_SECONDS(policy.default_timeout_ms)}" required>
+<button type="submit">儲存</button><p class="muted">修改額度會同時套用到本月：每位會員本月額度增減同樣數量，但不會低於已使用＋預留。</p></form>`
+  : html`<p class="muted">只有 Owner 可以修改。</p>`}
+</div>
+<h2>AI 任務類型與消耗</h2>
+<table><thead><tr><th>任務</th><th>每單位消耗</th><th>單次上限</th><th>逾時</th><th>狀態</th></tr></thead><tbody>
+${tasks.map((t) => html`<tr><td>${t.label}<br><code>${t.task_type}</code></td><td>${t.unit_cost}</td><td>${t.max_units} 單位</td><td>${t.timeout_ms === null ? '預設' : `${TIMEOUT_SECONDS(t.timeout_ms)} 秒`}</td><td>${t.enabled ? '啟用' : '停用'}</td></tr>`)}
+</tbody></table>
+${tasks.length === 0 ? html`<p class="muted">尚未設定任務類型；App 後端要先有任務類型才能預留 Battery。</p>` : ''}
+${owner
+  ? html`<form method="post" action="/admin/battery/tasks" class="card"><p><strong>新增或修改任務類型</strong>（同一個代碼會覆蓋原設定）</p>
+<label for="task-app">App</label><select id="task-app" name="app_id">${apps.map((a) => html`<option value="${a.app_id}">${a.name}</option>`)}</select>
+<label for="task-name">任務代碼（英文小寫，例如 transcribe；完整代碼為「App.任務」）</label><input id="task-name" name="name" pattern="[a-z][a-z0-9_-]{1,31}" required>
+<label for="task-label">顯示名稱（會員看得到）</label><input id="task-label" name="label" maxlength="60" required>
+<label for="task-cost">每單位消耗</label><input id="task-cost" name="unit_cost" type="number" min="1" max="100000" step="1" required>
+<label for="task-max">單次最多幾單位</label><input id="task-max" name="max_units" type="number" min="1" max="100000" step="1" required>
+<label for="task-timeout">逾時秒數（留空用預設）</label><input id="task-timeout" name="timeout" type="number" min="10" max="3600" step="1">
+<label><input type="checkbox" name="enabled" value="1" checked> 啟用</label>
+<button type="submit">儲存任務類型</button></form>`
+  : ''}`,
+    ),
+  );
+}
+
+adminApp.get('/battery', async (c) => {
+  const actor = await staff(c, 'support');
+  if (actor instanceof Response) return actor;
+  return batteryPage(c, actor);
+});
+
+adminApp.post('/battery/policy', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const reauth = await needsReauth(c);
+  if (reauth) return reauth;
+  const form = await readForm(c);
+  const now = Date.now();
+  const ok = await setPolicy(c.env.DB_BATTERY, { monthlyAllowance: Number(form.allowance), defaultTimeoutMs: Number(form.timeout) * 1000, actorUserId: actor.userId }, now);
+  if (!ok) return batteryPage(c, actor, '請輸入 0～1000000 的額度與 10～3600 秒的逾時。');
+  await auditStatement(c.env.DB_IDENTITY, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.battery_policy_updated', targetType: 'battery_policy', targetId: 'monthly', result: 'success', requestId: actor.requestId, retention: 'security' }, now).run();
+  return batteryPage(c, actor, '已更新每月額度。');
+});
+
+adminApp.post('/battery/tasks', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const reauth = await needsReauth(c);
+  if (reauth) return reauth;
+  const form = await readForm(c);
+  const appId = form.app_id ?? '';
+  if (!appRegistry.has(appId) || appId === WEB_APP_ID) return batteryPage(c, actor, '請選擇 App。');
+  const timeout = (form.timeout ?? '').trim();
+  const input = {
+    taskType: `${appId}.${(form.name ?? '').trim()}`,
+    appId,
+    label: form.label ?? '',
+    unitCost: Number(form.unit_cost),
+    maxUnits: Number(form.max_units),
+    timeoutMs: timeout === '' ? null : Number(timeout) * 1000,
+    enabled: form.enabled === '1',
+  };
+  const now = Date.now();
+  if (!(await upsertTaskType(c.env.DB_BATTERY, input, actor.userId, now))) return batteryPage(c, actor, '任務設定不正確，請檢查每個欄位的範圍。');
+  await auditStatement(c.env.DB_IDENTITY, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.battery_task_updated', targetType: 'battery_task', targetId: input.taskType, appId, result: 'success', requestId: actor.requestId, retention: 'security' }, now).run();
+  return batteryPage(c, actor, `已儲存 ${input.taskType}。`);
 });
 
 adminApp.get('/tickets', async (c) => {

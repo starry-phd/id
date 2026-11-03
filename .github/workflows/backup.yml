@@ -1,8 +1,8 @@
 name: Weekly D1 backup
 
 # Spec S-PLT-08: D1 Time Travel is the primary restore path; this adds a weekly
-# export of the production identity database to the private R2 bucket
-# "starry-backups". Restoring production always needs the owner's approval.
+# export of every production D1 database (identity, billing, battery) to the private
+# R2 bucket "starry-backups". Restoring production always needs the owner's approval.
 on:
   schedule:
     # Sundays 04:41 Taiwan time (Saturday 20:41 UTC), a quiet hour; export briefly blocks queries.
@@ -42,8 +42,10 @@ jobs:
         run: |
           set -euo pipefail
           stamp=$(date -u +%Y-%m-%d)
-          npx wrangler d1 export starry-identity --remote --output "identity-${stamp}.sql"
-          gzip -9 "identity-${stamp}.sql"
-          npx wrangler r2 object put "starry-backups/identity/identity-${stamp}.sql.gz" --file "identity-${stamp}.sql.gz" --remote
-          echo "Uploaded identity/identity-${stamp}.sql.gz ($(stat -c %s "identity-${stamp}.sql.gz") bytes)"
-          rm -f "identity-${stamp}.sql.gz"
+          for name in identity billing battery; do
+            npx wrangler d1 export "starry-${name}" --remote --output "${name}-${stamp}.sql"
+            gzip -9 "${name}-${stamp}.sql"
+            npx wrangler r2 object put "starry-backups/${name}/${name}-${stamp}.sql.gz" --file "${name}-${stamp}.sql.gz" --remote
+            echo "Uploaded ${name}/${name}-${stamp}.sql.gz ($(stat -c %s "${name}-${stamp}.sql.gz") bytes)"
+            rm -f "${name}-${stamp}.sql.gz"
+          done

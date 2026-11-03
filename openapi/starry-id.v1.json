@@ -18,6 +18,12 @@
         "scheme": "bearer",
         "bearerFormat": "JWT",
         "description": "Starry access token (ES256, 15 minutes) from /v1/auth/{provider} or /v1/auth/refresh"
+      },
+      "appKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-starry-app-key",
+        "description": "App backend service key (BATTERY_SERVICE_KEYS); never ship it inside an App"
       }
     },
     "schemas": {
@@ -187,6 +193,104 @@
           "expires_in",
           "refresh_token",
           "refresh_expires_in"
+        ]
+      },
+      "BatteryActivity": {
+        "type": "object",
+        "properties": {
+          "balance": {
+            "$ref": "#/components/schemas/BatteryBalance"
+          },
+          "activity": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "entry_id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "usage",
+                    "adjustment"
+                  ]
+                },
+                "amount": {
+                  "type": "integer",
+                  "description": "usage: Battery spent; adjustment: change made by Starry staff"
+                },
+                "app_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "task_label": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "created_at": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "entry_id",
+                "kind",
+                "amount",
+                "app_id",
+                "task_label",
+                "created_at"
+              ]
+            }
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "balance",
+          "activity",
+          "next_cursor"
+        ]
+      },
+      "BatteryBalance": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string",
+            "example": "2026-11",
+            "description": "Calendar month in Taiwan time"
+          },
+          "allowance": {
+            "type": "integer"
+          },
+          "used": {
+            "type": "integer"
+          },
+          "reserved": {
+            "type": "integer"
+          },
+          "remaining": {
+            "type": "integer"
+          },
+          "resets_at": {
+            "type": "integer",
+            "description": "Next reset: the 1st of next month, 00:00 Taiwan time (epoch ms)"
+          }
+        },
+        "required": [
+          "period",
+          "allowance",
+          "used",
+          "reserved",
+          "remaining",
+          "resets_at"
         ]
       },
       "Me": {
@@ -415,6 +519,77 @@
         "required": [
           "app_id",
           "categories"
+        ]
+      },
+      "BatteryReservation": {
+        "type": "object",
+        "properties": {
+          "reservation_id": {
+            "type": "string"
+          },
+          "task_type": {
+            "type": "string"
+          },
+          "units": {
+            "type": "integer"
+          },
+          "amount": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "reserved",
+              "committed",
+              "released",
+              "expired"
+            ]
+          },
+          "charged": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "created_at": {
+            "type": "integer"
+          },
+          "expires_at": {
+            "type": "integer"
+          },
+          "replayed": {
+            "type": "boolean",
+            "description": "true when an earlier request with the same idempotency key created it"
+          }
+        },
+        "required": [
+          "reservation_id",
+          "task_type",
+          "units",
+          "amount",
+          "status",
+          "charged",
+          "created_at",
+          "expires_at",
+          "replayed"
+        ]
+      },
+      "BatteryConflict": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Error"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "balance": {
+                "$ref": "#/components/schemas/BatteryBalance"
+              },
+              "reservation": {
+                "$ref": "#/components/schemas/BatteryReservation"
+              }
+            }
+          }
         ]
       }
     },
@@ -1235,6 +1410,93 @@
         "responses": {
           "204": {
             "description": "All sessions ended"
+          },
+          "401": {
+            "description": "Not signed in, or the token or nonce is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Suspended, deletion pending, App unavailable or not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Not configured or temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/battery": {
+      "get": {
+        "tags": [
+          "Battery"
+        ],
+        "summary": "The member's Starry Battery: this month's balance and the last 30 days",
+        "description": "Free monthly AI allowance shared by every Starry App (S-BAT-04). Read-only; Battery cannot be bought.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Balance and activity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatteryActivity"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "401": {
             "description": "Not signed in, or the token or nonce is invalid",
@@ -2725,6 +2987,406 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Not configured or temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/battery/reservations": {
+      "post": {
+        "tags": [
+          "Battery"
+        ],
+        "summary": "App backend: reserve Battery before starting an AI task",
+        "description": "Needs the App backend service key (x-starry-app-key) and the member access token of the same App. Retrying with the same idempotency_key returns the same reservation. 409 BATTERY_INSUFFICIENT when the allowance does not cover it.",
+        "security": [
+          {
+            "appKey": [],
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "x-starry-app-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "task_type": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 64,
+                    "example": "echo.transcribe"
+                  },
+                  "units": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "description": "Estimated usage in the task type unit, e.g. minutes of audio"
+                  },
+                  "idempotency_key": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 128
+                  }
+                },
+                "required": [
+                  "task_type",
+                  "units",
+                  "idempotency_key"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Same idempotency key: the existing reservation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatteryReservation"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Reserved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatteryReservation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the token or nonce is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Suspended, deletion pending, App unavailable or not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not enough Battery, or the idempotency key was used for a different request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatteryConflict"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Not configured or temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/battery/reservations/{reservationId}/commit": {
+      "post": {
+        "tags": [
+          "Battery"
+        ],
+        "summary": "App backend: the AI task succeeded; charge the reservation",
+        "description": "Idempotent. units (optional) is the actual usage, at most what was reserved. After the timeout nothing is charged: 409 RESERVATION_EXPIRED.",
+        "security": [
+          {
+            "appKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "required": true,
+            "name": "reservationId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "x-starry-app-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "units": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Committed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatteryReservation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the token or nonce is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Expired or already released",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatteryConflict"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Not configured or temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/battery/reservations/{reservationId}/release": {
+      "post": {
+        "tags": [
+          "Battery"
+        ],
+        "summary": "App backend: the AI task failed or was cancelled; return the reservation",
+        "description": "Idempotent. 409 RESERVATION_CLOSED when it was already committed.",
+        "security": [
+          {
+            "appKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "required": true,
+            "name": "reservationId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "x-starry-app-key",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Released",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatteryReservation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the token or nonce is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Already committed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatteryConflict"
                 }
               }
             }

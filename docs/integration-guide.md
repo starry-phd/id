@@ -76,3 +76,49 @@ Echo 的 `src/auth/centralMemberContract.ts` 依已被 v2.0 取代的 v1.0 規�
 | `directory_opt_in`、`display_name_public` | v2.0 沒有會員名錄（屬 H-Global 階段 H-03），一律視為 false |
 
 Echo 的 D1 只存 `user_id` 當外鍵，不複製會員主檔；Echo Worker 需要辨識會員時，以 JWKS 驗證 Access Token（第 7 節），並檢查 `app_id === "echo"`。
+
+## 9. Starry Battery（只限 App 後端）
+
+Battery 是 Starry 會員共用的免費 AI 用量月額度（規格 S-BAT），每月 1 日（台灣時間）恢復，不累積、不能購買或轉讓。**App 本身不能扣 Battery**，只有 App 自己的後端能用服務金鑰操作；服務金鑰不可放進 App。
+
+前置：Owner 在 Admin Lite →「Battery」為這款 App 建立任務類型（代碼 `<app_id>.<名稱>`、每單位消耗、單次上限、逾時），並由 Claude 把這款 App 的服務金鑰加入 Worker Secret `BATTERY_SERVICE_KEYS`（`{"echo":"…"}`，32 字以上隨機字串，同一個值設定在 App 後端）。
+
+1. 會員在 App 發起 AI 任務 → App 呼叫自己的後端（帶 Starry Access Token）。
+2. App 後端預留：`POST /v1/battery/reservations`，標頭 `Authorization: Bearer <會員 Access Token>` 與 `x-starry-app-key: <服務金鑰>`，內容 `{"task_type": "echo.transcribe", "units": 3, "idempotency_key": "<每個任務唯一>"}`。
+   - 201：預留成功，取得 `reservation_id` 與 `expires_at`（預設 3 分鐘）。網路重試用同一個 `idempotency_key` 會拿到同一筆（200）。
+   - 409 `BATTERY_INSUFFICIENT`：本月額度不足，回應附 `balance`，請 App 顯示剩餘額度與下次恢復日。
+3. 執行 AI 任務。
+4. 成功：`POST /v1/battery/reservations/{id}/commit`（可帶 `{"units": 實際用量}`，不超過預留）；失敗或取消：`POST /v1/battery/reservations/{id}/release`。兩者只需服務金鑰，重送不會重複扣除。
+5. 逾時未確認的預留每分鐘自動歸還；逾時後才回來的結果 commit 會得到 409 `RESERVATION_EXPIRED`，不扣額度。
+6. Starry ID 無法連線時一律不開始 AI 任務（fail closed，S-PLT-09）。
+
+會員查詢：`GET /v1/me/battery`（本月額度、已用、預留中、剩餘、下次恢復時間與近 30 天紀錄）；網頁帳號中心也會顯示。
+
+## 10. 新 App 接入 Starry ID（每款 App 一次）
+
+1. 開案卡（規格 X-01）通過後，決定 `app_id`（小寫英文、數字、連字號，例如 `echo`）。
+2. Apple：在同一個 Apple Developer Team 建立 App ID，Sign in with Apple 設為群組，主 App ID 選 `phd.starry.app`（G-02）。Android 上的 Apple 登入沿用網頁的 Services ID `phd.starry.id.web`。
+3. Google：在同一個 Google Cloud 專案建立 iOS 與 Android OAuth Client；Android 原生登入取得的 ID Token audience 是 Web Client ID（`requestIdToken`／`serverClientId` 使用的那一個）。
+4. 把以下內容交給 Claude 加入 `config/apps.json`（都不是秘密）：
+
+   ```json
+   {
+     "app_id": "echo",
+     "name": "繁星回聲 Echo",
+     "ios_bundle_id": "phd.starry.echo",
+     "android_package": "phd.starry.echo",
+     "status": "active",
+     "scopes": ["profile:read", "profile:write"],
+     "min_version": "1.0.0",
+     "config": {},
+     "auth": {
+       "apple_audiences": ["phd.starry.echo", "phd.starry.id.web"],
+       "google_audiences": ["<iOS Client ID>", "<Web Client ID>"]
+     }
+   }
+   ```
+
+   `apple_audiences`：iOS Bundle ID（原生登入）與 Services ID（Android 網頁流程）；`google_audiences`：iOS Client ID 與 Android 用的 Web Client ID。設定檔有格式檢查，填錯 CI 會失敗、不會部署。
+5. RevenueCat（要販售時）：為這款 App 建立獨立專案（S-BIL-01），Webhook URL `https://id.starry.phd/v1/billing/revenuecat/<app_id>`，再依 `docs/owner-setup.md` 第 6 步設定 Secrets。
+6. Battery（要用 AI 時）：見第 9 節。
+7. 合併到 main 自動部署後，App 以 `GET /v1/apps/<app_id>/config` 確認狀態，依第 1～8 節串接。
