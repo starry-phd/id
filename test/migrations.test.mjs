@@ -73,3 +73,33 @@ describe('identity migrations', () => {
     assert.equal(audits.n, 1);
   });
 });
+
+describe('billing and battery migrations', () => {
+  let worker;
+  before(async () => {
+    worker = await startWorker();
+  });
+  after(async () => {
+    await worker?.mf.dispose();
+  });
+
+  const tables = async (db) =>
+    (await db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'").all()).results.map((r) => r.name).sort();
+
+  test('create every billing and battery table', async () => {
+    assert.deepEqual(await tables(worker.billing), ['entitlements', 'rc_events', 'reconcile_state', 'revenuecat_deletions']);
+    assert.deepEqual(await tables(worker.battery), ['battery_accounts', 'battery_ledger', 'battery_policy', 'battery_reservations', 'battery_task_types']);
+  });
+
+  test('the battery policy starts with a monthly allowance and a 3-minute timeout', async () => {
+    const policy = await worker.battery.prepare('SELECT monthly_allowance, default_timeout_ms FROM battery_policy WHERE id = 1').first();
+    assert.deepEqual({ ...policy }, { monthly_allowance: 100, default_timeout_ms: 180000 });
+  });
+
+  test('an account can never hold more than its allowance', async () => {
+    await assert.rejects(
+      worker.battery.prepare("INSERT INTO battery_accounts (user_id, period, allowance, used, reserved, updated_at) VALUES ('u', '2026-11', 10, 6, 5, 0)").run(),
+      /CHECK/,
+    );
+  });
+});

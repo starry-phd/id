@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { deleteCookie, setCookie } from 'hono/cookie';
 import { html, raw } from 'hono/html';
 import { audiencesFor, getApp, type AppEntry } from '../apps/registry';
+import { getBalance, recentActivity } from '../battery/battery';
 import { withEffectiveStatus } from '../apps/status';
 import type { Provider } from '../auth/provider-keys';
 import { background, readProviderRequest, verifyProviderRequest } from '../auth/routes';
@@ -239,6 +240,9 @@ accountApp.get('/', async (c) => {
   const app = await webApp(c);
   const linkable = app && !pending ? linkableProviders(c, app, account.identities.map((i) => i.provider)) : { google: null, apple: null };
   const sessions = pending ? [] : await listActiveSessions(db, web.userId, now);
+  const [battery, batteryActivity] = pending
+    ? [null, null]
+    : await Promise.all([getBalance(c.env.DB_BATTERY, web.userId, now), recentActivity(c.env.DB_BATTERY, web.userId, now, { limit: 10 })]);
   const body = html`<h1>${p.display_name ?? '我的帳號'}</h1>
 ${notice ? html`<div class="banner">${notice}</div>` : ''}
 ${pending
@@ -277,6 +281,18 @@ ${pending
   <form method="post" action="/account/logout-all"><button class="secondary" type="submit">登出所有裝置</button></form>
   <p class="muted">「登出所有裝置」會讓所有繁星 App 與網頁立即登出，包括目前這個瀏覽器。手機遺失時請使用。</p>
 </div>`}
+${battery && batteryActivity
+  ? html`<h2>Starry Battery</h2>
+<div class="card">
+  <p>本月剩餘 <strong>${battery.remaining}</strong> ／ ${battery.allowance}${battery.reserved > 0 ? html`（處理中 ${battery.reserved}）` : ''}<br>
+  <span class="muted">每月 1 日恢復，下次：${formatTime(battery.resets_at)}。Battery 是免費的 AI 使用額度，所有繁星 App 共用，不能購買或轉讓。</span></p>
+  ${batteryActivity.entries.length > 0
+    ? html`<table><tr><th>時間</th><th>項目</th><th>數量</th></tr>${batteryActivity.entries.map(
+        (e) => html`<tr><td>${formatTime(e.created_at)}</td><td>${e.kind === 'usage' ? (e.task_label ?? appLabel(e.app_id ?? '')) : '客服調整'}</td><td>${e.kind === 'usage' ? `-${e.amount}` : e.amount > 0 ? `+${e.amount}` : `${e.amount}`}</td></tr>`,
+      )}</table><p class="muted">顯示最近 30 天內最新 10 筆。</p>`
+    : html`<p class="muted">最近 30 天沒有使用紀錄。</p>`}
+</div>`
+  : ''}
 ${role && hasRole(role, 'support') ? html`<p><a class="button" href="/admin">進入 Admin Lite</a></p>` : ''}
 ${pending ? '' : html`<h2>刪除帳號</h2><p class="muted">刪除後 7 天內可撤回，期滿永久清除個人資料。</p><a href="/account/delete">申請刪除帳號</a>`}`;
   return c.html(page(c, '我的帳號', body));

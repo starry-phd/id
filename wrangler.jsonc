@@ -9,8 +9,9 @@
   // Production is served at https://id.starry.phd (account center, Admin Lite and /v1 API).
   "routes": [{ "pattern": "id.starry.phd", "custom_domain": true }],
   "observability": { "enabled": true },
-  // Daily maintenance at 03:17 Taiwan time (19:17 UTC): deletion purge, Apple revocations, retention.
-  "triggers": { "crons": ["17 19 * * *"] },
+  // Daily maintenance at 03:17 Taiwan time (19:17 UTC): deletion purge, Apple revocations, retention,
+  // RevenueCat reconciliation. Every minute: release timed-out Battery reservations (S-BAT-03).
+  "triggers": { "crons": ["17 19 * * *", "* * * * *"] },
   "vars": { "STARRY_ENV": "production", "TERMS_VERSION": "draft-2026-11-03", "PRIVACY_VERSION": "draft-2026-11-03", "EMAIL_FROM": "support@starry.phd", "SUPPORT_EMAIL": "support@starry.phd" },
   // Rate limits per Cloudflare location (S-PLT-05). namespace_id is unique per account.
   "ratelimits": [
@@ -36,6 +37,12 @@
       "database_name": "starry-billing",
       "database_id": "5e241e4d-5962-4c1c-90b1-f718e2124f1f",
       "migrations_dir": "migrations/billing"
+    },
+    {
+      "binding": "DB_BATTERY",
+      "database_name": "starry-battery",
+      "database_id": "94b7ab31-4c86-4038-a1b5-e0d3203eb1b9",
+      "migrations_dir": "migrations/battery"
     }
   ],
   "env": {
@@ -65,6 +72,12 @@
           "database_name": "starry-billing-staging",
           "database_id": "7d5a045d-5abd-40ab-858f-9af44522f40a",
           "migrations_dir": "migrations/billing"
+        },
+        {
+          "binding": "DB_BATTERY",
+          "database_name": "starry-battery-staging",
+          "database_id": "c38da8e0-7e55-4517-b22d-f108a3444852",
+          "migrations_dir": "migrations/battery"
         }
       ]
     }

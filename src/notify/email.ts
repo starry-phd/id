@@ -135,6 +135,30 @@ ${s.baseUrl}/admin/tickets/${ticket.ticketId}`,
   };
 }
 
+/**
+ * S-NTF-02: Starry staff changed something on the member's account. The message names the
+ * field only and never shows old or new values.
+ */
+export function staffChangeEmail(s: MailSettings, to: string, field: string): Omit<OutgoingEmail, 'from'> {
+  return {
+    to,
+    replyTo: s.supportAddress,
+    subject: 'Starry 客服人員已調整您的帳號',
+    text: `您好：
+
+Starry 客服人員已調整您帳號的「${field}」。
+
+這是依規定寄出的通知，您不需要做任何事。如有疑問，請回覆這封信或使用客服表單。${FOOTER(s)}`,
+  };
+}
+
+export async function notifyStaffChange(db: D1Database, mail: MailSettings | null, userId: string, field: string): Promise<SendOutcome | null> {
+  if (!mail) return null;
+  const to = await contactEmailOf(db, userId);
+  if (!to) return null;
+  return sendEmail(mail, staffChangeEmail(mail, to, field));
+}
+
 /** Deletion confirmation for the member's contact address; null when email is off or there is no address. */
 export async function notifyDeletionRequested(db: D1Database, mail: MailSettings | null, userId: string, purgeAt: number): Promise<SendOutcome | null> {
   if (!mail) return null;

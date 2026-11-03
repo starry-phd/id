@@ -7,6 +7,7 @@ import { avatarRoutes } from './apps/avatar-route';
 import { appRoutes } from './apps/routes';
 import { loadSigningKey } from './auth/access-token';
 import { authRoutes } from './auth/routes';
+import { batteryRoutes, myBatteryRoutes } from './battery/routes';
 import { billingRoutes } from './billing/routes';
 import type { AppBindings } from './env';
 import { errorBody, type ErrorCode } from './lib/errors';
@@ -35,6 +36,12 @@ app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
   scheme: 'bearer',
   bearerFormat: 'JWT',
   description: 'Starry access token (ES256, 15 minutes) from /v1/auth/{provider} or /v1/auth/refresh',
+});
+app.openAPIRegistry.registerComponent('securitySchemes', 'appKey', {
+  type: 'apiKey',
+  in: 'header',
+  name: 'x-starry-app-key',
+  description: 'App backend service key (BATTERY_SERVICE_KEYS); never ship it inside an App',
 });
 
 const HealthSchema = z.object({ status: z.string(), service: z.string(), environment: z.string(), db: z.string() }).openapi('Health');
@@ -92,7 +99,9 @@ app.route('/v1/apps', appRoutes);
 app.route('/v1/avatars', avatarRoutes);
 app.route('/v1/billing', billingRoutes);
 app.route('/v1/auth', authRoutes);
+app.route('/v1/me/battery', myBatteryRoutes);
 app.route('/v1/me', meRoutes);
+app.route('/v1/battery', batteryRoutes);
 
 // Web account center, support form and Admin Lite (server-rendered, cookie sessions).
 app.route('/account', accountApp);
