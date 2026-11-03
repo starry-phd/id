@@ -191,6 +191,12 @@ describe('web account center, support form and Admin Lite', () => {
     assert.equal(download.headers.get('x-content-type-options'), 'nosniff');
     assert.deepEqual(Buffer.from(await download.arrayBuffer()), png);
     assert.equal((await worker.call(`/admin/tickets/01900000-0000-7000-8000-000000000000/attachments/${row.attachment_id}`, get(support))).status, 404);
+
+    // Without the EMAIL binding replies are not offered and nothing is sent (S-NTF-02).
+    assert.match(await (await worker.call(`/admin/tickets/${row.ticket_id}`, get(support))).text(), /系統 Email 尚未啟用/);
+    const reply = await worker.call(`/admin/tickets/${row.ticket_id}/reply`, form({ reply: '您好，已收到。' }, support));
+    assert.match(await reply.text(), /系統 Email 尚未啟用/);
+    assert.equal(await worker.db.prepare('SELECT COUNT(*) AS n FROM support_ticket_replies').first('n'), 0);
   });
 
   test('Admin Lite requires a staff role; admins suspend and restore members', async () => {

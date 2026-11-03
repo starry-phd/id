@@ -18,6 +18,7 @@ import { acceptConsents } from '../identity/members';
 import { auditStatement } from '../lib/audit';
 import { errorBody } from '../lib/errors';
 import { boundedString, isBirthday, isLocale } from '../lib/validate';
+import { mailSettings, notifyDeletionRequested } from '../notify/email';
 import { getPreferences, isCategory, isPushToken, registerPushToken, setPreferences, unregisterPushToken } from '../notify/push';
 import type { Context } from 'hono';
 
@@ -210,6 +211,8 @@ meRoutes.openapi(deletionRoute, async (c) => {
   const { userId, appId } = c.get('auth');
   const result = await requestDeletion(c.env.DB_IDENTITY, { userId, appId, requestId: c.get('requestId') }, Date.now());
   if (!result.ok) return fail(c, 409, 'CONFLICT', 'The account cannot be deleted in its current state');
+  const pending = background(c, notifyDeletionRequested(c.env.DB_IDENTITY, mailSettings(c.env, new URL(c.req.url).origin), userId, result.purgeAt));
+  if (pending) await pending;
   return c.json({ status: 'pending_deletion', deletion_purge_at: result.purgeAt }, 202);
 });
 

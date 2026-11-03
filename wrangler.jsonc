@@ -11,7 +11,7 @@
   "observability": { "enabled": true },
   // Daily maintenance at 03:17 Taiwan time (19:17 UTC): deletion purge, Apple revocations, retention.
   "triggers": { "crons": ["17 19 * * *"] },
-  "vars": { "STARRY_ENV": "production", "TERMS_VERSION": "draft-2026-11-03", "PRIVACY_VERSION": "draft-2026-11-03" },
+  "vars": { "STARRY_ENV": "production", "TERMS_VERSION": "draft-2026-11-03", "PRIVACY_VERSION": "draft-2026-11-03", "EMAIL_FROM": "noreply@starry.phd", "SUPPORT_EMAIL": "support@starry.phd" },
   // Rate limits per Cloudflare location (S-PLT-05). namespace_id is unique per account.
   "ratelimits": [
     { "name": "RL_AUTH", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } },
@@ -40,7 +40,7 @@
     "staging": {
       "name": "starry-id-staging",
       "routes": [],
-      "vars": { "STARRY_ENV": "staging", "TERMS_VERSION": "draft-2026-11-03", "PRIVACY_VERSION": "draft-2026-11-03" },
+      "vars": { "STARRY_ENV": "staging", "TERMS_VERSION": "draft-2026-11-03", "PRIVACY_VERSION": "draft-2026-11-03", "EMAIL_FROM": "noreply@starry.phd", "SUPPORT_EMAIL": "support@starry.phd" },
       "ratelimits": [
         { "name": "RL_AUTH", "namespace_id": "2001", "simple": { "limit": 30, "period": 60 } },
         { "name": "RL_API", "namespace_id": "2002", "simple": { "limit": 300, "period": 60 } },

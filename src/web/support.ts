@@ -1,8 +1,10 @@
 import { Hono } from 'hono';
 import { html } from 'hono/html';
-import { appRegistry } from '../apps/registry';
+import { appRegistry, getApp } from '../apps/registry';
 import type { AppBindings } from '../env';
+import { background } from '../auth/routes';
 import { WEB_APP_ID } from '../identity/web-sessions';
+import { mailSettings, newTicketNoticeEmail, sendEmail } from '../notify/email';
 import { ATTACHMENT_MAX_BYTES, checkAttachment, saveAttachment, type AttachmentType } from '../support/attachments';
 import { CATEGORY_LABELS, createTicket, isTicketCategory, TICKET_CATEGORIES } from '../support/tickets';
 import { page, sameOrigin, webContext, type WebContext } from './layout';
@@ -119,6 +121,17 @@ supportApp.post('/', async (c) => {
     } catch (error) {
       console.error(JSON.stringify({ level: 'error', request_id: c.get('requestId'), message: 'support attachment upload failed', error: error instanceof Error ? error.message : 'unknown' }));
     }
+  }
+  const mail = mailSettings(c.env, new URL(c.req.url).origin);
+  if (mail) {
+    const notice = newTicketNoticeEmail(mail, { ticketId: result.ticketId, categoryLabel: CATEGORY_LABELS[category], appName: appId ? (getApp(appId)?.name ?? appId) : null, hasAttachment: attachment !== null && attachmentSaved });
+    const pending = background(
+      c,
+      sendEmail(mail, notice).then((outcome) => {
+        if (!outcome.ok) console.error(JSON.stringify({ level: 'error', request_id: c.get('requestId'), message: 'ticket notice email failed', error: outcome.error }));
+      }),
+    );
+    if (pending) await pending;
   }
   return c.html(
     page(
