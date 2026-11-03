@@ -95,12 +95,64 @@ export const SignInResponseSchema = TokenPairSchema.extend({
   consent_required: z.boolean(),
 }).openapi('SignInResponse');
 
-export const ProfileSchema = z
+const VisibilityValue = z.enum(['public', 'private']);
+
+export const VisibilitySchema = z
+  .object({
+    display_name: VisibilityValue,
+    avatar: VisibilityValue,
+    birthday: VisibilityValue.openapi({ description: 'Public shows month and day only; always private for members under 18' }),
+    derived: VisibilityValue.openapi({ description: 'Zodiac and life path number; always private for members under 18' }),
+    location: VisibilityValue.openapi({ description: 'Country, state/province and city' }),
+    phone: VisibilityValue,
+    motto: VisibilityValue,
+    contact_email: VisibilityValue.openapi({ description: 'Shown only once verified' }),
+  })
+  .openapi('ProfileVisibility');
+
+export const DerivedSchema = z
+  .object({
+    zodiac: z.string().openapi({ example: 'pisces' }),
+    zodiac_name: z.string().openapi({ example: '雙魚座' }),
+    talent_numbers: z.array(z.number().int()).openapi({ description: 'Digit sums of the birth date before the final digit, e.g. [31]', example: [31] }),
+    life_path_number: z.number().int().openapi({ example: 4 }),
+    grid: z.array(z.object({ number: z.number().int(), count: z.number().int() })).openapi({ description: '1-9 counts for the 3×3 grid (rows 3-6-9 / 2-5-8 / 1-4-7)' }),
+    lines: z.array(z.string()).openapi({ description: 'Complete grid lines', example: ['1-2-3'] }),
+  })
+  .openapi('ProfileDerived');
+
+export const PublicProfileSchema = z
   .object({
     display_name: z.string().nullable(),
+    avatar_url: z.string().nullable(),
+    birthday_month_day: z.string().nullable().openapi({ example: '02-28' }),
+    zodiac_name: z.string().nullable(),
+    life_path_number: z.number().int().nullable(),
+    location: z.object({ country: z.string().nullable(), region: z.string().nullable(), city: z.string().nullable() }).nullable(),
+    phone: z.string().nullable(),
+    motto: z.string().nullable(),
+    contact_email: z.string().nullable(),
+  })
+  .openapi('PublicProfile');
+
+export const ProfileSchema = z
+  .object({
+    display_name: z.string().nullable().openapi({ description: 'Name shown to others (姓名), 1-50 characters' }),
     avatar_url: z.string().nullable().openapi({ description: 'Signed path, valid for one hour' }),
     birthday: z.string().nullable().openapi({ example: '1990-02-28' }),
     locale: z.string().openapi({ example: 'zh-TW' }),
+    contact_email: z.string().nullable().openapi({ description: 'Main contact email typed by the member; system email uses it once verified' }),
+    contact_email_verified: z.boolean(),
+    phone: z.string().nullable().openapi({ description: 'E.164', example: '+886912345678' }),
+    country: z.string().nullable().openapi({ description: 'ISO 3166-1 alpha-2', example: 'TW' }),
+    region: z.string().nullable().openapi({ description: 'State, province or county', example: '臺北市' }),
+    city: z.string().nullable().openapi({ example: '大安區' }),
+    motto: z.string().nullable(),
+    derived: DerivedSchema.nullable().openapi({ description: 'From the birthday; null without one' }),
+    visibility: VisibilitySchema,
+    field_updated_at: z
+      .record(z.string(), z.object({ updated_at: z.number().int(), source: z.enum(['member', 'staff']) }))
+      .openapi({ description: 'When each field was last changed and by whom (02.10)' }),
     version: z.number().int().openapi({ description: 'Send as If-Match when changing the profile' }),
     updated_at: z.number().int(),
   })
@@ -118,6 +170,7 @@ export const MeSchema = z
     deletion_requested_at: z.number().int().nullable(),
     deletion_purge_at: z.number().int().nullable(),
     profile: ProfileSchema,
+    public_profile: PublicProfileSchema.openapi({ description: 'What other members may see under the current visibility settings' }),
     identities: z.array(z.object({ provider: z.string(), email: z.string().nullable(), email_is_private_relay: z.boolean() })),
     consent: z.object({ terms_version: z.string(), privacy_version: z.string(), required: z.boolean() }),
   })

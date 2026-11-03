@@ -1,7 +1,7 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
   apiRouter, bearer, EntitlementsSchema, ErrorSchema, errorResponses, json, jsonBody, MeSchema, NotificationPreferencesSchema,
-  ProfileResponseSchema, ProviderRequestSchema, VersionConflictSchema,
+  ProfileResponseSchema, ProviderRequestSchema, VersionConflictSchema, VisibilitySchema,
 } from '../api/openapi';
 import { getApp } from '../apps/registry';
 import { withEffectiveStatus } from '../apps/status';
@@ -16,30 +16,41 @@ import { cancelDeletion, DELETION_GRACE_MS, requestDeletion } from '../identity/
 import { linkIdentity } from '../identity/link';
 import { completeMerge, findMergeCandidate } from '../identity/merge';
 import { acceptConsents } from '../identity/members';
-import { auditStatement } from '../lib/audit';
+import { sendContactEmailVerification } from '../identity/contact-email';
+import { randomMotto } from '../identity/mottos';
+import { derivedOf, effectiveVisibility, hasChanges, loadProfile, publicProfile, saveProfile, validateProfileInput, type FieldUpdate, type ProfileRow } from '../identity/profile';
 import { errorBody } from '../lib/errors';
-import { boundedString, isBirthday, isLocale } from '../lib/validate';
 import { mailSettings, notifyDeletionRequested } from '../notify/email';
 import { getPreferences, isCategory, isPushToken, registerPushToken, setPreferences, unregisterPushToken } from '../notify/push';
 import type { Context } from 'hono';
 
 export const meRoutes = apiRouter();
 
-interface ProfileRow {
-  display_name: string | null;
-  avatar_key: string | null;
-  birthday: string | null;
-  locale: string;
-  version: number;
-  updated_at: number;
+async function avatarUrlOf(env: { DATA_ENCRYPTION_KEY?: string }, p: ProfileRow, now: number): Promise<string | null> {
+  return p.avatar_key && env.DATA_ENCRYPTION_KEY ? signedAvatarPath(env.DATA_ENCRYPTION_KEY, p.avatar_key, now) : null;
 }
 
-const PROFILE_SQL = 'SELECT display_name, avatar_key, birthday, locale, version, updated_at FROM profiles WHERE user_id = ?';
-
-/** avatar_url is a signed path valid for one hour (S-ID-08); null without an avatar or signing key. */
-async function profileJson(env: { DATA_ENCRYPTION_KEY?: string }, p: ProfileRow) {
-  const avatarUrl = p.avatar_key && env.DATA_ENCRYPTION_KEY ? await signedAvatarPath(env.DATA_ENCRYPTION_KEY, p.avatar_key, Date.now()) : null;
-  return { display_name: p.display_name, avatar_url: avatarUrl, birthday: p.birthday, locale: p.locale, version: p.version, updated_at: p.updated_at };
+/** The member's own profile (S-ID-08, 02.01-02.10); avatar_url is a signed path valid for one hour. */
+async function profileJson(env: { DATA_ENCRYPTION_KEY?: string }, p: ProfileRow, fieldUpdates: Record<string, FieldUpdate>) {
+  const now = Date.now();
+  return {
+    display_name: p.display_name,
+    avatar_url: await avatarUrlOf(env, p, now),
+    birthday: p.birthday,
+    locale: p.locale,
+    contact_email: p.contact_email,
+    contact_email_verified: p.contact_email !== null && p.contact_email_verified_at !== null,
+    phone: p.phone,
+    country: p.country,
+    region: p.region,
+    city: p.city,
+    motto: p.motto,
+    derived: derivedOf(p.birthday),
+    visibility: effectiveVisibility(p, now),
+    field_updated_at: fieldUpdates,
+    version: p.version,
+    updated_at: p.updated_at,
+  };
 }
 
 const meRoute = createRoute({
@@ -57,15 +68,17 @@ const meRoute = createRoute({
 meRoutes.openapi(meRoute, async (c) => {
   const { userId } = c.get('auth');
   const db = c.env.DB_IDENTITY;
-  const [user, profile, identities, consents] = await db.batch([
-    db.prepare('SELECT user_id, status, created_at, deletion_requested_at FROM users WHERE user_id = ?').bind(userId),
-    db.prepare(PROFILE_SQL).bind(userId),
-    db.prepare('SELECT provider, email, email_is_private_relay FROM auth_identities WHERE user_id = ? ORDER BY provider').bind(userId),
-    db.prepare('SELECT document, version FROM consents WHERE user_id = ? AND withdrawn_at IS NULL').bind(userId),
+  const [[user, identities, consents], loaded] = await Promise.all([
+    db.batch([
+      db.prepare('SELECT user_id, status, created_at, deletion_requested_at FROM users WHERE user_id = ?').bind(userId),
+      db.prepare('SELECT provider, email, email_is_private_relay FROM auth_identities WHERE user_id = ? ORDER BY provider').bind(userId),
+      db.prepare('SELECT document, version FROM consents WHERE user_id = ? AND withdrawn_at IS NULL').bind(userId),
+    ]),
+    loadProfile(db, userId),
   ]);
   const u = user?.results[0] as { user_id: string; status: string; created_at: number; deletion_requested_at: number | null } | undefined;
-  const p = profile?.results[0] as ProfileRow | undefined;
-  if (!u || !p) return fail(c, 404, 'NOT_FOUND', 'Member not found');
+  if (!u || !loaded) return fail(c, 404, 'NOT_FOUND', 'Member not found');
+  const p = loaded.row;
   const accepted = (consents?.results ?? []) as { document: string; version: string }[];
   const has = (doc: string, version: string) => accepted.some((r) => r.document === doc && r.version === version);
   c.header('etag', `"${p.version}"`);
@@ -76,7 +89,8 @@ meRoutes.openapi(meRoute, async (c) => {
       created_at: u.created_at,
       deletion_requested_at: u.deletion_requested_at,
       deletion_purge_at: u.deletion_requested_at === null ? null : u.deletion_requested_at + DELETION_GRACE_MS,
-      profile: await profileJson(c.env, p),
+      profile: await profileJson(c.env, p, loaded.fieldUpdates),
+      public_profile: publicProfile(p, await avatarUrlOf(c.env, p, Date.now()), Date.now()),
       identities: ((identities?.results ?? []) as { provider: string; email: string | null; email_is_private_relay: number }[]).map((i) => ({
         provider: i.provider,
         email: i.email,
@@ -94,9 +108,16 @@ meRoutes.openapi(meRoute, async (c) => {
 
 const ProfilePatchSchema = z
   .object({
-    display_name: z.string().nullable().optional().openapi({ description: '1-50 characters, or null to clear' }),
+    display_name: z.string().nullable().optional().openapi({ description: 'Name (姓名), 1-50 characters, or null to clear' }),
     birthday: z.string().nullable().optional().openapi({ description: 'YYYY-MM-DD, or null to clear' }),
     locale: z.string().optional().openapi({ example: 'zh-TW' }),
+    contact_email: z.string().nullable().optional().openapi({ description: 'Main contact email; a verification link is sent when it changes. Empty or null clears it.' }),
+    phone: z.string().nullable().optional().openapi({ description: 'Stored as E.164; a local number takes the country calling code (Taiwan by default)', example: '0912345678' }),
+    country: z.string().nullable().optional().openapi({ description: 'ISO 3166-1 alpha-2', example: 'TW' }),
+    region: z.string().nullable().optional().openapi({ description: 'State, province or county, at most 60 characters' }),
+    city: z.string().nullable().optional().openapi({ description: 'At most 60 characters' }),
+    motto: z.string().nullable().optional().openapi({ description: 'At most 200 characters' }),
+    visibility: VisibilitySchema.partial().optional().openapi({ description: 'Only the fields to change' }),
   })
   .strict();
 
@@ -104,8 +125,9 @@ const profileRoute = createRoute({
   method: 'patch',
   path: '/profile',
   tags: ['Account'],
-  summary: 'Change display name, birthday or locale',
-  description: 'Send If-Match with the profile version you edited; a stale version is never written (409).',
+  summary: 'Change profile fields and their visibility',
+  description:
+    'Send only the fields to change, with If-Match set to the profile version you edited; a stale version is never written (409). Empty text clears an optional field. 400 errors name the field in the message.',
   security: bearer,
   middleware: [requireAuth] as const,
   request: {
@@ -120,7 +142,7 @@ const profileRoute = createRoute({
 });
 
 /**
- * PATCH /v1/me/profile — optimistic concurrency (S-ID-08): the client sends
+ * PATCH /v1/me/profile — optimistic concurrency (S-ID-08, 02.08): the client sends
  * If-Match with the version it edited; a stale version gets 409 and is never written.
  */
 meRoutes.openapi(profileRoute, async (c) => {
@@ -128,45 +150,66 @@ meRoutes.openapi(profileRoute, async (c) => {
   const requestId = c.get('requestId');
   const ifMatch = /^"?(\d{1,9})"?$/.exec(c.req.header('if-match') ?? '');
   if (!ifMatch?.[1]) return fail(c, 428, 'PRECONDITION_REQUIRED', 'If-Match with the profile version is required');
-  const version = Number(ifMatch[1]);
   const body = c.req.valid('json');
-  if (Object.keys(body).length === 0) return fail(c, 400, 'BAD_REQUEST', 'Only display_name, birthday and locale can be changed');
-  const now = Date.now();
-  const sets: string[] = [];
-  const values: (string | null)[] = [];
-  if (body.display_name !== undefined) {
-    const v = body.display_name;
-    if (v !== null && !(boundedString(v, 50) && v.trim().length > 0)) return fail(c, 400, 'BAD_REQUEST', 'display_name must be 1-50 characters or null');
-    sets.push('display_name = ?');
-    values.push(v === null ? null : v.trim());
-  }
-  if (body.birthday !== undefined) {
-    const v = body.birthday;
-    if (v !== null && !isBirthday(v, now)) return fail(c, 400, 'BAD_REQUEST', 'birthday must be YYYY-MM-DD or null');
-    sets.push('birthday = ?');
-    values.push(v);
-  }
-  if (body.locale !== undefined) {
-    if (!isLocale(body.locale)) return fail(c, 400, 'BAD_REQUEST', 'locale must look like zh-TW');
-    sets.push('locale = ?');
-    values.push(body.locale);
-  }
-  if (sets.length === 0) return fail(c, 400, 'BAD_REQUEST', 'Only display_name, birthday and locale can be changed');
   const db = c.env.DB_IDENTITY;
-  const update = await db
-    .prepare(`UPDATE profiles SET ${sets.join(', ')}, version = version + 1, updated_at = ? WHERE user_id = ? AND version = ?`)
-    .bind(...values, now, userId, version)
-    .run();
-  const written = update.meta.changes === 1;
-  await auditStatement(db, { actorType: 'user', actorUserId: userId, action: 'profile.update', targetType: 'user', targetId: userId, appId, result: written ? 'success' : 'denied', requestId, retention: 'general' }, now).run();
-  const current = await db.prepare(PROFILE_SQL).bind(userId).first<ProfileRow>();
+  const now = Date.now();
+  const before = await loadProfile(db, userId);
+  if (!before) return fail(c, 404, 'NOT_FOUND', 'Member not found');
+  const validated = validateProfileInput(body, now, before.row.country);
+  if (!validated.ok) return fail(c, 400, 'BAD_REQUEST', `${validated.field}: ${validated.message}`);
+  if (!hasChanges(validated.changes)) return fail(c, 400, 'BAD_REQUEST', 'Nothing to change');
+  const saved = await saveProfile(db, { userId, expectedVersion: Number(ifMatch[1]), changes: validated.changes, source: 'member', actorUserId: userId, appId, requestId }, now);
+  const current = await loadProfile(db, userId);
   if (!current) return fail(c, 404, 'NOT_FOUND', 'Member not found');
-  c.header('etag', `"${current.version}"`);
-  if (!written) {
-    return c.json({ ...errorBody('VERSION_CONFLICT', 'The profile changed elsewhere; reload and try again', requestId), profile: await profileJson(c.env, current) }, 409);
+  c.header('etag', `"${current.row.version}"`);
+  if (!saved.written) {
+    return c.json({ ...errorBody('VERSION_CONFLICT', 'The profile changed elsewhere; reload and try again', requestId), profile: await profileJson(c.env, current.row, current.fieldUpdates) }, 409);
   }
-  return c.json({ profile: await profileJson(c.env, current) }, 200);
+  if (saved.newContactEmail) {
+    const pending = background(c, sendContactEmailVerification(c.env.DATA_ENCRYPTION_KEY, mailSettings(c.env, new URL(c.req.url).origin), userId, saved.newContactEmail, now));
+    if (pending) await pending;
+  }
+  return c.json({ profile: await profileJson(c.env, current.row, current.fieldUpdates) }, 200);
 });
+
+const verifyEmailRoute = createRoute({
+  method: 'post',
+  path: '/contact-email/verification',
+  tags: ['Account'],
+  summary: 'Send the verification link for the main contact email again',
+  security: bearer,
+  middleware: [requireAuth] as const,
+  responses: {
+    202: json(z.object({ sent: z.boolean() }), 'Sent'),
+    200: json(z.object({ verified: z.boolean() }), 'Already verified'),
+    ...errorResponses(401, 403, 404, 409, 429, 503),
+  },
+});
+
+meRoutes.openapi(verifyEmailRoute, async (c) => {
+  const { userId } = c.get('auth');
+  const loaded = await loadProfile(c.env.DB_IDENTITY, userId);
+  if (!loaded) return fail(c, 404, 'NOT_FOUND', 'Member not found');
+  const email = loaded.row.contact_email;
+  if (!email) return fail(c, 409, 'CONFLICT', 'No contact email is set');
+  if (loaded.row.contact_email_verified_at !== null) return c.json({ verified: true }, 200);
+  const result = await sendContactEmailVerification(c.env.DATA_ENCRYPTION_KEY, mailSettings(c.env, new URL(c.req.url).origin), userId, email, Date.now());
+  if (result === 'unavailable') return fail(c, 503, 'SERVICE_UNAVAILABLE', 'Email is not available');
+  return c.json({ sent: result === 'sent' }, 202);
+});
+
+const mottoRoute = createRoute({
+  method: 'get',
+  path: '/motto-suggestion',
+  tags: ['Account'],
+  summary: 'A random motto to fill the edit box (02.05); nothing is saved',
+  security: bearer,
+  middleware: [requireAuth] as const,
+  request: { query: z.object({ current: z.string().max(200).optional() }) },
+  responses: { 200: json(z.object({ motto: z.string() }), 'Suggestion'), ...errorResponses(400, 401, 403, 429, 503) },
+});
+
+meRoutes.openapi(mottoRoute, async (c) => c.json({ motto: randomMotto(c.req.valid('query').current ?? null) }, 200));
 
 const consentRoute = createRoute({
   method: 'post',
@@ -370,10 +413,10 @@ meRoutes.openapi(avatarPutRoute, async (c) => {
     if (result.reason === 'unsupported') return fail(c, 415, 'BAD_REQUEST', 'Avatar must be a WebP, JPEG or PNG image');
     return fail(c, 404, 'NOT_FOUND', 'Member not found');
   }
-  const current = await c.env.DB_IDENTITY.prepare(PROFILE_SQL).bind(userId).first<ProfileRow>();
+  const current = await loadProfile(c.env.DB_IDENTITY, userId);
   if (!current) return fail(c, 404, 'NOT_FOUND', 'Member not found');
-  c.header('etag', `"${current.version}"`);
-  return c.json({ profile: await profileJson(c.env, current) }, 200);
+  c.header('etag', `"${current.row.version}"`);
+  return c.json({ profile: await profileJson(c.env, current.row, current.fieldUpdates) }, 200);
 });
 
 const avatarDeleteRoute = createRoute({

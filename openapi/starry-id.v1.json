@@ -320,6 +320,9 @@
           "profile": {
             "$ref": "#/components/schemas/Profile"
           },
+          "public_profile": {
+            "$ref": "#/components/schemas/PublicProfile"
+          },
           "identities": {
             "type": "array",
             "items": {
@@ -372,6 +375,7 @@
           "deletion_requested_at",
           "deletion_purge_at",
           "profile",
+          "public_profile",
           "identities",
           "consent"
         ]
@@ -383,7 +387,8 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Name shown to others (姓名), 1-50 characters"
           },
           "avatar_url": {
             "type": [
@@ -403,6 +408,82 @@
             "type": "string",
             "example": "zh-TW"
           },
+          "contact_email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Main contact email typed by the member; system email uses it once verified"
+          },
+          "contact_email_verified": {
+            "type": "boolean"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "E.164",
+            "example": "+886912345678"
+          },
+          "country": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ISO 3166-1 alpha-2",
+            "example": "TW"
+          },
+          "region": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "State, province or county",
+            "example": "臺北市"
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "大安區"
+          },
+          "motto": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "derived": {
+            "$ref": "#/components/schemas/ProfileDerived"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/ProfileVisibility"
+          },
+          "field_updated_at": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "updated_at": {
+                  "type": "integer"
+                },
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "member",
+                    "staff"
+                  ]
+                }
+              },
+              "required": [
+                "updated_at",
+                "source"
+              ]
+            },
+            "description": "When each field was last changed and by whom (02.10)"
+          },
           "version": {
             "type": "integer",
             "description": "Send as If-Match when changing the profile"
@@ -416,9 +497,259 @@
           "avatar_url",
           "birthday",
           "locale",
+          "contact_email",
+          "contact_email_verified",
+          "phone",
+          "country",
+          "region",
+          "city",
+          "motto",
+          "derived",
+          "visibility",
+          "field_updated_at",
           "version",
           "updated_at"
         ]
+      },
+      "ProfileDerived": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "zodiac": {
+            "type": "string",
+            "example": "pisces"
+          },
+          "zodiac_name": {
+            "type": "string",
+            "example": "雙魚座"
+          },
+          "talent_numbers": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Digit sums of the birth date before the final digit, e.g. [31]",
+            "example": [
+              31
+            ]
+          },
+          "life_path_number": {
+            "type": "integer",
+            "example": 4
+          },
+          "grid": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "number": {
+                  "type": "integer"
+                },
+                "count": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "number",
+                "count"
+              ]
+            },
+            "description": "1-9 counts for the 3×3 grid (rows 3-6-9 / 2-5-8 / 1-4-7)"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Complete grid lines",
+            "example": [
+              "1-2-3"
+            ]
+          }
+        },
+        "required": [
+          "zodiac",
+          "zodiac_name",
+          "talent_numbers",
+          "life_path_number",
+          "grid",
+          "lines"
+        ],
+        "description": "From the birthday; null without one"
+      },
+      "ProfileVisibility": {
+        "type": "object",
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private"
+            ]
+          },
+          "avatar": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private"
+            ]
+          },
+          "birthday": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private"
+            ],
+            "description": "Public shows month and day only; always private for members under 18"
+          },
+          "derived": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private"
+            ],
+            "description": "Zodiac and life path number; always private for members under 18"
+          },
+          "location": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private"
+            ],
+            "description": "Country, state/province and city"
+          },
+          "phone": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private"
+            ]
+          },
+          "motto": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private"
+            ]
+          },
+          "contact_email": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private"
+            ],
+            "description": "Shown only once verified"
+          }
+        },
+        "required": [
+          "display_name",
+          "avatar",
+          "birthday",
+          "derived",
+          "location",
+          "phone",
+          "motto",
+          "contact_email"
+        ]
+      },
+      "PublicProfile": {
+        "type": "object",
+        "properties": {
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "avatar_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "birthday_month_day": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "02-28"
+          },
+          "zodiac_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "life_path_number": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "location": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "country": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "region": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "city": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "country",
+              "region",
+              "city"
+            ]
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "motto": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contact_email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "display_name",
+          "avatar_url",
+          "birthday_month_day",
+          "zodiac_name",
+          "life_path_number",
+          "location",
+          "phone",
+          "motto",
+          "contact_email"
+        ],
+        "description": "What other members may see under the current visibility settings"
       },
       "ProfileResponse": {
         "type": "object",
@@ -1661,8 +1992,8 @@
         "tags": [
           "Account"
         ],
-        "summary": "Change display name, birthday or locale",
-        "description": "Send If-Match with the profile version you edited; a stale version is never written (409).",
+        "summary": "Change profile fields and their visibility",
+        "description": "Send only the fields to change, with If-Match set to the profile version you edited; a stale version is never written (409). Empty text clears an optional field. 400 errors name the field in the message.",
         "security": [
           {
             "bearerAuth": []
@@ -1691,7 +2022,7 @@
                       "string",
                       "null"
                     ],
-                    "description": "1-50 characters, or null to clear"
+                    "description": "Name (姓名), 1-50 characters, or null to clear"
                   },
                   "birthday": {
                     "type": [
@@ -1703,6 +2034,116 @@
                   "locale": {
                     "type": "string",
                     "example": "zh-TW"
+                  },
+                  "contact_email": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Main contact email; a verification link is sent when it changes. Empty or null clears it."
+                  },
+                  "phone": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Stored as E.164; a local number takes the country calling code (Taiwan by default)",
+                    "example": "0912345678"
+                  },
+                  "country": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "ISO 3166-1 alpha-2",
+                    "example": "TW"
+                  },
+                  "region": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "State, province or county, at most 60 characters"
+                  },
+                  "city": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "At most 60 characters"
+                  },
+                  "motto": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "At most 200 characters"
+                  },
+                  "visibility": {
+                    "type": "object",
+                    "properties": {
+                      "display_name": {
+                        "type": "string",
+                        "enum": [
+                          "public",
+                          "private"
+                        ]
+                      },
+                      "avatar": {
+                        "type": "string",
+                        "enum": [
+                          "public",
+                          "private"
+                        ]
+                      },
+                      "birthday": {
+                        "type": "string",
+                        "enum": [
+                          "public",
+                          "private"
+                        ],
+                        "description": "Public shows month and day only; always private for members under 18"
+                      },
+                      "derived": {
+                        "type": "string",
+                        "enum": [
+                          "public",
+                          "private"
+                        ],
+                        "description": "Zodiac and life path number; always private for members under 18"
+                      },
+                      "location": {
+                        "type": "string",
+                        "enum": [
+                          "public",
+                          "private"
+                        ],
+                        "description": "Country, state/province and city"
+                      },
+                      "phone": {
+                        "type": "string",
+                        "enum": [
+                          "public",
+                          "private"
+                        ]
+                      },
+                      "motto": {
+                        "type": "string",
+                        "enum": [
+                          "public",
+                          "private"
+                        ]
+                      },
+                      "contact_email": {
+                        "type": "string",
+                        "enum": [
+                          "public",
+                          "private"
+                        ],
+                        "description": "Shown only once verified"
+                      }
+                    },
+                    "description": "Only the fields to change"
                   }
                 },
                 "additionalProperties": false
@@ -1783,6 +2224,211 @@
           },
           "428": {
             "description": "If-Match required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Not configured or temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/contact-email/verification": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Send the verification link for the main contact email again",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Already verified",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "verified": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "verified"
+                  ]
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sent": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "sent"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the token or nonce is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Suspended, deletion pending, App unavailable or not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with the current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Not configured or temporarily unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/motto-suggestion": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "A random motto to fill the edit box (02.05); nothing is saved",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "required": false,
+            "name": "current",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Suggestion",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "motto": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "motto"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the token or nonce is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Suspended, deletion pending, App unavailable or not allowed",
             "content": {
               "application/json": {
                 "schema": {
