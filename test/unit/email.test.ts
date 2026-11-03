@@ -33,7 +33,7 @@ class FakeSender implements EmailSender {
 }
 
 function settings(sender = new FakeSender()): { mail: MailSettings; sender: FakeSender } {
-  const mail = mailSettings({ EMAIL: sender, EMAIL_FROM: 'noreply@starry.phd', SUPPORT_EMAIL: 'support@starry.phd' }, 'https://id.starry.phd');
+  const mail = mailSettings({ EMAIL: sender, EMAIL_FROM: 'support@starry.phd', SUPPORT_EMAIL: 'support@starry.phd' }, 'https://id.starry.phd');
   assert.ok(mail);
   return { mail, sender };
 }
@@ -43,16 +43,16 @@ const count = async (db: Db, sql: string, ...args: unknown[]) => Number(((await 
 describe('mail settings and sending', () => {
   test('email is off without the binding or valid addresses', () => {
     assert.equal(mailSettings({}, 'https://id.starry.phd'), null);
-    assert.equal(mailSettings({ EMAIL: new FakeSender(), EMAIL_FROM: 'noreply@starry.phd' }, 'https://id.starry.phd'), null);
+    assert.equal(mailSettings({ EMAIL: new FakeSender(), EMAIL_FROM: 'support@starry.phd' }, 'https://id.starry.phd'), null);
     assert.equal(mailSettings({ EMAIL: new FakeSender(), EMAIL_FROM: 'not an address', SUPPORT_EMAIL: 'support@starry.phd' }, 'https://id.starry.phd'), null);
     const { mail } = settings();
-    assert.deepEqual(mail.from, { email: 'noreply@starry.phd', name: 'Starry' });
+    assert.deepEqual(mail.from, { email: 'support@starry.phd', name: 'Starry' });
   });
 
   test('sendEmail adds the sender, reports Email Service error codes and never throws', async () => {
     const { mail, sender } = settings();
     assert.deepEqual(await sendEmail(mail, { to: 'member@example.com', subject: 's', text: 't' }), { ok: true, messageId: 'msg-1' });
-    assert.deepEqual(sender.sent[0]?.from, { email: 'noreply@starry.phd', name: 'Starry' });
+    assert.deepEqual(sender.sent[0]?.from, { email: 'support@starry.phd', name: 'Starry' });
     assert.deepEqual(await sendEmail(mail, { to: 'bad address', subject: 's', text: 't' }), { ok: false, error: 'E_INVALID_RECIPIENT' });
     sender.failWith = 'E_RECIPIENT_SUPPRESSED';
     assert.deepEqual(await sendEmail(mail, { to: 'member@example.com', subject: 's', text: 't' }), { ok: false, error: 'E_RECIPIENT_SUPPRESSED' });
