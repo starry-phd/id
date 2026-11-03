@@ -74,6 +74,34 @@ describe('App web versions and Android Apple sign-in', () => {
     assert.equal((await worker.call('/auth/apple/callback', form({ state: 'v1.forged.state', id_token: 'h.p.s', code: 'c' }))).status, 400);
   });
 
+  test('Google relay returns to a page on the App\'s registered web origin, in the URL fragment', async () => {
+    const nonce = 'g'.repeat(32);
+    const back = `${ECHO_WEB}/login/done`;
+    const start = await worker.call(`/auth/google/start?${new URLSearchParams({ app_id: 'echo', nonce: sha256Hex(nonce), return: back, state: 'web-1' })}`, { redirect: 'manual' });
+    assert.equal(start.status, 302);
+    const google = new URL(start.headers.get('location'));
+    assert.equal(google.origin + google.pathname, 'https://accounts.google.com/o/oauth2/v2/auth');
+    assert.equal(google.searchParams.get('client_id'), GOOGLE_AUDIENCE);
+    assert.equal(google.searchParams.get('redirect_uri'), 'https://api.test/auth/google/callback');
+    assert.equal(google.searchParams.get('response_type'), 'id_token');
+    assert.equal(google.searchParams.get('response_mode'), 'form_post');
+    assert.equal(google.searchParams.get('nonce'), sha256Hex(nonce));
+    for (const bad of [`https://evil.example/login`, 'http://echo-starry.starry-phd.workers.dev/login', `${ECHO_WEB}/x#frag`]) {
+      assert.equal((await worker.call(`/auth/google/start?${new URLSearchParams({ app_id: 'echo', nonce: sha256Hex(nonce), return: bad })}`, { redirect: 'manual' })).status, 400, bad);
+    }
+    assert.equal((await worker.call('/auth/github/start?app_id=echo')).status, 404);
+
+    const form = (data) => ({ method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', origin: 'https://accounts.google.com' }, body: new URLSearchParams(data).toString() });
+    const state = google.searchParams.get('state');
+    const pageHtml = await (await worker.call('/auth/google/callback', form({ state, id_token: 'g.t.s' }))).text();
+    assert.ok(pageHtml.includes(`href="${ECHO_WEB}/login/done#id_token=g.t.s&amp;state=web-1"`), pageHtml);
+    assert.equal((await worker.call('/auth/apple/callback', form({ state, id_token: 'g.t.s', code: 'c' }))).status, 400, 'a Google state cannot finish an Apple sign-in');
+
+    const { nonce: raw } = await (await worker.call('/v1/auth/nonce', json({ app_id: 'echo' }))).json();
+    const idToken = await signJwt(keys.google, idTokenClaims('google', { sub: 'web-google-user', nonce: sha256Hex(raw) }));
+    assert.equal((await worker.call('/v1/auth/google', json({ app_id: 'echo', id_token: idToken, nonce: raw }))).status, 200);
+  });
+
   test('an Android App signs in with the relayed Apple token: Services ID audience, hashed nonce', async () => {
     const { nonce } = await (await worker.call('/v1/auth/nonce', json({ app_id: 'echo' }))).json();
     const idToken = await signJwt(keys.apple, idTokenClaims('apple', { sub: 'android-apple-user', nonce: sha256Hex(nonce), aud: SERVICES_ID }));

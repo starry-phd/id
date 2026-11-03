@@ -12,10 +12,11 @@ import { billingRoutes } from './billing/routes';
 import type { AppBindings } from './env';
 import { errorBody, type ErrorCode } from './lib/errors';
 import { apiCors } from './lib/cors';
+import { reportError } from './lib/error-report';
 import { limitByIp } from './lib/rate-limit';
 import { meRoutes } from './me/routes';
 import { accountApp, publicPages } from './web/account';
-import { appleRelay } from './web/apple-relay';
+import { loginRelay } from './web/login-relay';
 import { adminApp, setApiDocument } from './web/admin';
 import { supportApp } from './web/support';
 
@@ -104,7 +105,7 @@ app.use('/account/session', limitByIp('RL_WEB'));
 app.use('/account/link', limitByIp('RL_WEB'));
 app.use('/account/link/merge', limitByIp('RL_WEB'));
 app.use('/support', limitByIp('RL_WEB'));
-app.use('/auth/apple/*', limitByIp('RL_WEB'));
+app.use('/auth/*', limitByIp('RL_WEB'));
 
 app.route('/v1/apps', appRoutes);
 app.route('/v1/avatars', avatarRoutes);
@@ -118,7 +119,7 @@ app.route('/v1/battery', batteryRoutes);
 app.route('/account', accountApp);
 app.route('/support', supportApp);
 app.route('/admin', adminApp);
-app.route('/auth/apple', appleRelay);
+app.route('/auth', loginRelay);
 app.route('/', publicPages);
 
 app.notFound((c) => c.json(errorBody('NOT_FOUND', 'Resource not found', c.get('requestId')), 404));
@@ -133,6 +134,12 @@ app.onError((err, c) => {
     return c.json(errorBody(code, err.status === 415 ? 'Send the body as application/json' : 'Invalid request', requestId), err.status as ContentfulStatusCode);
   }
   console.error(JSON.stringify({ level: 'error', request_id: requestId, message: err.message }));
+  const report = reportError(c.env.SENTRY_DSN, err, { kind: 'request', environment: c.env.STARRY_ENV, requestId, where: `${c.req.method} ${c.req.routePath}` });
+  try {
+    c.executionCtx.waitUntil(report);
+  } catch {
+    // No execution context (local tests): the report finishes on its own.
+  }
   return c.json(errorBody('INTERNAL', 'Internal error', requestId), 500);
 });
 

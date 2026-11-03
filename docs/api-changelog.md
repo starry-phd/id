@@ -12,6 +12,7 @@
 
 | PR | 變更 |
 |---|---|
+| #33 | 登入中繼擴充為 Google 與 Apple，並可回到 App 網頁版（`web_origins` 內的 https 網址，結果放在 `#` 之後）：`/auth/{google\|apple}/start`、`/auth/{google\|apple}/callback`（網頁，不屬於 `/v1`；`/v1` 沒有變更） |
 | #31 | `Profile` 新增 `contact_email`、`contact_email_verified`、`phone`、`country`、`region`、`city`、`motto`、`derived`（星座、天賦數、生命靈數、九宮格）、`visibility`、`field_updated_at`；`GET /v1/me` 新增 `public_profile`；`PATCH /v1/me/profile` 可改上述欄位與 `visibility`；新增 `POST /v1/me/contact-email/verification`、`GET /v1/me/motto-suggestion` |
 | #30 | 登入與加綁的請求新增選填 `redirect_uri`（Apple 網頁流程的 code exchange）；`/v1` 對已登記的 App 網頁版網址開放 CORS；新增 Android 的 Apple 登入中繼頁 `/auth/apple/start`、`/auth/apple/callback`（網頁，不屬於 `/v1`） |
 | #29 | `POST /v1/me/identities/{provider}`：請求新增選填 `merge_other_account`，回應新增 `merged`；409 回應新增 `mergeable`、`merge_blocked`、`other_account_created_at` |
