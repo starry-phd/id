@@ -1,3 +1,4 @@
+import { avatarChangedStatement } from './profile';
 import { auditStatement } from '../lib/audit';
 import { constantTimeEqual, uuidv7 } from '../lib/crypto';
 import { base64urlEncode, toArrayBuffer, utf8 } from '../lib/encoding';
@@ -59,6 +60,7 @@ export async function setAvatar(
   await store.put(key, toArrayBuffer(input.bytes), { httpMetadata: { contentType: type, cacheControl: 'private, max-age=3600' } });
   await db.batch([
     db.prepare('UPDATE profiles SET avatar_key = ?, version = version + 1, updated_at = ? WHERE user_id = ?').bind(key, now, input.userId),
+    avatarChangedStatement(db, input.userId, now),
     auditStatement(db, { actorType: 'user', actorUserId: input.userId, action: 'profile.avatar_set', targetType: 'user', targetId: input.userId, appId: input.appId, result: 'success', requestId: input.requestId, retention: 'general' }, now),
   ]);
   if (previous.avatar_key) await store.delete(previous.avatar_key);
@@ -71,6 +73,7 @@ export async function removeAvatar(db: D1Database, store: ObjectStore, input: { 
   if (!row?.avatar_key) return false;
   await db.batch([
     db.prepare('UPDATE profiles SET avatar_key = NULL, version = version + 1, updated_at = ? WHERE user_id = ?').bind(now, input.userId),
+    avatarChangedStatement(db, input.userId, now),
     auditStatement(db, { actorType: 'user', actorUserId: input.userId, action: 'profile.avatar_removed', targetType: 'user', targetId: input.userId, appId: input.appId, result: 'success', requestId: input.requestId, retention: 'general' }, now),
   ]);
   await store.delete(row.avatar_key);

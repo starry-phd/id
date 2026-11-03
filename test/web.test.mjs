@@ -110,6 +110,34 @@ describe('web account center, support form and Admin Lite', () => {
     assert.equal(bad.status, 400);
   });
 
+  test('profile page: one field at a time, visibility switches and last-changed times (02.07-02.10)', async () => {
+    const cookie = await webSignIn('profile-fields-web');
+    const profilePage = await (await worker.call('/account/profile', get(cookie))).text();
+    for (const label of ['姓名', '主要聯絡 Email', '手機（選填）', '國家／地區', '省／州／縣市', '城市／鄉鎮區', '生日', '座右銘', '頭像', '隨機提案']) assert.ok(profilePage.includes(label), label);
+    const save = (data) =>
+      worker.call('/account/profile', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', origin: ORIGIN, cookie, accept: 'application/json' }, body: new URLSearchParams(data).toString() });
+    let res = await save({ version: '1', field: 'phone', value: '0912 345 678' });
+    assert.equal(res.status, 200);
+    let body = await res.json();
+    assert.deepEqual([body.ok, body.version, body.display], [true, 2, '+886912345678']);
+    assert.match(body.updated, /最後修改：.*（本人）/);
+    body = await (await save({ version: '2', field: 'birthday', value: '1990-02-28' })).json();
+    assert.equal(body.version, 3);
+    body = await (await save({ version: '3', field: 'visibility.phone', value: 'public' })).json();
+    assert.equal(body.ok, true);
+    assert.equal((await save({ version: '1', field: 'motto', value: '舊版本' })).status, 409);
+    const bad = await save({ version: '4', field: 'phone', value: '12' });
+    assert.equal(bad.status, 400);
+    assert.match((await bad.json()).message, /手機/);
+    assert.equal((await save({ version: '4', field: 'user_id', value: 'x' })).status, 400);
+    const after = await (await worker.call('/account/profile', get(cookie))).text();
+    for (const text of ['雙魚座', '生命靈數', '天賦數', '彩色九宮格', '👁 公開']) assert.ok(after.includes(text), text);
+    const suggestion = await worker.call('/account/motto-suggestion', get(cookie));
+    assert.equal(typeof (await suggestion.json()).motto, 'string');
+    assert.equal((await worker.call('/account/verify-email?t=v1.bad.token')).status, 400);
+    assert.match(await (await worker.call('/account', get(cookie))).text(), /\+886912345678/);
+  });
+
   test('deletion from the web ends the cookie session and can be cancelled after signing in again', async () => {
     const cookie = await webSignIn('web-delete');
     assert.equal((await worker.call('/account/delete', form({}, cookie))).status, 303, 'confirmation required');

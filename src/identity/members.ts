@@ -1,6 +1,7 @@
 import { auditStatement } from '../lib/audit';
 import { uuidv7 } from '../lib/crypto';
 import type { VerifiedIdentity } from './link';
+import { PROFILE_SQL, saveProfile, type EditableField, type ProfileRow } from './profile';
 
 export interface MemberRow {
   user_id: string;
@@ -81,34 +82,23 @@ export async function acceptConsents(
   ]);
 }
 
-export interface ProfileRow {
-  display_name: string | null;
-  birthday: string | null;
-  locale: string;
-  version: number;
-  updated_at: number;
-}
+export { PROFILE_SQL, type ProfileRow } from './profile';
 
-export const PROFILE_SQL = 'SELECT display_name, birthday, locale, version, updated_at FROM profiles WHERE user_id = ?';
-
-export type ProfileChanges = Partial<Record<'display_name' | 'birthday' | 'locale', string | null>>;
+export type ProfileChanges = Partial<Record<EditableField, string | null>>;
 
 /**
- * Optimistic profile update (S-ID-08): written only if `expectedVersion` is still current.
- * Returns the profile as stored afterwards and whether this request wrote it.
+ * Optimistic profile update (S-ID-08) for already validated values: written only if
+ * `expectedVersion` is still current. Returns the profile as stored afterwards.
  */
 export async function updateProfile(
   db: D1Database,
   input: { userId: string; expectedVersion: number; changes: ProfileChanges; appId: string | null; requestId: string | null },
   now: number,
 ): Promise<{ written: boolean; profile: ProfileRow | null }> {
-  const fields = (['display_name', 'birthday', 'locale'] as const).filter((f) => f in input.changes);
-  if (fields.length === 0) return { written: false, profile: await db.prepare(PROFILE_SQL).bind(input.userId).first<ProfileRow>() };
-  const update = await db
-    .prepare(`UPDATE profiles SET ${fields.map((f) => `${f} = ?`).join(', ')}, version = version + 1, updated_at = ? WHERE user_id = ? AND version = ?`)
-    .bind(...fields.map((f) => input.changes[f] ?? null), now, input.userId, input.expectedVersion)
-    .run();
-  const written = update.meta.changes === 1;
-  await auditStatement(db, { actorType: 'user', actorUserId: input.userId, action: 'profile.update', targetType: 'user', targetId: input.userId, appId: input.appId, result: written ? 'success' : 'denied', requestId: input.requestId, retention: 'general' }, now).run();
-  return { written, profile: await db.prepare(PROFILE_SQL).bind(input.userId).first<ProfileRow>() };
+  const result = await saveProfile(
+    db,
+    { userId: input.userId, expectedVersion: input.expectedVersion, changes: { fields: input.changes, visibility: {} }, source: 'member', actorUserId: input.userId, appId: input.appId, requestId: input.requestId },
+    now,
+  );
+  return { written: result.written, profile: await db.prepare(PROFILE_SQL).bind(input.userId).first<ProfileRow>() };
 }

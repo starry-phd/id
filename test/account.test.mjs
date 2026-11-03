@@ -109,6 +109,28 @@ describe('account lifecycle API', () => {
     assert.equal(viaApple.user.user_id, main.user.user_id);
   });
 
+  test('the App reads and edits the restored profile fields (02.01-02.10)', async () => {
+    const s = await signIn('google', 'profile-fields-app');
+    const patch = (body, version) =>
+      worker.call('/v1/me/profile', authed(s.access_token, { method: 'PATCH', headers: { 'content-type': 'application/json', 'if-match': `"${version}"` }, body: JSON.stringify(body) }));
+    const res = await patch({ display_name: '回聲', phone: '0912345678', country: 'tw', region: '臺北市', motto: '慢慢來', birthday: '1990-02-28', contact_email: 'Echo@Example.com', visibility: { motto: 'public', birthday: 'public' } }, 1);
+    assert.equal(res.status, 200, await res.clone().text());
+    const { profile } = await res.json();
+    assert.deepEqual([profile.phone, profile.country, profile.contact_email, profile.contact_email_verified], ['+886912345678', 'TW', 'echo@example.com', false]);
+    assert.deepEqual([profile.derived.zodiac_name, profile.derived.talent_numbers, profile.derived.life_path_number, profile.derived.lines], ['雙魚座', [31], 4, ['1-2-3']]);
+    assert.deepEqual([profile.visibility.birthday, profile.visibility.phone, profile.visibility.display_name], ['public', 'private', 'public']);
+    assert.equal(profile.field_updated_at.phone.source, 'member');
+    const bad = await patch({ phone: '1' }, 2);
+    assert.equal(bad.status, 400);
+    assert.match((await bad.json()).error.message, /^phone:/);
+    const me = await (await worker.call('/v1/me', authed(s.access_token))).json();
+    assert.deepEqual([me.public_profile.display_name, me.public_profile.birthday_month_day, me.public_profile.motto, me.public_profile.phone, me.public_profile.contact_email], ['回聲', '02-28', '慢慢來', null, null]);
+    const suggestion = await worker.call('/v1/me/motto-suggestion?current=' + encodeURIComponent('慢慢來'), authed(s.access_token));
+    assert.equal(suggestion.status, 200);
+    assert.notEqual((await suggestion.json()).motto, '慢慢來');
+    assert.equal((await worker.call('/v1/me/contact-email/verification', authed(s.access_token, { method: 'POST' }))).status, 503, 'no email binding in tests');
+  });
+
   test('avatars upload to R2 and are served only through a signed URL', async () => {
     const session = await signIn('google', 'avatar-user');
     const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 73, 72, 68, 82]);

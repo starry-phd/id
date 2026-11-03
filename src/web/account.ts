@@ -13,13 +13,19 @@ import { listActiveSessions, logoutEverywhere, revokeOwnSession } from '../ident
 import { cancelDeletion, DELETION_GRACE_MS, requestDeletion } from '../identity/lifecycle';
 import { linkIdentity, type LinkResult } from '../identity/link';
 import { completeMerge, findMergeCandidate, type MergeBlocker } from '../identity/merge';
-import { acceptConsents, consentRequired, findOrCreateMember, PROFILE_SQL, updateProfile, type ProfileChanges, type ProfileRow } from '../identity/members';
+import { acceptConsents, consentRequired, findOrCreateMember, PROFILE_SQL, type ProfileRow } from '../identity/members';
+import { confirmContactEmail, sendContactEmailVerification, type ConfirmResult } from '../identity/contact-email';
+import { randomMotto } from '../identity/mottos';
+import {
+  ageOn, derivedOf, EDITABLE_FIELDS, effectiveVisibility, GRID_LAYOUT, hasChanges, loadProfile, saveProfile, validateProfileInput,
+  type EditableField, type FieldUpdate, type Visibility, type VisibilityField,
+} from '../identity/profile';
 import { issueNonce } from '../identity/nonces';
 import { claimOwner, hasRole, isRecentLogin, roleOf } from '../identity/roles';
 import { createWebSession, endWebSession, WEB_APP_ID, WEB_SESSION_ABSOLUTE_MS } from '../identity/web-sessions';
 import { errorBody } from '../lib/errors';
 import { open as unseal, seal } from '../lib/sealed';
-import { boundedString, isBirthday, isLocale, readJsonObject } from '../lib/validate';
+import { readJsonObject } from '../lib/validate';
 import { formatTime, page, readForm, sameOrigin, SESSION_COOKIE, webContext, type Html, type WebContext } from './layout';
 import { PRIVACY_POLICY, TERMS_OF_SERVICE, type LegalDocument } from './legal';
 
@@ -291,11 +297,15 @@ ${!pending && needsConsent
 <form method="post" action="/account/consent"><button type="submit">我已閱讀並同意</button></form></div>`
   : ''}
 <div class="card">
-  <p><strong>顯示名稱：</strong>${p.display_name ?? '（未設定）'}<br>
-  <strong>生日：</strong>${p.birthday ?? '（未設定）'}<br>
+  <p><strong>姓名：</strong>${p.display_name ?? '（未設定）'}<br>
+  <strong>聯絡 Email：</strong>${p.contact_email ? html`${p.contact_email}${p.contact_email_verified_at ? '' : html` <span class="muted">（待確認）</span>`}` : '（未設定）'}<br>
+  <strong>手機：</strong>${p.phone ?? '（未設定）'}<br>
+  <strong>地區：</strong>${[countryName(p.country), p.region, p.city].filter((v) => v).join(' ') || '（未設定）'}<br>
+  <strong>生日：</strong>${p.birthday ? html`${p.birthday}（${derivedOf(p.birthday)?.zodiac_name ?? ''}）` : '（未設定）'}<br>
+  <strong>座右銘：</strong>${p.motto ?? '（未設定）'}<br>
   <strong>語系：</strong>${LOCALES[p.locale] ?? p.locale}<br>
   <span class="muted">加入時間：${formatTime(account.createdAt)}</span></p>
-  ${pending ? '' : html`<a class="button" href="/account/profile">編輯個人資料</a>`}
+  ${pending ? '' : html`<a class="button" href="/account/profile">編輯個人資料與公開設定</a>`}
 </div>
 <h2>登入方式</h2>
 <div class="card">
@@ -508,54 +518,279 @@ accountApp.post('/consent', async (c) => {
   return c.redirect('/account', 303);
 });
 
-function profileForm(c: WebContext, p: ProfileRow, message?: { text: string; danger: boolean }): Html {
+// ---- Personal profile (S-ID-08, original checklist 02.01-02.10) ----
+
+const COUNTRIES: readonly (readonly [string, string])[] = [
+  ['TW', '台灣'], ['HK', '香港'], ['MO', '澳門'], ['CN', '中國大陸'], ['JP', '日本'], ['KR', '韓國'], ['SG', '新加坡'], ['MY', '馬來西亞'],
+  ['TH', '泰國'], ['VN', '越南'], ['PH', '菲律賓'], ['ID', '印尼'], ['US', '美國'], ['CA', '加拿大'], ['GB', '英國'], ['AU', '澳洲'],
+  ['NZ', '紐西蘭'], ['DE', '德國'], ['FR', '法國'],
+];
+const countryName = (code: string | null) => (code ? (COUNTRIES.find(([c]) => c === code)?.[1] ?? code) : null);
+
+interface FieldSpec {
+  field: EditableField;
+  label: string;
+  /** The visibility switch shown on this row (the location switch sits on the country row). */
+  eye: VisibilityField | null;
+  input: 'text' | 'email' | 'tel' | 'date' | 'country' | 'locale' | 'textarea';
+  max?: number;
+  hint?: string;
+}
+
+const PROFILE_FIELDS: readonly FieldSpec[] = [
+  { field: 'display_name', label: '姓名', eye: 'display_name', input: 'text', max: 50, hint: '其他會員看到的名字，1～50 字。' },
+  { field: 'contact_email', label: '主要聯絡 Email', eye: 'contact_email', input: 'email', hint: '變更後會寄確認信；確認前，系統通知仍寄到登入用的信箱。' },
+  { field: 'phone', label: '手機（選填）', eye: 'phone', input: 'tel', hint: '可輸入 0912345678，會依國家自動加上國碼。預設不公開。' },
+  { field: 'country', label: '國家／地區', eye: 'location', input: 'country', hint: '這裡的公開設定同時套用到省／州／縣市與城市。' },
+  { field: 'region', label: '省／州／縣市', eye: null, input: 'text', max: 60 },
+  { field: 'city', label: '城市／鄉鎮區', eye: null, input: 'text', max: 60 },
+  { field: 'birthday', label: '生日', eye: 'birthday', input: 'date', hint: '公開時只顯示月日；未滿 18 歲不會公開。' },
+  { field: 'motto', label: '座右銘', eye: 'motto', input: 'textarea', max: 200 },
+  { field: 'locale', label: '語系', eye: null, input: 'locale' },
+];
+
+const SOURCE_LABELS: Record<string, string> = { member: '本人', staff: '客服人員' };
+const NUMBER_COLORS = ['', '#e5484d', '#f76b15', '#e2a336', '#30a46c', '#0090ff', '#3e63dd', '#8e4ec6', '#d6409f', '#ad7f58'];
+
+function displayValue(p: ProfileRow, field: EditableField): string {
+  switch (field) {
+    case 'country':
+      return countryName(p.country) ?? '';
+    case 'locale':
+      return LOCALES[p.locale] ?? p.locale;
+    case 'contact_email':
+      return p.contact_email ? `${p.contact_email}（${p.contact_email_verified_at ? '已確認' : '待確認'}）` : '';
+    default:
+      return p[field] ?? '';
+  }
+}
+
+function fieldInput(spec: FieldSpec, p: ProfileRow): Html {
+  const value = spec.field === 'locale' ? p.locale : (p[spec.field] ?? '');
+  const id = `f-${spec.field}`;
+  switch (spec.input) {
+    case 'country':
+      return html`<select id="${id}" name="value"><option value="">（未設定）</option>${COUNTRIES.map(([code, name]) => html`<option value="${code}"${code === p.country ? raw(' selected') : ''}>${name}</option>`)}</select>`;
+    case 'locale':
+      return html`<select id="${id}" name="value">${Object.entries(LOCALES).map(([v, label]) => html`<option value="${v}"${v === p.locale ? raw(' selected') : ''}>${label}</option>`)}</select>`;
+    case 'textarea':
+      return html`<textarea id="${id}" name="value" rows="3" maxlength="${spec.max ?? 200}">${value}</textarea>`;
+    default:
+      return html`<input id="${id}" name="value" type="${spec.input}" value="${value}"${spec.max ? raw(` maxlength="${spec.max}"`) : ''}${spec.input === 'tel' ? raw(' inputmode="tel" autocomplete="tel"') : ''}>`;
+  }
+}
+
+function eyeForm(group: VisibilityField, visibility: Record<VisibilityField, Visibility>, version: number, locked: boolean): Html {
+  const isPublic = visibility[group] === 'public';
+  if (locked) return html`<span class="muted">🔒 不公開</span>`;
+  return html`<form class="inline eye" method="post" action="/account/profile"><input type="hidden" name="version" value="${version}"><input type="hidden" name="field" value="visibility.${group}"><input type="hidden" name="value" value="${isPublic ? 'private' : 'public'}"><button class="secondary" type="submit" title="${isPublic ? '目前公開，按一下改為不公開' : '目前不公開，按一下改為公開'}">${isPublic ? '👁 公開' : '🙈 不公開'}</button></form>`;
+}
+
+function updatedLine(updates: Record<string, FieldUpdate>, field: string): Html {
+  const u = updates[field];
+  return u ? html`<p class="muted updated">最後修改：${formatTime(u.updated_at)}（${SOURCE_LABELS[u.source] ?? u.source}）</p>` : html`<p class="muted updated"></p>`;
+}
+
+function derivedCard(p: ProfileRow, visibility: Record<VisibilityField, Visibility>, version: number, minor: boolean): Html {
+  const d = derivedOf(p.birthday);
+  if (!d) return html`<div class="card"><p class="muted">填寫生日後，這裡會顯示星座、天賦數、生命靈數與彩色九宮格。</p></div>`;
+  const counts = new Map(d.grid.map((g) => [g.number, g.count]));
+  return html`<div class="card">
+<p style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>由生日推算</strong>${eyeForm('derived', visibility, version, minor)}</p>
+<p>星座：<strong>${d.zodiac_name}</strong><br>天賦數：<strong>${d.talent_numbers.length > 0 ? d.talent_numbers.join('、') : '—'}</strong><br>生命靈數：<strong>${d.life_path_number}</strong></p>
+<table class="grid9" aria-label="彩色九宮格">${GRID_LAYOUT.map(
+    (row) => html`<tr>${row.map((n) => {
+      const count = counts.get(n) ?? 0;
+      return html`<td style="${count > 0 ? `background:${NUMBER_COLORS[n]};color:#fff` : ''}"><strong>${n}</strong>${count > 1 ? html`<sup>×${count}</sup>` : ''}</td>`;
+    })}</tr>`,
+  )}</table>
+<p class="muted">連線：${d.lines.length > 0 ? d.lines.join('、') : '無'}。公開時只顯示星座與生命靈數（天賦數與九宮格會透露出生年，不會公開）。</p>
+</div>`;
+}
+
+function profilePage(c: WebContext, loaded: { row: ProfileRow; fieldUpdates: Record<string, FieldUpdate> }, message?: { text: string; danger: boolean }): Html {
+  const p = loaded.row;
+  const now = Date.now();
+  const visibility = effectiveVisibility(p, now);
+  const minor = p.birthday !== null && ageOn(p.birthday, now) < 18;
+  const nonce = c.get('cspNonce');
+  const rows = PROFILE_FIELDS.map((spec) => {
+    const locked = minor && spec.eye === 'birthday';
+    return html`<div class="card field" data-field="${spec.field}">
+<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>${spec.label}</strong><span>${spec.eye ? eyeForm(spec.eye, visibility, p.version, locked) : ''}<button class="secondary pencil" type="button" aria-label="編輯${spec.label}" hidden>✏️ 編輯</button></span></div>
+<p class="value">${displayValue(p, spec.field) || html`<span class="muted">（未設定）</span>`}</p>
+<form class="field-form" method="post" action="/account/profile">
+<input type="hidden" name="version" value="${p.version}"><input type="hidden" name="field" value="${spec.field}">
+<label for="f-${spec.field}" class="muted" style="font-weight:400">${spec.hint ?? `修改${spec.label}`}</label>
+${fieldInput(spec, p)}
+${spec.field === 'motto' ? html`<button class="secondary suggest" type="button" hidden>🎲 隨機提案</button>` : ''}
+<button type="submit">儲存</button><span class="status muted" role="status" aria-live="polite"></span>
+</form>
+${spec.field === 'contact_email' && p.contact_email && !p.contact_email_verified_at
+  ? html`<form method="post" action="/account/contact-email/verify"><button class="secondary" type="submit">重寄確認信</button></form>`
+  : ''}
+${updatedLine(loaded.fieldUpdates, spec.field)}
+</div>`;
+  });
   return page(
     c,
-    '編輯個人資料',
-    html`<h1>編輯個人資料</h1>
+    '個人資料',
+    html`<h1>個人資料</h1>
 ${message ? html`<div class="banner ${message.danger ? 'danger' : ''}">${message.text}</div>` : ''}
-<form method="post" action="/account/profile" class="card">
-  <input type="hidden" name="version" value="${p.version}">
-  <label for="display_name">顯示名稱（1～50 字，可留空）</label>
-  <input id="display_name" name="display_name" maxlength="50" value="${p.display_name ?? ''}">
-  <label for="birthday">生日（選填）</label>
-  <input id="birthday" name="birthday" type="date" value="${p.birthday ?? ''}">
-  <label for="locale">語系</label>
-  <select id="locale" name="locale">${Object.entries(LOCALES).map(([v, label]) => html`<option value="${v}"${v === p.locale ? raw(' selected') : ''}>${label}</option>`)}</select>
-  <button type="submit">儲存</button> <a href="/account">取消</a>
-</form>`,
+<p class="muted">所有繁星 App 共用這份資料。按 ✏️ 編輯，離開欄位會自動儲存；👁 設定其他會員能不能看到。</p>
+<style>.js .field-form{display:none}.js .field.editing .field-form{display:block}.js .field.editing .value{display:none}.grid9{width:auto;margin:8px 0}.grid9 td{width:56px;height:56px;text-align:center;border:1px solid var(--line);font-size:1.2rem}.eye button,.pencil{margin:0 0 0 8px;padding:4px 10px}</style>
+<div class="card field"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>頭像</strong>${eyeForm('avatar', visibility, p.version, false)}</div><p class="muted">頭像請在繁星 App 內上傳與裁切；沒有頭像時顯示姓名第一個字。</p>${updatedLine(loaded.fieldUpdates, 'avatar')}</div>
+${rows}
+<h2>生日資訊</h2>
+${derivedCard(p, visibility, p.version, minor)}
+<p><a href="/account">回到帳號中心</a></p>`,
+    {
+      scripts: html`<script nonce="${nonce}">
+document.documentElement.classList.add('js');
+const STATUS = { saving: '儲存中…', saved: '已儲存', conflict: '資料已在其他地方更新，請重新整理頁面。', failed: '儲存失敗，請再試一次。' };
+let version = ${p.version};
+function setVersion(v) { version = v; document.querySelectorAll('input[name=version]').forEach((i) => { i.value = String(v); }); }
+async function save(form) {
+  const status = form.querySelector('.status');
+  const field = form.closest('.field');
+  status.textContent = STATUS.saving;
+  form.querySelector('input[name=version]').value = String(version);
+  const res = await fetch('/account/profile', { method: 'POST', headers: { accept: 'application/json' }, body: new URLSearchParams(new FormData(form)) }).catch(() => null);
+  const body = res ? await res.json().catch(() => ({})) : {};
+  if (res && res.ok && body.ok) {
+    setVersion(body.version);
+    field.querySelector('.value').textContent = body.display || '（未設定）';
+    if (body.updated) field.querySelector('.updated').textContent = body.updated;
+    status.textContent = STATUS.saved;
+    field.classList.remove('editing');
+    if (body.reload) location.reload();
+    return;
+  }
+  status.textContent = res && res.status === 409 ? STATUS.conflict : (body.message || STATUS.failed);
+}
+document.querySelectorAll('.field[data-field]').forEach((field) => {
+  const form = field.querySelector('.field-form');
+  const pencil = field.querySelector('.pencil');
+  const input = form.querySelector('[name=value]');
+  let initial = input.value;
+  pencil.hidden = false;
+  pencil.addEventListener('click', () => { field.classList.add('editing'); input.focus(); });
+  form.addEventListener('submit', (e) => { e.preventDefault(); initial = input.value; save(form); });
+  const autosave = () => { if (input.value !== initial) { initial = input.value; save(form); } };
+  input.addEventListener(input.tagName === 'SELECT' || input.type === 'date' ? 'change' : 'blur', autosave);
+  const suggest = form.querySelector('.suggest');
+  if (suggest) {
+    suggest.hidden = false;
+    suggest.addEventListener('click', async () => {
+      const res = await fetch('/account/motto-suggestion?current=' + encodeURIComponent(input.value)).catch(() => null);
+      const body = res && res.ok ? await res.json() : null;
+      if (body && body.motto) { input.value = body.motto; form.querySelector('.status').textContent = '這是提案，按「儲存」才會更新。'; }
+    });
+  }
+});
+</script>`,
+    },
   );
+}
+
+function updatedText(updates: Record<string, FieldUpdate>, field: string): string {
+  const u = updates[field];
+  return u ? `最後修改：${formatTime(u.updated_at)}（${SOURCE_LABELS[u.source] ?? u.source}）` : '';
 }
 
 accountApp.get('/profile', async (c) => {
   const web = c.get('web');
   if (!web) return c.redirect('/account?next=/account/profile', 303);
   if (web.status !== 'active') return c.redirect('/account', 303);
-  const p = await c.env.DB_IDENTITY.prepare(PROFILE_SQL).bind(web.userId).first<ProfileRow>();
-  if (!p) return c.redirect('/account', 303);
-  return c.html(profileForm(c, p));
+  const loaded = await loadProfile(c.env.DB_IDENTITY, web.userId);
+  if (!loaded) return c.redirect('/account', 303);
+  const notice = PROFILE_NOTICES[c.req.query('notice') ?? ''];
+  return c.html(profilePage(c, loaded, notice));
 });
 
+const PROFILE_NOTICES: Record<string, { text: string; danger: boolean }> = {
+  verification_sent: { text: '已寄出確認信，請到信箱點連結完成確認（24 小時內有效）。', danger: false },
+  verification_unavailable: { text: '目前無法寄出確認信，請稍後再試。', danger: true },
+  verified: { text: '聯絡信箱已確認，之後的系統通知會寄到這裡。', danger: false },
+};
+
+/**
+ * POST /account/profile — one field per request from the profile page (field + value, or
+ * visibility.<group>), or several fields from a plain form. JSON when the page's script asks.
+ */
 accountApp.post('/profile', async (c) => {
   const web = c.get('web');
-  if (!web || web.status !== 'active') return c.redirect('/account', 303);
+  const wantsJson = (c.req.header('accept') ?? '').includes('application/json');
+  if (!web || web.status !== 'active') return wantsJson ? c.json({ ok: false, message: '請重新登入。' }, 401) : c.redirect('/account', 303);
   const form = await readForm(c);
   const db = c.env.DB_IDENTITY;
-  const current = await db.prepare(PROFILE_SQL).bind(web.userId).first<ProfileRow>();
-  if (!current) return c.redirect('/account', 303);
-  const version = Number(form.version);
-  const name = (form.display_name ?? '').trim();
-  const birthday = (form.birthday ?? '').trim();
-  const locale = form.locale ?? current.locale;
+  const before = await loadProfile(db, web.userId);
+  if (!before) return c.redirect('/account', 303);
   const now = Date.now();
-  if ((name !== '' && !boundedString(name, 50)) || (birthday !== '' && !isBirthday(birthday, now)) || !isLocale(locale) || !Number.isInteger(version)) {
-    return c.html(profileForm(c, current, { text: '資料格式不正確：顯示名稱最多 50 字，生日須為有效日期。', danger: true }), 400);
+  const version = Number(form.version);
+  let input: Record<string, unknown> = {};
+  if (form.field?.startsWith('visibility.')) input = { visibility: { [form.field.slice('visibility.'.length)]: form.value } };
+  else if (form.field) input = (EDITABLE_FIELDS as readonly string[]).includes(form.field) ? { [form.field]: form.value ?? '' } : { visibility: null };
+  else for (const field of EDITABLE_FIELDS) if (field in form) input[field] = field === 'display_name' && form[field] === '' ? null : form[field];
+  const validated = validateProfileInput(input, now, before.row.country);
+  const respond = async (status: 200 | 400 | 409, message: { text: string; danger: boolean }) => {
+    const current = (await loadProfile(db, web.userId)) ?? before;
+    if (wantsJson) {
+      const field = (form.field ?? '') as EditableField;
+      const ok = status === 200;
+      return c.json(
+        {
+          ok,
+          message: ok ? undefined : message.text,
+          version: current.row.version,
+          display: (EDITABLE_FIELDS as readonly string[]).includes(field) ? displayValue(current.row, field) : undefined,
+          updated: updatedText(current.fieldUpdates, field),
+          reload: field === 'birthday' || field === 'contact_email' || (form.field ?? '').startsWith('visibility.'),
+        },
+        status,
+      );
+    }
+    return c.html(profilePage(c, current, message), status);
+  };
+  if (!validated.ok) return respond(400, { text: `資料格式不正確：${validated.message}。`, danger: true });
+  if (!Number.isInteger(version) || !hasChanges(validated.changes)) return respond(400, { text: '沒有要儲存的變更。', danger: true });
+  const saved = await saveProfile(db, { userId: web.userId, expectedVersion: version, changes: validated.changes, source: 'member', actorUserId: web.userId, appId: WEB_APP_ID, requestId: c.get('requestId') }, now);
+  if (!saved.written) return respond(409, { text: '個人資料已在其他地方更新，以下是最新內容，請確認後再儲存。', danger: true });
+  if (saved.newContactEmail) {
+    const pending = background(c, sendContactEmailVerification(c.env.DATA_ENCRYPTION_KEY, mailSettings(c.env, new URL(c.req.url).origin), web.userId, saved.newContactEmail, now));
+    if (pending) await pending;
   }
-  const changes: ProfileChanges = { display_name: name === '' ? null : name, birthday: birthday === '' ? null : birthday, locale };
-  const result = await updateProfile(db, { userId: web.userId, expectedVersion: version, changes, appId: WEB_APP_ID, requestId: c.get('requestId') }, now);
-  if (!result.profile) return c.redirect('/account', 303);
-  if (!result.written) return c.html(profileForm(c, result.profile, { text: '個人資料已在其他地方更新，以下是最新內容，請確認後再儲存。', danger: true }), 409);
-  return c.html(profileForm(c, result.profile, { text: '已儲存。', danger: false }));
+  return respond(200, { text: saved.newContactEmail ? '已儲存，並寄出聯絡信箱的確認信。' : '已儲存。', danger: false });
+});
+
+/** POST /account/contact-email/verify — sends the confirmation link again. */
+accountApp.post('/contact-email/verify', async (c) => {
+  const web = c.get('web');
+  if (!web || web.status !== 'active') return c.redirect('/account', 303);
+  const loaded = await loadProfile(c.env.DB_IDENTITY, web.userId);
+  const email = loaded?.row.contact_email;
+  if (!email || loaded.row.contact_email_verified_at !== null) return c.redirect('/account/profile', 303);
+  const result = await sendContactEmailVerification(c.env.DATA_ENCRYPTION_KEY, mailSettings(c.env, new URL(c.req.url).origin), web.userId, email, Date.now());
+  return c.redirect(`/account/profile?notice=${result === 'sent' ? 'verification_sent' : 'verification_unavailable'}`, 303);
+});
+
+/** GET /account/verify-email?t= — the link from the confirmation email; works without signing in. */
+accountApp.get('/verify-email', async (c) => {
+  const result = await confirmContactEmail(c.env.DB_IDENTITY, c.env.DATA_ENCRYPTION_KEY, c.req.query('t') ?? '', Date.now());
+  const text: Record<ConfirmResult, string> = {
+    verified: '聯絡信箱已確認，之後的系統通知會寄到這裡。',
+    expired: '確認連結已過期，請到帳號中心的個人資料頁重寄確認信。',
+    changed: '這個信箱已不是您目前的聯絡信箱，或連結已失效。',
+    invalid: '確認連結無效。',
+  };
+  return c.html(page(c, '確認聯絡信箱', html`<h1>確認聯絡信箱</h1><div class="banner${result === 'verified' ? '' : ' danger'}">${text[result]}</div><p><a href="/account/profile">前往個人資料</a></p>`), result === 'verified' ? 200 : 400);
+});
+
+/** GET /account/motto-suggestion — random motto for the profile page (02.05); nothing is saved. */
+accountApp.get('/motto-suggestion', (c) => {
+  const web = c.get('web');
+  if (!web) return c.json({ error: 'sign in' }, 401);
+  return c.json({ motto: randomMotto(c.req.query('current') ?? null) });
 });
 
 accountApp.get('/delete', (c) => {

@@ -57,8 +57,16 @@ export async function sendEmail(settings: MailSettings, message: Omit<OutgoingEm
   }
 }
 
-/** The address a member can be reached at: the most recently used sign-in that shared an email. */
+/**
+ * The address a member can be reached at: their verified main contact email (02.01), otherwise
+ * the most recently used sign-in that shared an email.
+ */
 export async function contactEmailOf(db: D1Database, userId: string): Promise<string | null> {
+  const chosen = await db
+    .prepare('SELECT contact_email FROM profiles WHERE user_id = ? AND contact_email IS NOT NULL AND contact_email_verified_at IS NOT NULL')
+    .bind(userId)
+    .first<{ contact_email: string }>();
+  if (chosen && isEmailAddress(chosen.contact_email)) return chosen.contact_email;
   const row = await db
     .prepare('SELECT email FROM auth_identities WHERE user_id = ? AND email IS NOT NULL ORDER BY last_login_at DESC LIMIT 1')
     .bind(userId)
@@ -93,6 +101,22 @@ export function deletionRequestedEmail(s: MailSettings, to: string, purgeAt: num
 
 export function ticketReference(ticketId: string): string {
   return ticketId.slice(-8).toUpperCase();
+}
+
+/** Confirms a member's main contact email (02.01) before system email uses it. */
+export function contactEmailVerificationEmail(s: MailSettings, to: string, link: string): Omit<OutgoingEmail, 'from'> {
+  return {
+    to,
+    replyTo: s.supportAddress,
+    subject: '請確認您的 Starry 聯絡信箱',
+    text: `您好：
+
+您在 Starry 帳號中心把這個信箱設為主要聯絡信箱。請在 24 小時內打開下面的連結完成確認：
+
+${link}
+
+確認之前，系統通知仍會寄到您登入用的信箱。如果這不是您本人的操作，請忽略這封信，信箱不會被使用。${FOOTER(s)}`,
+  };
 }
 
 /** Staff reply to a support ticket (S-WEB-02); replies go to the support mailbox. */
