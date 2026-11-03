@@ -19,7 +19,8 @@
           "phd.starry.id.web"
         ],
         "google_audiences": [
-          "529568041037-j9gd4baq8k239qv7an2f53rh3srbgtnm.apps.googleusercontent.com"
+          "529568041037-j9gd4baq8k239qv7an2f53rh3srbgtnm.apps.googleusercontent.com",
+          "529568041037-1apv0udmqj4djdkep6ofcs4vv2nm6js1.apps.googleusercontent.com"
         ]
       },
       "web_origins": [
