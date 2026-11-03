@@ -59,7 +59,7 @@ Apple Developer → Keys → 建立啟用 Sign in with Apple 的 Key，下載 .p
 1. 升級 Workers Paid（每月 5 美元，含每月 3,000 封信）：Cloudflare → Workers 和 Pages → 方案 → Workers Paid。
 2. 客服信箱：運算 → Email Service → Email Routing → 網域 `starry.phd` → 自訂地址 `support` 轉寄到業主 Gmail → 新增記錄並啟用；到 Gmail 點驗證信。
 3. 寄信網域：Email Service → Email Sending → Onboard Domain → `starry.phd` → Done（自動加入 `cf-bounce` 的 MX／SPF／DKIM 與 `_dmarc` 記錄）。
-4. Apple 隱藏信箱：Apple Developer → Services → Sign in with Apple for Email Communication → Configure → 加入網域 `starry.phd` 與寄件人 `noreply@starry.phd`。
+4. Apple 隱藏信箱：Apple Developer → Services → Sign in with Apple for Email Communication → Configure → 加入網域 `starry.phd` 與寄件人 `support@starry.phd`（與客服信箱共用）。
 5. 告訴 Claude 完成；Claude 在 `wrangler.jsonc` 加入 `send_email` 綁定 `EMAIL` 並部署，寄一封測試信確認。
 
 寄出的信：刪帳申請確認（寄給會員）、Admin Lite 回覆客服單（寄給提問者）、新客服單通知（寄到 support@starry.phd）。不寄行銷信。

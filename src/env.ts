@@ -33,7 +33,7 @@ export interface Env {
   DATA_ENCRYPTION_KEY?: string;
   /** Cloudflare Email Service send_email binding (S-NTF-02); without it no email is sent. */
   EMAIL?: EmailSender;
-  /** Sender and support mailbox for system email, e.g. noreply@starry.phd and support@starry.phd. */
+  /** Sender and support mailbox for system email, e.g. support@starry.phd for both sending and the support mailbox. */
   EMAIL_FROM?: string;
   SUPPORT_EMAIL?: string;
   /** Turnstile for the public support form (S-WEB-02); without the secret the form relies on rate limits. */
