@@ -20,7 +20,7 @@ Starry ID 會員與登入、App Registry、購買權益投影與每日對帳、S
 | `GET /v1/me/motto-suggestion` | 隨機座右銘提案（不會儲存） | S-ID-08 |
 | `PUT`／`DELETE /v1/me/avatar` | 上傳（WebP／JPEG／PNG ≤ 256 KB）或移除頭像 | S-ID-08 |
 | `POST /v1/me/consents` | 同意目前版本的條款與隱私權政策 | S-ID-09 |
-| `POST`／`DELETE /v1/me/deletion` | 申請刪除（立即停用、7 天後清除）／撤回 | S-ID-06 |
+| `POST`／`DELETE /v1/me/deletion` | 立即永久刪除帳號（無等待期）／撤回（僅限舊的待刪除帳號） | S-ID-06 |
 | `POST /v1/me/identities/{apple\|google}` | 加綁另一種登入方式；該登入方式之前另外建立過帳號時，可帶 `merge_other_account` 合併（有購買、管理人員、停權者除外） | S-ID-02 |
 | `GET /v1/me/entitlements` | 本 App 的有效權益（RevenueCat 投影） | S-BIL-04 |
 | `GET /v1/me/battery` | 本月 Battery 額度、已用、預留、剩餘、下次恢復時間與近 30 天紀錄 | S-BAT-04 |

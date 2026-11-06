@@ -4,7 +4,7 @@ import { generateKeyPairSync } from 'node:crypto';
 import { describe, test } from 'node:test';
 import { periodOf } from '../../src/battery/battery';
 import { clientSecret, processAppleRevocations, rememberAppleToken, type FetchLike } from '../../src/identity/apple';
-import { cancelDeletion, DELETION_GRACE_MS, purgeExpiredDeletions, requestDeletion } from '../../src/identity/lifecycle';
+import { cancelDeletion, DELETION_GRACE_MS, deleteMemberNow, purgeExpiredDeletions, requestDeletion } from '../../src/identity/lifecycle';
 import { linkIdentity } from '../../src/identity/link';
 import { runDailyMaintenance } from '../../src/identity/maintenance';
 import { searchMembers } from '../../src/identity/member-search';
@@ -86,6 +86,38 @@ describe('account deletion (S-ID-06)', () => {
     assert.equal(await count(db, "SELECT COUNT(*) AS n FROM apple_revocations WHERE client_id = 'phd.starry.echo'"), 1);
     assert.equal(await count(db, "SELECT COUNT(*) AS n FROM audit_log WHERE action = 'account.purged' AND target_id = ?", due), 1);
     assert.equal(await count(db, "SELECT COUNT(*) AS n FROM audit_log WHERE action = 'account.deletion_requested' AND target_id = ?", due), 1);
+  });
+
+  test('deleting now removes everything at once, retires the member number and queues Apple revocation', async () => {
+    const db = migratedDb();
+    const d = db as unknown as D1Database;
+    const id = await member(db, { provider: 'apple', subject: 'apple-now' });
+    const other = await member(db);
+    await db.prepare("UPDATE users SET member_no = '886-1234567' WHERE user_id = ?").bind(id).run();
+    await db.prepare("UPDATE profiles SET avatar_key = 'avatars/886-1234567/x.webp' WHERE user_id = ?").bind(id).run();
+    await session(db, id);
+    await db
+      .prepare('INSERT INTO apple_tokens (subject, client_id, user_id, refresh_token_enc, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
+      .bind('apple-now', 'phd.starry.echo', id, 'v1.sealed', NOW, NOW)
+      .run();
+    assert.deepEqual(await deleteMemberNow(d, { userId: 'nobody', appId: null, requestId: null }, NOW), { ok: false, reason: 'not_found' });
+    assert.deepEqual(await deleteMemberNow(d, { userId: id, appId: 'echo', requestId: 'r1' }, NOW), { ok: true, avatarKey: 'avatars/886-1234567/x.webp', memberNo: '886-1234567' });
+    for (const table of ['users', 'profiles', 'auth_identities', 'sessions', 'consents', 'apple_tokens']) {
+      assert.equal(await count(db, `SELECT COUNT(*) AS n FROM ${table} WHERE user_id = ?`, id), 0, table);
+    }
+    assert.equal(await count(db, 'SELECT COUNT(*) AS n FROM users WHERE user_id = ?', other), 1);
+    assert.equal(await count(db, "SELECT COUNT(*) AS n FROM retired_member_numbers WHERE member_no = '886-1234567'"), 1);
+    assert.equal(await count(db, "SELECT COUNT(*) AS n FROM apple_revocations WHERE client_id = 'phd.starry.echo'"), 1);
+    assert.equal(await count(db, "SELECT COUNT(*) AS n FROM audit_log WHERE action = 'account.deleted' AND target_id = ?", id), 1);
+    assert.deepEqual(await deleteMemberNow(d, { userId: id, appId: 'echo', requestId: 'r2' }, NOW), { ok: false, reason: 'not_found' });
+  });
+
+  test('an owner deleting a member is audited as the staff member', async () => {
+    const db = migratedDb();
+    const staffId = await member(db);
+    const id = await member(db);
+    assert.equal((await deleteMemberNow(db as unknown as D1Database, { userId: id, appId: null, requestId: null, staffId }, NOW)).ok, true);
+    assert.equal(await count(db, "SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.member_deleted' AND actor_user_id = ? AND target_id = ?", staffId, id), 1);
   });
 
   test('a member who cancelled is never purged', async () => {

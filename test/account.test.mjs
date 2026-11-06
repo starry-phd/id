@@ -33,34 +33,25 @@ describe('account lifecycle API', () => {
     return res.json();
   }
 
-  test('deletion disables the account at once; signing in again allows cancelling', async () => {
+  test('deletion removes the account at once and for good; the member number is never reused', async () => {
     const first = await signIn('google', 'delete-me');
+    const row = await worker.db.prepare('SELECT user_id, member_no FROM users WHERE user_id = (SELECT user_id FROM auth_identities WHERE subject = ?)').bind('delete-me').first();
+    assert.match(row.member_no, /^\d{1,4}-\d{7}$/);
     assert.equal((await worker.call('/v1/me/deletion', authed(first.access_token, json({})))).status, 400);
     const res = await worker.call('/v1/me/deletion', authed(first.access_token, json({ confirm: true })));
     assert.equal(res.status, 202);
-    const body = await res.json();
-    assert.equal(body.status, 'pending_deletion');
-    assert.ok(body.deletion_purge_at > Date.now() + 6 * 24 * 3600 * 1000);
+    assert.equal((await res.json()).status, 'deleted');
+    assert.equal(await worker.db.prepare('SELECT COUNT(*) AS n FROM users WHERE user_id = ?').bind(row.user_id).first('n'), 0, 'the member is gone immediately');
+    assert.equal(await worker.db.prepare('SELECT COUNT(*) AS n FROM retired_member_numbers WHERE member_no = ?').bind(row.member_no).first('n'), 1, 'the number is retired');
     assert.equal((await worker.call('/v1/me', authed(first.access_token))).status, 401, 'old sessions end immediately');
     assert.equal((await worker.call('/v1/auth/refresh', json({ refresh_token: first.refresh_token }))).status, 401);
 
     const again = await signIn('google', 'delete-me');
-    assert.equal(again.user.status, 'pending_deletion');
-    assert.equal(again.user.deletion_purge_at, body.deletion_purge_at);
-    const me = await worker.call('/v1/me', authed(again.access_token));
-    assert.equal(me.status, 200);
-    assert.equal((await me.json()).deletion_purge_at, body.deletion_purge_at);
-    const patch = await worker.call('/v1/me/profile', authed(again.access_token, { method: 'PATCH', headers: { 'content-type': 'application/json', 'if-match': '"1"' }, body: JSON.stringify({ display_name: 'x' }) }));
-    assert.equal(patch.status, 403);
-    assert.equal((await patch.json()).error.code, 'ACCOUNT_PENDING_DELETION');
-    assert.equal((await worker.call('/v1/me/deletion', authed(again.access_token, json({ confirm: true })))).status, 403);
-
-    const cancel = await worker.call('/v1/me/deletion', authed(again.access_token, { method: 'DELETE' }));
-    assert.equal(cancel.status, 200);
-    assert.deepEqual(await cancel.json(), { status: 'active' });
-    assert.equal((await worker.call('/v1/me/deletion', authed(again.access_token, { method: 'DELETE' }))).status, 409);
-    const ok = await worker.call('/v1/me/profile', authed(again.access_token, { method: 'PATCH', headers: { 'content-type': 'application/json', 'if-match': '"1"' }, body: JSON.stringify({ display_name: '留下來' }) }));
-    assert.equal(ok.status, 200);
+    assert.equal(again.user.status, 'active');
+    const fresh = await worker.db.prepare('SELECT user_id, member_no FROM users WHERE user_id = (SELECT user_id FROM auth_identities WHERE subject = ?)').bind('delete-me').first();
+    assert.notEqual(fresh.user_id, row.user_id, 'signing in again creates a brand-new member');
+    assert.notEqual(fresh.member_no, row.member_no, 'with a different member number');
+    assert.equal((await worker.call('/v1/me/deletion', authed(again.access_token, { method: 'DELETE' }))).status, 409, 'nothing to cancel');
   });
 
   test('a member links Apple to a Google account and can then sign in with either', async () => {

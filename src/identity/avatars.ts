@@ -97,3 +97,67 @@ export async function verifyAvatarSignature(secret: string, key: string, exp: st
   if (!exp || !sig || !/^\d{1,12}$/.test(exp) || Number(exp) < Math.floor(nowMs / 1000) || !isAvatarKey(key)) return false;
   return constantTimeEqual(await hmac(secret, `${key}:${exp}`), sig);
 }
+
+const PROVIDER_PHOTO = /^https:\/\/lh[0-9]\.googleusercontent\.com\/[A-Za-z0-9_\-/=.]+$/;
+
+/** Only Google's own photo host is ever fetched (no arbitrary URLs from tokens). */
+export function isProviderPhotoUrl(url: string): boolean {
+  return PROVIDER_PHOTO.test(url);
+}
+
+type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
+
+/** Reads at most MAX_AVATAR_BYTES from a response body; null when it is larger or empty. */
+async function readLimited(response: Response): Promise<Uint8Array | null> {
+  if (!response.body) return null;
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_AVATAR_BYTES) {
+      await reader.cancel().catch(() => undefined);
+      return null;
+    }
+    chunks.push(value);
+  }
+  if (total === 0) return null;
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
+/**
+ * New members get their Google profile photo as the Starry avatar (owner decision 2026-11-07: the identity that
+ * registers first wins; Apple sends no photo). Best effort: any failure leaves the member without an avatar.
+ * Never replaces an avatar the member already has.
+ */
+export async function importProviderAvatar(
+  db: D1Database,
+  store: ObjectStore,
+  fetchFn: FetchLike,
+  input: { userId: string; url: string; appId: string | null; requestId: string | null },
+  now: number,
+): Promise<boolean> {
+  if (!isProviderPhotoUrl(input.url)) return false;
+  try {
+    const current = await db.prepare('SELECT avatar_key FROM profiles WHERE user_id = ?').bind(input.userId).first<{ avatar_key: string | null }>();
+    if (!current || current.avatar_key) return false;
+    // Google's photo URLs end in a size option; ask for a 256-pixel square.
+    const url = input.url.replace(/=s\d+(-c)?$/, '') + '=s256-c';
+    const response = await fetchFn(url, { signal: AbortSignal.timeout(5000), redirect: 'error' });
+    if (!response.ok) return false;
+    const bytes = await readLimited(response);
+    if (!bytes) return false;
+    const result = await setAvatar(db, store, { userId: input.userId, bytes, appId: input.appId, requestId: input.requestId }, now);
+    return result.ok;
+  } catch {
+    return false;
+  }
+}

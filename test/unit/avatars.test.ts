@@ -1,7 +1,7 @@
 // Unit tests for avatar storage and signed avatar URLs (S-ID-08).
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { isAvatarKey, MAX_AVATAR_BYTES, removeAvatar, setAvatar, signedAvatarPath, sniffImage, verifyAvatarSignature, type ObjectStore } from '../../src/identity/avatars';
+import { importProviderAvatar, isAvatarKey, isProviderPhotoUrl, MAX_AVATAR_BYTES, removeAvatar, setAvatar, signedAvatarPath, sniffImage, verifyAvatarSignature, type ObjectStore } from '../../src/identity/avatars';
 import { findOrCreateMember } from '../../src/identity/members';
 import { migratedDb } from '../support/sqlite-d1.mjs';
 
@@ -77,5 +77,45 @@ describe('avatars (S-ID-08)', () => {
     assert.equal(await verifyAvatarSignature('other', key, exp, sig, NOW), false, 'wrong secret');
     assert.equal(await verifyAvatarSignature('secret', key.replace('0002.png', '0003.png'), exp, sig, NOW), false, 'other key');
     assert.equal(await verifyAvatarSignature('secret', '../etc/passwd', exp, sig, NOW), false);
+  });
+});
+
+describe('importing the Google photo at sign-up', () => {
+  const URL_OK = 'https://lh3.googleusercontent.com/a/abc123=s96-c';
+  async function setup() {
+    const db = migratedDb();
+    const d = db as unknown as D1Database;
+    const { member } = await findOrCreateMember(d, { provider: 'google', subject: 'g-photo', email: 'p@example.com', isPrivateRelay: false }, { appId: 'echo', requestId: null }, NOW);
+    return { d, userId: member.user_id, ...memoryStore() };
+  }
+  const input = (userId: string, url = URL_OK) => ({ userId, url, appId: 'echo', requestId: null });
+
+  test('only Google photo URLs are accepted', () => {
+    assert.equal(isProviderPhotoUrl(URL_OK), true);
+    assert.equal(isProviderPhotoUrl('http://lh3.googleusercontent.com/a/x'), false);
+    assert.equal(isProviderPhotoUrl('https://evil.example.com/a.png'), false);
+    assert.equal(isProviderPhotoUrl('https://lh3.googleusercontent.com.evil.com/a'), false);
+  });
+
+  test('the photo becomes the avatar, requested at 256 pixels', async () => {
+    const { d, userId, store, objects } = await setup();
+    let asked = '';
+    const ok = await importProviderAvatar(d, store, async (url) => { asked = url; return new Response(JPEG); }, input(userId), NOW);
+    assert.equal(ok, true);
+    assert.equal(asked, 'https://lh3.googleusercontent.com/a/abc123=s256-c');
+    assert.equal(objects.size, 1);
+    assert.ok((await d.prepare('SELECT avatar_key FROM profiles WHERE user_id = ?').bind(userId).first<{ avatar_key: string }>())?.avatar_key);
+  });
+
+  test('an existing avatar, bad responses and oversized photos change nothing', async () => {
+    const { d, userId, store, objects } = await setup();
+    assert.equal(await importProviderAvatar(d, store, async () => new Response('nope', { status: 404 }), input(userId), NOW), false);
+    assert.equal(await importProviderAvatar(d, store, async () => new Response('not an image'), input(userId), NOW), false);
+    assert.equal(await importProviderAvatar(d, store, async () => new Response(new Uint8Array(MAX_AVATAR_BYTES + 1)), input(userId), NOW), false);
+    assert.equal(await importProviderAvatar(d, store, async () => { throw new Error('offline'); }, input(userId), NOW), false);
+    assert.equal(objects.size, 0);
+    assert.equal(await importProviderAvatar(d, store, async () => new Response(PNG), input(userId), NOW), true);
+    assert.equal(await importProviderAvatar(d, store, async () => new Response(JPEG), input(userId), NOW), false, 'never replaces an existing avatar');
+    assert.equal(objects.size, 1);
   });
 });
