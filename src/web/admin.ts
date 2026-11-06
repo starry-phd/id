@@ -463,7 +463,7 @@ ${appRegistry.values().filter((app) => app.app_id !== WEB_APP_ID).map((app) => {
   );
 }
 
-function appForm(c: WebContext, mode: 'create' | 'update', values: AppForm, message?: string): Response {
+function appForm(c: WebContext, mode: 'create' | 'update', values: AppForm, message?: string): Response | Promise<Response> {
   const create = mode === 'create';
   return c.html(
     adminPage(
