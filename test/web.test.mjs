@@ -237,10 +237,16 @@ describe('web account center, support form and Admin Lite', () => {
     await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(await userIdOf('staff-admin'), Date.now()).run();
     assert.equal((await worker.call('/admin', get(adminCookie))).status, 200);
     const list = await (await worker.call('/admin/members', get(adminCookie))).text();
-    assert.match(list, /p\*\*\*@example.com/, 'emails are masked');
-    assert.doesNotMatch(list, /plain-member@example.com/);
+    assert.match(list, /plain-member@example.com/, 'emails are shown in full');
+    assert.match(list, /\d+-\d{7}/, 'member numbers are listed');
+    const filtered = await (await worker.call('/admin/members?q=plain-member&status=active&battery_max=1000', get(adminCookie))).text();
+    assert.match(filtered, /plain-member@example.com/);
+    assert.doesNotMatch(filtered, /staff-admin@example.com/);
 
     const target = await userIdOf('plain-member');
+    const detail = await (await worker.call(`/admin/members/${target}`, get(adminCookie))).text();
+    assert.match(detail, /<details><summary>內部 ID（UUID）<\/summary>/, 'the internal ID is collapsed by default');
+    assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.member_viewed' AND target_id = ?").bind(target).first('n'), 1, 'opening a member is audited');
     const suspended = await worker.call(`/admin/members/${target}/suspend`, form({ reason: '測試停權' }, adminCookie));
     assert.equal(suspended.status, 200);
     assert.match(await suspended.text(), /已完成/);
