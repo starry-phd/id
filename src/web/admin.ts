@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { html, raw } from 'hono/html';
 import { definitionFromForm, listRegisteredAppIds, saveRegisteredApp, type AppForm } from '../apps/dynamic';
+import { cleanupBacklog } from '../identity/cleanup-jobs';
+import { readHeartbeats } from '../lib/heartbeat';
 import { buildHandoff } from '../apps/handoff';
 import { adjustQuantum, listQuantum, listQuantumProducts, removeQuantumProduct, saveQuantumProduct } from '../battery/quantum';
 import { appRegistry, getApp, type AppEntry, type AppStatus } from '../apps/registry';
@@ -59,17 +61,44 @@ adminApp.get('/', async (c) => {
   const actor = await staff(c, 'support');
   if (actor instanceof Response) return actor;
   const db = c.env.DB_IDENTITY;
-  const [members, open] = await db.batch([
+  const now = Date.now();
+  const since = now - 24 * 60 * 60 * 1000;
+  const [members, open, today, active] = await db.batch([
     db.prepare('SELECT COUNT(*) AS n FROM users'),
     db.prepare("SELECT COUNT(*) AS n FROM support_tickets WHERE status = 'open'"),
+    db.prepare('SELECT COUNT(*) AS n FROM users WHERE created_at >= ?').bind(since),
+    db.prepare('SELECT app_id, COUNT(DISTINCT user_id) AS n FROM sessions WHERE last_used_at >= ? GROUP BY app_id ORDER BY n DESC LIMIT 20').bind(since),
   ]);
   const count = (r: typeof members) => Number((r?.results[0] as { n?: number } | undefined)?.n ?? 0);
+  const [beats, backlog, usage] = await Promise.all([
+    readHeartbeats(db),
+    cleanupBacklog(db),
+    c.env.DB_BATTERY.prepare('SELECT app_id, SUM(amount) AS used, COUNT(DISTINCT user_id) AS members FROM battery_ledger WHERE kind = ? AND created_at >= ? GROUP BY app_id ORDER BY used DESC LIMIT 20')
+      .bind('usage', since)
+      .all<{ app_id: string; used: number; members: number }>(),
+  ]);
+  const activeRows = (active?.results ?? []) as { app_id: string; n: number }[];
+  const stale = (b: { job: string; last_success_at: number | null }) => b.last_success_at === null || now - b.last_success_at > (b.job === 'minutely' ? 10 * 60 * 1000 : 36 * 60 * 60 * 1000);
+  const problems = beats.filter(stale).length + backlog.abandoned;
   return c.html(
     adminPage(
       c,
       'Admin Lite',
       html`<h1>Admin Lite</h1><p class="muted">你的角色：${ROLE_LABELS[actor.role]}</p>
-<div class="card"><p>會員總數：<strong>${count(members)}</strong></p><p>未結客服單：<strong>${count(open)}</strong></p></div>`,
+${problems > 0 ? html`<div class="banner danger">有 ${problems} 項系統狀況需要注意，請看下方「系統狀態」。</div>` : ''}
+<div class="card"><p>會員總數：<strong>${count(members)}</strong>（近 24 小時新增 <strong>${count(today)}</strong>）</p><p>未結客服單：<strong>${count(open)}</strong></p></div>
+<h2>近 24 小時各 App</h2>
+<div class="card"><table><thead><tr><th>App</th><th>活躍會員</th><th>Battery 用量</th></tr></thead><tbody>
+${activeRows.map((r) => {
+  const u = usage.results.find((x) => x.app_id === r.app_id);
+  return html`<tr><td><code>${r.app_id}</code></td><td>${r.n}</td><td>${u ? `${u.used}（${u.members} 人）` : '0'}</td></tr>`;
+})}
+</tbody></table>${activeRows.length === 0 ? html`<p class="muted">近 24 小時沒有活動。</p>` : ''}</div>
+<h2>系統狀態</h2>
+<div class="card"><table><thead><tr><th>排程</th><th>最近成功</th><th>狀況</th></tr></thead><tbody>
+${beats.map((b) => html`<tr><td>${b.job === 'minutely' ? '每分鐘' : '每日'}</td><td>${b.last_success_at ? formatTime(b.last_success_at) : '—'}</td><td>${stale(b) ? html`<strong>逾時未成功</strong>${b.last_error ? html`<br><span class="muted">${b.last_error}</span>` : ''}` : '正常'}</td></tr>`)}
+</tbody></table>
+<p>刪除帳號後的清除作業：等待重試 <strong>${backlog.waiting}</strong>，已放棄 <strong>${backlog.abandoned}</strong>${backlog.abandoned > 0 ? '（需要人工處理）' : ''}</p></div>`,
     ),
   );
 });
