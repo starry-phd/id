@@ -55,6 +55,44 @@ function audiences(value: unknown, field: string, appId: string): readonly strin
   return Object.freeze([...(value as string[])]);
 }
 
+/** Validates one App definition (same shape as an entry of config/apps.json). */
+export function parseApp(item: unknown): AppEntry {
+  if (!isRecord(item) || typeof item.app_id !== 'string' || !APP_ID.test(item.app_id)) {
+    throw new Error('App registry: every app needs a lowercase app_id');
+  }
+  const id = item.app_id;
+  if (typeof item.name !== 'string' || item.name.length === 0 || item.name.length > 80) {
+    throw new Error(`App registry: ${id}.name is required (at most 80 characters)`);
+  }
+  if (!STATUSES.includes(item.status as AppStatus)) {
+    throw new Error(`App registry: ${id}.status must be one of ${STATUSES.join(', ')}`);
+  }
+  if (typeof item.min_version !== 'string' || !SEMVER.test(item.min_version)) {
+    throw new Error(`App registry: ${id}.min_version must look like 1.2.3`);
+  }
+  if (!Array.isArray(item.scopes) || !item.scopes.every((s) => typeof s === 'string' && SCOPE.test(s))) {
+    throw new Error(`App registry: ${id}.scopes must be strings like "profile:read"`);
+  }
+  if (!isRecord(item.config)) throw new Error(`App registry: ${id}.config must be an object`);
+  if (!isRecord(item.auth)) throw new Error(`App registry: ${id}.auth must be an object`);
+  return Object.freeze({
+    app_id: id,
+    name: item.name,
+    ios_bundle_id: optionalString(item.ios_bundle_id, 'ios_bundle_id', id),
+    android_package: optionalString(item.android_package, 'android_package', id),
+    status: item.status as AppStatus,
+    scopes: Object.freeze([...(item.scopes as string[])]),
+    min_version: item.min_version,
+    config: Object.freeze({ ...item.config }),
+    auth: Object.freeze({
+      apple: audiences(item.auth.apple_audiences, 'apple_audiences', id),
+      google: audiences(item.auth.google_audiences, 'google_audiences', id),
+    }),
+    web_origins: patternList(item.web_origins, WEB_ORIGIN, 'web_origins', id),
+    return_urls: patternList(item.return_urls, RETURN_URL, 'return_urls', id),
+  });
+}
+
 /**
  * Validates config/apps.json once at module load. An invalid registry fails
  * the build and every test, so a broken entry can never be deployed.
@@ -65,46 +103,36 @@ export function parseRegistry(raw: unknown): ReadonlyMap<string, AppEntry> {
   }
   const apps = new Map<string, AppEntry>();
   for (const item of raw.apps) {
-    if (!isRecord(item) || typeof item.app_id !== 'string' || !APP_ID.test(item.app_id)) {
-      throw new Error('App registry: every app needs a lowercase app_id');
-    }
-    const id = item.app_id;
-    if (apps.has(id)) throw new Error(`App registry: duplicate app_id ${id}`);
-    if (typeof item.name !== 'string' || item.name.length === 0) {
-      throw new Error(`App registry: ${id}.name is required`);
-    }
-    if (!STATUSES.includes(item.status as AppStatus)) {
-      throw new Error(`App registry: ${id}.status must be one of ${STATUSES.join(', ')}`);
-    }
-    if (typeof item.min_version !== 'string' || !SEMVER.test(item.min_version)) {
-      throw new Error(`App registry: ${id}.min_version must look like 1.2.3`);
-    }
-    if (!Array.isArray(item.scopes) || !item.scopes.every((s) => typeof s === 'string' && SCOPE.test(s))) {
-      throw new Error(`App registry: ${id}.scopes must be strings like "profile:read"`);
-    }
-    if (!isRecord(item.config)) throw new Error(`App registry: ${id}.config must be an object`);
-    if (!isRecord(item.auth)) throw new Error(`App registry: ${id}.auth must be an object`);
-    apps.set(id, Object.freeze({
-      app_id: id,
-      name: item.name,
-      ios_bundle_id: optionalString(item.ios_bundle_id, 'ios_bundle_id', id),
-      android_package: optionalString(item.android_package, 'android_package', id),
-      status: item.status as AppStatus,
-      scopes: Object.freeze([...(item.scopes as string[])]),
-      min_version: item.min_version,
-      config: Object.freeze({ ...item.config }),
-      auth: Object.freeze({
-        apple: audiences(item.auth.apple_audiences, 'apple_audiences', id),
-        google: audiences(item.auth.google_audiences, 'google_audiences', id),
-      }),
-      web_origins: patternList(item.web_origins, WEB_ORIGIN, 'web_origins', id),
-      return_urls: patternList(item.return_urls, RETURN_URL, 'return_urls', id),
-    }));
+    const app = parseApp(item);
+    if (apps.has(app.app_id)) throw new Error(`App registry: duplicate app_id ${app.app_id}`);
+    apps.set(app.app_id, app);
   }
   return apps;
 }
 
-export const appRegistry: ReadonlyMap<string, AppEntry> = parseRegistry(registryFile);
+const staticApps: ReadonlyMap<string, AppEntry> = parseRegistry(registryFile);
+
+/**
+ * Apps the Owner registered in Admin Lite (table registered_apps). The Worker refreshes this
+ * map at most every 30 seconds (see dynamic.ts); config/apps.json wins on an app_id clash.
+ */
+let dynamicApps: ReadonlyMap<string, AppEntry> = new Map();
+
+export function setDynamicApps(apps: ReadonlyMap<string, AppEntry>): void {
+  dynamicApps = apps;
+}
+
+export function isStaticApp(appId: string): boolean {
+  return staticApps.has(appId);
+}
+
+/** Read-only view over config/apps.json plus the Apps registered in Admin Lite. */
+export const appRegistry = {
+  has: (appId: string): boolean => staticApps.has(appId) || dynamicApps.has(appId),
+  get: (appId: string): AppEntry | undefined => staticApps.get(appId) ?? dynamicApps.get(appId),
+  keys: (): string[] => [...staticApps.keys(), ...[...dynamicApps.keys()].filter((id) => !staticApps.has(id))],
+  values: (): AppEntry[] => [...staticApps.values(), ...[...dynamicApps.values()].filter((a) => !staticApps.has(a.app_id))],
+};
 
 export function getApp(appId: string): AppEntry | undefined {
   return appRegistry.get(appId);

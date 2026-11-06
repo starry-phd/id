@@ -96,32 +96,39 @@ Battery 是 Starry 會員共用的免費 AI 用量月額度（規格 S-BAT），
 
 ## 10. 新 App 接入 Starry ID（每款 App 一次）
 
-1. 開案卡（規格 X-01）通過後，決定 `app_id`（小寫英文、數字、連字號，例如 `echo`）。
-2. Apple：在同一個 Apple Developer Team 建立 App ID，Sign in with Apple 設為群組，主 App ID 選 `phd.starry.app`（G-02）。Android 上的 Apple 登入沿用網頁的 Services ID `phd.starry.id.web`。
-3. Google：在同一個 Google Cloud 專案建立 iOS 與 Android OAuth Client；Android 原生登入取得的 ID Token audience 是 Web Client ID（`requestIdToken`／`serverClientId` 使用的那一個）。
-4. 把以下內容交給 Claude 加入 `config/apps.json`（都不是秘密）：
+**用後台登記（建議，不改程式碼）**
 
-   ```json
-   {
-     "app_id": "echo",
-     "name": "繁星回聲 Echo",
-     "ios_bundle_id": "phd.starry.echo",
-     "android_package": "phd.starry.echo",
-     "status": "active",
-     "scopes": ["profile:read", "profile:write"],
-     "min_version": "1.0.0",
-     "config": {},
-     "auth": {
-       "apple_audiences": ["phd.starry.echo", "phd.starry.id.web"],
-       "google_audiences": ["<iOS Client ID>", "<Web Client ID>"]
-     }
-   }
-   ```
+1. Owner 登入 `https://id.starry.phd/admin/apps`，按「新增 App」，填 `app_id`（小寫英文、數字、連字號）、名稱、iOS Bundle ID、Android package，有網頁版再填網頁版來源。
+2. 登入預設走 Starry 登入中繼：帳號中心的 Apple Services ID 與 Google 網頁用戶端會自動加進這款 App，網頁版與 Android 不必再到 Apple、Google 後台登記網域。
+3. 建立後頁面會產生一段「給開發 AI 的串接指令」（之後也能從 App 清單的「給開發 AI 的串接指令」再取得），整段貼給負責開發這款 App 的 AI。內容只有公開資料，沒有秘密。
+4. 後台登記 30 秒內生效，可用 `GET /v1/apps/<app_id>/config` 確認。paused／killed 狀態、Battery 任務類型、稽核紀錄都和既有 App 相同。
+5. 後台只能編輯後台登記的 App；`config/apps.json` 的 App 與 `account` 不能被後台覆蓋。
+6. 仍然無法省略、只有業主能做的事：iOS 原生 Apple 登入要在 Apple Developer 把該 App ID 的 Sign in with Apple 設為群組，主 App ID 選 `phd.starry.app`（G-02）；iOS 原生 Google 登入若另建 iOS 用戶端，要把用戶端 ID 填在「額外的 Google 用戶端 ID」。
+7. RevenueCat（要販售時）：為這款 App 建立獨立專案（S-BIL-01），Webhook URL `https://id.starry.phd/v1/billing/revenuecat/<app_id>`，再依 `docs/owner-setup.md` 第 6 步設定 Secrets。
+8. Battery（要用 AI 時）：見第 9 節。
 
-   `apple_audiences`：iOS Bundle ID（原生登入）與 Services ID（Android 網頁流程）；`google_audiences`：iOS Client ID 與 Android 用的 Web Client ID。設定檔有格式檢查，填錯 CI 會失敗、不會部署。
-5. RevenueCat（要販售時）：為這款 App 建立獨立專案（S-BIL-01），Webhook URL `https://id.starry.phd/v1/billing/revenuecat/<app_id>`，再依 `docs/owner-setup.md` 第 6 步設定 Secrets。
-6. Battery（要用 AI 時）：見第 9 節。
-7. 合併到 main 自動部署後，App 以 `GET /v1/apps/<app_id>/config` 確認狀態，依第 1～8 節串接。
+**用設定檔登記（既有 App，需要 PR）**
+
+把以下內容加入 `config/apps.json`（都不是秘密）。設定檔有格式檢查，填錯 CI 會失敗、不會部署。欄位與後台表單相同。
+
+```json
+{
+  "app_id": "echo",
+  "name": "繁星回聲 Echo",
+  "ios_bundle_id": "phd.starry.echo",
+  "android_package": "phd.starry.echo",
+  "status": "active",
+  "scopes": ["profile:read", "profile:write"],
+  "min_version": "1.0.0",
+  "config": {},
+  "auth": {
+    "apple_audiences": ["phd.starry.echo", "phd.starry.id.web"],
+    "google_audiences": ["<iOS Client ID>", "<Web Client ID>"]
+  }
+}
+```
+
+`apple_audiences`：iOS Bundle ID（原生登入）與 Services ID（Android 網頁流程）；`google_audiences`：iOS Client ID 與 Android 用的 Web Client ID。
 
 ## 11. 繁星回聲對接回覆（2026-11-03）
 

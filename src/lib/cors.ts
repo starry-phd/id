@@ -4,17 +4,16 @@ import type { AppBindings } from '../env';
 
 /**
  * CORS for the web versions of Starry Apps (spec security: CORS allowlist). Only origins listed
- * in config/apps.json "web_origins" may call /v1 from a browser. Tokens travel in the
+ * in an App's "web_origins" (config/apps.json or registered in Admin Lite) may call /v1 from a browser. Tokens travel in the
  * Authorization header, never in cookies, so credentials are not allowed.
  */
-const ALLOWED = new Set([...appRegistry.values()].flatMap((app) => app.web_origins));
 
 const ALLOW_HEADERS = 'authorization, content-type, if-match, x-starry-app-key';
 const ALLOW_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
 const EXPOSE_HEADERS = 'etag, x-request-id, retry-after';
 
 export function corsOriginAllowed(origin: string | undefined): origin is string {
-  return origin !== undefined && ALLOWED.has(origin);
+  return origin !== undefined && appRegistry.values().some((app) => app.web_origins.includes(origin));
 }
 
 export const apiCors: MiddlewareHandler<AppBindings> = async (c, next) => {

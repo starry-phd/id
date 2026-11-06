@@ -41,7 +41,7 @@ Starry ID 會員與登入、App Registry、購買權益投影與每日對帳、S
 | `/account/link` | 加綁另一種登入方式（需 10 分鐘內登入過）；Google、Apple 分開登入過時，確認後合併成同一個帳號 | S-ID-02 |
 | `/privacy`、`/terms` | 隱私權政策（版本 2026-11-03.2）、服務條款（版本 2026-11-03） | S-WEB-01 |
 | `/support` | 客服與檢舉表單（訪客與會員；附件選填：PNG／JPEG／WebP／PDF ≤ 2 MB，以檔案內容判斷類型；設定 Turnstile 後啟用驗證） | S-WEB-02 |
-| `/admin` | Admin Lite：會員查詢（遮罩）、停權／復權、角色、Battery 人工調整（Admin）與每月額度／任務消耗設定（Owner）、客服單（含附件下載、Email 回覆）、App 狀態、稽核、API 文件 | S-ADM-01、S-BAT-02/05 |
+| `/admin` | Admin Lite：會員查詢（遮罩）、停權／復權、角色、Battery 人工調整（Admin）與每月額度／任務消耗設定（Owner）、客服單（含附件下載、Email 回覆）、App 登記與狀態（Owner 可在後台新增 App，並產生給開發 AI 的串接指令）、稽核、API 文件 | S-ADM-01、S-BAT-02/05 |
 | `/auth/{apple\|google}/start`、`/callback` | 登入中繼：App 的 Android 版與網頁版經由 id.starry.phd 登入 Apple／Google，再回到已登記的 deep link 或網頁（Apple、Google 只需設定一次） | S-ID-01 |
 | `/account/claim-owner` | 一次性設定 Owner（設定 `OWNER_CLAIM_CODE` 時才出現） | S-ID-10 |
 

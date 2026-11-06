@@ -4,6 +4,7 @@ import { secureHeaders } from 'hono/secure-headers';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { DOCUMENT_CONFIG, errorResponses, json } from './api/openapi';
 import { avatarRoutes } from './apps/avatar-route';
+import { refreshDynamicApps } from './apps/dynamic';
 import { appRoutes } from './apps/routes';
 import { loadSigningKey } from './auth/access-token';
 import { authRoutes } from './auth/routes';
@@ -29,6 +30,11 @@ app.use('*', async (c, next) => {
   await next();
   c.res.headers.set('x-request-id', requestId);
   if (!c.res.headers.has('cache-control')) c.res.headers.set('cache-control', 'no-store');
+});
+// Apps registered in Admin Lite join config/apps.json (cached per isolate for 30 seconds).
+app.use('*', async (c, next) => {
+  await refreshDynamicApps(c.env.DB_IDENTITY, Date.now());
+  await next();
 });
 // Avatars are images shown by App web versions on other origins; everything else stays same-origin.
 // Registered before secureHeaders so it runs after it and has the last word.
