@@ -137,6 +137,7 @@ export async function deleteMemberNow(db: D1Database, actor: Actor & { staffId?:
       now,
     ),
   ]);
-  if (results[2]?.meta.changes !== 1) return { ok: false, reason: 'not_found' };
+  // D1 counts cascaded rows in meta.changes, so confirm by looking the member up instead.
+  if (results.length < 4 || (await db.prepare('SELECT 1 AS present FROM users WHERE user_id = ?').bind(actor.userId).first())) return { ok: false, reason: 'not_found' };
   return { ok: true, avatarKey: row.avatar_key, memberNo: row.member_no };
 }
