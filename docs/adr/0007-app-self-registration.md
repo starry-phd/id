@@ -20,4 +20,5 @@
 
 - 只有改用原生登入時才需要外部設定：Apple App ID 群組、Google 的 iOS／Android 用戶端；串接指令預設禁止開發 AI 自行改用原生登入。
 - 後台不能刪除登記的 App（刪除既有資源需業主核准）；要停用用 App 狀態 killed。
-- Battery 服務金鑰（`BATTERY_SERVICE_KEYS`）與 RevenueCat Secrets 仍是 Workers Secrets，無法由後台頁面設定。
+- Battery 由後台一併開通（2026-11-06 業主決定）：勾選後建立預設任務 `<app_id>.ai` 並產生服務金鑰。金鑰只存 SHA-256（battery D1 的 `battery_app_keys`，migration 0003），原文只顯示一次，重新產生會讓舊金鑰立即失效；Worker Secret `BATTERY_SERVICE_KEYS` 仍然有效，兩者並行。稽核紀錄 `admin.battery_key_created` 不含金鑰。
+- RevenueCat Secrets 仍是 Workers Secrets，無法由後台頁面設定。

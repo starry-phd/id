@@ -5,7 +5,7 @@ import { buildHandoff } from '../apps/handoff';
 import { appRegistry, getApp, type AppEntry, type AppStatus } from '../apps/registry';
 import { listAppStatusOverrides, setAppStatusOverride } from '../apps/status';
 import { background } from '../auth/routes';
-import { adjustAllowance, getBalance, getPolicy, listTaskTypes, setPolicy, staffLedger, upsertTaskType } from '../battery/battery';
+import { adjustAllowance, enableAppBattery, getBalance, hasAppBatteryKey, getPolicy, listTaskTypes, setPolicy, staffLedger, upsertTaskType } from '../battery/battery';
 import type { AppBindings } from '../env';
 import { listAudit } from '../identity/audit-query';
 import { WEB_APP_ID } from '../identity/web-sessions';
@@ -483,6 +483,7 @@ ${message ? html`<div class="banner danger">${message}</div>` : ''}
 <label for="min_version">最低版本（例如 1.0.0，預設 0.0.0）</label><input id="min_version" name="min_version" value="${values.min_version ?? ''}" pattern="\d+\.\d+\.\d+">
 <label for="extra_apple_audiences">額外的 Apple 登入對象（每行一個，進階，通常留空）</label><textarea id="extra_apple_audiences" name="extra_apple_audiences" rows="2">${values.extra_apple_audiences ?? ''}</textarea>
 <label for="extra_google_audiences">額外的 Google 用戶端 ID（每行一個，例如 iOS 用戶端，進階，通常留空）</label><textarea id="extra_google_audiences" name="extra_google_audiences" rows="2">${values.extra_google_audiences ?? ''}</textarea>
+${create ? html`<label><input type="checkbox" name="battery" value="1" checked> 同時開通 Starry Battery（建立預設任務 AI 任務並產生後端服務金鑰）</label>` : ''}
 <button type="submit">${create ? '建立並產生串接指令' : '儲存'}</button></form>`,
     ),
     message ? 400 : 200,
@@ -528,6 +529,7 @@ adminApp.post('/apps/new', async (c) => {
   if (!built.ok) return appForm(c, 'create', form, built.error);
   const result = await saveRegisteredApp(c.env.DB_IDENTITY, actor, built.app, 'create', Date.now());
   if (result === 'reserved' || result === 'exists') return appForm(c, 'create', form, '這個 app_id 已被使用，請換一個。');
+  if (form.battery === '1') return enableBatteryAndShow(c, actor, built.app.app_id, '已建立並開通 Battery，30 秒內生效。');
   return c.redirect(`/admin/apps/${built.app.app_id}/handoff?created=1`, 303);
 });
 
@@ -552,24 +554,50 @@ adminApp.post('/apps/:id/edit', async (c) => {
   return c.redirect(`/admin/apps/${built.app.app_id}/handoff?updated=1`, 303);
 });
 
-adminApp.get('/apps/:id/handoff', async (c) => {
-  const actor = await staff(c, 'admin');
-  if (actor instanceof Response) return actor;
-  const app = getApp(c.req.param('id'));
-  if (!app || app.app_id === WEB_APP_ID) return appsPage(c, '找不到此 App。');
-  const text = buildHandoff(app, new URL(c.req.url).origin);
-  const notice = c.req.query('created') ? '已建立，30 秒內生效。' : c.req.query('updated') ? '已儲存。' : '';
+async function handoffPage(c: WebContext, role: Role, app: AppEntry, notice: string, serviceKey?: string): Promise<Response> {
+  const hasKey = serviceKey !== undefined || (await hasAppBatteryKey(c.env.DB_BATTERY, app.app_id));
+  const text = buildHandoff(app, new URL(c.req.url).origin, { battery: hasKey });
   return c.html(
     adminPage(
       c,
       '串接指令',
       html`<h1>${app.name} 的串接指令</h1>
 ${notice ? html`<div class="banner">${notice}</div>` : ''}
-<p class="muted">整段複製後貼給負責開發這款 App 的 AI。內容只有已登記的公開資料，沒有任何秘密。</p>
+${serviceKey ? html`<div class="card"><p><strong>Battery 服務金鑰（只顯示這一次，請現在複製保存）</strong></p>
+<textarea readonly rows="2" style="width:100%;font-family:monospace" onclick="this.select()">${serviceKey}</textarea>
+<p class="muted">只放進這款 App 後端的 Secret（名稱 STARRY_BATTERY_KEY）。不要貼進 App、Git 或公開的地方；遺失或外洩就按下面的「重新產生」，舊金鑰會立刻失效。</p></div>` : ''}
+<p class="muted">下面整段複製後貼給負責開發這款 App 的 AI。內容只有已登記的公開資料，沒有任何秘密；服務金鑰請另外提供給它。</p>
 <textarea readonly rows="30" style="width:100%;font-family:monospace" onclick="this.select()">${text}</textarea>
+${role === 'owner' ? html`<form method="post" action="/admin/apps/${app.app_id}/battery-key" class="card"><button type="submit">${hasKey ? '重新產生 Battery 服務金鑰' : '開通 Battery'}</button></form>` : ''}
 <p><a href="/admin/apps">回到 App 清單</a></p>`,
     ),
   );
+}
+
+async function enableBatteryAndShow(c: WebContext, actor: StaffActor, appId: string, notice: string): Promise<Response> {
+  const app = getApp(appId);
+  if (!app || app.app_id === WEB_APP_ID) return appsPage(c, '找不到此 App。');
+  const now = Date.now();
+  const enabled = await enableAppBattery(c.env.DB_BATTERY, appId, actor.userId, now);
+  await auditStatement(c.env.DB_IDENTITY, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.battery_key_created', targetType: 'battery_key', targetId: appId, appId, result: 'success', requestId: actor.requestId, retention: 'security' }, now).run();
+  c.header('cache-control', 'no-store');
+  return handoffPage(c, actor.role, app, notice, enabled.serviceKey);
+}
+
+adminApp.get('/apps/:id/handoff', async (c) => {
+  const actor = await staff(c, 'admin');
+  if (actor instanceof Response) return actor;
+  const app = getApp(c.req.param('id'));
+  if (!app || app.app_id === WEB_APP_ID) return appsPage(c, '找不到此 App。');
+  return handoffPage(c, actor.role, app, c.req.query('created') ? '已建立，30 秒內生效。' : c.req.query('updated') ? '已儲存。' : '');
+});
+
+adminApp.post('/apps/:id/battery-key', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const reauth = await needsReauth(c);
+  if (reauth) return reauth;
+  return enableBatteryAndShow(c, actor, c.req.param('id'), 'Battery 已開通，服務金鑰已更新（舊金鑰立即失效）。');
 });
 
 adminApp.post('/apps/:id/status', async (c) => {

@@ -81,7 +81,7 @@ Echo 的 D1 只存 `user_id` 當外鍵，不複製會員主檔；Echo Worker 需
 
 Battery 是 Starry 會員共用的免費 AI 用量月額度（規格 S-BAT），每月 1 日（台灣時間）恢復，不累積、不能購買或轉讓。**App 本身不能扣 Battery**，只有 App 自己的後端能用服務金鑰操作；服務金鑰不可放進 App。
 
-前置：Owner 在 Admin Lite →「Battery」為這款 App 建立任務類型（代碼 `<app_id>.<名稱>`、每單位消耗、單次上限、逾時），並由 Claude 把這款 App 的服務金鑰加入 Worker Secret `BATTERY_SERVICE_KEYS`（`{"echo":"…"}`，32 字以上隨機字串，同一個值設定在 App 後端）。
+前置：在後台新增 App 時勾選「同時開通 Starry Battery」（預設勾選），會自動建立任務類型 `<app_id>.ai`（每單位 1、單次上限 30）與 App 後端的服務金鑰；金鑰只顯示一次，請存成 App 後端的 Secret（名稱 `STARRY_BATTERY_KEY`），遺失可在 App 的串接指令頁重新產生。任務的消耗與上限可在 Admin Lite →「Battery」調整，也能再新增其他任務類型（代碼 `<app_id>.<名稱>`）。既有 App 仍可使用 Worker Secret `BATTERY_SERVICE_KEYS`（`{"echo":"…"}`，32 字以上隨機字串，同一個值設定在 App 後端），兩種金鑰並行有效。
 
 1. 會員在 App 發起 AI 任務 → App 呼叫自己的後端（帶 Starry Access Token）。
 2. App 後端預留：`POST /v1/battery/reservations`，標頭 `Authorization: Bearer <會員 Access Token>` 與 `x-starry-app-key: <服務金鑰>`，內容 `{"task_type": "echo.transcribe", "units": 3, "idempotency_key": "<每個任務唯一>"}`。
