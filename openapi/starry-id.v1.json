@@ -470,6 +470,80 @@
               "null"
             ]
           },
+          "nickname": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Nickname (暱稱), at most 30 characters. Always public."
+          },
+          "occupation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "organization": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "website": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "https:// URL"
+          },
+          "bio": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "languages": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "interests": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "skills": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "university": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "university_dept": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "grad_school": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "grad_dept": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "derived": {
             "$ref": "#/components/schemas/ProfileDerived"
           },
@@ -519,6 +593,18 @@
           "region",
           "city",
           "motto",
+          "nickname",
+          "occupation",
+          "organization",
+          "website",
+          "bio",
+          "languages",
+          "interests",
+          "skills",
+          "university",
+          "university_dept",
+          "grad_school",
+          "grad_dept",
           "derived",
           "visibility",
           "field_updated_at",
@@ -609,7 +695,8 @@
             "enum": [
               "public",
               "private"
-            ]
+            ],
+            "description": "Always public; a request to hide it is refused"
           },
           "birthday": {
             "type": "string",
@@ -656,6 +743,57 @@
               "private"
             ],
             "description": "Shown only once verified"
+          },
+          "occupation": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private"
+            ],
+            "description": "Occupation and organization"
+          },
+          "website": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private"
+            ]
+          },
+          "bio": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private"
+            ]
+          },
+          "languages": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private"
+            ]
+          },
+          "interests": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private"
+            ]
+          },
+          "skills": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private"
+            ]
+          },
+          "education": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private"
+            ],
+            "description": "University and graduate school with their departments"
           }
         },
         "required": [
@@ -666,7 +804,14 @@
           "location",
           "phone",
           "motto",
-          "contact_email"
+          "contact_email",
+          "occupation",
+          "website",
+          "bio",
+          "languages",
+          "interests",
+          "skills",
+          "education"
         ]
       },
       "PublicProfile": {
@@ -678,11 +823,19 @@
               "null"
             ]
           },
+          "nickname": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Always public"
+          },
           "avatar_url": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Always public"
           },
           "birthday_month_day": {
             "type": [
@@ -751,10 +904,91 @@
               "string",
               "null"
             ]
+          },
+          "occupation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "organization": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "website": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bio": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "languages": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "interests": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "skills": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "education": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "university": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "university_dept": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "grad_school": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "grad_dept": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "university",
+              "university_dept",
+              "grad_school",
+              "grad_dept"
+            ]
           }
         },
         "required": [
           "display_name",
+          "nickname",
           "avatar_url",
           "birthday_month_day",
           "zodiac_name",
@@ -762,7 +996,15 @@
           "location",
           "phone",
           "motto",
-          "contact_email"
+          "contact_email",
+          "occupation",
+          "organization",
+          "website",
+          "bio",
+          "languages",
+          "interests",
+          "skills",
+          "education"
         ],
         "description": "What other members may see under the current visibility settings"
       },
@@ -2094,6 +2336,90 @@
                     ],
                     "description": "At most 200 characters"
                   },
+                  "nickname": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Nickname (暱稱), at most 30 characters. Always public."
+                  },
+                  "occupation": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "At most 60 characters"
+                  },
+                  "organization": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Employer or organization, at most 80 characters"
+                  },
+                  "website": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "https:// URL, at most 200 characters"
+                  },
+                  "bio": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "At most 500 characters"
+                  },
+                  "languages": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "At most 100 characters"
+                  },
+                  "interests": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "At most 200 characters"
+                  },
+                  "skills": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "At most 200 characters"
+                  },
+                  "university": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "University, at most 80 characters"
+                  },
+                  "university_dept": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Department, at most 60 characters"
+                  },
+                  "grad_school": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Graduate school, at most 80 characters"
+                  },
+                  "grad_dept": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Graduate department, at most 60 characters"
+                  },
                   "visibility": {
                     "type": "object",
                     "properties": {
@@ -2109,7 +2435,8 @@
                         "enum": [
                           "public",
                           "private"
-                        ]
+                        ],
+                        "description": "Always public; a request to hide it is refused"
                       },
                       "birthday": {
                         "type": "string",
@@ -2156,6 +2483,57 @@
                           "private"
                         ],
                         "description": "Shown only once verified"
+                      },
+                      "occupation": {
+                        "type": "string",
+                        "enum": [
+                          "public",
+                          "private"
+                        ],
+                        "description": "Occupation and organization"
+                      },
+                      "website": {
+                        "type": "string",
+                        "enum": [
+                          "public",
+                          "private"
+                        ]
+                      },
+                      "bio": {
+                        "type": "string",
+                        "enum": [
+                          "public",
+                          "private"
+                        ]
+                      },
+                      "languages": {
+                        "type": "string",
+                        "enum": [
+                          "public",
+                          "private"
+                        ]
+                      },
+                      "interests": {
+                        "type": "string",
+                        "enum": [
+                          "public",
+                          "private"
+                        ]
+                      },
+                      "skills": {
+                        "type": "string",
+                        "enum": [
+                          "public",
+                          "private"
+                        ]
+                      },
+                      "education": {
+                        "type": "string",
+                        "enum": [
+                          "public",
+                          "private"
+                        ],
+                        "description": "University and graduate school with their departments"
                       }
                     },
                     "description": "Only the fields to change"

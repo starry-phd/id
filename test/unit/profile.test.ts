@@ -83,6 +83,47 @@ describe('validation', () => {
   });
 });
 
+describe('extra fields (2026-11-07)', () => {
+  test('nickname, occupation, website, interests and education are validated; the avatar cannot be hidden', () => {
+    const ok = validateProfileInput(
+      { nickname: ' 小星星 ', occupation: '護理師', organization: '某醫院', website: 'https://example.com/me', bio: '你好', languages: '中文、English', interests: '登山', skills: '急救', university: '某大學', university_dept: '護理系', grad_school: '某大學', grad_dept: '護理研究所' },
+      NOW,
+      null,
+    );
+    assert.ok(ok.ok);
+    assert.equal(ok.changes.fields.nickname, '小星星');
+    assert.equal(ok.changes.fields.website, 'https://example.com/me');
+    const fail = (input: Record<string, unknown>) => {
+      const r = validateProfileInput(input, NOW, null);
+      return r.ok ? null : r.field;
+    };
+    assert.equal(fail({ nickname: 'x'.repeat(31) }), 'nickname');
+    assert.equal(fail({ website: 'http://example.com' }), 'website');
+    assert.equal(fail({ website: 'javascript:alert(1)' }), 'website');
+    assert.equal(fail({ website: 'https://user:pw@example.com' }), 'website');
+    assert.equal(fail({ bio: 'x'.repeat(501) }), 'bio');
+    assert.equal(fail({ visibility: { avatar: 'private' } }), 'visibility');
+    assert.equal(validateProfileInput({ website: '' }, NOW, null).ok, true, 'empty clears');
+  });
+
+  test('public view: nickname and avatar are always shown; the rest follows the member\'s switches', async () => {
+    const { d, userId } = await member();
+    await saveProfile(
+      d,
+      { userId, expectedVersion: 1, changes: changes({ nickname: '小星星', occupation: '護理師', organization: '某醫院', interests: '登山', university: '某大學', university_dept: '護理系' }, { occupation: 'public', education: 'public' }), source: 'member', actorUserId: userId, appId: 'echo', requestId: null },
+      NOW,
+    );
+    const row = (await loadProfile(d, userId))!.row;
+    const view = publicProfile(row, '/v1/avatars/x', NOW);
+    assert.deepEqual([view.nickname, view.avatar_url], ['小星星', '/v1/avatars/x']);
+    assert.deepEqual([view.occupation, view.organization, view.interests], ['護理師', '某醫院', null]);
+    assert.deepEqual(view.education, { university: '某大學', university_dept: '護理系', grad_school: null, grad_dept: null });
+    const hidden = publicProfile({ ...row, visibility: JSON.stringify({ avatar: 'private' }) }, '/v1/avatars/x', NOW);
+    assert.equal(hidden.avatar_url, '/v1/avatars/x', 'a stored private avatar setting is ignored');
+    assert.equal(effectiveVisibility({ ...row, visibility: JSON.stringify({ avatar: 'private' }) }, NOW).avatar, 'public');
+  });
+});
+
 describe('saving (02.07, 02.08, 02.10)', () => {
   test('fields, visibility and last-changed times are stored; stale versions are refused', async () => {
     const { db, d, userId } = await member();
