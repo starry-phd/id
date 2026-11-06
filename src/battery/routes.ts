@@ -95,7 +95,7 @@ const reservationJson = (r: Reservation, replayed = false) => ({
 export const UNCONFIGURED = '#unconfigured';
 export const INVALID = '#invalid';
 
-type ConflictCode = 'BATTERY_INSUFFICIENT' | 'RESERVATION_EXPIRED' | 'RESERVATION_CLOSED' | 'IDEMPOTENCY_CONFLICT';
+type ConflictCode = 'BATTERY_INSUFFICIENT' | 'BATTERY_APP_CAP' | 'RESERVATION_EXPIRED' | 'RESERVATION_CLOSED' | 'IDEMPOTENCY_CONFLICT';
 
 function conflictBody(c: Ctx, code: ConflictCode, message: string, extra: { balance?: Balance; reservation?: Reservation } = {}): z.infer<typeof BatteryConflictSchema> {
   return {
@@ -157,7 +157,7 @@ const reserveRoute = createRoute({
   tags: ['Battery'],
   summary: 'App backend: reserve Battery before starting an AI task',
   description:
-    'Needs the App backend service key (x-starry-app-key) and the member access token of the same App. Retrying with the same idempotency_key returns the same reservation. 409 BATTERY_INSUFFICIENT when the allowance does not cover it.',
+    'Needs the App backend service key (x-starry-app-key) and the member access token of the same App. Retrying with the same idempotency_key returns the same reservation. 409 BATTERY_INSUFFICIENT when the allowance does not cover it; 409 BATTERY_APP_CAP when the monthly ceiling set by Starry for this App is reached.',
   security: [{ appKey: [], bearerAuth: [] }],
   middleware: [requireAuth] as const,
   request: {
@@ -199,6 +199,8 @@ batteryRoutes.openapi(reserveRoute, async (c) => {
       return fail(c, 400, 'BAD_REQUEST', 'units must be a whole number from 1 to 100');
     case 'idempotency_conflict':
       return c.json(conflictBody(c, 'IDEMPOTENCY_CONFLICT', 'This idempotency_key was used for a different request'), 409);
+    case 'app_cap':
+      return c.json(conflictBody(c, 'BATTERY_APP_CAP', "This App reached its monthly Battery ceiling set by Starry"), 409);
     case 'insufficient':
       return c.json(conflictBody(c, 'BATTERY_INSUFFICIENT', 'Not enough Battery this month', { balance: result.balance }), 409);
   }

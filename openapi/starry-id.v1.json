@@ -4338,7 +4338,7 @@
           "Battery"
         ],
         "summary": "App backend: reserve Battery before starting an AI task",
-        "description": "Needs the App backend service key (x-starry-app-key) and the member access token of the same App. Retrying with the same idempotency_key returns the same reservation. 409 BATTERY_INSUFFICIENT when the allowance does not cover it.",
+        "description": "Needs the App backend service key (x-starry-app-key) and the member access token of the same App. Retrying with the same idempotency_key returns the same reservation. 409 BATTERY_INSUFFICIENT when the allowance does not cover it; 409 BATTERY_APP_CAP when the monthly ceiling set by Starry for this App is reached.",
         "security": [
           {
             "appKey": [],
