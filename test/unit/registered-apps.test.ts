@@ -92,25 +92,21 @@ describe('registering an App without a code change', () => {
     assert.ok(!/secret_key|BEGIN PRIVATE|BATTERY_SERVICE_KEYS=/i.test(text));
   });
 
-  test('enabling Battery creates a default task and a key that only its App can use; rotating revokes the old key', async () => {
+  test('enabling Battery creates a key that only its App can use; rotating revokes the old key', async () => {
     const db = asD1(migratedDb('migrations/battery'));
     assert.equal(await anyStoredKeys(db), false);
     const first = await enableAppBattery(db, 'clock', 'owner-1', NOW);
     assert.match(first.serviceKey, /^sbk_[A-Za-z0-9_-]{43}$/);
-    assert.equal(first.taskType, 'clock.ai');
     assert.equal(await hasAppBatteryKey(db, 'clock'), true);
     assert.equal(await appForStoredKey(db, first.serviceKey), 'clock');
     assert.equal(await appForStoredKey(db, `${first.serviceKey}x`), null);
     assert.equal(await appForStoredKey(db, undefined), null);
     const stored = await db.prepare('SELECT key_hash FROM battery_app_keys').all<{ key_hash: string }>();
     assert.ok(!JSON.stringify(stored.results).includes(first.serviceKey), 'only a hash is stored');
-    await db.prepare("UPDATE battery_task_types SET unit_cost = 5 WHERE task_type = 'clock.ai'").run();
     const second = await enableAppBattery(db, 'clock', 'owner-1', NOW + 1);
     assert.notEqual(second.serviceKey, first.serviceKey);
     assert.equal(await appForStoredKey(db, first.serviceKey), null, 'rotation revokes the old key');
     assert.equal(await appForStoredKey(db, second.serviceKey), 'clock');
-    const task = await db.prepare("SELECT unit_cost FROM battery_task_types WHERE task_type = 'clock.ai'").first<{ unit_cost: number }>();
-    assert.equal(task?.unit_cost, 5, 'an edited task is never overwritten');
   });
 
   test('the handoff mentions Battery only as set up or not yet set up, never with a key', () => {

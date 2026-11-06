@@ -46,27 +46,9 @@ export async function getPolicy(db: D1Database): Promise<BatteryPolicy> {
   return row ?? FALLBACK_POLICY;
 }
 
-export interface TaskType {
-  task_type: string;
-  app_id: string;
-  label: string;
-  unit_cost: number;
-  max_units: number;
-  timeout_ms: number | null;
-  enabled: number;
-  updated_at: number;
-}
-
-const TASK_COLUMNS = 'task_type, app_id, label, unit_cost, max_units, timeout_ms, enabled, updated_at';
+/** Largest single reservation (Battery units); one number for every App (owner decision 2026-11-07). */
+export const MAX_RESERVATION_UNITS = 100;
 export const TASK_TYPE_ID = /^[a-z][a-z0-9-]{1,31}\.[a-z][a-z0-9_-]{1,31}$/;
-
-export async function listTaskTypes(db: D1Database): Promise<TaskType[]> {
-  return (await db.prepare(`SELECT ${TASK_COLUMNS} FROM battery_task_types ORDER BY app_id, task_type`).all<TaskType>()).results;
-}
-
-export async function getTaskType(db: D1Database, taskType: string): Promise<TaskType | null> {
-  return db.prepare(`SELECT ${TASK_COLUMNS} FROM battery_task_types WHERE task_type = ?`).bind(taskType).first<TaskType>();
-}
 
 export interface Balance {
   period: string;
@@ -163,7 +145,7 @@ export const IDEMPOTENCY_KEY = /^[A-Za-z0-9._:-]{8,128}$/;
 
 export type ReserveResult =
   | { ok: true; reservation: Reservation; replayed: boolean }
-  | { ok: false; reason: 'unknown_task' | 'invalid_units' | 'idempotency_conflict' }
+  | { ok: false; reason: 'invalid_task' | 'invalid_units' | 'idempotency_conflict' }
   | { ok: false; reason: 'insufficient'; balance: Balance };
 
 /**
@@ -172,7 +154,7 @@ export type ReserveResult =
  */
 export async function reserve(
   db: D1Database,
-  input: { userId: string; appId: string; taskType: string; units: number; idempotencyKey: string },
+  input: { userId: string; appId: string; taskType: string; taskLabel?: string | null; units: number; idempotencyKey: string },
   now: number,
 ): Promise<ReserveResult> {
   const replay = async (): Promise<ReserveResult | null> => {
@@ -183,23 +165,23 @@ export async function reserve(
   };
   const earlier = await replay();
   if (earlier) return earlier;
-  const task = await getTaskType(db, input.taskType);
-  if (!task || task.app_id !== input.appId || task.enabled !== 1) return { ok: false, reason: 'unknown_task' };
-  if (!Number.isInteger(input.units) || input.units < 1 || input.units > task.max_units) return { ok: false, reason: 'invalid_units' };
+  if (!TASK_TYPE_ID.test(input.taskType) || !input.taskType.startsWith(`${input.appId}.`)) return { ok: false, reason: 'invalid_task' };
+  if (!Number.isInteger(input.units) || input.units < 1 || input.units > MAX_RESERVATION_UNITS) return { ok: false, reason: 'invalid_units' };
   const policy = await getPolicy(db);
-  const amount = task.unit_cost * input.units;
+  const amount = input.units;
+  const label = input.taskLabel?.trim() ? input.taskLabel.trim().slice(0, 40) : null;
   const reservation: Reservation = {
     reservation_id: uuidv7(now),
     user_id: input.userId,
     app_id: input.appId,
-    task_type: task.task_type,
+    task_type: input.taskType,
     units: input.units,
     amount,
     status: 'reserved',
     charged: null,
     period: periodOf(now),
     created_at: now,
-    expires_at: now + (task.timeout_ms ?? policy.default_timeout_ms),
+    expires_at: now + policy.default_timeout_ms,
     finished_at: null,
     op_id: null,
   };
@@ -208,10 +190,10 @@ export async function reserve(
       ensureAccount(db, input.userId, policy, now),
       db
         .prepare(
-          `INSERT INTO battery_reservations (reservation_id, user_id, app_id, task_type, idempotency_key, units, amount, status, period, created_at, expires_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 'reserved', ?, ?, ?)`,
+          `INSERT INTO battery_reservations (reservation_id, user_id, app_id, task_type, task_label, idempotency_key, units, amount, status, period, created_at, expires_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'reserved', ?, ?, ?)`,
         )
-        .bind(reservation.reservation_id, input.userId, input.appId, task.task_type, input.idempotencyKey, input.units, amount, reservation.period, now, reservation.expires_at),
+        .bind(reservation.reservation_id, input.userId, input.appId, input.taskType, label, input.idempotencyKey, input.units, amount, reservation.period, now, reservation.expires_at),
       db.prepare('UPDATE battery_accounts SET reserved = reserved + ?, updated_at = ? WHERE user_id = ?').bind(amount, now, input.userId),
     ]);
   } catch (error) {
@@ -244,8 +226,8 @@ function closeStatements(db: D1Database, r: Reservation, status: 'committed' | '
     statements.push(
       db
         .prepare(
-          `INSERT INTO battery_ledger (entry_id, user_id, period, kind, amount, app_id, task_type, reservation_id, created_at)
-           SELECT ?, user_id, period, 'usage', charged, app_id, task_type, reservation_id, ? FROM battery_reservations WHERE reservation_id = ? AND op_id = ?`,
+          `INSERT INTO battery_ledger (entry_id, user_id, period, kind, amount, app_id, task_type, task_label, reservation_id, created_at)
+           SELECT ?, user_id, period, 'usage', charged, app_id, task_type, task_label, reservation_id, ? FROM battery_reservations WHERE reservation_id = ? AND op_id = ?`,
         )
         .bind(uuidv7(now), now, r.reservation_id, opId),
     );
@@ -368,44 +350,6 @@ export async function setPolicy(
   return true;
 }
 
-export interface TaskTypeInput {
-  taskType: string;
-  appId: string;
-  label: string;
-  unitCost: number;
-  maxUnits: number;
-  timeoutMs: number | null;
-  enabled: boolean;
-}
-
-/** S-BAT-02: the Owner defines what each AI task costs. task_type is "<app_id>.<name>". */
-export function validTaskType(input: TaskTypeInput): boolean {
-  const int = (v: number, min: number, max: number) => Number.isInteger(v) && v >= min && v <= max;
-  return (
-    TASK_TYPE_ID.test(input.taskType) &&
-    input.taskType.startsWith(`${input.appId}.`) &&
-    input.label.trim().length >= 1 &&
-    input.label.trim().length <= 60 &&
-    int(input.unitCost, 1, 100_000) &&
-    int(input.maxUnits, 1, 100_000) &&
-    (input.timeoutMs === null || int(input.timeoutMs, 10_000, 3_600_000))
-  );
-}
-
-export async function upsertTaskType(db: D1Database, input: TaskTypeInput, actorUserId: string, now: number): Promise<boolean> {
-  if (!validTaskType(input)) return false;
-  await db
-    .prepare(
-      `INSERT INTO battery_task_types (task_type, app_id, label, unit_cost, max_units, timeout_ms, enabled, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT (task_type) DO UPDATE SET label = excluded.label, unit_cost = excluded.unit_cost, max_units = excluded.max_units,
-         timeout_ms = excluded.timeout_ms, enabled = excluded.enabled, updated_at = excluded.updated_at, updated_by = excluded.updated_by
-       WHERE battery_task_types.app_id = excluded.app_id`,
-    )
-    .bind(input.taskType, input.appId, input.label.trim(), input.unitCost, input.maxUnits, input.timeoutMs, input.enabled ? 1 : 0, now, actorUserId)
-    .run();
-  return true;
-}
-
 export interface ActivityEntry {
   entry_id: string;
   kind: 'usage' | 'adjustment';
@@ -426,8 +370,8 @@ export async function recentActivity(
   const limit = Math.min(Math.max(options.limit ?? 50, 1), 100);
   const rows = await db
     .prepare(
-      `SELECT l.entry_id, l.kind, l.amount, l.app_id, l.task_type, t.label AS task_label, l.created_at
-       FROM battery_ledger l LEFT JOIN battery_task_types t ON t.task_type = l.task_type
+      `SELECT l.entry_id, l.kind, l.amount, l.app_id, l.task_type, l.task_label, l.created_at
+       FROM battery_ledger l
        WHERE l.user_id = ? AND l.created_at >= ? AND (? IS NULL OR l.entry_id < ?)
        ORDER BY l.entry_id DESC LIMIT ?`,
     )
@@ -446,8 +390,8 @@ export interface StaffLedgerEntry extends ActivityEntry {
 export async function staffLedger(db: D1Database, userId: string, limit = 20): Promise<StaffLedgerEntry[]> {
   const rows = await db
     .prepare(
-      `SELECT l.entry_id, l.kind, l.amount, l.app_id, l.task_type, t.label AS task_label, l.created_at, l.reason, l.actor_user_id
-       FROM battery_ledger l LEFT JOIN battery_task_types t ON t.task_type = l.task_type
+      `SELECT l.entry_id, l.kind, l.amount, l.app_id, l.task_type, l.task_label, l.created_at, l.reason, l.actor_user_id
+       FROM battery_ledger l
        WHERE l.user_id = ? ORDER BY l.entry_id DESC LIMIT ?`,
     )
     .bind(userId, Math.min(Math.max(limit, 1), 100))
@@ -475,29 +419,21 @@ export async function batteryRetention(db: D1Database, now: number): Promise<{ l
   return { ledger: ledger?.meta.changes ?? 0, reservations: reservations?.meta.changes ?? 0 };
 }
 
-const DEFAULT_TASK_NAME = 'ai';
-
 /**
- * Admin Lite turns Battery on for an App: a first task type "<app_id>.ai" (the Owner can edit it
- * afterwards in the Battery page; an existing one is never overwritten) and a service key for the
- * App backend. Only the key's SHA-256 is stored, so the returned key is the only time it is visible.
+ * Admin Lite turns Battery on for an App: creates (or rotates) the service key for the App backend. Only the key's
+ * SHA-256 is stored, so the returned key is the only time it is visible. The App decides what its tasks cost.
  */
-export async function enableAppBattery(db: D1Database, appId: string, actorUserId: string, now: number): Promise<{ serviceKey: string; taskType: string }> {
-  const taskType = `${appId}.${DEFAULT_TASK_NAME}`;
+export async function enableAppBattery(db: D1Database, appId: string, actorUserId: string, now: number): Promise<{ serviceKey: string }> {
   const serviceKey = `sbk_${randomToken(32)}`;
   const keyHash = await sha256Hex(serviceKey);
-  await db.batch([
-    db
-      .prepare('INSERT OR IGNORE INTO battery_task_types (task_type, app_id, label, unit_cost, max_units, timeout_ms, enabled, updated_at, updated_by) VALUES (?, ?, ?, 1, 30, NULL, 1, ?, ?)')
-      .bind(taskType, appId, 'AI 任務', now, actorUserId),
-    db
-      .prepare(
-        `INSERT INTO battery_app_keys (app_id, key_hash, created_at, created_by) VALUES (?, ?, ?, ?)
-         ON CONFLICT (app_id) DO UPDATE SET key_hash = excluded.key_hash, rotated_at = ?, rotated_by = ?`,
-      )
-      .bind(appId, keyHash, now, actorUserId, now, actorUserId),
-  ]);
-  return { serviceKey, taskType };
+  await db
+    .prepare(
+      `INSERT INTO battery_app_keys (app_id, key_hash, created_at, created_by) VALUES (?, ?, ?, ?)
+       ON CONFLICT (app_id) DO UPDATE SET key_hash = excluded.key_hash, rotated_at = ?, rotated_by = ?`,
+    )
+    .bind(appId, keyHash, now, actorUserId, now, actorUserId)
+    .run();
+  return { serviceKey };
 }
 
 export async function hasAppBatteryKey(db: D1Database, appId: string): Promise<boolean> {

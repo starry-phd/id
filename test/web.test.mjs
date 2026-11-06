@@ -258,7 +258,7 @@ describe('web account center, support form and Admin Lite', () => {
     assert.equal((await worker.call('/admin/tickets', get(adminCookie))).status, 200);
   });
 
-  test('Battery in Admin Lite: admins adjust a member, only the owner sets policy and task costs (S-BAT-02/05)', async () => {
+  test('Battery in Admin Lite: admins adjust a member, only the owner sets the monthly policy (S-BAT-02/05)', async () => {
     const memberCookie = await webSignIn('battery-member');
     const target = await userIdOf('battery-member');
     let account = await (await worker.call('/account', get(memberCookie))).text();
@@ -286,12 +286,7 @@ describe('web account center, support form and Admin Lite', () => {
     await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'owner', ?)").bind(await userIdOf('battery-owner'), Date.now()).run();
     const policy = await worker.call('/admin/battery/policy', form({ allowance: '150', timeout: '120' }, ownerCookie));
     assert.match(await policy.text(), /已更新每月額度/);
-    const task = await worker.call('/admin/battery/tasks', form({ app_id: 'echo', name: 'transcribe', label: '語音轉文字', unit_cost: '2', max_units: '30', timeout: '', enabled: '1' }, ownerCookie));
-    const taskPage = await task.text();
-    assert.match(taskPage, /已儲存 echo.transcribe/);
-    assert.match(taskPage, /語音轉文字/);
-    const bad = await worker.call('/admin/battery/tasks', form({ app_id: 'account', name: 'x1', label: 'x', unit_cost: '1', max_units: '1' }, ownerCookie));
-    assert.match(await bad.text(), /請選擇 App/);
+    assert.equal((await worker.call('/admin/battery/tasks', form({ app_id: 'echo' }, ownerCookie))).status, 404, 'per-task costs live in each App now');
     assert.match(await (await worker.call('/account', get(memberCookie))).text(), /本月剩餘 <strong>170<\/strong>/, 'a new monthly allowance applies this month too');
     // The owner-claim test below needs a database without an owner.
     await worker.db.prepare('DELETE FROM user_roles WHERE user_id = ?').bind(await userIdOf('battery-owner')).run();
@@ -334,17 +329,14 @@ describe('web account center, support form and Admin Lite', () => {
     const shown = await withBattery.text();
     const key = /sbk_[A-Za-z0-9_-]{43}/.exec(shown)?.[0];
     assert.ok(key, 'the service key is shown once');
-    assert.ok(shown.includes('clock-b.ai'));
+    assert.ok(shown.includes('clock-b.'));
     assert.ok(shown.includes('phd.starry.clockb') && shown.includes('https://clock-b.starry.phd'), 'derived defaults');
-    const rows = await worker.battery.prepare("SELECT app_id FROM battery_task_types WHERE task_type = 'clock-b.ai'").all();
-    assert.equal(rows.results.length, 1);
     assert.ok(!(await (await worker.call('/admin/apps/clock-b/handoff', get(ownerCookie))).text()).includes(key), 'the key is not shown again');
     const unauthorized = await worker.call('/v1/battery/reservations/00000000-0000-7000-8000-000000000000/release', { method: 'POST', headers: { 'x-starry-app-key': key } });
     assert.notEqual(unauthorized.status, 401, 'the Admin Lite key is accepted as an App key');
     const staffCookie = await webSignIn('app-staff');
     await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(await userIdOf('app-staff'), Date.now()).run();
     assert.equal((await worker.call('/admin/apps/new', form({ ...fields, app_id: 'clock-2' }, staffCookie))).status, 403, 'only the Owner registers Apps');
-    await worker.battery.prepare("DELETE FROM battery_task_types WHERE app_id IN ('clock', 'clock-b')").run();
     await worker.battery.prepare('DELETE FROM battery_app_keys').run();
     await worker.db.prepare('DELETE FROM registered_apps').run();
     await worker.db.prepare('DELETE FROM user_roles WHERE user_id = ?').bind(ownerId).run();

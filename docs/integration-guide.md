@@ -81,14 +81,16 @@ Echo 的 D1 只存 `user_id` 當外鍵，不複製會員主檔；Echo Worker 需
 
 Battery 是 Starry 會員共用的免費 AI 用量月額度（規格 S-BAT），每月 1 日（台灣時間）恢復，不累積、不能購買或轉讓。**App 本身不能扣 Battery**，只有 App 自己的後端能用服務金鑰操作；服務金鑰不可放進 App。
 
-前置：在後台新增 App 時勾選「同時開通 Starry Battery」（預設勾選），會自動建立任務類型 `<app_id>.ai`（每單位 1、單次上限 30）與 App 後端的服務金鑰；金鑰只顯示一次，請存成 App 後端的 Secret（名稱 `STARRY_BATTERY_KEY`），遺失可在 App 的串接指令頁重新產生。任務的消耗與上限可在 Admin Lite →「Battery」調整，也能再新增其他任務類型（代碼 `<app_id>.<名稱>`）。既有 App 仍可使用 Worker Secret `BATTERY_SERVICE_KEYS`（`{"echo":"…"}`，32 字以上隨機字串，同一個值設定在 App 後端），兩種金鑰並行有效。
+前置：在後台新增 App 時勾選「同時開通 Starry Battery」（預設勾選），會自動建立 App 後端的服務金鑰；金鑰只顯示一次，請存成 App 後端的 Secret（名稱 `STARRY_BATTERY_KEY`），遺失可在 App 的串接指令頁重新產生。**金鑰只給業主自己用，不要貼給 AI。** 既有 App 仍可使用 Worker Secret `BATTERY_SERVICE_KEYS`（`{"echo":"…"}`，32 字以上隨機字串，同一個值設定在 App 後端），兩種金鑰並行有效。
+
+**扣量由 App 自己決定（2026-11-07 改版）：** 中央只管「每月額度、逾時時間、單次預留上限（全站 100 顆）」，不再登記任務類型與單位消耗。每個任務要扣幾顆，由 App 在自己的設定頁設定（只有超級管理員可改）；App 後端必須在伺服器端再次確認呼叫者是 Owner（`GET /v1/me` 的 `staff_role === "owner"`），不能只靠前端隱藏。任務代碼自行命名，只要以 `<app_id>.` 開頭（如 `echo.transcribe`）。舊的任務類型表與舊紀錄已捨棄；舊 App 請改成直接送顆數。
 
 1. 會員在 App 發起 AI 任務 → App 呼叫自己的後端（帶 Starry Access Token）。
-2. App 後端預留：`POST /v1/battery/reservations`，標頭 `Authorization: Bearer <會員 Access Token>` 與 `x-starry-app-key: <服務金鑰>`，內容 `{"task_type": "echo.transcribe", "units": 3, "idempotency_key": "<每個任務唯一>"}`。
+2. App 後端預留：`POST /v1/battery/reservations`，標頭 `Authorization: Bearer <會員 Access Token>` 與 `x-starry-app-key: <服務金鑰>`，內容 `{"task_type": "echo.transcribe", "task_label": "語音轉文字", "units": 3, "idempotency_key": "<每個任務唯一>"}`。`units` 就是要預留的顆數（1–100），`task_label`（選填、最多 40 字）會顯示在會員的 Battery 紀錄。
    - 201：預留成功，取得 `reservation_id` 與 `expires_at`（預設 3 分鐘）。網路重試用同一個 `idempotency_key` 會拿到同一筆（200）。
    - 409 `BATTERY_INSUFFICIENT`：本月額度不足，回應附 `balance`，請 App 顯示剩餘額度與下次恢復日。
 3. 執行 AI 任務。
-4. 成功：`POST /v1/battery/reservations/{id}/commit`（可帶 `{"units": 實際用量}`，不超過預留）；失敗或取消：`POST /v1/battery/reservations/{id}/release`。兩者只需服務金鑰，重送不會重複扣除。
+4. 成功：`POST /v1/battery/reservations/{id}/commit`（可帶 `{"units": 實際扣除顆數}`，不超過預留）；失敗或取消：`POST /v1/battery/reservations/{id}/release`。兩者只需服務金鑰，重送不會重複扣除。
 5. 逾時未確認的預留每分鐘自動歸還；逾時後才回來的結果 commit 會得到 409 `RESERVATION_EXPIRED`，不扣額度。
 6. Starry ID 無法連線時一律不開始 AI 任務（fail closed，S-PLT-09）。
 
@@ -96,7 +98,7 @@ Battery 是 Starry 會員共用的免費 AI 用量月額度（規格 S-BAT），
 
 ## 9.5 App 能讀到哪些會員資料（2026-11-07）
 
-- **本人（用會員通行證）：** `GET /v1/me` 回傳姓名、頭像、Email（`identities[].email`、`profile.contact_email`）與 `member_no`（會員編號，例如 `886-0112342`，永久不變，也是 R2 資料夾名稱與客服編號）。App 沒有寫入權，其餘詳細資料請導向 `https://id.starry.phd/account` 讓會員自己編輯。
+- **本人（用會員通行證）：** `GET /v1/me` 回傳 `staff_role`（`owner`／`admin`／`support`，一般會員為 null）、姓名、頭像、Email（`identities[].email`、`profile.contact_email`）與 `member_no`（會員編號，例如 `886-0112342`，永久不變，也是 R2 資料夾名稱與客服編號）。App 沒有寫入權，其餘詳細資料請導向 `https://id.starry.phd/account` 讓會員自己編輯。
 - **排行榜等需要顯示其他會員時（只能在 App 後端，用服務金鑰 `x-starry-app-key`）：** `POST /v1/directory/members`，body `{"user_ids": ["<會員ID>", …]}`（1～50 個）。回 `{"members":[{"user_id","member_no","display_name","avatar_url"}]}`。只回「曾登入這款 App」的會員；姓名與頭像遵守會員的公開設定（不公開為 `null`）；**不含 Email 或任何其他欄位**。`avatar_url` 是一小時有效的簽章路徑。這個端點不在自動產生的 OpenAPI 檔內，以本文件為準。
 - App 自己的使用紀錄與排名由 App 自己計算與保存，以 `user_id`（或 `member_no`）當 key。
 
@@ -107,7 +109,7 @@ Battery 是 Starry 會員共用的免費 AI 用量月額度（規格 S-BAT），
 1. Owner 登入 `https://id.starry.phd/admin/apps`，按「新增 App」，填 `app_id`（小寫英文、數字、連字號）、名稱、iOS Bundle ID、Android package，有網頁版再填網頁版來源。
 2. iOS、Android、網頁三個平台預設都走 Starry 登入中繼（瀏覽器登入）：帳號中心的 Apple Services ID 與 Google 網頁用戶端會自動加進這款 App，不必到 Apple、Google 後台為它做任何設定。
 3. 建立後頁面會產生一段「給開發 AI 的串接指令」（之後也能從 App 清單的「給開發 AI 的串接指令」再取得），整段貼給負責開發這款 App 的 AI。內容只有公開資料，沒有秘密。
-4. 後台登記 30 秒內生效，可用 `GET /v1/apps/<app_id>/config` 確認。paused／killed 狀態、Battery 任務類型、稽核紀錄都和既有 App 相同。
+4. 後台登記 30 秒內生效，可用 `GET /v1/apps/<app_id>/config` 確認。paused／killed 狀態、Battery 金鑰、稽核紀錄都和既有 App 相同。
 5. 後台只能編輯後台登記的 App；`config/apps.json` 的 App 與 `account` 不能被後台覆蓋。
 6. 只有日後改用原生登入時，業主才需要到後台設定：iOS 原生 Apple 登入要把該 App ID 的 Sign in with Apple 設為群組，主 App ID 選 `phd.starry.app`（G-02）；Android 原生 Google 登入要建 Android 用戶端；iOS 原生 Google 登入的 iOS 用戶端 ID 要填在「額外的 Google 用戶端 ID」。
 7. RevenueCat（要販售時）：為這款 App 建立獨立專案（S-BIL-01），Webhook URL `https://id.starry.phd/v1/billing/revenuecat/<app_id>`，再依 `docs/owner-setup.md` 第 6 步設定 Secrets。

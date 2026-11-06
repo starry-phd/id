@@ -148,8 +148,9 @@ const reserveRoute = createRoute({
     headers: z.object({ 'x-starry-app-key': z.string().optional() }),
     body: jsonBody(
       z.object({
-        task_type: z.string().min(3).max(64).openapi({ example: 'echo.transcribe' }),
-        units: z.number().int().min(1).max(100000).openapi({ description: 'Estimated usage in the task type unit, e.g. minutes of audio' }),
+        task_type: z.string().min(3).max(64).openapi({ example: 'echo.transcribe', description: 'Starts with "<app_id>."; chosen by the App, no registration needed' }),
+        task_label: z.string().min(1).max(40).optional().openapi({ example: '語音轉文字', description: 'Name shown to the member in their Battery history' }),
+        units: z.number().int().min(1).max(100000).openapi({ description: 'Battery units to reserve (what the App decided this task costs). The server refuses more than 100 with 400.' }),
         idempotency_key: z.string().min(8).max(128),
       }),
     ),
@@ -172,14 +173,14 @@ batteryRoutes.openapi(reserveRoute, async (c) => {
   if (app === 'unknown' || app === 'unavailable') return fail(c, 403, 'APP_UNAVAILABLE', 'This app is not available');
   const body = c.req.valid('json');
   if (!IDEMPOTENCY_KEY.test(body.idempotency_key)) return fail(c, 400, 'BAD_REQUEST', 'idempotency_key: 8-128 of A-Z a-z 0-9 . _ : -');
-  const result = await reserve(c.env.DB_BATTERY, { userId: auth.userId, appId: caller, taskType: body.task_type, units: body.units, idempotencyKey: body.idempotency_key }, Date.now());
+  const result = await reserve(c.env.DB_BATTERY, { userId: auth.userId, appId: caller, taskType: body.task_type, taskLabel: body.task_label ?? null, units: body.units, idempotencyKey: body.idempotency_key }, Date.now());
   if (result.ok && result.replayed) return c.json(reservationJson(result.reservation, true), 200);
   if (result.ok) return c.json(reservationJson(result.reservation), 201);
   switch (result.reason) {
-    case 'unknown_task':
-      return fail(c, 404, 'TASK_TYPE_NOT_FOUND', 'Unknown or disabled task type for this App');
+    case 'invalid_task':
+      return fail(c, 400, 'BAD_REQUEST', 'task_type must start with "<app_id>." and use lowercase letters, digits, - or _');
     case 'invalid_units':
-      return fail(c, 400, 'BAD_REQUEST', 'units exceeds the maximum for this task type');
+      return fail(c, 400, 'BAD_REQUEST', 'units must be a whole number from 1 to 100');
     case 'idempotency_conflict':
       return c.json(conflictBody(c, 'IDEMPOTENCY_CONFLICT', 'This idempotency_key was used for a different request'), 409);
     case 'insufficient':

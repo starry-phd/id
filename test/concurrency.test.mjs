@@ -16,7 +16,6 @@ describe('concurrent requests', () => {
   before(async () => {
     keys = await authBindings();
     worker = await startWorker({ bindings: { ...keys.bindings, BATTERY_SERVICE_KEYS: JSON.stringify({ echo: KEY }) } });
-    await worker.battery.prepare("INSERT INTO battery_task_types (task_type, app_id, label, unit_cost, max_units, timeout_ms, enabled, updated_at) VALUES ('echo.ai', 'echo', 'AI', 1, 10, NULL, 1, 0)").run();
   });
   after(async () => {
     await worker?.mf.dispose();
