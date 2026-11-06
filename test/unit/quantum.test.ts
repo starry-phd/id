@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { finish, getBalance, releaseExpired, reserve } from '../../src/battery/battery';
-import { adjustQuantum, creditPurchase, getQuantum, listQuantum, quantumHistory, reversePurchase, saveQuantumProduct } from '../../src/battery/quantum';
+import { adjustQuantum, creditPurchase, getQuantum, moveQuantum, listQuantum, quantumHistory, reversePurchase, saveQuantumProduct } from '../../src/battery/quantum';
 import { migratedDb } from '../support/sqlite-d1.mjs';
 
 const NOW = Date.UTC(2026, 10, 15, 4, 0, 0);
@@ -118,5 +118,19 @@ describe('spending: free Battery first, then Quantum Battery', () => {
     const results = await Promise.all([task(d, 2, 15), task(d, 3, 15)]);
     assert.equal(results.filter((x) => x?.ok).length, 1);
     assert.equal((await getQuantum(d, USER, 'recordnote')).available, 5);
+  });
+});
+
+describe('merging accounts', () => {
+  test('purchased Quantum Battery moves to the account that stays and the old account keeps nothing', async () => {
+    const { d, db } = await setup();
+    const KEEP = '01900000-0000-7000-8000-000000000009';
+    await creditPurchase(d, { userId: USER, appId: 'recordnote', productId: 'pack50', ref: 'a' }, NOW);
+    await creditPurchase(d, { userId: KEEP, appId: 'recordnote', productId: 'pack50', ref: 'b' }, NOW);
+    await moveQuantum(d, USER, KEEP, NOW);
+    await moveQuantum(d, USER, KEEP, NOW);
+    assert.equal((await getQuantum(d, KEEP, 'recordnote')).balance, 100);
+    assert.equal((await getQuantum(d, USER, 'recordnote')).balance, 0);
+    assert.equal(Number(((await db.prepare('SELECT COUNT(*) AS n FROM quantum_ledger WHERE user_id = ?').bind(USER).first()) as { n: number }).n), 0);
   });
 });

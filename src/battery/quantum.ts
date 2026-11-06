@@ -152,3 +152,22 @@ export async function forgetQuantumMembers(db: D1Database, userIds: string[]): P
     await db.batch([db.prepare('DELETE FROM quantum_ledger WHERE user_id = ?').bind(userId), db.prepare('DELETE FROM quantum_accounts WHERE user_id = ?').bind(userId)]);
   }
 }
+
+/**
+ * Account merge: purchased Quantum Battery is the member's property, so it moves to the account that stays
+ * (balances add up, history follows). Safe to repeat: after the move nothing is left to move.
+ */
+export async function moveQuantum(db: D1Database, fromUserId: string, toUserId: string, now: number): Promise<void> {
+  if (fromUserId === toUserId) return;
+  await db.batch([
+    db
+      .prepare(
+        `INSERT INTO quantum_accounts (user_id, app_id, balance, reserved, updated_at)
+         SELECT ?, app_id, balance, 0, ? FROM quantum_accounts WHERE user_id = ? AND balance > 0
+         ON CONFLICT (user_id, app_id) DO UPDATE SET balance = quantum_accounts.balance + excluded.balance, updated_at = excluded.updated_at`,
+      )
+      .bind(toUserId, now, fromUserId),
+    db.prepare('UPDATE quantum_ledger SET user_id = ? WHERE user_id = ?').bind(toUserId, fromUserId),
+    db.prepare('DELETE FROM quantum_accounts WHERE user_id = ?').bind(fromUserId),
+  ]);
+}

@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { html, raw } from 'hono/html';
 import { definitionFromForm, listRegisteredAppIds, saveRegisteredApp, type AppForm } from '../apps/dynamic';
 import { buildHandoff } from '../apps/handoff';
+import { adjustQuantum, listQuantum, listQuantumProducts, removeQuantumProduct, saveQuantumProduct } from '../battery/quantum';
 import { appRegistry, getApp, type AppEntry, type AppStatus } from '../apps/registry';
 import { listAppStatusOverrides, setAppStatusOverride } from '../apps/status';
 import { background } from '../auth/routes';
@@ -164,8 +165,9 @@ async function memberPage(c: WebContext, actor: StaffActor, userId: string, mess
   await auditStatement(db, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.member_viewed', targetType: 'user', targetId: m.user_id, result: 'success', requestId: actor.requestId, retention: 'general' }, now).run();
   const canModerate = hasRole(actor.role, 'admin') && m.role !== 'owner' && m.user_id !== actor.userId;
   const canAdjust = hasRole(actor.role, 'admin') && m.user_id !== actor.userId;
-  const [balance, ledger, sessions, tickets] = await Promise.all([
+  const [balance, quantum, ledger, sessions, tickets] = await Promise.all([
     getBalance(c.env.DB_BATTERY, m.user_id, now),
+    listQuantum(c.env.DB_BATTERY, m.user_id),
     staffLedger(c.env.DB_BATTERY, m.user_id, 10),
     db
       .prepare('SELECT app_id, device_label, created_at, last_used_at FROM sessions WHERE user_id = ? AND revoked_at IS NULL AND expires_at > ? ORDER BY last_used_at DESC LIMIT 20')
@@ -228,6 +230,15 @@ ${canAdjust
   ? html`<form method="post" action="/admin/members/${m.user_id}/battery"><label for="delta">調整本月額度（顆；正數增加、負數減少，不能低於已使用＋預留）</label><input id="delta" name="delta" type="number" step="1" required>
 <label for="battery-reason">原因（必填，最多 200 字，會員看不到）</label><input id="battery-reason" name="reason" maxlength="200" required><button type="submit">調整</button>
 <p class="muted">調整後會寄通知信給會員，只說明額度被調整，不寫數字。</p></form>`
+  : ''}
+<h2>量子電池（各 App 內購）</h2>
+${quantum.length > 0
+  ? html`<table><thead><tr><th>App</th><th>餘額</th><th>使用中</th></tr></thead><tbody>${quantum.map((q) => html`<tr><td><code>${q.app_id}</code></td><td>${q.balance}</td><td>${q.reserved}</td></tr>`)}</tbody></table>`
+  : html`<p class="muted">沒有量子電池。</p>`}
+${canAdjust
+  ? html`<form method="post" action="/admin/members/${m.user_id}/quantum"><label for="q-app">App 代碼</label><input id="q-app" name="app_id" maxlength="64" required>
+<label for="q-delta">調整顆數（正數增加、負數減少，不能低於 0）</label><input id="q-delta" name="delta" type="number" step="1" required>
+<label for="q-reason">原因（必填，最多 200 字，會員看不到）</label><input id="q-reason" name="reason" maxlength="200" required><button type="submit">調整量子電池</button></form>`
   : ''}
 </div>
 ${canModerate && m.status === 'active'
@@ -646,6 +657,7 @@ ${serviceKey
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input id="battery-key" readonly value="${serviceKey}" style="flex:1;min-width:220px;font-family:monospace"><button type="button" data-copy="battery-key">複製金鑰</button>${regenerate}</div>`
   : html`<p class="muted">${hasKey ? '已開通；金鑰只在建立或重新產生時顯示一次。' : '尚未開通。'}</p><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${regenerate}</div>`}
 </div>
+<p><a href="/admin/apps/${app.app_id}/quantum">量子電池（內購加量包）設定</a></p>
 <p><a href="/admin/apps">回到 App 清單</a></p>`,
       html`<script nonce="${nonce}">
 document.querySelectorAll('[data-copy]').forEach(function (button) {
@@ -680,6 +692,79 @@ adminApp.get('/apps/:id/handoff', async (c) => {
   const app = getApp(c.req.param('id'));
   if (!app || app.app_id === WEB_APP_ID) return appsPage(c, '找不到此 App。');
   return handoffPage(c, actor.role, app, c.req.query('created') ? '已建立，30 秒內生效。' : c.req.query('updated') ? '已儲存。' : '');
+});
+
+async function quantumPage(c: WebContext, actor: StaffActor, app: AppEntry, message?: string): Promise<Response> {
+  const owner = actor.role === 'owner';
+  const products = await listQuantumProducts(c.env.DB_BATTERY, app.app_id);
+  return c.html(
+    adminPage(
+      c,
+      '量子電池',
+      html`<h1>${app.name} 的量子電池</h1>
+${message ? html`<div class="banner">${message}</div>` : ''}
+<p class="muted">會員可在這款 App 內購買「量子電池」加量包，只能在這款 App 使用。每次扣款先用免費的每月 Battery，用完才扣量子電池。這裡設定商店商品代碼（與 RevenueCat／商店的商品 ID 相同）對應多少顆。</p>
+<div class="card"><table><thead><tr><th>商品代碼</th><th>顆數</th><th></th></tr></thead><tbody>
+${products.map((p) => html`<tr><td><code>${p.product_id}</code></td><td>${p.units}</td><td>${owner ? html`<form method="post" action="/admin/apps/${app.app_id}/quantum/remove" class="inline"><input type="hidden" name="product_id" value="${p.product_id}"><button type="submit">移除</button></form>` : ''}</td></tr>`)}
+</tbody></table>${products.length === 0 ? html`<p class="muted">尚未設定任何加量包，這款 App 目前不販售量子電池。</p>` : ''}</div>
+${owner
+  ? html`<h2>新增或修改</h2><div class="card"><form method="post" action="/admin/apps/${app.app_id}/quantum"><label for="product_id">商店商品代碼</label><input id="product_id" name="product_id" maxlength="200" required>
+<label for="units">這個商品給幾顆（1～1000000）</label><input id="units" name="units" type="number" min="1" max="1000000" step="1" required><button type="submit">儲存</button></form></div>`
+  : html`<p class="muted">只有 Owner 可以修改。</p>`}
+<p class="muted">注意：購買的量子電池不會過期。退款（客服退款）會自動扣回尚未使用的部分。</p>
+<p><a href="/admin/apps/${app.app_id}/handoff">回到串接指令</a></p>`,
+    ),
+  );
+}
+
+adminApp.get('/apps/:id/quantum', async (c) => {
+  const actor = await staff(c, 'admin');
+  if (actor instanceof Response) return actor;
+  const app = getApp(c.req.param('id'));
+  if (!app || app.app_id === WEB_APP_ID) return appsPage(c, '找不到此 App。');
+  return quantumPage(c, actor, app);
+});
+
+adminApp.post('/apps/:id/quantum', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const app = getApp(c.req.param('id'));
+  if (!app || app.app_id === WEB_APP_ID) return appsPage(c, '找不到此 App。');
+  const form = await readForm(c);
+  const now = Date.now();
+  const ok = await saveQuantumProduct(c.env.DB_BATTERY, { appId: app.app_id, productId: (form.product_id ?? '').trim(), units: Number(form.units), actorUserId: actor.userId }, now);
+  if (!ok) return quantumPage(c, actor, app, '商品代碼只能用英數與 . _ : -（最多 200 字），顆數為 1～1000000 的整數。');
+  await auditStatement(c.env.DB_IDENTITY, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.quantum_product_saved', targetType: 'quantum_product', targetId: (form.product_id ?? '').trim().slice(0, 200), appId: app.app_id, result: 'success', requestId: actor.requestId, retention: 'security' }, now).run();
+  return quantumPage(c, actor, app, '已儲存。');
+});
+
+adminApp.post('/apps/:id/quantum/remove', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const app = getApp(c.req.param('id'));
+  if (!app || app.app_id === WEB_APP_ID) return appsPage(c, '找不到此 App。');
+  const form = await readForm(c);
+  const productId = (form.product_id ?? '').trim().slice(0, 200);
+  await removeQuantumProduct(c.env.DB_BATTERY, app.app_id, productId);
+  await auditStatement(c.env.DB_IDENTITY, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.quantum_product_removed', targetType: 'quantum_product', targetId: productId, appId: app.app_id, result: 'success', requestId: actor.requestId, retention: 'security' }, Date.now()).run();
+  return quantumPage(c, actor, app, '已移除。');
+});
+
+adminApp.post('/members/:id/quantum', async (c) => {
+  const actor = await staff(c, 'admin');
+  if (actor instanceof Response) return actor;
+  const userId = c.req.param('id');
+  if (userId === actor.userId) return memberPage(c, actor, userId, '不能調整自己的量子電池。');
+  const exists = await c.env.DB_IDENTITY.prepare('SELECT 1 AS ok FROM users WHERE user_id = ?').bind(userId).first();
+  if (!exists) return memberPage(c, actor, userId);
+  const form = await readForm(c);
+  const appId = form.app_id ?? '';
+  if (!getApp(appId) || appId === WEB_APP_ID) return memberPage(c, actor, userId, '請選擇有效的 App。');
+  const now = Date.now();
+  const result = await adjustQuantum(c.env.DB_BATTERY, { userId, appId, delta: Number(form.delta), reason: form.reason ?? '', actorUserId: actor.userId }, now);
+  if (!result.ok) return memberPage(c, actor, userId, result.reason === 'too_low' ? '調整後的量子電池不能低於 0。' : '請填寫非 0 的整數與 1～200 字的原因。');
+  await auditStatement(c.env.DB_IDENTITY, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.quantum_adjusted', targetType: 'user', targetId: userId, appId, result: 'success', requestId: actor.requestId, retention: 'security' }, now).run();
+  return memberPage(c, actor, userId, `已調整，${appId} 的量子電池現為 ${result.balance.balance} 顆。`);
 });
 
 adminApp.post('/apps/:id/battery-key', async (c) => {
