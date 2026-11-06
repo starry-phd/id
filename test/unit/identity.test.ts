@@ -2,11 +2,13 @@
 import assert from 'node:assert/strict';
 import { generateKeyPairSync } from 'node:crypto';
 import { describe, test } from 'node:test';
+import { periodOf } from '../../src/battery/battery';
 import { clientSecret, processAppleRevocations, rememberAppleToken, type FetchLike } from '../../src/identity/apple';
 import { cancelDeletion, DELETION_GRACE_MS, purgeExpiredDeletions, requestDeletion } from '../../src/identity/lifecycle';
 import { linkIdentity } from '../../src/identity/link';
 import { runDailyMaintenance } from '../../src/identity/maintenance';
-import { claimOwner, isRecentLogin, maskEmail, maskName, restoreMember, roleOf, searchMembers, setStaffRole, suspendMember } from '../../src/identity/roles';
+import { searchMembers } from '../../src/identity/member-search';
+import { claimOwner, isRecentLogin, restoreMember, revokeAllSessions, roleOf, setStaffRole, suspendMember } from '../../src/identity/roles';
 import { uuidv7 } from '../../src/lib/crypto';
 import { open, seal } from '../../src/lib/sealed';
 import { migratedDb } from '../support/sqlite-d1.mjs';
@@ -168,29 +170,74 @@ describe('staff roles, suspension and search (S-ID-07, S-ID-10, S-ADM-01)', () =
     assert.equal(await setStaffRole(d, owner, asOwner, 'missing', 'admin', NOW), 'not_found');
   });
 
-  test('search finds by member ID or email and masks personal data; listing pages by cursor', async () => {
+  test('search shows full names and emails, matches parts of them, filters, and pages by cursor', async () => {
     const db = migratedDb();
     const d = db as unknown as D1Database;
     const ids: string[] = [];
     for (let i = 0; i < 5; i++) ids.push(await member(db, { email: `user${i}@example.com`, name: `星星${i}號`, createdAt: NOW + i }));
-    const byEmail = await searchMembers(d, undefined, { query: 'USER2@example.com' });
+    await db.prepare("UPDATE users SET member_no = '81-0000001', registration_country = 'JP' WHERE user_id = ?").bind(ids[1]).run();
+    await db.prepare("UPDATE users SET status = 'suspended' WHERE user_id = ?").bind(ids[3]).run();
+    const find = (filters: Parameters<typeof searchMembers>[3]) => searchMembers(d, null, undefined, filters, NOW);
+    const byEmail = await find({ query: 'USER2@example.com' });
     assert.equal(byEmail.members.length, 1);
-    assert.deepEqual(byEmail.members[0], {
-      user_id: ids[2], status: 'active', status_reason: null, created_at: NOW + 2,
-      display_name: '星＊＊＊', emails: ['u***@example.com'], providers: ['google'], role: null,
-    });
-    assert.equal((await searchMembers(d, undefined, { query: ids[4] })).members[0]?.user_id, ids[4]);
-    const page1 = await searchMembers(d, undefined, { limit: 2 });
+    assert.equal(byEmail.members[0]?.user_id, ids[2]);
+    assert.equal(byEmail.members[0]?.display_name, '星星2號');
+    assert.deepEqual(byEmail.members[0]?.emails, ['user2@example.com']);
+    assert.equal((await find({ query: 'ser3@exa' })).members[0]?.user_id, ids[3]);
+    assert.equal((await find({ query: '星星4' })).members[0]?.user_id, ids[4]);
+    assert.equal((await find({ query: '81-0000001' })).members[0]?.user_id, ids[1]);
+    assert.equal((await find({ query: ids[4] })).members[0]?.user_id, ids[4]);
+    assert.equal((await find({ query: '100%' })).members.length, 0);
+    assert.deepEqual((await find({ status: 'suspended' })).members.map((m) => m.user_id), [ids[3]]);
+    assert.deepEqual((await find({ country: 'jp' })).members.map((m) => m.user_id), [ids[1]]);
+    assert.equal((await find({ provider: 'apple' })).members.length, 0);
+    assert.deepEqual((await find({ from: NOW + 1, to: NOW + 3 })).members.map((m) => m.user_id), [ids[2], ids[1]]);
+    const page1 = await find({ limit: 2 });
     assert.deepEqual(page1.members.map((m) => m.user_id), [ids[4], ids[3]]);
-    const page2 = await searchMembers(d, undefined, { limit: 2, cursor: page1.nextCursor ?? undefined });
+    const page2 = await find({ limit: 2, cursor: page1.nextCursor ?? undefined });
     assert.deepEqual(page2.members.map((m) => m.user_id), [ids[2], ids[1]]);
-    const page3 = await searchMembers(d, undefined, { limit: 2, cursor: page2.nextCursor ?? undefined });
+    const page3 = await find({ limit: 2, cursor: page2.nextCursor ?? undefined });
     assert.deepEqual(page3.members.map((m) => m.user_id), [ids[0]]);
     assert.equal(page3.nextCursor, null);
-    assert.equal(maskEmail('a@b.co'), 'a***@b.co');
-    assert.equal(maskName('星'), '＊');
-    assert.equal(maskName(null), null);
   });
+
+  test('search filters by this month\'s Battery remaining across the separate database', async () => {
+    const db = migratedDb();
+    const battery = migratedDb('migrations/battery');
+    const d = db as unknown as D1Database;
+    const b = battery as unknown as D1Database;
+    const ids: string[] = [];
+    for (let i = 0; i < 4; i++) ids.push(await member(db, { email: `b${i}@example.com`, createdAt: NOW + i }));
+    const period = periodOf(NOW);
+    await battery.prepare('INSERT INTO battery_accounts (user_id, period, allowance, used, reserved, updated_at) VALUES (?, ?, 100, 100, 0, ?)').bind(ids[1], period, NOW).run();
+    await battery.prepare('INSERT INTO battery_accounts (user_id, period, allowance, used, reserved, updated_at) VALUES (?, ?, 100, 40, 10, ?)').bind(ids[2], period, NOW).run();
+    const none = await searchMembers(d, b, undefined, { batteryMax: 0 }, NOW);
+    assert.deepEqual(none.members.map((m) => m.user_id), [ids[1]]);
+    const some = await searchMembers(d, b, undefined, { batteryMin: 40, batteryMax: 60 }, NOW);
+    assert.deepEqual(some.members.map((m) => [m.user_id, m.battery?.remaining]), [[ids[2], 50]]);
+    const all = await searchMembers(d, b, undefined, { limit: 2 }, NOW);
+    assert.equal(all.members.length, 2);
+    assert.ok(all.members.every((m) => m.battery !== null));
+    const scan = await searchMembers(d, b, undefined, { batteryMin: 1, limit: 1 }, NOW);
+    assert.equal(scan.members.length, 1);
+    assert.ok(scan.nextCursor);
+  });
+
+  test('forcing a sign-out revokes every session and bumps the session version', async () => {
+    const db = migratedDb();
+    const d = db as unknown as D1Database;
+    const admin = await member(db, {});
+    const target = await member(db, {});
+    const sid = await session(db, target);
+    const actor = { userId: admin, role: 'admin' as const, requestId: null };
+    assert.equal(await revokeAllSessions(d, undefined, actor, admin, NOW), 'not_allowed');
+    assert.equal(await revokeAllSessions(d, undefined, { ...actor, role: 'support' }, target, NOW), 'not_allowed');
+    assert.equal(await revokeAllSessions(d, undefined, actor, target, NOW), 'ok');
+    assert.ok((await one(db, 'SELECT revoked_at FROM sessions WHERE session_id = ?', sid))?.revoked_at);
+    assert.equal((await one(db, 'SELECT session_version FROM users WHERE user_id = ?', target))?.session_version, 2);
+    assert.equal(await revokeAllSessions(d, undefined, actor, 'missing', NOW), 'not_found');
+  });
+});
 });
 
 describe('owner claim', () => {

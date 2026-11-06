@@ -107,6 +107,21 @@ export async function getBalance(db: D1Database, userId: string, now: number): P
   return toBalance(row, policy, now);
 }
 
+/** Balances of several members at once (admin member list); ids are read in chunks to stay under D1's bound-parameter limit. */
+export async function getBalances(db: D1Database, userIds: string[], now: number): Promise<Map<string, Balance>> {
+  const policy = await getPolicy(db);
+  const rows = new Map<string, AccountRow>();
+  for (let i = 0; i < userIds.length; i += 50) {
+    const chunk = userIds.slice(i, i + 50);
+    const found = await db
+      .prepare(`SELECT user_id, period, allowance, used, reserved FROM battery_accounts WHERE user_id IN (${chunk.map(() => '?').join(',')})`)
+      .bind(...chunk)
+      .all<AccountRow & { user_id: string }>();
+    for (const row of found.results) rows.set(row.user_id, row);
+  }
+  return new Map(userIds.map((id) => [id, toBalance(rows.get(id) ?? null, policy, now)]));
+}
+
 /** Creates the account, or resets it when its period is over: used back to 0, reservations in flight stay held. */
 function ensureAccount(db: D1Database, userId: string, policy: BatteryPolicy, now: number): D1PreparedStatement {
   return db

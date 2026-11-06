@@ -97,6 +97,21 @@ export async function restoreMember(db: D1Database, actor: StaffActor, targetId:
   return 'ok';
 }
 
+/** Signs a member out of every device now: tokens stop working everywhere (session_version) and all sessions are revoked. */
+export async function revokeAllSessions(db: D1Database, ownerUserIds: string | undefined, actor: StaffActor, targetId: string, now: number): Promise<StatusChangeResult> {
+  if (!hasRole(actor.role, 'admin') || targetId === actor.userId) return 'not_allowed';
+  const exists = await db.prepare('SELECT 1 AS present FROM users WHERE user_id = ?').bind(targetId).first();
+  if (!exists) return 'not_found';
+  const targetRole = await roleOf(db, ownerUserIds, targetId);
+  if (targetRole === 'owner' || (targetRole !== null && actor.role !== 'owner')) return 'not_allowed';
+  await db.batch([
+    db.prepare('UPDATE users SET session_version = session_version + 1, updated_at = ? WHERE user_id = ?').bind(now, targetId),
+    db.prepare("UPDATE sessions SET revoked_at = ?, revoke_reason = 'admin_signout' WHERE user_id = ? AND revoked_at IS NULL").bind(now, targetId),
+    auditStatement(db, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.member_signed_out', targetType: 'user', targetId, result: 'success', requestId: actor.requestId, retention: 'security' }, now),
+  ]);
+  return 'ok';
+}
+
 /** Owner-only: grant Admin or Support, or remove a staff role (role = null). */
 export async function setStaffRole(
   db: D1Database,
@@ -124,82 +139,6 @@ export async function setStaffRole(
     auditStatement(db, { actorType: 'admin', actorUserId: actor.userId, action: role === null ? 'admin.role_revoked' : `admin.role_granted.${role}`, targetType: 'user', targetId, result: 'success', requestId: actor.requestId, retention: 'security' }, now),
   ]);
   return 'ok';
-}
-
-/** a***@example.com — enough for staff to recognise a member without exposing the address. */
-export function maskEmail(email: string | null): string | null {
-  if (!email) return null;
-  const at = email.lastIndexOf('@');
-  if (at <= 0) return '***';
-  return `${email[0]}***${email.slice(at)}`;
-}
-
-export function maskName(name: string | null): string | null {
-  if (!name) return null;
-  const chars = [...name];
-  return chars.length <= 1 ? '＊' : `${chars[0]}${'＊'.repeat(Math.min(chars.length - 1, 4))}`;
-}
-
-export interface MemberSummary {
-  user_id: string;
-  status: string;
-  status_reason: string | null;
-  created_at: number;
-  display_name: string | null;
-  emails: (string | null)[];
-  providers: string[];
-  role: Role | null;
-}
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-
-/**
- * Staff member search (spec S-ADM-01): exact member ID or exact email, otherwise the
- * newest members, with cursor pagination. Names and emails come back masked.
- */
-export async function searchMembers(
-  db: D1Database,
-  ownerUserIds: string | undefined,
-  options: { query?: string | undefined; cursor?: string | undefined; limit?: number | undefined },
-): Promise<{ members: MemberSummary[]; nextCursor: string | null }> {
-  const limit = Math.min(Math.max(options.limit ?? 20, 1), 50);
-  const query = options.query?.trim().toLowerCase() ?? '';
-  let ids: string[];
-  if (query.length > 0) {
-    const rows = UUID.test(query)
-      ? await db.prepare('SELECT user_id FROM users WHERE user_id = ?').bind(query).all<{ user_id: string }>()
-      : await db.prepare('SELECT DISTINCT user_id FROM auth_identities WHERE lower(email) = ? LIMIT ?').bind(query, limit).all<{ user_id: string }>();
-    ids = rows.results.map((r) => r.user_id);
-  } else {
-    const cursor = options.cursor && UUID.test(options.cursor) ? options.cursor : 'ffffffff-ffff-ffff-ffff-ffffffffffff';
-    const rows = await db.prepare('SELECT user_id FROM users WHERE user_id < ? ORDER BY user_id DESC LIMIT ?').bind(cursor, limit + 1).all<{ user_id: string }>();
-    ids = rows.results.map((r) => r.user_id);
-  }
-  const hasMore = query.length === 0 && ids.length > limit;
-  if (hasMore) ids = ids.slice(0, limit);
-  const members: MemberSummary[] = [];
-  for (const id of ids) {
-    const [user, identities] = await db.batch([
-      db
-        .prepare('SELECT u.user_id, u.status, u.status_reason, u.created_at, p.display_name FROM users u LEFT JOIN profiles p ON p.user_id = u.user_id WHERE u.user_id = ?')
-        .bind(id),
-      db.prepare('SELECT provider, email FROM auth_identities WHERE user_id = ? ORDER BY provider').bind(id),
-    ]);
-    const u = user?.results[0] as { user_id: string; status: string; status_reason: string | null; created_at: number; display_name: string | null } | undefined;
-    if (!u) continue;
-    const linked = (identities?.results ?? []) as { provider: string; email: string | null }[];
-    members.push({
-      user_id: u.user_id,
-      status: u.status,
-      status_reason: u.status_reason,
-      created_at: u.created_at,
-      display_name: maskName(u.display_name),
-      emails: linked.map((i) => maskEmail(i.email)),
-      providers: linked.map((i) => i.provider),
-      role: await roleOf(db, ownerUserIds, u.user_id),
-    });
-  }
-  return { members, nextCursor: hasMore ? (ids[ids.length - 1] ?? null) : null };
 }
 
 export type ClaimResult = 'claimed' | 'disabled' | 'already_claimed' | 'wrong_code' | 'not_active';
