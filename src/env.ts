@@ -49,6 +49,8 @@ export interface Env {
   RL_AUTH?: RateLimiter;
   RL_API?: RateLimiter;
   RL_WEB?: RateLimiter;
+  /** Per App service key (Battery, member directory): a larger bucket so one App cannot use up another's allowance. */
+  RL_APP?: RateLimiter;
   /** Development only: provider JWKS and audiences used by local tests instead of Apple/Google. */
   AUTH_TEST_JWKS?: string;
   AUTH_TEST_AUDIENCES?: string;
