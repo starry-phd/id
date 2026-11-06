@@ -199,7 +199,7 @@ export function validateProfileInput(input: Record<string, unknown>, now: number
     if (!v.ok) return fail('website');
     if (v.value === null) fields.website = null;
     else {
-      let url: URL | null = null;
+      let url: URL | null;
       try {
         url = new URL(v.value);
       } catch {
