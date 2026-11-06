@@ -352,7 +352,7 @@ ${owner
 <div class="card">
 <p class="muted">每款 App 一把金鑰，只放在該 App 的後端。每個 AI 功能扣幾顆，由各 App 自己的設定頁決定（只有超級管理員能改）；Starry 只限制單次預留最多 ${MAX_RESERVATION_UNITS} 顆。</p>
 <table><thead><tr><th>App</th><th>金鑰</th></tr></thead><tbody>
-${apps.map((a) => html`<tr><td>${a.name}<br><code>${a.app_id}</code></td><td>${keyed.has(a.app_id) ? '已建立' : '尚未建立'}　<a href="/admin/apps/${a.app_id}/handoff">${owner ? '查看／重新產生' : '查看'}</a></td></tr>`)}
+${apps.map((a) => html`<tr><td>${a.name}<br><code>${a.app_id}</code></td><td>${keyed.has(a.app_id) ? '已建立' : '尚未建立'}&nbsp;&nbsp;<a href="/admin/apps/${a.app_id}/handoff">${owner ? '查看／重新產生' : '查看'}</a></td></tr>`)}
 </tbody></table>
 </div>`,
     ),
