@@ -42,6 +42,22 @@ describe('Starry Battery API (S-BAT-03/04/06)', () => {
     assert.equal(body.next_cursor, null);
   });
 
+  test('an App backend reads the public name, avatar and member number of its own members only', async () => {
+    const me = await (await worker.call('/v1/me', { headers: member() })).json();
+    assert.match(me.member_no, /^\d{1,4}-\d{7}$/, '/v1/me shows the member number');
+    await worker.db.prepare('UPDATE profiles SET display_name = ? WHERE user_id = ?').bind('排行榜小星', me.user_id).run();
+    const ask = (key, ids) => worker.call('/v1/directory/members', json({ user_ids: ids }, key ? { 'x-starry-app-key': key } : {}));
+    assert.equal((await ask(null, [me.user_id])).status, 401);
+    assert.equal((await ask('x'.repeat(40), [me.user_id])).status, 401);
+    assert.equal((await ask(ECHO_KEY, [])).status, 400);
+    assert.equal((await ask(ECHO_KEY, ['not-an-id'])).status, 400);
+    const own = await (await ask(ECHO_KEY, [me.user_id])).json();
+    assert.deepEqual(own.members, [{ user_id: me.user_id, member_no: me.member_no, display_name: '排行榜小星', avatar_url: null }]);
+    assert.deepEqual((await (await ask(OTHER_KEY, [me.user_id])).json()).members, [], "another App's members only");
+    await worker.db.prepare('UPDATE profiles SET visibility = ? WHERE user_id = ?').bind(JSON.stringify({ display_name: 'private' }), me.user_id).run();
+    assert.equal((await (await ask(ECHO_KEY, [me.user_id])).json()).members[0].display_name, null, 'hidden names stay hidden');
+  });
+
   test('only the App backend with its service key and the member token of the same App can reserve', async () => {
     const body = { task_type: 'echo.transcribe', units: 5, idempotency_key: 'idem-0001' };
     assert.equal((await reserve(body, member())).status, 401, 'the App itself has no service key');

@@ -165,6 +165,7 @@ export const VersionConflictSchema = ErrorSchema.extend({ profile: ProfileSchema
 export const MeSchema = z
   .object({
     user_id: z.string(),
+    member_no: z.string().nullable(),
     status: z.string(),
     created_at: z.number().int(),
     deletion_requested_at: z.number().int().nullable(),

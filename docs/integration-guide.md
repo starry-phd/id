@@ -94,6 +94,12 @@ Battery 是 Starry 會員共用的免費 AI 用量月額度（規格 S-BAT），
 
 會員查詢：`GET /v1/me/battery`（本月額度、已用、預留中、剩餘、下次恢復時間與近 30 天紀錄）；網頁帳號中心也會顯示。
 
+## 9.5 App 能讀到哪些會員資料（2026-11-07）
+
+- **本人（用會員通行證）：** `GET /v1/me` 回傳姓名、頭像、Email（`identities[].email`、`profile.contact_email`）與 `member_no`（會員編號，例如 `886-0112342`，永久不變，也是 R2 資料夾名稱與客服編號）。App 沒有寫入權，其餘詳細資料請導向 `https://id.starry.phd/account` 讓會員自己編輯。
+- **排行榜等需要顯示其他會員時（只能在 App 後端，用服務金鑰 `x-starry-app-key`）：** `POST /v1/directory/members`，body `{"user_ids": ["<會員ID>", …]}`（1～50 個）。回 `{"members":[{"user_id","member_no","display_name","avatar_url"}]}`。只回「曾登入這款 App」的會員；姓名與頭像遵守會員的公開設定（不公開為 `null`）；**不含 Email 或任何其他欄位**。`avatar_url` 是一小時有效的簽章路徑。這個端點不在自動產生的 OpenAPI 檔內，以本文件為準。
+- App 自己的使用紀錄與排名由 App 自己計算與保存，以 `user_id`（或 `member_no`）當 key。
+
 ## 10. 新 App 接入 Starry ID（每款 App 一次）
 
 **用後台登記（建議，不改程式碼）**

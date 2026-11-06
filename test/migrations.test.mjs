@@ -18,7 +18,7 @@ describe('identity migrations', () => {
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'")
       .all();
     const names = results.map((r) => r.name).sort();
-    assert.deepEqual(names, ['app_status_overrides', 'apple_revocations', 'apple_tokens', 'audit_log', 'auth_identities', 'auth_nonces', 'consents', 'profile_field_updates', 'profiles', 'push_preferences', 'push_tokens', 'r2_deletions', 'registered_apps', 'retired_member_numbers', 'sessions', 'support_attachments', 'support_ticket_replies', 'support_tickets', 'user_roles', 'users']);
+    assert.deepEqual(names, ['app_status_overrides', 'apple_revocations', 'apple_tokens', 'audit_log', 'auth_identities', 'auth_nonces', 'consents', 'member_apps', 'profile_field_updates', 'profiles', 'push_preferences', 'push_tokens', 'r2_deletions', 'registered_apps', 'retired_member_numbers', 'sessions', 'support_attachments', 'support_ticket_replies', 'support_tickets', 'user_roles', 'users']);
   });
 
   test('an identity cannot point at a missing member', async () => {
