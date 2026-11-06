@@ -19,6 +19,7 @@ import { completeMerge, findMergeCandidate } from '../identity/merge';
 import { acceptConsents } from '../identity/members';
 import { sendContactEmailVerification } from '../identity/contact-email';
 import { randomMotto } from '../identity/mottos';
+import { roleOf } from '../identity/roles';
 import { derivedOf, effectiveVisibility, hasChanges, loadProfile, publicProfile, saveProfile, validateProfileInput, type FieldUpdate, type ProfileRow } from '../identity/profile';
 import { errorBody } from '../lib/errors';
 import { mailSettings } from '../notify/email';
@@ -87,6 +88,7 @@ meRoutes.openapi(meRoute, async (c) => {
     {
       user_id: u.user_id,
       member_no: u.member_no,
+      staff_role: await roleOf(db, c.env.OWNER_USER_IDS, userId),
       status: u.status,
       created_at: u.created_at,
       deletion_requested_at: u.deletion_requested_at,

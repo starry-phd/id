@@ -99,9 +99,8 @@ describe('docs/fixtures match real responses', () => {
     assertShape(entitlements, fixture('me-entitlements.200.json'), 'me-entitlements.200.json');
     assert.equal(entitlements.entitlements.length, 1);
 
-    await worker.battery.prepare("INSERT INTO battery_task_types (task_type, app_id, label, unit_cost, max_units, timeout_ms, enabled, updated_at) VALUES ('echo.transcribe', 'echo', '語音轉文字', 1, 5, NULL, 1, 0)").run();
     const backend = { ...authed(session.access_token).headers, 'x-starry-app-key': 'k'.repeat(40) };
-    const r = await (await worker.call('/v1/battery/reservations', json({ task_type: 'echo.transcribe', units: 2, idempotency_key: 'fixture-0001' }, backend))).json();
+    const r = await (await worker.call('/v1/battery/reservations', json({ task_type: 'echo.transcribe', task_label: '語音轉文字', units: 2, idempotency_key: 'fixture-0001' }, backend))).json();
     assert.equal((await worker.call(`/v1/battery/reservations/${r.reservation_id}/commit`, { method: 'POST', headers: { 'x-starry-app-key': 'k'.repeat(40) } })).status, 200);
     await matches(await worker.call('/v1/me/battery', authed(session.access_token)), 'me-battery.200.json', 200);
   });

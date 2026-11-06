@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import {
   adjustAllowance, appForServiceKey, batteryRetention, finish, forgetBatteryMembers, getBalance, getPolicy, LEDGER_RETENTION_MS,
-  nextResetAt, periodOf, recentActivity, releaseExpired, reserve, setPolicy, staffLedger, upsertTaskType,
+  nextResetAt, periodOf, MAX_RESERVATION_UNITS, recentActivity, releaseExpired, reserve, setPolicy, staffLedger,
 } from '../../src/battery/battery';
 import { migratedDb } from '../support/sqlite-d1.mjs';
 
@@ -20,7 +20,6 @@ async function setup() {
   const d = asD1(db);
   // These tests use a 100 allowance for easy arithmetic; the shipped default (10) is checked below.
   db.sqlite.exec('UPDATE battery_policy SET monthly_allowance = 100');
-  assert.ok(await upsertTaskType(d, { taskType: 'echo.transcribe', appId: 'echo', label: '語音轉文字', unitCost: 2, maxUnits: 30, timeoutMs: null, enabled: true }, 'owner', NOW));
   return { db, d };
 }
 
@@ -52,20 +51,20 @@ describe('reserve, commit and release (S-BAT-03)', () => {
     assert.equal(await count(db, 'SELECT COUNT(*) AS n FROM battery_accounts'), 0);
   });
 
-  test('reserve holds unit_cost x units; commit charges and writes the ledger; replays change nothing', async () => {
+  test('reserve holds exactly the units the App decided; commit charges and writes the ledger; replays change nothing', async () => {
     const { db, d } = await setup();
-    const r = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 10, idempotencyKey: key(1) }, NOW);
+    const r = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 20, idempotencyKey: key(1) }, NOW);
     assert.ok(r.ok);
     assert.equal(r.reservation.amount, 20);
     assert.equal(r.reservation.expires_at, NOW + 180_000, 'default timeout is 3 minutes');
     assert.deepEqual(await getBalance(d, USER, NOW), { period: '2026-11', allowance: 100, used: 0, reserved: 20, remaining: 80, resets_at: nextResetAt(NOW) });
 
-    const again = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 10, idempotencyKey: key(1) }, NOW + 1);
+    const again = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 20, idempotencyKey: key(1) }, NOW + 1);
     assert.ok(again.ok && again.replayed && again.reservation.reservation_id === r.reservation.reservation_id);
     assert.equal((await getBalance(d, USER, NOW)).reserved, 20, 'a retried reserve holds nothing more');
-    assert.deepEqual(await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 3, idempotencyKey: key(1) }, NOW), { ok: false, reason: 'idempotency_conflict' });
+    assert.deepEqual(await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 6, idempotencyKey: key(1) }, NOW), { ok: false, reason: 'idempotency_conflict' });
 
-    const done = await finish(d, { reservationId: r.reservation.reservation_id, appId: 'echo', action: 'commit', units: 7 }, NOW + 1000);
+    const done = await finish(d, { reservationId: r.reservation.reservation_id, appId: 'echo', action: 'commit', units: 14 }, NOW + 1000);
     assert.ok(done.ok);
     assert.equal(done.reservation.charged, 14, 'actual usage below the estimate is charged, the rest returns');
     assert.deepEqual(await getBalance(d, USER, NOW + 1000), { period: '2026-11', allowance: 100, used: 14, reserved: 0, remaining: 86, resets_at: nextResetAt(NOW) });
@@ -82,7 +81,7 @@ describe('reserve, commit and release (S-BAT-03)', () => {
 
   test('release returns everything and is idempotent; other Apps cannot touch the reservation', async () => {
     const { d } = await setup();
-    const r = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 5, idempotencyKey: key(2) }, NOW);
+    const r = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 10, idempotencyKey: key(2) }, NOW);
     assert.ok(r.ok);
     assert.deepEqual(await finish(d, { reservationId: r.reservation.reservation_id, appId: 'other', action: 'release' }, NOW), { ok: false, reason: 'not_found' });
     const released = await finish(d, { reservationId: r.reservation.reservation_id, appId: 'echo', action: 'release' }, NOW + 10);
@@ -95,32 +94,36 @@ describe('reserve, commit and release (S-BAT-03)', () => {
 
   test('reservations never exceed the allowance', async () => {
     const { d } = await setup();
-    const first = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 20, idempotencyKey: key(3) }, NOW);
-    const second = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 20, idempotencyKey: key(4) }, NOW);
+    const first = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 40, idempotencyKey: key(3) }, NOW);
+    const second = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 40, idempotencyKey: key(4) }, NOW);
     assert.ok(first.ok && second.ok);
-    const third = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 15, idempotencyKey: key(5) }, NOW);
+    const third = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 30, idempotencyKey: key(5) }, NOW);
     assert.equal(third.ok ? 'ok' : third.reason, 'insufficient');
     assert.equal(!third.ok && third.reason === 'insufficient' ? third.balance.remaining : -1, 20);
-    assert.ok((await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 10, idempotencyKey: key(6) }, NOW)).ok, 'exactly the remainder fits');
+    assert.ok((await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 20, idempotencyKey: key(6) }, NOW)).ok, 'exactly the remainder fits');
     assert.equal((await getBalance(d, USER, NOW)).remaining, 0);
     assert.equal((await getBalance(d, OTHER, NOW)).remaining, 100, 'members have separate allowances');
   });
 
-  test('unknown, disabled or foreign task types and too many units are refused', async () => {
-    const { d } = await setup();
+  test('task types must start with the App id; units are 1 to the global cap; the label is stored', async () => {
+    const { db, d } = await setup();
     const base = { userId: USER, appId: 'echo', idempotencyKey: key(7) };
-    assert.deepEqual(await reserve(d, { ...base, taskType: 'echo.nope', units: 1 }, NOW), { ok: false, reason: 'unknown_task' });
-    assert.deepEqual(await reserve(d, { ...base, appId: 'other', taskType: 'echo.transcribe', units: 1 }, NOW), { ok: false, reason: 'unknown_task' });
-    assert.deepEqual(await reserve(d, { ...base, taskType: 'echo.transcribe', units: 31 }, NOW), { ok: false, reason: 'invalid_units' });
-    await upsertTaskType(d, { taskType: 'echo.transcribe', appId: 'echo', label: '語音轉文字', unitCost: 2, maxUnits: 30, timeoutMs: null, enabled: false }, 'owner', NOW);
-    assert.deepEqual(await reserve(d, { ...base, taskType: 'echo.transcribe', units: 1 }, NOW), { ok: false, reason: 'unknown_task' });
-    assert.equal(await upsertTaskType(d, { taskType: 'other.transcribe', appId: 'echo', label: 'x', unitCost: 1, maxUnits: 1, timeoutMs: null, enabled: true }, 'owner', NOW), false, 'task codes start with their App');
+    assert.deepEqual(await reserve(d, { ...base, taskType: 'other.transcribe', units: 1 }, NOW), { ok: false, reason: 'invalid_task' });
+    assert.deepEqual(await reserve(d, { ...base, taskType: 'echo', units: 1 }, NOW), { ok: false, reason: 'invalid_task' });
+    assert.deepEqual(await reserve(d, { ...base, taskType: 'echo.transcribe', units: MAX_RESERVATION_UNITS + 1 }, NOW), { ok: false, reason: 'invalid_units' });
+    assert.deepEqual(await reserve(d, { ...base, taskType: 'echo.transcribe', units: 0 }, NOW), { ok: false, reason: 'invalid_units' });
+    const ok = await reserve(d, { ...base, taskType: 'echo.anything', taskLabel: '  語音轉文字  ', units: MAX_RESERVATION_UNITS }, NOW);
+    assert.ok(ok.ok, 'an App can invent a task type without registering it');
+    const r = await finish(d, { reservationId: ok.reservation.reservation_id, appId: 'echo', action: 'commit' }, NOW + 1);
+    assert.ok(r.ok);
+    const row = await db.prepare('SELECT task_label FROM battery_ledger WHERE kind = ?').bind('usage').first() as { task_label: string } | null;
+    assert.equal(row?.task_label, '語音轉文字');
   });
 
   test('timed-out reservations are released every minute and late commits charge nothing', async () => {
     const { d } = await setup();
-    const late = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 10, idempotencyKey: key(8) }, NOW);
-    const swept = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 5, idempotencyKey: key(9) }, NOW);
+    const late = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 20, idempotencyKey: key(8) }, NOW);
+    const swept = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 10, idempotencyKey: key(9) }, NOW);
     assert.ok(late.ok && swept.ok);
     const after = NOW + 180_000;
     const commit = await finish(d, { reservationId: late.reservation.reservation_id, appId: 'echo', action: 'commit' }, after);
@@ -134,15 +137,15 @@ describe('reserve, commit and release (S-BAT-03)', () => {
 
   test('a new month resets usage; reservations in flight stay held', async () => {
     const { d } = await setup();
-    const used = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 30, idempotencyKey: key(10) }, NOW);
+    const used = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 60, idempotencyKey: key(10) }, NOW);
     assert.ok(used.ok);
     await finish(d, { reservationId: used.reservation.reservation_id, appId: 'echo', action: 'commit' }, NOW);
     const december = Date.UTC(2026, 10, 30, 15, 59, 0);
-    const held = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 5, idempotencyKey: key(11) }, december);
+    const held = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 10, idempotencyKey: key(11) }, december);
     assert.ok(held.ok);
     const nextMonth = Date.UTC(2026, 10, 30, 16, 0, 30);
     assert.deepEqual(await getBalance(d, USER, nextMonth), { period: '2026-12', allowance: 100, used: 0, reserved: 10, remaining: 90, resets_at: nextResetAt(nextMonth) });
-    assert.ok((await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 1, idempotencyKey: key(12) }, nextMonth)).ok);
+    assert.ok((await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 2, idempotencyKey: key(12) }, nextMonth)).ok);
     const done = await finish(d, { reservationId: held.reservation.reservation_id, appId: 'echo', action: 'commit' }, nextMonth + 1000);
     assert.ok(done.ok);
     assert.deepEqual(await getBalance(d, USER, nextMonth + 1000), { period: '2026-12', allowance: 100, used: 10, reserved: 2, remaining: 88, resets_at: nextResetAt(nextMonth) });
@@ -152,7 +155,7 @@ describe('reserve, commit and release (S-BAT-03)', () => {
 describe('adjustments and policy (S-BAT-02, S-BAT-05)', () => {
   test('staff adjust this month with a reason; never below what is used or held', async () => {
     const { db, d } = await setup();
-    const r = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 30, idempotencyKey: key(20) }, NOW);
+    const r = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 60, idempotencyKey: key(20) }, NOW);
     assert.ok(r.ok);
     assert.deepEqual(await adjustAllowance(d, { userId: USER, delta: 50, reason: '', actorUserId: 'admin' }, NOW), { ok: false, reason: 'invalid' });
     assert.deepEqual(await adjustAllowance(d, { userId: USER, delta: 0, reason: 'x', actorUserId: 'admin' }, NOW), { ok: false, reason: 'invalid' });
@@ -172,16 +175,16 @@ describe('adjustments and policy (S-BAT-02, S-BAT-05)', () => {
 
   test('a new monthly allowance applies to this month too, clamped to what is used', async () => {
     const { d } = await setup();
-    const r = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 30, idempotencyKey: key(30) }, NOW);
+    const r = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.transcribe', units: 60, idempotencyKey: key(30) }, NOW);
     assert.ok(r.ok);
-    await reserve(d, { userId: OTHER, appId: 'echo', taskType: 'echo.transcribe', units: 1, idempotencyKey: key(31) }, NOW);
+    await reserve(d, { userId: OTHER, appId: 'echo', taskType: 'echo.transcribe', units: 2, idempotencyKey: key(31) }, NOW);
     assert.equal(await setPolicy(d, { monthlyAllowance: -1, defaultTimeoutMs: 180_000, actorUserId: 'owner' }, NOW), false);
     assert.ok(await setPolicy(d, { monthlyAllowance: 40, defaultTimeoutMs: 60_000, actorUserId: 'owner' }, NOW));
     assert.equal((await getPolicy(d)).monthly_allowance, 40);
     assert.equal((await getBalance(d, USER, NOW)).allowance, 60, 'cut by 60 but never below the 60 already held');
     assert.equal((await getBalance(d, OTHER, NOW)).allowance, 40);
     assert.equal((await getBalance(d, '01900000-0000-7000-8000-000000000003', NOW)).allowance, 40, 'new members get the new allowance');
-    const quick = await reserve(d, { userId: OTHER, appId: 'echo', taskType: 'echo.transcribe', units: 1, idempotencyKey: key(32) }, NOW);
+    const quick = await reserve(d, { userId: OTHER, appId: 'echo', taskType: 'echo.transcribe', units: 2, idempotencyKey: key(32) }, NOW);
     assert.ok(quick.ok && quick.reservation.expires_at === NOW + 60_000, 'the new default timeout applies');
   });
 });
@@ -197,7 +200,7 @@ describe('ledger, retention and purge', () => {
     const { db, d } = await setup();
     await adjustAllowance(d, { userId: USER, delta: 5, reason: '舊', actorUserId: 'admin' }, NOW - LEDGER_RETENTION_MS - 1);
     await adjustAllowance(d, { userId: USER, delta: 5, reason: '新', actorUserId: 'admin' }, NOW);
-    const r = await reserve(d, { userId: OTHER, appId: 'echo', taskType: 'echo.transcribe', units: 1, idempotencyKey: key(40) }, NOW - 40 * 86_400_000);
+    const r = await reserve(d, { userId: OTHER, appId: 'echo', taskType: 'echo.transcribe', units: 2, idempotencyKey: key(40) }, NOW - 40 * 86_400_000);
     assert.ok(r.ok);
     await finish(d, { reservationId: r.reservation.reservation_id, appId: 'echo', action: 'release' }, NOW - 40 * 86_400_000);
     assert.deepEqual(await batteryRetention(d, NOW), { ledger: 1, reservations: 1 });

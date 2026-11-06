@@ -16,9 +16,6 @@ describe('Starry Battery API (S-BAT-03/04/06)', () => {
     worker = await startWorker({ bindings: { ...keys.bindings, BATTERY_SERVICE_KEYS: JSON.stringify({ echo: ECHO_KEY, other: OTHER_KEY }) } });
     // A 100 allowance keeps the arithmetic below simple; the shipped default is 10.
     await worker.battery.prepare('UPDATE battery_policy SET monthly_allowance = 100').run();
-    await worker.battery
-      .prepare("INSERT INTO battery_task_types (task_type, app_id, label, unit_cost, max_units, timeout_ms, enabled, updated_at) VALUES ('echo.transcribe', 'echo', '語音轉文字', 2, 30, NULL, 1, 0)")
-      .run();
     const nonce = (await (await worker.call('/v1/auth/nonce', json({ app_id: 'echo' }))).json()).nonce;
     const idToken = await signJwt(keys.google, idTokenClaims('google', { sub: 'battery-user', nonce }));
     token = (await (await worker.call('/v1/auth/google', json({ app_id: 'echo', id_token: idToken, nonce }))).json()).access_token;
@@ -64,17 +61,18 @@ describe('Starry Battery API (S-BAT-03/04/06)', () => {
     assert.equal((await reserve(body, backend('x'.repeat(40)))).status, 401);
     assert.equal((await reserve(body, backend(OTHER_KEY))).status, 403, "another App's backend cannot spend for Echo members");
     assert.equal((await worker.call('/v1/battery/reservations', json(body, { 'x-starry-app-key': ECHO_KEY }))).status, 401, 'the member token is required');
-    assert.equal((await reserve({ ...body, task_type: 'echo.unknown' })).status, 404);
-    assert.equal((await reserve({ ...body, units: 31 })).status, 400);
+    assert.equal((await reserve({ ...body, task_type: 'other.transcribe' })).status, 400, 'a task type must start with the App id');
+    assert.equal((await reserve({ ...body, units: 101 })).status, 400, 'at most 100 per reservation');
+    assert.equal((await reserve({ ...body, units: 0 })).status, 400);
   });
 
   test('reserve, replay, commit and release', async () => {
-    const created = await reserve({ task_type: 'echo.transcribe', units: 10, idempotency_key: 'idem-0002' });
+    const created = await reserve({ task_type: 'echo.transcribe', task_label: '語音轉文字', units: 20, idempotency_key: 'idem-0002' });
     assert.equal(created.status, 201);
     const r = await created.json();
-    assert.equal(r.amount, 20);
+    assert.equal(r.amount, 20, 'the App decided the cost; central does not multiply');
     assert.equal(r.status, 'reserved');
-    const replay = await reserve({ task_type: 'echo.transcribe', units: 10, idempotency_key: 'idem-0002' });
+    const replay = await reserve({ task_type: 'echo.transcribe', task_label: '語音轉文字', units: 20, idempotency_key: 'idem-0002' });
     assert.equal(replay.status, 200);
     assert.equal((await replay.json()).replayed, true);
     const conflict = await reserve({ task_type: 'echo.transcribe', units: 2, idempotency_key: 'idem-0002' });
@@ -83,7 +81,7 @@ describe('Starry Battery API (S-BAT-03/04/06)', () => {
 
     const commitUrl = `/v1/battery/reservations/${r.reservation_id}/commit`;
     assert.equal((await worker.call(commitUrl, json({}, { 'x-starry-app-key': OTHER_KEY }))).status, 404, 'other Apps cannot see it');
-    const committed = await worker.call(commitUrl, json({ units: 8 }, { 'x-starry-app-key': ECHO_KEY }));
+    const committed = await worker.call(commitUrl, json({ units: 16 }, { 'x-starry-app-key': ECHO_KEY }));
     assert.equal(committed.status, 200);
     assert.equal((await committed.json()).charged, 16);
     assert.equal((await worker.call(commitUrl, { method: 'POST', headers: { 'x-starry-app-key': ECHO_KEY } })).status, 200, 'commit is idempotent, body optional');
@@ -103,9 +101,9 @@ describe('Starry Battery API (S-BAT-03/04/06)', () => {
   });
 
   test('a reservation that does not fit is refused with the balance', async () => {
-    const res = await reserve({ task_type: 'echo.transcribe', units: 30, idempotency_key: 'idem-0004' });
+    const res = await reserve({ task_type: 'echo.transcribe', units: 60, idempotency_key: 'idem-0004' });
     assert.equal(res.status, 201);
-    const refused = await reserve({ task_type: 'echo.transcribe', units: 30, idempotency_key: 'idem-0005' });
+    const refused = await reserve({ task_type: 'echo.transcribe', units: 60, idempotency_key: 'idem-0005' });
     assert.equal(refused.status, 409);
     const body = await refused.json();
     assert.equal(body.error.code, 'BATTERY_INSUFFICIENT');

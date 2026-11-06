@@ -166,6 +166,7 @@ export const MeSchema = z
   .object({
     user_id: z.string(),
     member_no: z.string().nullable(),
+    staff_role: z.string().nullable().openapi({ description: 'owner, admin or support when this member is Starry staff, otherwise null. Apps may use it to show settings only to the owner, and must re-check server-side.' }),
     status: z.string(),
     created_at: z.number().int(),
     deletion_requested_at: z.number().int().nullable(),

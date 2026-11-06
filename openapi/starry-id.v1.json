@@ -305,6 +305,13 @@
               "null"
             ]
           },
+          "staff_role": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "owner, admin or support when this member is Starry staff, otherwise null. Apps may use it to show settings only to the owner, and must re-check server-side."
+          },
           "status": {
             "type": "string"
           },
@@ -377,6 +384,7 @@
         "required": [
           "user_id",
           "member_no",
+          "staff_role",
           "status",
           "created_at",
           "deletion_requested_at",
@@ -3774,13 +3782,21 @@
                     "type": "string",
                     "minLength": 3,
                     "maxLength": 64,
-                    "example": "echo.transcribe"
+                    "example": "echo.transcribe",
+                    "description": "Starts with \"<app_id>.\"; chosen by the App, no registration needed"
+                  },
+                  "task_label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40,
+                    "example": "語音轉文字",
+                    "description": "Name shown to the member in their Battery history"
                   },
                   "units": {
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 100000,
-                    "description": "Estimated usage in the task type unit, e.g. minutes of audio"
+                    "maximum": 100,
+                    "description": "Battery units to reserve (what the App decided this task costs), at most 100"
                   },
                   "idempotency_key": {
                     "type": "string",
@@ -3943,7 +3959,7 @@
                   "units": {
                     "type": "integer",
                     "minimum": 0,
-                    "maximum": 100000
+                    "maximum": 100
                   }
                 }
               }

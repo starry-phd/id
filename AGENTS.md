@@ -65,6 +65,6 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 規格 v2.0 中屬於本 Repo 的開發項目已全部完成並部署（2026-11-03；Battery 依業主同日指示提前完成，不等 S-BAT-07 的觸發條件）。其餘為外部或其他 Repo 的工作：
 
 1. App 接入：新 App 由 Owner 在 Admin Lite（`/admin/apps/new`）登記，不需要改程式碼，並取得給開發 AI 的串接指令（見 `docs/integration-guide.md` 第 10 節）；既有 App 仍在 `config/apps.json`。Apple App ID 掛到群組主 App ID `phd.starry.app`；App 端以 `openapi/starry-id.v1.json` 產生型別。
-2. 使用 Battery 的 App：Owner 在 Admin Lite 建立任務類型，Claude 把該 App 後端的服務金鑰加入 `BATTERY_SERVICE_KEYS`。
+2. 使用 Battery 的 App：Owner 在 Admin Lite 開通 Battery 取得金鑰（不給 AI），每個任務的扣量由 App 自己決定，Claude 把該 App 後端的服務金鑰加入 `BATTERY_SERVICE_KEYS`。
 3. 使用 RevenueCat 的 App：業主依 `docs/owner-setup.md` 第 6 步設定 Webhook 與 API Key；設定後每日對帳自動涵蓋。
 4. 業主外部事項：`docs/owner-setup.md`（Google Play 帳號類型、App Store 付費協議、GitHub 帳號整併等）。
