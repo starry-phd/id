@@ -13,7 +13,6 @@ function list(values: readonly string[]): string {
  */
 export function buildHandoff(app: AppEntry, origin: string): string {
   const id = app.app_id;
-  const hasIos = app.ios_bundle_id !== null;
   const lines = [
     `你是繁星生態系新 App「${app.name}」的開發者 AI。Starry ID（繁星中央會員系統）已經替這款 App 登記完成，請照下面的資料串接。不需要、也不可以修改 Starry ID 的程式碼或設定。`,
     '',
@@ -35,9 +34,11 @@ export function buildHandoff(app: AppEntry, origin: string): string {
     '## 三、要完成的事',
     `1. GitHub：在 starry-phd 組織建立 Repo「${id}」（已存在就沿用）。main 分支用 PR 合併、CI 全綠才可合併；不提交任何 token、金鑰、.env、Cloudflare 帳戶 ID。`,
     `2. Cloudflare：需要後端時，Worker 名稱用「${id}-api」，先部署 staging 再 production。Secrets 只放 Workers Secrets、GitHub Actions Secrets 或 EAS Secrets。`,
-    '3. 登入：只用 Starry ID，不要自己建立會員系統。',
-    hasIos ? '   - iOS 原生用 Apple／Google 原生登入，Android 與網頁版用 Starry 登入中繼，流程照串接說明第 2、11.2、11.3 節。' : '   - 網頁版與 Android 用 Starry 登入中繼，流程照串接說明第 11.2、11.3 節。',
+    '3. 登入：只用 Starry ID，不要自己建立會員系統。iOS、Android、網頁三個平台一律使用 Starry 登入中繼（瀏覽器登入），不要使用原生 Apple／Google 登入 SDK，這樣完全不必到 Apple 或 Google 後台為這款 App 做任何設定。',
+    '   - 流程照串接說明第 2、3 節與 11.2、11.3 節：先 POST /v1/auth/nonce 取得 nonce，再導向中繼網址，登入後帶著 id_token 回到登記過的回傳網址，最後 POST /v1/auth/{apple|google} 換取 Starry 的 Token。',
     `   - 中繼網址：${origin}/auth/{apple|google}/start?app_id=${id}&nonce=<nonce 的 SHA-256 十六進位小寫>&return=<上面登記過的回傳網址>&state=<隨機字串>`,
+    '   - iOS 與 Android：用 expo-web-browser 的 openAuthSessionAsync 開啟中繼網址，回傳網址用上面登記的深層連結；App 的 app.json 要宣告對應的 scheme。',
+    '   - 網頁版：整頁導向中繼網址，回傳網址用網頁版來源底下的網址。',
     '   - 回傳網址必須是上面登記的深層連結，或網頁來源底下的網址；沒登記過的網址會被拒絕。',
     '4. 會員身分只用 Starry 的 user_id（內部以 provider＋sub 辨識，不用 Email 或姓名合併）。App 後端用 GET /.well-known/jwks.json 驗證 Access Token。',
     '5. App 內必須提供串接說明第 4 節的帳號功能（登出、刪除帳號、同意條款等）。',
@@ -47,7 +48,7 @@ export function buildHandoff(app: AppEntry, origin: string): string {
     '- 不要改 Starry ID 的 config/apps.json，也不要直接寫 Starry ID 的資料庫。這款 App 已由業主在 Admin Lite 登記。',
     '- 不要在 App 內放服務金鑰；服務金鑰只能放在 App 後端。',
     '- 不用向 Apple 或 Google 後台登記網頁版網域：網頁版與 Android 都走 Starry 登入中繼，Apple 與 Google 只在 id.starry.phd 設定過一次。',
-    ...(hasIos ? ['- iOS 原生 Apple 登入需要在 Apple Developer 把這個 App ID 的 Sign in with Apple 設為群組，主 App ID 選 phd.starry.app；這一步只有業主能做，請把要填的值列給業主。'] : []),
+    '- 如果你認為這款 App 需要原生登入（體驗考量），先回報業主，不要自行改用；原生登入需要業主另外到 Apple、Google 後台設定。',
     '- 下列事項必須先取得業主核准：付費方案或可能產生額外費用的操作、App Store／Google Play 送審與正式發布、刪除或還原正式資料、刪除既有的 GitHub 或 Cloudflare 資源、建立新的雲端或商店帳號。',
     '- 需要業主親自登入 Apple、Google、Cloudflare 或商店後台時，停下來，把「要填什麼值、填在哪個頁面」寫清楚回報，不要索取密碼。',
     '',

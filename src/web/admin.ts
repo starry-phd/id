@@ -471,7 +471,7 @@ function appForm(c: WebContext, mode: 'create' | 'update', values: AppForm, mess
       create ? '新增 App' : '編輯 App',
       html`<h1>${create ? '新增 App' : `編輯 ${values.app_id ?? ''}`}</h1>
 ${message ? html`<div class="banner danger">${message}</div>` : ''}
-<p class="muted">登入預設走 Starry 登入中繼：帳號中心的 Apple Services ID 與 Google 網頁用戶端會自動加進這款 App，網頁版與 Android 不必再到 Apple、Google 後台登記。原生 iOS 的 Google 登入另外有 iOS 用戶端時，填在最下面的欄位。</p>
+<p class="muted">三個平台（iOS、Android、網頁）預設都走 Starry 登入中繼：帳號中心的 Apple Services ID 與 Google 網頁用戶端會自動加進這款 App，不必到 Apple、Google 後台為它做任何設定。只有日後改用原生登入時，才需要填最下面的進階欄位。</p>
 <form method="post" action="${create ? '/admin/apps/new' : `/admin/apps/${values.app_id ?? ''}/edit`}" class="card">
 <label for="app_id">app_id（小寫英文、數字、連字號，2～32 字，建立後不能改）</label><input id="app_id" name="app_id" value="${values.app_id ?? ''}" pattern="[a-z][a-z0-9-]{1,31}" required ${create ? '' : 'readonly'}>
 <label for="name">名稱</label><input id="name" name="name" value="${values.name ?? ''}" maxlength="80" required>

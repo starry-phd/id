@@ -76,6 +76,7 @@ describe('registering an App without a code change', () => {
     for (const expected of ['clock', 'phd.starry.clock', 'https://clock.starry.phd', 'clock://auth/google', 'https://id.starry.phd/v1/apps/clock/config', 'integration-guide.md', 'starry-phd']) {
       assert.ok(text.includes(expected), expected);
     }
+    assert.ok(text.includes('一律使用 Starry 登入中繼') && text.includes('不要使用原生'));
     assert.ok(!/secret_key|BEGIN PRIVATE|BATTERY_SERVICE_KEYS=/i.test(text));
   });
 });
