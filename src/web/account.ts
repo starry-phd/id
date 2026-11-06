@@ -10,6 +10,7 @@ import type { AppBindings } from '../env';
 import { rememberAppleToken } from '../identity/apple';
 import { mailSettings } from '../notify/email';
 import { listActiveSessions, logoutEverywhere, revokeOwnSession } from '../identity/devices';
+import { importProviderAvatar, r2Store } from '../identity/avatars';
 import { cleanupAfterDeletion } from '../identity/erase';
 import { cancelDeletion, DELETION_GRACE_MS, deleteMemberNow } from '../identity/lifecycle';
 import { linkIdentity, type LinkResult } from '../identity/link';
@@ -199,8 +200,12 @@ accountApp.post('/session', async (c) => {
   if (!verified.ok) return verified.response;
   const now = Date.now();
   const db = c.env.DB_IDENTITY;
-  const { member } = await findOrCreateMember(db, verified.identity, { appId: WEB_APP_ID, requestId, country: c.req.header('cf-ipcountry') }, now);
+  const { member, isNew } = await findOrCreateMember(db, verified.identity, { appId: WEB_APP_ID, requestId, country: c.req.header('cf-ipcountry') }, now);
   if (member.status === 'suspended') return c.json(errorBody('ACCOUNT_SUSPENDED', 'Account suspended', requestId), 403);
+  if (isNew && verified.identity.picture && c.env.AVATARS) {
+    const photo = background(c, importProviderAvatar(db, r2Store(c.env.AVATARS), (url, init) => fetch(url, init), { userId: member.user_id, url: verified.identity.picture, appId: WEB_APP_ID, requestId }, now));
+    if (photo) await photo;
+  }
   if (provider === 'apple' && request.authorizationCode) {
     const pending = background(
       c,

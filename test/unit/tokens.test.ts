@@ -32,7 +32,7 @@ describe('verifyIdToken (S-ID-01)', () => {
     const { apple, google, env } = await setup();
     const g = await signJwt(google, idTokenClaims('google', { sub: 'g1', nonce: 'n'.repeat(32), email: 'a@example.com', now: NOW }));
     const id = await verifyIdToken(env, 'google', g, { audiences: [GOOGLE_AUDIENCE], nonce: 'n'.repeat(32), now: NOW });
-    assert.deepEqual(id, { provider: 'google', subject: 'g1', audience: GOOGLE_AUDIENCE, email: 'a@example.com', emailVerified: true, isPrivateRelay: false });
+    assert.deepEqual(id, { provider: 'google', subject: 'g1', audience: GOOGLE_AUDIENCE, email: 'a@example.com', emailVerified: true, isPrivateRelay: false, picture: null });
     const a = await signJwt(apple, idTokenClaims('apple', { sub: 'a1', nonce: sha256Hex('m'.repeat(32)), email: 'x@privaterelay.appleid.com', is_private_email: 'true', now: NOW }));
     const aid = await verifyIdToken(env, 'apple', a, { audiences: ['phd.starry.echo'], nonce: 'm'.repeat(32), now: NOW });
     assert.equal(aid?.isPrivateRelay, true);

@@ -7,6 +7,7 @@ import type { AppBindings } from '../env';
 import { rememberAppleToken } from '../identity/apple';
 import { logoutEverywhere } from '../identity/devices';
 import { DELETION_GRACE_MS } from '../identity/lifecycle';
+import { importProviderAvatar, r2Store } from '../identity/avatars';
 import { consentRequired, findOrCreateMember } from '../identity/members';
 import { consumeNonce, issueNonce, NONCE_TTL_MS } from '../identity/nonces';
 import { WEB_APP_ID } from '../identity/web-sessions';
@@ -179,6 +180,10 @@ async function signIn(c: Ctx, provider: Provider, body: z.infer<typeof SignInReq
       .bind(sessionId, member.user_id, app.app_id, refresh.hash, member.session_version, deviceLabel, now, now, now + REFRESH_TTL_MS),
     auditStatement(db, { actorType: 'user', actorUserId: member.user_id, action: `auth.login.${provider}`, targetType: 'session', targetId: sessionId, appId: app.app_id, result: 'success', requestId, retention: 'security' }, now),
   ]);
+  if (isNew && identity.picture && c.env.AVATARS) {
+    const photo = background(c, importProviderAvatar(db, r2Store(c.env.AVATARS), (url, init) => fetch(url, init), { userId: member.user_id, url: identity.picture, appId: app.app_id, requestId }, now));
+    if (photo) await photo;
+  }
   if (provider === 'apple' && request.authorizationCode) {
     const pending = background(
       c,

@@ -5,6 +5,7 @@ export interface VerifiedIdentity {
   subject: string;
   email: string | null;
   isPrivateRelay: boolean;
+  picture?: string | null;
 }
 
 export type LinkResult = 'linked' | 'already_linked' | 'provider_in_use' | 'identity_in_use';
