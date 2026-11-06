@@ -106,6 +106,7 @@ describe('registering an App without a code change', () => {
     const app = build(clock);
     assert.ok(buildHandoff(app, 'https://id.starry.phd', { battery: true }).includes('clock.ai'));
     assert.ok(buildHandoff(app, 'https://id.starry.phd', { battery: true }).includes('STARRY_BATTERY_KEY'));
+    assert.ok(buildHandoff(app, 'https://id.starry.phd', { battery: true }).includes('.gitleaks.toml'));
     assert.ok(buildHandoff(app, 'https://id.starry.phd').includes('尚未'));
   });
 });

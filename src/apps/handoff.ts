@@ -47,6 +47,7 @@ export function buildHandoff(app: AppEntry, origin: string, options: { battery: 
       ? [
           `7. Starry Battery（會員共用的免費 AI 用量月額度）已為這款 App 開通：任務代碼「${id}.ai」，每單位消耗 1、單次上限 30（業主可在 Admin Lite 的 Battery 頁調整）。`,
           '   - 服務金鑰由業主另外提供，只放在 App 後端的 Secret（名稱用 STARRY_BATTERY_KEY），不可放進 App、不可提交到 Git、不可寫進日誌。',
+          '   - 在這款 App 的每個 Repo 的 CI 加入 gitleaks 掃描，並沿用 Starry ID 的規則檔（https://raw.githubusercontent.com/starry-phd/id/main/.gitleaks.toml，含 sbk_ 金鑰格式），讓金鑰一旦出現在提交內容就擋下合併。',
           '   - 只有 App 後端能預留與扣除 Battery：依串接說明第 9 節，預留 → 執行 AI 任務 → 成功確認扣除、失敗釋放；Starry ID 無法連線時不要開始 AI 任務。',
         ]
       : ['7. Starry Battery 尚未為這款 App 開通；需要 AI 用量時，請業主在 Admin Lite 的 App 頁按「開通 Battery」，再依串接說明第 9 節串接。']),

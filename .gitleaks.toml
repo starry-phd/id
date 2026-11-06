@@ -1,0 +1,12 @@
+# Gitleaks: the default rules plus the Starry Battery service key format (created in Admin Lite).
+# A match fails the "Repository policy" check, so a key can never be merged into a repository.
+title = "Starry"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "starry-battery-service-key"
+description = "Starry Battery service key"
+regex = '''sbk_[A-Za-z0-9_-]{43}'''
+keywords = ["sbk_"]
