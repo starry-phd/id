@@ -8,6 +8,8 @@
 
 ## 2026-11-07
 
+向下相容的新增（App 每月上限）：`POST /v1/battery/reservations` 在 Owner 為該 App 設定每月 Battery 上限且已達上限時，回 409 `BATTERY_APP_CAP`（新增錯誤碼；App 端請當作「暫時無法使用 AI 功能」處理，不要重試）。
+
 向下相容的新增（量子電池）：`GET /v1/me/battery` 回應新增 `quantum`（該 Access Token 所屬 App 的量子電池餘額）；Battery 預留／扣款回應新增 `quantum_amount`、`quantum_charged`。扣款順序：先扣免費的每月 Battery，不足才扣該 App 的量子電池。App 後端的呼叫方式沒有變更。
 
 向下相容的新增：`POST /v1/directory/members`（App 後端用服務金鑰查自家會員的會員編號、暱稱、頭像與公開姓名）列入 OpenAPI 檔；行為與回應沒有變更。

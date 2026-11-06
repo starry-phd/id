@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import {
-  adjustAllowance, appForServiceKey, batteryRetention, finish, forgetBatteryMembers, getBalance, getPolicy, LEDGER_RETENTION_MS,
+  adjustAllowance, appForServiceKey, setAppCap, batteryRetention, finish, forgetBatteryMembers, getBalance, getPolicy, LEDGER_RETENTION_MS,
   nextResetAt, periodOf, MAX_RESERVATION_UNITS, recentActivity, releaseExpired, reserve, setPolicy, staffLedger,
 } from '../../src/battery/battery';
 import { migratedDb } from '../support/sqlite-d1.mjs';
@@ -219,5 +219,20 @@ describe('service keys (S-BAT-06)', () => {
     assert.equal(appForServiceKey(keys, 'short'), null);
     assert.equal(appForServiceKey(keys, undefined), null);
     assert.equal(appForServiceKey(keys, 'x'.repeat(40)), null);
+  });
+});
+
+describe('monthly ceiling per App', () => {
+  test('an App stops at its ceiling; other Apps and a cleared ceiling are unaffected', async () => {
+    const { d } = await setup();
+    assert.equal(await setAppCap(d, 'echo', 5, USER, NOW), true);
+    assert.equal(await setAppCap(d, 'echo', 0, USER, NOW), false);
+    const a = await reserve(d, { userId: USER, appId: 'echo', taskType: 'echo.task', units: 4, idempotencyKey: key(91) }, NOW);
+    assert.ok(a.ok);
+    const b = await reserve(d, { userId: OTHER, appId: 'echo', taskType: 'echo.task', units: 2, idempotencyKey: key(92) }, NOW);
+    assert.deepEqual(b, { ok: false, reason: 'app_cap' });
+    assert.ok((await reserve(d, { userId: OTHER, appId: 'recordnote', taskType: 'recordnote.task', units: 2, idempotencyKey: key(93) }, NOW)).ok);
+    await setAppCap(d, 'echo', null, USER, NOW);
+    assert.ok((await reserve(d, { userId: OTHER, appId: 'echo', taskType: 'echo.task', units: 2, idempotencyKey: key(94) }, NOW)).ok);
   });
 });

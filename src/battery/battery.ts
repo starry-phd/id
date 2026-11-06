@@ -151,7 +151,36 @@ export const IDEMPOTENCY_KEY = /^[A-Za-z0-9._:-]{8,128}$/;
 export type ReserveResult =
   | { ok: true; reservation: Reservation; replayed: boolean }
   | { ok: false; reason: 'invalid_task' | 'invalid_units' | 'idempotency_conflict' }
-  | { ok: false; reason: 'insufficient'; balance: Balance };
+  | { ok: false; reason: 'insufficient'; balance: Balance }
+  | { ok: false; reason: 'app_cap' };
+
+/** This month's Battery held or spent by one App (all members); the base of its optional monthly ceiling. */
+export async function appMonthUsage(db: D1Database, appId: string, now: number): Promise<number> {
+  const row = await db
+    .prepare("SELECT COALESCE(SUM(COALESCE(charged, amount)), 0) AS n FROM battery_reservations WHERE app_id = ? AND period = ? AND status IN ('reserved', 'committed')")
+    .bind(appId, periodOf(now))
+    .first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
+export async function getAppCap(db: D1Database, appId: string): Promise<number | null> {
+  const row = await db.prepare('SELECT monthly_cap FROM battery_app_limits WHERE app_id = ?').bind(appId).first<{ monthly_cap: number }>();
+  return row?.monthly_cap ?? null;
+}
+
+/** Owner sets (or clears with null) the monthly ceiling of one App. */
+export async function setAppCap(db: D1Database, appId: string, cap: number | null, actorUserId: string, now: number): Promise<boolean> {
+  if (cap === null) {
+    await db.prepare('DELETE FROM battery_app_limits WHERE app_id = ?').bind(appId).run();
+    return true;
+  }
+  if (!Number.isInteger(cap) || cap < 1 || cap > 1_000_000_000) return false;
+  await db
+    .prepare('INSERT INTO battery_app_limits (app_id, monthly_cap, updated_at, updated_by) VALUES (?, ?, ?, ?) ON CONFLICT (app_id) DO UPDATE SET monthly_cap = excluded.monthly_cap, updated_at = excluded.updated_at, updated_by = excluded.updated_by')
+    .bind(appId, cap, now, actorUserId)
+    .run();
+  return true;
+}
 
 /**
  * S-BAT-03 reserve. A retry with the same idempotency key returns the original reservation;
@@ -172,6 +201,9 @@ export async function reserve(
   if (earlier) return earlier;
   if (!TASK_TYPE_ID.test(input.taskType) || !input.taskType.startsWith(`${input.appId}.`)) return { ok: false, reason: 'invalid_task' };
   if (!Number.isInteger(input.units) || input.units < 1 || input.units > MAX_RESERVATION_UNITS) return { ok: false, reason: 'invalid_units' };
+  // Soft ceiling: protects against a runaway App; concurrent requests may overshoot it by a few tasks.
+  const cap = await getAppCap(db, input.appId);
+  if (cap !== null && (await appMonthUsage(db, input.appId, now)) + input.units > cap) return { ok: false, reason: 'app_cap' };
   const policy = await getPolicy(db);
   const amount = input.units;
   const label = input.taskLabel?.trim() ? input.taskLabel.trim().slice(0, 40) : null;
