@@ -99,11 +99,11 @@ Battery 是 Starry 會員共用的免費 AI 用量月額度（規格 S-BAT），
 **用後台登記（建議，不改程式碼）**
 
 1. Owner 登入 `https://id.starry.phd/admin/apps`，按「新增 App」，填 `app_id`（小寫英文、數字、連字號）、名稱、iOS Bundle ID、Android package，有網頁版再填網頁版來源。
-2. 登入預設走 Starry 登入中繼：帳號中心的 Apple Services ID 與 Google 網頁用戶端會自動加進這款 App，網頁版與 Android 不必再到 Apple、Google 後台登記網域。
+2. iOS、Android、網頁三個平台預設都走 Starry 登入中繼（瀏覽器登入）：帳號中心的 Apple Services ID 與 Google 網頁用戶端會自動加進這款 App，不必到 Apple、Google 後台為它做任何設定。
 3. 建立後頁面會產生一段「給開發 AI 的串接指令」（之後也能從 App 清單的「給開發 AI 的串接指令」再取得），整段貼給負責開發這款 App 的 AI。內容只有公開資料，沒有秘密。
 4. 後台登記 30 秒內生效，可用 `GET /v1/apps/<app_id>/config` 確認。paused／killed 狀態、Battery 任務類型、稽核紀錄都和既有 App 相同。
 5. 後台只能編輯後台登記的 App；`config/apps.json` 的 App 與 `account` 不能被後台覆蓋。
-6. 仍然無法省略、只有業主能做的事：iOS 原生 Apple 登入要在 Apple Developer 把該 App ID 的 Sign in with Apple 設為群組，主 App ID 選 `phd.starry.app`（G-02）；iOS 原生 Google 登入若另建 iOS 用戶端，要把用戶端 ID 填在「額外的 Google 用戶端 ID」。
+6. 只有日後改用原生登入時，業主才需要到後台設定：iOS 原生 Apple 登入要把該 App ID 的 Sign in with Apple 設為群組，主 App ID 選 `phd.starry.app`（G-02）；Android 原生 Google 登入要建 Android 用戶端；iOS 原生 Google 登入的 iOS 用戶端 ID 要填在「額外的 Google 用戶端 ID」。
 7. RevenueCat（要販售時）：為這款 App 建立獨立專案（S-BIL-01），Webhook URL `https://id.starry.phd/v1/billing/revenuecat/<app_id>`，再依 `docs/owner-setup.md` 第 6 步設定 Secrets。
 8. Battery（要用 AI 時）：見第 9 節。
 
