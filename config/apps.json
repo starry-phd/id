@@ -50,6 +50,35 @@
           "529568041037-j9gd4baq8k239qv7an2f53rh3srbgtnm.apps.googleusercontent.com"
         ]
       }
+    },
+    {
+      "app_id": "recordnote",
+      "name": "繁星答錄機 RecordNote",
+      "ios_bundle_id": "phd.starry.recordnote",
+      "android_package": "phd.starry.recordnote",
+      "status": "active",
+      "scopes": [
+        "profile:read",
+        "profile:write"
+      ],
+      "min_version": "0.0.0",
+      "config": {},
+      "auth": {
+        "apple_audiences": [
+          "phd.starry.recordnote",
+          "phd.starry.id.web"
+        ],
+        "google_audiences": [
+          "529568041037-j9gd4baq8k239qv7an2f53rh3srbgtnm.apps.googleusercontent.com"
+        ]
+      },
+      "web_origins": [
+        "https://recordnote-web-preview.starry-phd.workers.dev"
+      ],
+      "return_urls": [
+        "recordnote://auth/google",
+        "recordnote://auth/apple"
+      ]
     }
   ]
 }
