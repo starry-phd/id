@@ -198,7 +198,7 @@ accountApp.post('/session', async (c) => {
   if (!verified.ok) return verified.response;
   const now = Date.now();
   const db = c.env.DB_IDENTITY;
-  const { member } = await findOrCreateMember(db, verified.identity, { appId: WEB_APP_ID, requestId }, now);
+  const { member } = await findOrCreateMember(db, verified.identity, { appId: WEB_APP_ID, requestId, country: c.req.header('cf-ipcountry') }, now);
   if (member.status === 'suspended') return c.json(errorBody('ACCOUNT_SUSPENDED', 'Account suspended', requestId), 403);
   if (provider === 'apple' && request.authorizationCode) {
     const pending = background(
@@ -249,6 +249,7 @@ function linkableProviders(c: WebContext, app: AppEntry, linked: readonly string
 
 interface AccountView {
   createdAt: number;
+  memberNo: string | null;
   deletionRequestedAt: number | null;
   profile: ProfileRow;
   identities: { provider: string; email: string | null }[];
@@ -256,14 +257,14 @@ interface AccountView {
 
 async function loadAccount(db: D1Database, userId: string): Promise<AccountView | null> {
   const [user, profile, identities] = await db.batch([
-    db.prepare('SELECT created_at, deletion_requested_at FROM users WHERE user_id = ?').bind(userId),
+    db.prepare('SELECT created_at, deletion_requested_at, member_no FROM users WHERE user_id = ?').bind(userId),
     db.prepare(PROFILE_SQL).bind(userId),
     db.prepare('SELECT provider, email FROM auth_identities WHERE user_id = ? ORDER BY provider').bind(userId),
   ]);
-  const u = user?.results[0] as { created_at: number; deletion_requested_at: number | null } | undefined;
+  const u = user?.results[0] as { created_at: number; deletion_requested_at: number | null; member_no: string | null } | undefined;
   const p = profile?.results[0] as ProfileRow | undefined;
   if (!u || !p) return null;
-  return { createdAt: u.created_at, deletionRequestedAt: u.deletion_requested_at, profile: p, identities: (identities?.results ?? []) as AccountView['identities'] };
+  return { createdAt: u.created_at, memberNo: u.member_no, deletionRequestedAt: u.deletion_requested_at, profile: p, identities: (identities?.results ?? []) as AccountView['identities'] };
 }
 
 const PROVIDER_NAMES: Record<string, string> = { apple: 'Apple', google: 'Google' };

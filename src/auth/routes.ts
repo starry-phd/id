@@ -159,7 +159,7 @@ async function signIn(c: Ctx, provider: Provider, body: z.infer<typeof SignInReq
   const { identity } = verified;
 
   const now = Date.now();
-  const { member, isNew } = await findOrCreateMember(db, identity, { appId: app.app_id, requestId }, now);
+  const { member, isNew } = await findOrCreateMember(db, identity, { appId: app.app_id, requestId, country: c.req.header('cf-ipcountry') }, now);
   if (member.status === 'suspended') {
     await audit(db, { actorType: 'user', actorUserId: member.user_id, action: `auth.login.${provider}`, appId: app.app_id, result: 'denied', requestId, retention: 'security' }, now);
     return fail(c, 403, 'ACCOUNT_SUSPENDED', 'Account suspended');
