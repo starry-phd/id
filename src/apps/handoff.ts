@@ -11,7 +11,7 @@ function list(values: readonly string[]): string {
  * already public (nothing secret) and tells that AI how to connect to Starry ID, GitHub and Cloudflare
  * without touching Starry ID's code or asking for new Apple/Google console work.
  */
-export function buildHandoff(app: AppEntry, origin: string): string {
+export function buildHandoff(app: AppEntry, origin: string, options: { battery: boolean } = { battery: false }): string {
   const id = app.app_id;
   const lines = [
     `你是繁星生態系新 App「${app.name}」的開發者 AI。Starry ID（繁星中央會員系統）已經替這款 App 登記完成，請照下面的資料串接。不需要、也不可以修改 Starry ID 的程式碼或設定。`,
@@ -42,7 +42,14 @@ export function buildHandoff(app: AppEntry, origin: string): string {
     '   - 回傳網址必須是上面登記的深層連結，或網頁來源底下的網址；沒登記過的網址會被拒絕。',
     '4. 會員身分只用 Starry 的 user_id（內部以 provider＋sub 辨識，不用 Email 或姓名合併）。App 後端用 GET /.well-known/jwks.json 驗證 Access Token。',
     '5. App 內必須提供串接說明第 4 節的帳號功能（登出、刪除帳號、同意條款等）。',
-    '6. 需要販售（RevenueCat）或使用 Starry Battery（AI 用量）時，才依串接說明第 5、9 節處理；那些需要業主在 Admin Lite 或 Cloudflare 設定的項目，請列成清單回報給業主。',
+    '6. 需要販售（RevenueCat）時，才依串接說明第 5 節處理；需要業主設定的項目，請列成清單回報給業主。',
+    ...(options.battery
+      ? [
+          `7. Starry Battery（會員共用的免費 AI 用量月額度）已為這款 App 開通：任務代碼「${id}.ai」，每單位消耗 1、單次上限 30（業主可在 Admin Lite 的 Battery 頁調整）。`,
+          '   - 服務金鑰由業主另外提供，只放在 App 後端的 Secret（名稱用 STARRY_BATTERY_KEY），不可放進 App、不可提交到 Git、不可寫進日誌。',
+          '   - 只有 App 後端能預留與扣除 Battery：依串接說明第 9 節，預留 → 執行 AI 任務 → 成功確認扣除、失敗釋放；Starry ID 無法連線時不要開始 AI 任務。',
+        ]
+      : ['7. Starry Battery 尚未為這款 App 開通；需要 AI 用量時，請業主在 Admin Lite 的 App 頁按「開通 Battery」，再依串接說明第 9 節串接。']),
     '',
     '## 四、規則',
     '- 不要改 Starry ID 的 config/apps.json，也不要直接寫 Starry ID 的資料庫。這款 App 已由業主在 Admin Lite 登記。',

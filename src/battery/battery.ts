@@ -1,4 +1,4 @@
-import { constantTimeEqual, randomToken, uuidv7 } from '../lib/crypto';
+import { constantTimeEqual, randomToken, sha256Hex, uuidv7 } from '../lib/crypto';
 
 /**
  * Starry Battery (spec S-BAT-01..07): a free monthly AI usage allowance shared by every
@@ -458,6 +458,46 @@ export async function batteryRetention(db: D1Database, now: number): Promise<{ l
     db.prepare("DELETE FROM battery_reservations WHERE status <> 'reserved' AND finished_at < ?").bind(now - RESERVATION_RETENTION_MS),
   ]);
   return { ledger: ledger?.meta.changes ?? 0, reservations: reservations?.meta.changes ?? 0 };
+}
+
+const DEFAULT_TASK_NAME = 'ai';
+
+/**
+ * Admin Lite turns Battery on for an App: a first task type "<app_id>.ai" (the Owner can edit it
+ * afterwards in the Battery page; an existing one is never overwritten) and a service key for the
+ * App backend. Only the key's SHA-256 is stored, so the returned key is the only time it is visible.
+ */
+export async function enableAppBattery(db: D1Database, appId: string, actorUserId: string, now: number): Promise<{ serviceKey: string; taskType: string }> {
+  const taskType = `${appId}.${DEFAULT_TASK_NAME}`;
+  const serviceKey = `sbk_${randomToken(32)}`;
+  const keyHash = await sha256Hex(serviceKey);
+  await db.batch([
+    db
+      .prepare('INSERT OR IGNORE INTO battery_task_types (task_type, app_id, label, unit_cost, max_units, timeout_ms, enabled, updated_at, updated_by) VALUES (?, ?, ?, 1, 30, NULL, 1, ?, ?)')
+      .bind(taskType, appId, 'AI 任務', now, actorUserId),
+    db
+      .prepare(
+        `INSERT INTO battery_app_keys (app_id, key_hash, created_at, created_by) VALUES (?, ?, ?, ?)
+         ON CONFLICT (app_id) DO UPDATE SET key_hash = excluded.key_hash, rotated_at = ?, rotated_by = ?`,
+      )
+      .bind(appId, keyHash, now, actorUserId, now, actorUserId),
+  ]);
+  return { serviceKey, taskType };
+}
+
+export async function hasAppBatteryKey(db: D1Database, appId: string): Promise<boolean> {
+  return (await db.prepare('SELECT 1 AS found FROM battery_app_keys WHERE app_id = ?').bind(appId).first()) !== null;
+}
+
+/** The App whose key was created in Admin Lite, or null. Keys are 43+ random characters, so a hash lookup is enough. */
+export async function appForStoredKey(db: D1Database, presented: string | undefined): Promise<string | null> {
+  if (!presented || presented.length < 32 || presented.length > 200) return null;
+  const row = await db.prepare('SELECT app_id FROM battery_app_keys WHERE key_hash = ?').bind(await sha256Hex(presented)).first<{ app_id: string }>();
+  return row?.app_id ?? null;
+}
+
+export async function anyStoredKeys(db: D1Database): Promise<boolean> {
+  return (await db.prepare('SELECT 1 AS found FROM battery_app_keys LIMIT 1').first()) !== null;
 }
 
 /** The App whose backend presented this service key (BATTERY_SERVICE_KEYS secret), or null. */

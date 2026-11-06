@@ -6,12 +6,12 @@ import { fail, resolveApp } from '../auth/routes';
 import { perAppSecrets } from '../billing/revenuecat';
 import type { AppBindings } from '../env';
 import { errorBody } from '../lib/errors';
-import { appForServiceKey, finish, getBalance, IDEMPOTENCY_KEY, recentActivity, reserve, type Balance, type Reservation } from './battery';
+import { anyStoredKeys, appForServiceKey, appForStoredKey, finish, getBalance, IDEMPOTENCY_KEY, recentActivity, reserve, type Balance, type Reservation } from './battery';
 
 /**
  * Spec S-BAT-03/04/06. Members read their own balance with their access token. Only App
  * backends spend Battery: they present their service key (x-starry-app-key, from the
- * BATTERY_SERVICE_KEYS secret) and, to reserve, the member's access token for the same App,
+ * BATTERY_SERVICE_KEYS secret, or the key Admin Lite created for the App) and, to reserve, the member's access token for the same App,
  * so a backend can never spend for a member who is not signed in to it.
  */
 export const batteryRoutes = apiRouter();
@@ -90,11 +90,18 @@ function conflictBody(c: Ctx, code: ConflictCode, message: string, extra: { bala
   };
 }
 
-/** The App whose backend is calling, from x-starry-app-key: its app_id, 'unconfigured' or 'invalid'. */
-function callingApp(c: Ctx): string {
-  const keys = perAppSecrets(c.env.BATTERY_SERVICE_KEYS);
-  if (Object.keys(keys).length === 0) return UNCONFIGURED;
-  return appForServiceKey(keys, c.req.header('x-starry-app-key')) ?? INVALID;
+/**
+ * The App whose backend is calling, from x-starry-app-key: its app_id, 'unconfigured' or 'invalid'.
+ * Keys come from the BATTERY_SERVICE_KEYS secret or from Admin Lite (hashed in battery_app_keys).
+ */
+async function callingApp(c: Ctx): Promise<string> {
+  const presented = c.req.header('x-starry-app-key');
+  const fromSecret = appForServiceKey(perAppSecrets(c.env.BATTERY_SERVICE_KEYS), presented);
+  if (fromSecret) return fromSecret;
+  const fromAdmin = await appForStoredKey(c.env.DB_BATTERY, presented);
+  if (fromAdmin) return fromAdmin;
+  if (Object.keys(perAppSecrets(c.env.BATTERY_SERVICE_KEYS)).length === 0 && !(await anyStoredKeys(c.env.DB_BATTERY))) return UNCONFIGURED;
+  return INVALID;
 }
 
 // ---- Member: GET /v1/me/battery ----
@@ -156,7 +163,7 @@ const reserveRoute = createRoute({
 });
 
 batteryRoutes.openapi(reserveRoute, async (c) => {
-  const caller = callingApp(c);
+  const caller = await callingApp(c);
   if (caller === UNCONFIGURED) return fail(c, 503, 'SERVICE_UNAVAILABLE', 'Battery is not configured');
   if (caller === INVALID) return fail(c, 401, 'UNAUTHORIZED', 'Invalid app key');
   const auth = c.get('auth');
@@ -239,7 +246,7 @@ async function finishOutcome(c: Ctx, appId: string, action: 'commit' | 'release'
 }
 
 batteryRoutes.openapi(commitRoute, async (c) => {
-  const caller = callingApp(c);
+  const caller = await callingApp(c);
   if (caller === UNCONFIGURED) return fail(c, 503, 'SERVICE_UNAVAILABLE', 'Battery is not configured');
   if (caller === INVALID) return fail(c, 401, 'UNAUTHORIZED', 'Invalid app key');
   const { units } = c.req.valid('json') ?? {};
@@ -251,7 +258,7 @@ batteryRoutes.openapi(commitRoute, async (c) => {
 });
 
 batteryRoutes.openapi(releaseRoute, async (c) => {
-  const caller = callingApp(c);
+  const caller = await callingApp(c);
   if (caller === UNCONFIGURED) return fail(c, 503, 'SERVICE_UNAVAILABLE', 'Battery is not configured');
   if (caller === INVALID) return fail(c, 401, 'UNAUTHORIZED', 'Invalid app key');
   const outcome = await finishOutcome(c, caller, 'release', c.req.valid('param').reservationId);
