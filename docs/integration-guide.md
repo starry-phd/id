@@ -207,3 +207,7 @@ Google Client 由業主建立（步驟見 `docs/owner-setup.md` 第 11 步），
 - **帳號合併**：加綁時若回 409 `IDENTITY_IN_USE` 且 `mergeable: true`，請詢問會員後帶 `merge_other_account: true` 重送（第 4 節）。
 - **隱私權政策** 版本為 `2026-11-03.2`；會員登入後 `consent_required` 為 true 時請顯示同意流程。
 - **交接 Issue**：舊 Repo 的 #220 已隨舊 Repo 刪除，starry-phd/id 的交接 Issue 是 [#2](https://github.com/starry-phd/id/issues/2)。
+
+## 附錄：Starry SDK（App 後端用）
+
+單一檔案、無相依套件：[`sdk/starry-sdk.ts`](../sdk/starry-sdk.ts)，複製到 App 後端即可。包含 `me`、`battery`、`reserve`／`commit`／`release`、`withBattery`（預留→執行→成功扣款、失敗自動歸還）與 `directory`。服務金鑰只放在 App 後端的 Secret。
