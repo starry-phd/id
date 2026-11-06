@@ -238,7 +238,6 @@ describe('staff roles, suspension and search (S-ID-07, S-ID-10, S-ADM-01)', () =
     assert.equal(await revokeAllSessions(d, undefined, actor, 'missing', NOW), 'not_found');
   });
 });
-});
 
 describe('owner claim', () => {
   test('works once with the right code while the secret is set', async () => {
