@@ -28,7 +28,7 @@ describe('issuing numbers', () => {
   test('a new member gets a number with the country code of the sign-up request', async () => {
     const db = migratedDb();
     const { member } = await findOrCreateMember(asD1(db), identity('a'), { appId: 'web', requestId: null, country: 'JP' }, NOW);
-    const row = db.prepare('SELECT member_no, registration_country FROM users WHERE user_id = ?').get(member.user_id) as { member_no: string; registration_country: string };
+    const row = (await asD1(db).prepare('SELECT member_no, registration_country FROM users WHERE user_id = ?').bind(member.user_id).first()) as { member_no: string; registration_country: string };
     assert.match(row.member_no, /^81-\d{7}$/);
     assert.equal(row.registration_country, 'JP');
   });
@@ -42,18 +42,20 @@ describe('issuing numbers', () => {
   test('a retired number is never issued again', async () => {
     const db = migratedDb();
     const { member } = await findOrCreateMember(asD1(db), identity('c'), { appId: 'web', requestId: null }, NOW);
-    db.prepare('UPDATE users SET member_no = NULL WHERE user_id = ?').run(member.user_id);
-    for (let i = 0; i < 10; i++) db.prepare('INSERT OR IGNORE INTO retired_member_numbers (member_no, retired_at) VALUES (?, ?)').run(`886-000000${i}`, NOW);
+    await asD1(db).prepare('UPDATE users SET member_no = NULL WHERE user_id = ?').bind(member.user_id).run();
+    for (let i = 0; i < 10; i++) await asD1(db).prepare('INSERT OR IGNORE INTO retired_member_numbers (member_no, retired_at) VALUES (?, ?)').bind(`886-000000${i}`, NOW).run();
     const number = await issueMemberNumber(asD1(db), member.user_id, 'TW', NOW);
     assert.ok(number);
-    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM retired_member_numbers WHERE member_no = ?').get(number)?.n, 0);
+    const clash = await asD1(db).prepare('SELECT COUNT(*) AS n FROM retired_member_numbers WHERE member_no = ?').bind(number).first<{ n: number }>();
+    assert.equal(clash?.n, 0);
   });
   test('maintenance gives existing members 886 numbers', async () => {
     const db = migratedDb();
     const { member } = await findOrCreateMember(asD1(db), identity('d'), { appId: 'web', requestId: null }, NOW);
-    db.prepare('UPDATE users SET member_no = NULL, registration_country = NULL WHERE user_id = ?').run(member.user_id);
+    await asD1(db).prepare('UPDATE users SET member_no = NULL, registration_country = NULL WHERE user_id = ?').bind(member.user_id).run();
     assert.equal(await assignMissingMemberNumbers(asD1(db), NOW), 1);
-    assert.match((db.prepare('SELECT member_no FROM users WHERE user_id = ?').get(member.user_id) as { member_no: string }).member_no, /^886-\d{7}$/);
+    const row = await asD1(db).prepare('SELECT member_no FROM users WHERE user_id = ?').bind(member.user_id).first<{ member_no: string }>();
+    assert.match(row?.member_no ?? '', /^886-\d{7}$/);
     assert.equal(await assignMissingMemberNumbers(asD1(db), NOW), 0);
   });
 });
