@@ -7,6 +7,12 @@
     "remaining": 8,
     "resets_at": 1796054400000
   },
+  "quantum": {
+    "app_id": "recordnote",
+    "balance": 50,
+    "reserved": 0,
+    "available": 50
+  },
   "activity": [
     {
       "entry_id": "0193a5b2-7c4d-7e8f-9a01-23456789abd0",

@@ -3,6 +3,7 @@ import { refreshDynamicApps } from './apps/dynamic';
 import { appRegistry } from './apps/registry';
 import { batteryRetention, forgetBatteryMembers, releaseExpired } from './battery/battery';
 import { reconcileWithRevenueCat } from './billing/reconcile';
+import { quantumHook } from './battery/purchases';
 import { forgetMembers, perAppSecrets, processPendingEvents, processRevenueCatDeletions } from './billing/revenuecat';
 import type { Env } from './env';
 import { reportError } from './lib/error-report';
@@ -88,7 +89,7 @@ async function daily(env: Env, now: number): Promise<void> {
         );
       },
     ],
-    ['billing-events', async () => void (report.billingEvents = await processPendingEvents(env.DB_BILLING, now, 200))],
+    ['billing-events', async () => void (report.billingEvents = await processPendingEvents(env.DB_BILLING, now, 200, quantumHook(env.DB_BATTERY, now)))],
     ['revenuecat-deletions', async () => void (report.revenuecatDeletions = await processRevenueCatDeletions(env.DB_BILLING, apiKeys, fetcher, now))],
     ['reconcile', async () => void (report.reconcile = await reconcileWithRevenueCat(env.DB_BILLING, apiKeys, fetcher, now))],
     ['battery-retention', async () => void (report.battery = await batteryRetention(env.DB_BATTERY, now))],
