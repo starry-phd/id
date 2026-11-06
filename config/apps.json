@@ -73,7 +73,8 @@
         ]
       },
       "web_origins": [
-        "https://recordnote-web-preview.starry-phd.workers.dev"
+        "https://recordnote-web-preview.starry-phd.workers.dev",
+        "https://recordnote.starry.phd"
       ],
       "return_urls": [
         "recordnote://auth/google",
