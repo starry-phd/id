@@ -1,6 +1,7 @@
 import type { Env } from '../env';
 import { sha256Hex } from '../lib/crypto';
 import { base64urlDecode, parseBase64urlJson, toArrayBuffer, utf8 } from '../lib/encoding';
+import { isProviderPhotoUrl } from '../identity/avatars';
 import { getProviderKeys, PROVIDERS, type Provider, type ProviderJwk } from './provider-keys';
 
 export interface ProviderIdentity {
@@ -10,6 +11,8 @@ export interface ProviderIdentity {
   email: string | null;
   emailVerified: boolean;
   isPrivateRelay: boolean;
+  /** Google profile photo URL (Apple never sends one); only googleusercontent.com HTTPS URLs are kept. */
+  picture: string | null;
 }
 
 const MAX_TOKEN_LENGTH = 8192;
@@ -93,5 +96,6 @@ export async function verifyIdToken(
     email,
     emailVerified: isTrue(claims.email_verified),
     isPrivateRelay: provider === 'apple' && isTrue(claims.is_private_email),
+    picture: provider === 'google' && typeof claims.picture === 'string' && claims.picture.length <= 512 && isProviderPhotoUrl(claims.picture) ? claims.picture : null,
   };
 }

@@ -98,7 +98,7 @@ loginRelay.get('/:provider/start', async (c) => {
   const authorize =
     provider === 'apple'
       ? new URL(`https://appleid.apple.com/auth/authorize?${new URLSearchParams({ ...common, response_type: 'code id_token', scope: 'email' })}`)
-      : new URL(`https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({ ...common, response_type: 'id_token', scope: 'openid email', prompt: 'select_account' })}`);
+      : new URL(`https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({ ...common, response_type: 'id_token', scope: 'openid email profile', prompt: 'select_account' })}`);
   return c.redirect(authorize.toString(), 302);
 });
 
