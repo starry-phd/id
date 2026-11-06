@@ -9,6 +9,8 @@ export interface RcEvent {
   id: string;
   type: string;
   appUserId: string | null;
+  /** The store transaction (one purchase); used to credit a consumable exactly once. */
+  transactionId: string | null;
   timestampMs: number;
   entitlementIds: string[];
   productId: string | null;
@@ -62,6 +64,7 @@ export function parseWebhook(body: unknown): { event: RcEvent; stored: string } 
     id,
     type,
     appUserId: memberIdOf(e),
+    transactionId: str(e.transaction_id, 200),
     timestampMs,
     entitlementIds: strings(e.entitlement_ids ?? (typeof e.entitlement_id === 'string' ? [e.entitlement_id] : [])),
     productId: str(e.product_id),
@@ -172,7 +175,12 @@ export async function applyEvent(db: D1Database, appId: string, event: RcEvent, 
 }
 
 /** Processes stored, unprocessed events oldest first; failures retry on later runs (max 10 attempts). */
-export async function processPendingEvents(db: D1Database, now: number, limit = 50): Promise<{ processed: number; failed: number }> {
+export async function processPendingEvents(
+  db: D1Database,
+  now: number,
+  limit = 50,
+  onEvent?: (appId: string, event: RcEvent) => Promise<void>,
+): Promise<{ processed: number; failed: number }> {
   const pending = await db
     .prepare('SELECT event_id, app_id, payload FROM rc_events WHERE processed_at IS NULL AND attempts < 10 ORDER BY event_timestamp_ms LIMIT ?')
     .bind(limit)
@@ -181,7 +189,10 @@ export async function processPendingEvents(db: D1Database, now: number, limit = 
   for (const row of pending.results) {
     try {
       const parsed = parseWebhook({ event: JSON.parse(row.payload) as unknown });
-      if (parsed) await applyEvent(db, row.app_id, parsed.event, now);
+      if (parsed) {
+        await applyEvent(db, row.app_id, parsed.event, now);
+        await onEvent?.(row.app_id, parsed.event); // must be idempotent: a failed event is retried whole
+      }
       await db.prepare('UPDATE rc_events SET processed_at = ?, attempts = attempts + 1 WHERE event_id = ?').bind(now, row.event_id).run();
       outcome.processed++;
     } catch {

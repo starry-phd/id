@@ -8,6 +8,8 @@
 
 ## 2026-11-07
 
+向下相容的新增（量子電池）：`GET /v1/me/battery` 回應新增 `quantum`（該 Access Token 所屬 App 的量子電池餘額）；Battery 預留／扣款回應新增 `quantum_amount`、`quantum_charged`。扣款順序：先扣免費的每月 Battery，不足才扣該 App 的量子電池。App 後端的呼叫方式沒有變更。
+
 向下相容的新增：`POST /v1/directory/members`（App 後端用服務金鑰查自家會員的會員編號、暱稱、頭像與公開姓名）列入 OpenAPI 檔；行為與回應沒有變更。
 
 業主明確同意的破壞性調整（目前生態系 App 都只是測試用途，沒有正式用戶）：Battery 的 `units` 上限由 100000 降為 100（`POST /v1/battery/reservations`、`…/commit`）。已登記在 `openapi/breaking-changes-ack.txt`，CI 的 oasdiff 檢查會略過這兩筆；之後新增的破壞性變更仍會被擋下。

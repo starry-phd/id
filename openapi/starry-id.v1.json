@@ -256,6 +256,9 @@
           "balance": {
             "$ref": "#/components/schemas/BatteryBalance"
           },
+          "quantum": {
+            "$ref": "#/components/schemas/QuantumBattery"
+          },
           "activity": {
             "type": "array",
             "items": {
@@ -310,6 +313,7 @@
         },
         "required": [
           "balance",
+          "quantum",
           "activity",
           "next_cursor"
         ]
@@ -347,6 +351,31 @@
           "remaining",
           "resets_at"
         ]
+      },
+      "QuantumBattery": {
+        "type": "object",
+        "properties": {
+          "app_id": {
+            "type": "string"
+          },
+          "balance": {
+            "type": "integer",
+            "description": "Quantum Battery bought in this App (usable only in this App)"
+          },
+          "reserved": {
+            "type": "integer"
+          },
+          "available": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "app_id",
+          "balance",
+          "reserved",
+          "available"
+        ],
+        "description": "Quantum Battery in the App of the access token. Free monthly Battery is spent first, then this."
       },
       "Me": {
         "type": "object",
@@ -1223,6 +1252,17 @@
               "null"
             ]
           },
+          "quantum_amount": {
+            "type": "integer",
+            "description": "Part of amount held in Quantum Battery (the rest is free monthly Battery)"
+          },
+          "quantum_charged": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Part of charged taken from Quantum Battery"
+          },
           "created_at": {
             "type": "integer"
           },
@@ -1241,6 +1281,8 @@
           "amount",
           "status",
           "charged",
+          "quantum_amount",
+          "quantum_charged",
           "created_at",
           "expires_at",
           "replayed"
@@ -2251,7 +2293,7 @@
           "Battery"
         ],
         "summary": "The member's Starry Battery: this month's balance and the last 30 days",
-        "description": "Free monthly AI allowance shared by every Starry App (S-BAT-04). Read-only; Battery cannot be bought.",
+        "description": "Free monthly AI allowance shared by every Starry App (S-BAT-04), plus the Quantum Battery the member bought in the App of the token. Free Battery itself cannot be bought.",
         "security": [
           {
             "bearerAuth": []

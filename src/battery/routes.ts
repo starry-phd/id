@@ -6,6 +6,7 @@ import { fail, resolveApp } from '../auth/routes';
 import { perAppSecrets } from '../billing/revenuecat';
 import type { AppBindings } from '../env';
 import { errorBody } from '../lib/errors';
+import { getQuantum } from './quantum';
 import { anyStoredKeys, appForServiceKey, appForStoredKey, finish, getBalance, IDEMPOTENCY_KEY, recentActivity, reserve, type Balance, type Reservation } from './battery';
 
 /**
@@ -30,9 +31,19 @@ export const BalanceSchema = z
   })
   .openapi('BatteryBalance');
 
+const QuantumSchema = z
+  .object({
+    app_id: z.string(),
+    balance: z.number().int().openapi({ description: 'Quantum Battery bought in this App (usable only in this App)' }),
+    reserved: z.number().int(),
+    available: z.number().int(),
+  })
+  .openapi('QuantumBattery');
+
 const ActivitySchema = z
   .object({
     balance: BalanceSchema,
+    quantum: QuantumSchema.openapi({ description: "Quantum Battery in the App of the access token. Free monthly Battery is spent first, then this." }),
     activity: z.array(
       z.object({
         entry_id: z.string(),
@@ -55,6 +66,8 @@ const ReservationSchema = z
     amount: z.number().int(),
     status: z.enum(['reserved', 'committed', 'released', 'expired']),
     charged: z.number().int().nullable(),
+    quantum_amount: z.number().int().openapi({ description: 'Part of amount held in Quantum Battery (the rest is free monthly Battery)' }),
+    quantum_charged: z.number().int().nullable().openapi({ description: 'Part of charged taken from Quantum Battery' }),
     created_at: z.number().int(),
     expires_at: z.number().int(),
     replayed: z.boolean().openapi({ description: 'true when an earlier request with the same idempotency key created it' }),
@@ -71,6 +84,8 @@ const reservationJson = (r: Reservation, replayed = false) => ({
   amount: r.amount,
   status: r.status,
   charged: r.charged,
+  quantum_amount: r.quantum_amount,
+  quantum_charged: r.quantum_charged,
   created_at: r.created_at,
   expires_at: r.expires_at,
   replayed,
@@ -111,7 +126,7 @@ const myBatteryRoute = createRoute({
   path: '/',
   tags: ['Battery'],
   summary: "The member's Starry Battery: this month's balance and the last 30 days",
-  description: 'Free monthly AI allowance shared by every Starry App (S-BAT-04). Read-only; Battery cannot be bought.',
+  description: 'Free monthly AI allowance shared by every Starry App (S-BAT-04), plus the Quantum Battery the member bought in the App of the token. Free Battery itself cannot be bought.',
   security: bearer,
   middleware: [requireAuth] as const,
   request: { query: z.object({ cursor: z.string().max(64).optional() }) },
@@ -119,13 +134,14 @@ const myBatteryRoute = createRoute({
 });
 
 myBatteryRoutes.openapi(myBatteryRoute, async (c) => {
-  const { userId } = c.get('auth');
+  const { userId, appId } = c.get('auth');
   const now = Date.now();
   const db = c.env.DB_BATTERY;
-  const [balance, activity] = await Promise.all([getBalance(db, userId, now), recentActivity(db, userId, now, { cursor: c.req.valid('query').cursor })]);
+  const [balance, quantum, activity] = await Promise.all([getBalance(db, userId, now), getQuantum(db, userId, appId), recentActivity(db, userId, now, { cursor: c.req.valid('query').cursor })]);
   return c.json(
     {
       balance,
+      quantum,
       activity: activity.entries.map((e) => ({ entry_id: e.entry_id, kind: e.kind, amount: e.amount, app_id: e.app_id, task_label: e.task_label, created_at: e.created_at })),
       next_cursor: activity.nextCursor,
     },

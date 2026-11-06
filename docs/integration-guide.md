@@ -96,6 +96,8 @@ Battery 是 Starry 會員共用的免費 AI 用量月額度（規格 S-BAT），
 
 會員查詢：`GET /v1/me/battery`（本月額度、已用、預留中、剩餘、下次恢復時間與近 30 天紀錄）；網頁帳號中心也會顯示。
 
+**量子電池（App 內購加量包）**：Battery 本身全部免費。業主可在後台指定的 App 開放內購「量子電池」加量包（App 的串接指令頁 → 量子電池設定，填商店商品代碼與顆數）。量子電池只能在購買的那款 App 使用、不會過期。App 端照原本流程預留／扣款即可：系統先扣免費的每月 Battery，不足的部分才扣該 App 的量子電池，預留回應的 `quantum_amount`／`quantum_charged` 會顯示用了多少。購買由 RevenueCat 通知自動入帳（一次性商品 NON_RENEWING_PURCHASE，同一筆交易只入帳一次），客服退款會自動扣回尚未使用的部分。商店規定：虛擬貨幣只能在購買它的 App 內使用，所以量子電池不跨 App。
+
 ## 9.5 App 能讀到哪些會員資料（2026-11-07）
 
 - **本人（用會員通行證）：** `GET /v1/me` 回傳 `staff_role`（`owner`／`admin`／`support`，一般會員為 null）、姓名、頭像、Email（`identities[].email`、`profile.contact_email`）與 `member_no`（會員編號，例如 `886-0112342`，永久不變，也是 R2 資料夾名稱與客服編號）。App 沒有寫入權，其餘詳細資料請導向 `https://id.starry.phd/account` 讓會員自己編輯。

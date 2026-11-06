@@ -3,6 +3,7 @@ import { apiRouter, errorResponses, json, jsonBody } from '../api/openapi';
 import { getApp } from '../apps/registry';
 import { background, fail } from '../auth/routes';
 import { WEB_APP_ID } from '../identity/web-sessions';
+import { quantumHook } from '../battery/purchases';
 import { parseWebhook, perAppSecrets, processPendingEvents, recordEvent, webhookAuthorized } from './revenuecat';
 
 export const billingRoutes = apiRouter();
@@ -35,7 +36,7 @@ billingRoutes.openapi(webhookRoute, async (c) => {
   const now = Date.now();
   const stored = await recordEvent(c.env.DB_BILLING, appId, parsed, now);
   if (stored === 'new') {
-    const pending = background(c, processPendingEvents(c.env.DB_BILLING, now, 10));
+    const pending = background(c, processPendingEvents(c.env.DB_BILLING, now, 10, quantumHook(c.env.DB_BATTERY, now)));
     if (pending) await pending;
   }
   return c.json({ received: true, duplicate: stored === 'duplicate' }, 200);

@@ -3,6 +3,7 @@ import { deleteCookie, setCookie } from 'hono/cookie';
 import { html, raw } from 'hono/html';
 import { audiencesFor, getApp, type AppEntry } from '../apps/registry';
 import { getBalance, recentActivity } from '../battery/battery';
+import { listQuantum } from '../battery/quantum';
 import { withEffectiveStatus } from '../apps/status';
 import type { Provider } from '../auth/provider-keys';
 import { background, readProviderRequest, verifyProviderRequest } from '../auth/routes';
@@ -122,7 +123,7 @@ function offerMerge(m) {
   question.textContent = '這個 ' + name + ' 帳號在 ' + when + ' 已經建立了另一個 Starry 帳號' + (m.display_name ? '「' + m.display_name + '」' : '') + '。要把它合併到目前這個帳號嗎？';
   const note = document.createElement('p');
   note.className = 'muted';
-  note.textContent = '合併後只保留目前這個帳號，之後用 Apple 或 Google 都會登入這裡。另一個帳號的客服紀錄會移過來；它的個人資料、同意紀錄與 Battery 使用紀錄會刪除，用它登入的裝置會被登出。';
+  note.textContent = '合併後只保留目前這個帳號，之後用 Apple 或 Google 都會登入這裡。另一個帳號的客服紀錄會移過來；它的個人資料、同意紀錄與 Battery 使用紀錄會刪除（已購買的量子電池會移到這個帳號），用它登入的裝置會被登出。';
   const button = document.createElement('button');
   button.type = 'button';
   button.textContent = '合併帳號';
@@ -291,9 +292,9 @@ accountApp.get('/', async (c) => {
   const app = await webApp(c);
   const linkable = app && !pending ? linkableProviders(c, app, account.identities.map((i) => i.provider)) : { google: null, apple: null };
   const sessions = pending ? [] : await listActiveSessions(db, web.userId, now);
-  const [battery, batteryActivity] = pending
-    ? [null, null]
-    : await Promise.all([getBalance(c.env.DB_BATTERY, web.userId, now), recentActivity(c.env.DB_BATTERY, web.userId, now, { limit: 10 })]);
+  const [battery, batteryActivity, quantum] = pending
+    ? [null, null, []]
+    : await Promise.all([getBalance(c.env.DB_BATTERY, web.userId, now), recentActivity(c.env.DB_BATTERY, web.userId, now, { limit: 10 }), listQuantum(c.env.DB_BATTERY, web.userId)]);
   const body = html`<h1>${p.display_name ?? '我的帳號'}</h1>
 ${notice ? html`<div class="banner">${notice}</div>` : ''}
 ${pending
@@ -346,6 +347,9 @@ ${battery && batteryActivity
         (e) => html`<tr><td>${formatTime(e.created_at)}</td><td>${e.kind === 'usage' ? (e.task_label ?? appLabel(e.app_id ?? '')) : '客服調整'}</td><td>${e.kind === 'usage' ? `-${e.amount}` : e.amount > 0 ? `+${e.amount}` : `${e.amount}`}</td></tr>`,
       )}</table><p class="muted">顯示最近 30 天內最新 10 筆。</p>`
     : html`<p class="muted">最近 30 天沒有使用紀錄。</p>`}
+  ${quantum.length > 0
+    ? html`<h3>量子電池</h3><table><tr><th>App</th><th>剩餘</th></tr>${quantum.map((q) => html`<tr><td>${appLabel(q.app_id)}</td><td>${q.available}</td></tr>`)}</table><p class="muted">在該 App 內購買的加量包，只能在購買的那款 App 使用；每次先用免費 Battery，用完才使用量子電池，不會過期。</p>`
+    : ''}
 </div>`
   : ''}
 ${role && hasRole(role, 'support') ? html`<p><a class="button" href="/admin">進入 Admin Lite</a></p>` : ''}

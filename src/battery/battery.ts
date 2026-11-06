@@ -1,4 +1,5 @@
 import { constantTimeEqual, randomToken, sha256Hex, uuidv7 } from '../lib/crypto';
+import { forgetQuantumMembers, getQuantum } from './quantum';
 
 /**
  * Starry Battery (spec S-BAT-01..07): a free monthly AI usage allowance shared by every
@@ -129,9 +130,13 @@ export interface Reservation {
   expires_at: number;
   finished_at: number | null;
   op_id: string | null;
+  /** Part of `amount` held in the App's Quantum Battery; the rest (amount - quantum_amount) is the free monthly Battery. */
+  quantum_amount: number;
+  /** Part of `charged` taken from Quantum Battery; set when the reservation is committed. */
+  quantum_charged: number | null;
 }
 
-const RESERVATION_COLUMNS = 'reservation_id, user_id, app_id, task_type, units, amount, status, charged, period, created_at, expires_at, finished_at, op_id';
+const RESERVATION_COLUMNS = 'reservation_id, user_id, app_id, task_type, units, amount, status, charged, period, created_at, expires_at, finished_at, op_id, quantum_amount, quantum_charged';
 
 async function reservationById(db: D1Database, id: string): Promise<Reservation | null> {
   return db.prepare(`SELECT ${RESERVATION_COLUMNS} FROM battery_reservations WHERE reservation_id = ?`).bind(id).first<Reservation>();
@@ -170,66 +175,104 @@ export async function reserve(
   const policy = await getPolicy(db);
   const amount = input.units;
   const label = input.taskLabel?.trim() ? input.taskLabel.trim().slice(0, 40) : null;
-  const reservation: Reservation = {
-    reservation_id: uuidv7(now),
-    user_id: input.userId,
-    app_id: input.appId,
-    task_type: input.taskType,
-    units: input.units,
-    amount,
-    status: 'reserved',
-    charged: null,
-    period: periodOf(now),
-    created_at: now,
-    expires_at: now + policy.default_timeout_ms,
-    finished_at: null,
-    op_id: null,
-  };
-  try {
-    await db.batch([
+  let lastError: unknown = null;
+  // The balances are read first and the batch is guarded by the accounts' CHECK constraints; when a concurrent
+  // request used the same Battery in between, the batch fails whole and the split is worked out again.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const [balance, quantum] = await Promise.all([getBalance(db, input.userId, now), getQuantum(db, input.userId, input.appId)]);
+    // Free monthly Battery is spent first; only the rest comes from this App's Quantum Battery.
+    const fromFree = Math.min(amount, balance.remaining);
+    const fromQuantum = amount - fromFree;
+    if (fromQuantum > quantum.available) return { ok: false, reason: 'insufficient', balance };
+    const reservation: Reservation = {
+      reservation_id: uuidv7(now),
+      user_id: input.userId,
+      app_id: input.appId,
+      task_type: input.taskType,
+      units: input.units,
+      amount,
+      status: 'reserved',
+      charged: null,
+      period: periodOf(now),
+      created_at: now,
+      expires_at: now + policy.default_timeout_ms,
+      finished_at: null,
+      op_id: null,
+      quantum_amount: fromQuantum,
+      quantum_charged: null,
+    };
+    const statements = [
       ensureAccount(db, input.userId, policy, now),
       db
         .prepare(
-          `INSERT INTO battery_reservations (reservation_id, user_id, app_id, task_type, task_label, idempotency_key, units, amount, status, period, created_at, expires_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'reserved', ?, ?, ?)`,
+          `INSERT INTO battery_reservations (reservation_id, user_id, app_id, task_type, task_label, idempotency_key, units, amount, quantum_amount, status, period, created_at, expires_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'reserved', ?, ?, ?)`,
         )
-        .bind(reservation.reservation_id, input.userId, input.appId, input.taskType, label, input.idempotencyKey, input.units, amount, reservation.period, now, reservation.expires_at),
-      db.prepare('UPDATE battery_accounts SET reserved = reserved + ?, updated_at = ? WHERE user_id = ?').bind(amount, now, input.userId),
-    ]);
-  } catch (error) {
-    // A concurrent retry with the same key won the race, or the reservation does not fit.
-    const raced = await replay();
-    if (raced) return raced;
-    const balance = await getBalance(db, input.userId, now);
-    if (balance.remaining < amount) return { ok: false, reason: 'insufficient', balance };
-    throw error;
+        .bind(reservation.reservation_id, input.userId, input.appId, input.taskType, label, input.idempotencyKey, input.units, amount, fromQuantum, reservation.period, now, reservation.expires_at),
+      db.prepare('UPDATE battery_accounts SET reserved = reserved + ?, updated_at = ? WHERE user_id = ?').bind(fromFree, now, input.userId),
+    ];
+    if (fromQuantum > 0) {
+      statements.push(db.prepare('UPDATE quantum_accounts SET reserved = reserved + ?, updated_at = ? WHERE user_id = ? AND app_id = ?').bind(fromQuantum, now, input.userId, input.appId));
+    }
+    try {
+      await db.batch(statements);
+      return { ok: true, reservation, replayed: false };
+    } catch (error) {
+      // A concurrent retry with the same key won the race, or the reservation no longer fits.
+      const raced = await replay();
+      if (raced) return raced;
+      lastError = error;
+    }
   }
-  return { ok: true, reservation, replayed: false };
+  throw lastError;
 }
 
 /** Closes one open reservation; op_id makes sure only the request that closed it moves the balance. */
-function closeStatements(db: D1Database, r: Reservation, status: 'committed' | 'released' | 'expired', charged: number, opId: string, now: number): D1PreparedStatement[] {
+function closeStatements(db: D1Database, r: Reservation, status: 'committed' | 'released' | 'expired', charge: { total: number; quantum: number }, opId: string, now: number): D1PreparedStatement[] {
   const guard = status === 'committed' ? 'AND expires_at > ?' : status === 'expired' ? 'AND expires_at <= ?' : 'AND ? = ?';
   const guardArgs = status === 'released' ? [0, 0] : [now];
+  const committed = status === 'committed';
+  const freeHeld = r.amount - r.quantum_amount;
+  const freeCharged = charge.total - charge.quantum;
   const statements = [
     db
-      .prepare(`UPDATE battery_reservations SET status = ?, charged = ?, finished_at = ?, op_id = ? WHERE reservation_id = ? AND status = 'reserved' ${guard}`)
-      .bind(status, status === 'committed' ? charged : null, now, opId, r.reservation_id, ...guardArgs),
+      .prepare(`UPDATE battery_reservations SET status = ?, charged = ?, quantum_charged = ?, finished_at = ?, op_id = ? WHERE reservation_id = ? AND status = 'reserved' ${guard}`)
+      .bind(status, committed ? charge.total : null, committed ? charge.quantum : null, now, opId, r.reservation_id, ...guardArgs),
     db
       .prepare(
         `UPDATE battery_accounts SET reserved = reserved - ?, used = used + ?, updated_at = ?
          WHERE user_id = ? AND EXISTS (SELECT 1 FROM battery_reservations WHERE reservation_id = ? AND op_id = ?)`,
       )
-      .bind(r.amount, status === 'committed' ? charged : 0, now, r.user_id, r.reservation_id, opId),
+      .bind(freeHeld, committed ? freeCharged : 0, now, r.user_id, r.reservation_id, opId),
   ];
-  if (status === 'committed' && charged > 0) {
+  if (r.quantum_amount > 0) {
+    statements.push(
+      db
+        .prepare(
+          `UPDATE quantum_accounts SET reserved = reserved - ?, balance = balance - ?, updated_at = ?
+           WHERE user_id = ? AND app_id = ? AND EXISTS (SELECT 1 FROM battery_reservations WHERE reservation_id = ? AND op_id = ?)`,
+        )
+        .bind(r.quantum_amount, committed ? charge.quantum : 0, now, r.user_id, r.app_id, r.reservation_id, opId),
+    );
+  }
+  if (committed && freeCharged > 0) {
     statements.push(
       db
         .prepare(
           `INSERT INTO battery_ledger (entry_id, user_id, period, kind, amount, app_id, task_type, task_label, reservation_id, created_at)
-           SELECT ?, user_id, period, 'usage', charged, app_id, task_type, task_label, reservation_id, ? FROM battery_reservations WHERE reservation_id = ? AND op_id = ?`,
+           SELECT ?, user_id, period, 'usage', ?, app_id, task_type, task_label, reservation_id, ? FROM battery_reservations WHERE reservation_id = ? AND op_id = ?`,
         )
-        .bind(uuidv7(now), now, r.reservation_id, opId),
+        .bind(uuidv7(now), freeCharged, now, r.reservation_id, opId),
+    );
+  }
+  if (committed && charge.quantum > 0) {
+    statements.push(
+      db
+        .prepare(
+          `INSERT INTO quantum_ledger (entry_id, user_id, app_id, kind, amount, ref, task_label, created_at)
+           SELECT ?, user_id, app_id, 'usage', ?, reservation_id, task_label, ? FROM battery_reservations WHERE reservation_id = ? AND op_id = ?`,
+        )
+        .bind(uuidv7(now + 1), -charge.quantum, now, r.reservation_id, opId),
     );
   }
   return statements;
@@ -256,7 +299,7 @@ export async function finish(
   }
   for (let attempt = 0; attempt < 2; attempt++) {
     if (r.status === 'reserved' && r.expires_at <= now) {
-      await db.batch(closeStatements(db, r, 'expired', 0, randomToken(12), now));
+      await db.batch(closeStatements(db, r, 'expired', { total: 0, quantum: 0 }, randomToken(12), now));
       r = (await reservationById(db, r.reservation_id)) ?? r;
     }
     if (r.status !== 'reserved') {
@@ -264,8 +307,10 @@ export async function finish(
       return r.status === 'committed' ? { ok: false, reason: 'closed', reservation: r } : { ok: true, reservation: r };
     }
     const opId = randomToken(12);
-    const charged = input.action === 'commit' ? (r.amount / r.units) * (input.units ?? r.units) : 0;
-    await db.batch(closeStatements(db, r, input.action === 'commit' ? 'committed' : 'released', charged, opId, now));
+    // One unit costs one Battery. The free monthly part is charged first, Quantum Battery only for the rest.
+    const total = input.action === 'commit' ? (input.units ?? r.units) : 0;
+    const quantum = Math.max(0, total - (r.amount - r.quantum_amount));
+    await db.batch(closeStatements(db, r, input.action === 'commit' ? 'committed' : 'released', { total, quantum }, opId, now));
     const after = await reservationById(db, r.reservation_id);
     if (!after) return { ok: false, reason: 'not_found' };
     if (after.op_id === opId) return { ok: true, reservation: after };
@@ -276,11 +321,19 @@ export async function finish(
 
 /** Every minute (S-BAT-03): releases reservations whose timeout passed. Results arriving later charge nothing. */
 export async function releaseExpired(db: D1Database, now: number): Promise<number> {
-  const [, expired] = await db.batch([
+  const [, , expired] = await db.batch([
+    db
+      .prepare(
+        `UPDATE quantum_accounts SET updated_at = ?, reserved = reserved - (
+           SELECT COALESCE(SUM(r.quantum_amount), 0) FROM battery_reservations r
+           WHERE r.user_id = quantum_accounts.user_id AND r.app_id = quantum_accounts.app_id AND r.status = 'reserved' AND r.expires_at <= ?)
+         WHERE EXISTS (SELECT 1 FROM battery_reservations r WHERE r.user_id = quantum_accounts.user_id AND r.app_id = quantum_accounts.app_id AND r.status = 'reserved' AND r.expires_at <= ? AND r.quantum_amount > 0)`,
+      )
+      .bind(now, now, now),
     db
       .prepare(
         `UPDATE battery_accounts SET updated_at = ?, reserved = reserved - (
-           SELECT COALESCE(SUM(r.amount), 0) FROM battery_reservations r WHERE r.user_id = battery_accounts.user_id AND r.status = 'reserved' AND r.expires_at <= ?)
+           SELECT COALESCE(SUM(r.amount - r.quantum_amount), 0) FROM battery_reservations r WHERE r.user_id = battery_accounts.user_id AND r.status = 'reserved' AND r.expires_at <= ?)
          WHERE user_id IN (SELECT user_id FROM battery_reservations WHERE status = 'reserved' AND expires_at <= ?)`,
       )
       .bind(now, now, now),
@@ -408,6 +461,7 @@ export async function forgetBatteryMembers(db: D1Database, userIds: string[]): P
       db.prepare('DELETE FROM battery_accounts WHERE user_id = ?').bind(userId),
     ]);
   }
+  await forgetQuantumMembers(db, userIds);
 }
 
 /** Daily: ledger kept one year, closed reservations 35 days. */
