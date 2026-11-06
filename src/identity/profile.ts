@@ -9,11 +9,18 @@ import { isEmailAddress } from '../notify/email';
  * per-field "last changed". One profile serves every Starry App.
  */
 
-export const EDITABLE_FIELDS = ['display_name', 'birthday', 'locale', 'contact_email', 'phone', 'country', 'region', 'city', 'motto'] as const;
+export const EDITABLE_FIELDS = [
+  'display_name', 'nickname', 'birthday', 'locale', 'contact_email', 'phone', 'country', 'region', 'city', 'motto',
+  'occupation', 'organization', 'website', 'bio', 'languages', 'interests', 'skills',
+  'university', 'university_dept', 'grad_school', 'grad_dept',
+] as const;
 export type EditableField = (typeof EDITABLE_FIELDS)[number];
 
 /** Groups a member can show or hide (02.09). derived = zodiac and life path number; location = country, region, city. */
-export const VISIBILITY_FIELDS = ['display_name', 'avatar', 'birthday', 'derived', 'location', 'phone', 'motto', 'contact_email'] as const;
+export const VISIBILITY_FIELDS = [
+  'display_name', 'avatar', 'birthday', 'derived', 'location', 'phone', 'motto', 'contact_email',
+  'occupation', 'website', 'bio', 'languages', 'interests', 'skills', 'education',
+] as const;
 export type VisibilityField = (typeof VISIBILITY_FIELDS)[number];
 export type Visibility = 'public' | 'private';
 
@@ -27,6 +34,13 @@ export const DEFAULT_VISIBILITY: Readonly<Record<VisibilityField, Visibility>> =
   phone: 'private',
   motto: 'public',
   contact_email: 'private',
+  occupation: 'private',
+  website: 'private',
+  bio: 'private',
+  languages: 'private',
+  interests: 'private',
+  skills: 'private',
+  education: 'private',
 };
 
 export interface ProfileRow {
@@ -41,13 +55,25 @@ export interface ProfileRow {
   region: string | null;
   city: string | null;
   motto: string | null;
+  nickname: string | null;
+  occupation: string | null;
+  organization: string | null;
+  website: string | null;
+  bio: string | null;
+  languages: string | null;
+  interests: string | null;
+  skills: string | null;
+  university: string | null;
+  university_dept: string | null;
+  grad_school: string | null;
+  grad_dept: string | null;
   visibility: string;
   version: number;
   updated_at: number;
 }
 
 export const PROFILE_SQL =
-  'SELECT display_name, avatar_key, birthday, locale, contact_email, contact_email_verified_at, phone, country, region, city, motto, visibility, version, updated_at FROM profiles WHERE user_id = ?';
+  'SELECT display_name, avatar_key, birthday, locale, contact_email, contact_email_verified_at, phone, country, region, city, motto, nickname, occupation, organization, website, bio, languages, interests, skills, university, university_dept, grad_school, grad_dept, visibility, version, updated_at FROM profiles WHERE user_id = ?';
 
 export interface FieldUpdate {
   updated_at: number;
@@ -106,7 +132,19 @@ const FIELD_ERRORS: Record<EditableField | 'visibility', string> = {
   region: '省／州／縣市最多 60 字',
   city: '城市最多 60 字',
   motto: '座右銘最多 200 字',
-  visibility: '公開設定不正確',
+  nickname: '暱稱最多 30 字',
+  occupation: '職業最多 60 字',
+  organization: '服務單位最多 80 字',
+  website: '個人網站須為 https:// 開頭的網址（最多 200 字）',
+  bio: '自我介紹最多 500 字',
+  languages: '使用語言最多 100 字',
+  interests: '興趣最多 200 字',
+  skills: '專長最多 200 字',
+  university: '大學校名最多 80 字',
+  university_dept: '大學科系最多 60 字',
+  grad_school: '研究所校名最多 80 字',
+  grad_dept: '研究所科系最多 60 字',
+  visibility: '公開設定不正確（頭像一律公開，無法隱藏）',
 };
 
 export type ValidationResult = { ok: true; changes: ProfileChanges } | { ok: false; field: EditableField | 'visibility'; message: string };
@@ -147,11 +185,29 @@ export function validateProfileInput(input: Record<string, unknown>, now: number
     if (!v.ok || (v.value !== null && !/^[A-Za-z]{2}$/.test(v.value))) return fail('country');
     fields.country = v.value?.toUpperCase() ?? null;
   }
-  for (const [field, max] of [['region', 60], ['city', 60], ['motto', 200]] as const) {
+  for (const [field, max] of [
+    ['region', 60], ['city', 60], ['motto', 200], ['nickname', 30], ['occupation', 60], ['organization', 80], ['bio', 500], ['languages', 100],
+    ['interests', 200], ['skills', 200], ['university', 80], ['university_dept', 60], ['grad_school', 80], ['grad_dept', 60],
+  ] as const) {
     if (!(field in input)) continue;
     const v = optionalText(input[field], max);
     if (!v.ok) return fail(field);
     fields[field] = v.value;
+  }
+  if ('website' in input) {
+    const v = optionalText(input.website, 200);
+    if (!v.ok) return fail('website');
+    if (v.value === null) fields.website = null;
+    else {
+      let url: URL | null;
+      try {
+        url = new URL(v.value);
+      } catch {
+        url = null;
+      }
+      if (!url || url.protocol !== 'https:' || url.username !== '' || url.password !== '' || !url.hostname.includes('.')) return fail('website');
+      fields.website = url.toString();
+    }
   }
   if ('contact_email' in input) {
     const v = optionalText(input.contact_email, 254);
@@ -176,6 +232,7 @@ export function validateProfileInput(input: Record<string, unknown>, now: number
     if (typeof v !== 'object' || v === null || Array.isArray(v)) return fail('visibility');
     for (const [key, value] of Object.entries(v)) {
       if (!(VISIBILITY_FIELDS as readonly string[]).includes(key) || (value !== 'public' && value !== 'private')) return fail('visibility');
+      if (key === 'avatar' && value === 'private') return fail('visibility');
       visibility[key as VisibilityField] = value;
     }
   }
@@ -291,7 +348,7 @@ export function storedVisibility(json: string): Partial<Record<VisibilityField, 
 
 /** Minors' birthday and derived information are never public, whatever the setting (02.04). */
 export function effectiveVisibility(row: Pick<ProfileRow, 'visibility' | 'birthday'>, now: number): Record<VisibilityField, Visibility> {
-  const v = { ...DEFAULT_VISIBILITY, ...storedVisibility(row.visibility) };
+  const v = { ...DEFAULT_VISIBILITY, ...storedVisibility(row.visibility), avatar: 'public' as Visibility };
   if (row.birthday && ageOn(row.birthday, now) < 18) {
     v.birthday = 'private';
     v.derived = 'private';
@@ -301,6 +358,7 @@ export function effectiveVisibility(row: Pick<ProfileRow, 'visibility' | 'birthd
 
 export interface PublicProfile {
   display_name: string | null;
+  nickname: string | null;
   avatar_url: string | null;
   birthday_month_day: string | null;
   zodiac_name: string | null;
@@ -309,6 +367,14 @@ export interface PublicProfile {
   phone: string | null;
   motto: string | null;
   contact_email: string | null;
+  occupation: string | null;
+  organization: string | null;
+  website: string | null;
+  bio: string | null;
+  languages: string | null;
+  interests: string | null;
+  skills: string | null;
+  education: { university: string | null; university_dept: string | null; grad_school: string | null; grad_dept: string | null } | null;
 }
 
 /**
@@ -320,9 +386,11 @@ export function publicProfile(row: ProfileRow, avatarUrl: string | null, now: nu
   const v = effectiveVisibility(row, now);
   const derived = v.derived === 'public' ? derivedOf(row.birthday) : null;
   const hasLocation = row.country !== null || row.region !== null || row.city !== null;
+  const hasEducation = row.university !== null || row.university_dept !== null || row.grad_school !== null || row.grad_dept !== null;
   return {
     display_name: v.display_name === 'public' ? row.display_name : null,
-    avatar_url: v.avatar === 'public' ? avatarUrl : null,
+    nickname: row.nickname,
+    avatar_url: avatarUrl,
     birthday_month_day: v.birthday === 'public' && row.birthday ? row.birthday.slice(5) : null,
     zodiac_name: derived?.zodiac_name ?? null,
     life_path_number: derived?.life_path_number ?? null,
@@ -330,6 +398,14 @@ export function publicProfile(row: ProfileRow, avatarUrl: string | null, now: nu
     phone: v.phone === 'public' ? row.phone : null,
     motto: v.motto === 'public' ? row.motto : null,
     contact_email: v.contact_email === 'public' && row.contact_email_verified_at !== null ? row.contact_email : null,
+    occupation: v.occupation === 'public' ? row.occupation : null,
+    organization: v.occupation === 'public' ? row.organization : null,
+    website: v.website === 'public' ? row.website : null,
+    bio: v.bio === 'public' ? row.bio : null,
+    languages: v.languages === 'public' ? row.languages : null,
+    interests: v.interests === 'public' ? row.interests : null,
+    skills: v.skills === 'public' ? row.skills : null,
+    education: v.education === 'public' && hasEducation ? { university: row.university, university_dept: row.university_dept, grad_school: row.grad_school, grad_dept: row.grad_dept } : null,
   };
 }
 

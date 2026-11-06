@@ -10,7 +10,7 @@ import type { AppBindings } from '../env';
 import { rememberAppleToken } from '../identity/apple';
 import { mailSettings } from '../notify/email';
 import { listActiveSessions, logoutEverywhere, revokeOwnSession } from '../identity/devices';
-import { importProviderAvatar, r2Store } from '../identity/avatars';
+import { googlePhotoOf, importProviderAvatar, MAX_AVATAR_BYTES, r2Store, rememberProviderPhoto, removeAvatar, setAvatar } from '../identity/avatars';
 import { cleanupAfterDeletion } from '../identity/erase';
 import { cancelDeletion, DELETION_GRACE_MS, deleteMemberNow } from '../identity/lifecycle';
 import { linkIdentity, type LinkResult } from '../identity/link';
@@ -202,6 +202,7 @@ accountApp.post('/session', async (c) => {
   const db = c.env.DB_IDENTITY;
   const { member, isNew } = await findOrCreateMember(db, verified.identity, { appId: WEB_APP_ID, requestId, country: c.req.header('cf-ipcountry') }, now);
   if (member.status === 'suspended') return c.json(errorBody('ACCOUNT_SUSPENDED', 'Account suspended', requestId), 403);
+  await rememberProviderPhoto(db, verified.identity.subject, verified.identity.picture);
   if (isNew && verified.identity.picture && c.env.AVATARS) {
     const photo = background(c, importProviderAvatar(db, r2Store(c.env.AVATARS), (url, init) => fetch(url, init), { userId: member.user_id, url: verified.identity.picture, appId: WEB_APP_ID, requestId }, now));
     if (photo) await photo;
@@ -459,6 +460,7 @@ accountApp.post('/link', async (c) => {
     );
     if (pending) await pending;
   }
+  if (outcome === 'linked') await rememberProviderPhoto(db, identity.subject, identity.picture);
   if (outcome === 'linked' && identity.picture && c.env.AVATARS) {
     // A member without an avatar (for example one who registered with Apple) gets the Google photo once Google is linked.
     const photo = background(c, importProviderAvatar(db, r2Store(c.env.AVATARS), (url, init) => fetch(url, init), { userId: web.userId, url: identity.picture, appId: WEB_APP_ID, requestId }, now));
@@ -544,13 +546,16 @@ interface FieldSpec {
   label: string;
   /** The visibility switch shown on this row (the location switch sits on the country row). */
   eye: VisibilityField | null;
-  input: 'text' | 'email' | 'tel' | 'date' | 'country' | 'locale' | 'textarea';
+  input: 'text' | 'email' | 'tel' | 'date' | 'country' | 'locale' | 'textarea' | 'url';
   max?: number;
   hint?: string;
+  /** Shown instead of the visibility switch: the field is always public. */
+  alwaysPublic?: boolean;
 }
 
 const PROFILE_FIELDS: readonly FieldSpec[] = [
-  { field: 'display_name', label: '姓名', eye: 'display_name', input: 'text', max: 50, hint: '其他會員看到的名字，1～50 字。' },
+  { field: 'nickname', label: '暱稱', eye: null, input: 'text', max: 30, alwaysPublic: true, hint: '一律公開（排行榜等功能會顯示暱稱與頭像），最多 30 字。' },
+  { field: 'display_name', label: '姓名', eye: 'display_name', input: 'text', max: 50, hint: '你的姓名，1～50 字，可以選擇不公開。' },
   { field: 'contact_email', label: '主要聯絡 Email', eye: 'contact_email', input: 'email', hint: '變更後會寄確認信；確認前，系統通知仍寄到登入用的信箱。' },
   { field: 'phone', label: '手機（選填）', eye: 'phone', input: 'tel', hint: '可輸入 0912345678，會依國家自動加上國碼。預設不公開。' },
   { field: 'country', label: '國家／地區', eye: 'location', input: 'country', hint: '這裡的公開設定同時套用到省／州／縣市與城市。' },
@@ -558,6 +563,17 @@ const PROFILE_FIELDS: readonly FieldSpec[] = [
   { field: 'city', label: '城市／鄉鎮區', eye: null, input: 'text', max: 60 },
   { field: 'birthday', label: '生日', eye: 'birthday', input: 'date', hint: '公開時只顯示月日；未滿 18 歲不會公開。' },
   { field: 'motto', label: '座右銘', eye: 'motto', input: 'textarea', max: 200 },
+  { field: 'bio', label: '自我介紹', eye: 'bio', input: 'textarea', max: 500, hint: '最多 500 字。' },
+  { field: 'occupation', label: '職業', eye: 'occupation', input: 'text', max: 60, hint: '例如：軟體工程師、護理師、學生。這裡的公開設定同時套用到服務單位。' },
+  { field: 'organization', label: '服務單位', eye: null, input: 'text', max: 80, hint: '公司、機構或學校名稱。' },
+  { field: 'website', label: '個人網站', eye: 'website', input: 'url', max: 200, hint: '必須以 https:// 開頭。' },
+  { field: 'languages', label: '使用語言', eye: 'languages', input: 'text', max: 100, hint: '例如：中文、English、日本語。' },
+  { field: 'interests', label: '興趣', eye: 'interests', input: 'textarea', max: 200, hint: '用逗號或換行分隔，最多 200 字。' },
+  { field: 'skills', label: '專長', eye: 'skills', input: 'textarea', max: 200, hint: '用逗號或換行分隔，最多 200 字。' },
+  { field: 'university', label: '大學校名', eye: 'education', input: 'text', max: 80, hint: '這裡的公開設定同時套用到大學科系、研究所校名與科系。' },
+  { field: 'university_dept', label: '大學科系', eye: null, input: 'text', max: 60 },
+  { field: 'grad_school', label: '大學研究所校名', eye: null, input: 'text', max: 80 },
+  { field: 'grad_dept', label: '大學研究所科系', eye: null, input: 'text', max: 60 },
   { field: 'locale', label: '語系', eye: null, input: 'locale' },
 ];
 
@@ -629,7 +645,7 @@ function profilePage(c: WebContext, loaded: { row: ProfileRow; fieldUpdates: Rec
   const rows = PROFILE_FIELDS.map((spec) => {
     const locked = minor && spec.eye === 'birthday';
     return html`<div class="card field" data-field="${spec.field}">
-<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>${spec.label}</strong><span>${spec.eye ? eyeForm(spec.eye, visibility, p.version, locked) : ''}<button class="secondary pencil" type="button" aria-label="編輯${spec.label}" hidden>✏️ 編輯</button></span></div>
+<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>${spec.label}</strong><span>${spec.alwaysPublic ? html`<span class="muted">🌐 一律公開</span>` : spec.eye ? eyeForm(spec.eye, visibility, p.version, locked) : ''}<button class="secondary pencil" type="button" aria-label="編輯${spec.label}" hidden>✏️ 編輯</button></span></div>
 <p class="value">${displayValue(p, spec.field) || html`<span class="muted">（未設定）</span>`}</p>
 <form class="field-form" method="post" action="/account/profile">
 <input type="hidden" name="version" value="${p.version}"><input type="hidden" name="field" value="${spec.field}">
@@ -651,7 +667,16 @@ ${updatedLine(loaded.fieldUpdates, spec.field)}
 ${message ? html`<div class="banner ${message.danger ? 'danger' : ''}">${message.text}</div>` : ''}
 <p class="muted">所有繁星 App 共用這份資料。按 ✏️ 編輯，離開欄位會自動儲存；👁 設定其他會員能不能看到。</p>
 <style>.js .field-form{display:none}.js .field.editing .field-form{display:block}.js .field.editing .value{display:none}.grid9{width:auto;margin:8px 0}.grid9 td{width:56px;height:56px;text-align:center;border:1px solid var(--line);font-size:1.2rem}.eye button,.pencil{margin:0 0 0 8px;padding:4px 10px}</style>
-<div class="card field"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>頭像</strong>${eyeForm('avatar', visibility, p.version, false)}</div><p class="muted">頭像請在繁星 App 內上傳與裁切；沒有頭像時顯示姓名第一個字。</p>${updatedLine(loaded.fieldUpdates, 'avatar')}</div>
+<div class="card" id="avatar-card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>頭像</strong><span class="muted">🌐 一律公開</span></div>
+<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px">
+${p.avatar_key ? html`<img id="avatar-now" src="/account/avatar-image?v=${p.version}" alt="目前的頭像" width="96" height="96" style="border-radius:50%;object-fit:cover">` : html`<div style="width:96px;height:96px;border-radius:50%;background:var(--line);display:flex;align-items:center;justify-content:center;font-size:2rem">${(p.nickname ?? p.display_name ?? '星').slice(0, 1)}</div>`}
+<div><label for="avatar-file" class="button secondary" style="background:transparent;color:var(--accent);margin:0">上傳並裁切頭像</label><input id="avatar-file" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+<button type="button" class="secondary" id="avatar-google">使用我的 Google 頭像</button>${p.avatar_key ? html`<button type="button" class="secondary" id="avatar-remove">移除頭像</button>` : ''}
+<p class="muted" id="avatar-status" role="status" aria-live="polite">頭像一律公開，無法隱藏。沒有頭像時顯示暱稱（或姓名）的第一個字。</p></div></div>
+<div id="avatar-crop" hidden style="margin-top:12px"><canvas id="avatar-canvas" width="256" height="256" style="width:256px;height:256px;max-width:100%;border-radius:12px;border:1px solid var(--line);touch-action:none;cursor:grab"></canvas>
+<label for="avatar-zoom" class="muted" style="font-weight:400">縮放（拖曳圖片可調整位置）</label><input id="avatar-zoom" type="range" min="1" max="4" step="0.01" value="1" style="width:256px;max-width:100%">
+<div><button type="button" id="avatar-save">儲存頭像</button><button type="button" class="secondary" id="avatar-cancel">取消</button></div></div>
+${updatedLine(loaded.fieldUpdates, 'avatar')}</div>
 ${rows}
 <h2>生日資訊</h2>
 ${derivedCard(p, visibility, p.version, minor)}
@@ -659,6 +684,75 @@ ${derivedCard(p, visibility, p.version, minor)}
     {
       scripts: html`<script nonce="${nonce}">
 document.documentElement.classList.add('js');
+
+(function () {
+  var fileInput = document.getElementById('avatar-file');
+  var crop = document.getElementById('avatar-crop');
+  var canvas = document.getElementById('avatar-canvas');
+  var zoom = document.getElementById('avatar-zoom');
+  var status = document.getElementById('avatar-status');
+  var ctx = canvas.getContext('2d');
+  var img = null, scale = 1, minScale = 1, ox = 0, oy = 0, dragging = null;
+  function say(text) { status.textContent = text; }
+  function clamp() {
+    var w = img.width * scale, h = img.height * scale;
+    ox = Math.min(0, Math.max(256 - w, ox)); oy = Math.min(0, Math.max(256 - h, oy));
+  }
+  function draw() { ctx.clearRect(0, 0, 256, 256); ctx.drawImage(img, ox, oy, img.width * scale, img.height * scale); }
+  fileInput.addEventListener('change', function () {
+    var file = fileInput.files && fileInput.files[0];
+    if (!file) return;
+    if (!/^image\\/(png|jpeg|webp)$/.test(file.type)) { say('請選擇 PNG、JPEG 或 WebP 圖片。'); return; }
+    var reader = new FileReader();
+    reader.onload = function () {
+      var image = new Image();
+      image.onload = function () {
+        img = image;
+        minScale = 256 / Math.min(image.width, image.height);
+        scale = minScale; zoom.value = '1';
+        ox = (256 - image.width * scale) / 2; oy = (256 - image.height * scale) / 2;
+        crop.hidden = false; draw(); say('拖曳與縮放調整範圍，然後按「儲存頭像」。');
+      };
+      image.onerror = function () { say('無法讀取這張圖片。'); };
+      image.src = String(reader.result);
+    };
+    reader.readAsDataURL(file);
+  });
+  zoom.addEventListener('input', function () {
+    if (!img) return;
+    var cx = (128 - ox) / scale, cy = (128 - oy) / scale;
+    scale = minScale * Number(zoom.value);
+    ox = 128 - cx * scale; oy = 128 - cy * scale; clamp(); draw();
+  });
+  function pos(e) { var r = canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) * 256 / r.width, y: (e.clientY - r.top) * 256 / r.height }; }
+  canvas.addEventListener('pointerdown', function (e) { if (!img) return; dragging = pos(e); canvas.setPointerCapture(e.pointerId); canvas.style.cursor = 'grabbing'; });
+  canvas.addEventListener('pointermove', function (e) { if (!dragging) return; var p = pos(e); ox += p.x - dragging.x; oy += p.y - dragging.y; dragging = p; clamp(); draw(); });
+  function stop() { dragging = null; canvas.style.cursor = 'grab'; }
+  canvas.addEventListener('pointerup', stop); canvas.addEventListener('pointercancel', stop);
+  document.getElementById('avatar-cancel').addEventListener('click', function () { crop.hidden = true; img = null; fileInput.value = ''; say('已取消。'); });
+  async function send(url, init, okText) {
+    say('處理中…');
+    var res = await fetch(url, init).catch(function () { return null; });
+    var body = res ? await res.json().catch(function () { return {}; }) : {};
+    if (res && res.ok && body.ok) { say(okText); location.reload(); return; }
+    say(body.message || '操作失敗，請再試一次。');
+  }
+  document.getElementById('avatar-save').addEventListener('click', function () {
+    if (!img) return;
+    var quality = 0.9;
+    var attempt = function () {
+      canvas.toBlob(function (blob) {
+        if (!blob) { say('無法產生圖片。'); return; }
+        if (blob.size > 250 * 1024 && quality > 0.4) { quality -= 0.15; attempt(); return; }
+        send('/account/avatar', { method: 'POST', headers: { 'content-type': 'image/jpeg', accept: 'application/json' }, body: blob }, '頭像已更新。');
+      }, 'image/jpeg', quality);
+    };
+    attempt();
+  });
+  document.getElementById('avatar-google').addEventListener('click', function () { send('/account/avatar/google', { method: 'POST', headers: { accept: 'application/json' } }, '已改用 Google 頭像。'); });
+  var removeButton = document.getElementById('avatar-remove');
+  if (removeButton) removeButton.addEventListener('click', function () { if (confirm('確定要移除頭像嗎？')) send('/account/avatar/remove', { method: 'POST', headers: { accept: 'application/json' } }, '頭像已移除。'); });
+})();
 const STATUS = { saving: '儲存中…', saved: '已儲存', conflict: '資料已在其他地方更新，請重新整理頁面。', failed: '儲存失敗，請再試一次。' };
 let version = ${p.version};
 function setVersion(v) { version = v; document.querySelectorAll('input[name=version]').forEach((i) => { i.value = String(v); }); }
@@ -773,6 +867,47 @@ accountApp.post('/profile', async (c) => {
     if (pending) await pending;
   }
   return respond(200, { text: saved.newContactEmail ? '已儲存，並寄出聯絡信箱的確認信。' : '已儲存。', danger: false });
+});
+
+/** GET /account/avatar-image — the signed-in member's own avatar for the account page. */
+accountApp.get('/avatar-image', async (c) => {
+  const web = c.get('web');
+  if (!web || web.status !== 'active' || !c.env.AVATARS) return c.body(null, 404);
+  const row = await c.env.DB_IDENTITY.prepare('SELECT avatar_key FROM profiles WHERE user_id = ?').bind(web.userId).first<{ avatar_key: string | null }>();
+  const object = row?.avatar_key ? await c.env.AVATARS.get(row.avatar_key) : null;
+  if (!object) return c.body(null, 404);
+  return new Response(object.body, { headers: { 'content-type': object.httpMetadata?.contentType ?? 'image/jpeg', 'cache-control': 'private, max-age=300' } });
+});
+
+/** POST /account/avatar — the page crops to a square and sends the image bytes. */
+accountApp.post('/avatar', async (c) => {
+  const web = c.get('web');
+  if (!web || web.status !== 'active') return c.json({ ok: false, message: '請重新登入。' }, 401);
+  if (!c.env.AVATARS) return c.json({ ok: false, message: '頭像儲存尚未設定。' }, 503);
+  if (Number(c.req.header('content-length') ?? '0') > MAX_AVATAR_BYTES) return c.json({ ok: false, message: '圖片太大，請換一張或縮小範圍。' }, 413);
+  const bytes = new Uint8Array(await c.req.arrayBuffer());
+  const result = await setAvatar(c.env.DB_IDENTITY, r2Store(c.env.AVATARS), { userId: web.userId, bytes, appId: WEB_APP_ID, requestId: c.get('requestId') }, Date.now());
+  if (!result.ok) return c.json({ ok: false, message: result.reason === 'too_large' ? '圖片太大，請換一張或縮小範圍。' : '只接受 PNG、JPEG 或 WebP 圖片。' }, result.reason === 'too_large' ? 413 : 415);
+  return c.json({ ok: true });
+});
+
+/** POST /account/avatar/google — replaces the avatar with the member's Google photo. */
+accountApp.post('/avatar/google', async (c) => {
+  const web = c.get('web');
+  if (!web || web.status !== 'active') return c.json({ ok: false, message: '請重新登入。' }, 401);
+  if (!c.env.AVATARS) return c.json({ ok: false, message: '頭像儲存尚未設定。' }, 503);
+  const url = await googlePhotoOf(c.env.DB_IDENTITY, web.userId);
+  if (!url) return c.json({ ok: false, message: '找不到 Google 頭像。請先綁定 Google 帳號，並重新用 Google 登入一次。' }, 404);
+  const done = await importProviderAvatar(c.env.DB_IDENTITY, r2Store(c.env.AVATARS), (u, init) => fetch(u, init), { userId: web.userId, url, appId: WEB_APP_ID, requestId: c.get('requestId'), replace: true }, Date.now());
+  return done ? c.json({ ok: true }) : c.json({ ok: false, message: '無法取得 Google 頭像，請稍後再試。' }, 502);
+});
+
+/** POST /account/avatar/remove */
+accountApp.post('/avatar/remove', async (c) => {
+  const web = c.get('web');
+  if (!web || web.status !== 'active') return c.json({ ok: false, message: '請重新登入。' }, 401);
+  if (c.env.AVATARS) await removeAvatar(c.env.DB_IDENTITY, r2Store(c.env.AVATARS), { userId: web.userId, appId: WEB_APP_ID, requestId: c.get('requestId') }, Date.now());
+  return c.json({ ok: true });
 });
 
 /** POST /account/contact-email/verify — sends the confirmation link again. */

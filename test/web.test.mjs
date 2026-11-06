@@ -292,6 +292,31 @@ describe('web account center, support form and Admin Lite', () => {
     await worker.db.prepare('DELETE FROM user_roles WHERE user_id = ?').bind(await userIdOf('battery-owner')).run();
   });
 
+  test('new profile fields: nickname is always public, the avatar is uploaded and removed from the page, Google avatar needs a Google photo', async () => {
+    const cookie = await webSignIn('profile-extra-web');
+    const page = await (await worker.call('/account/profile', get(cookie))).text();
+    for (const label of ['暱稱', '職業', '服務單位', '個人網站', '自我介紹', '使用語言', '興趣', '專長', '大學校名', '大學科系', '大學研究所校名', '大學研究所科系', '使用我的 Google 頭像', '上傳並裁切頭像']) assert.ok(page.includes(label), label);
+    const save = (data) => worker.call('/account/profile', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', origin: ORIGIN, cookie, accept: 'application/json' }, body: new URLSearchParams(data).toString() });
+    let body = await (await save({ version: '1', field: 'nickname', value: '小星星' })).json();
+    assert.deepEqual([body.ok, body.display], [true, '小星星']);
+    body = await (await save({ version: String(body.version), field: 'website', value: 'http://example.com' })).json();
+    assert.equal(body.ok, false, 'only https websites');
+    const hide = await save({ version: '2', field: 'visibility.avatar', value: 'private' });
+    assert.equal(hide.status, 400, 'the avatar cannot be hidden');
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]);
+    const upload = (bytes, type = 'image/png', origin = ORIGIN) => worker.call('/account/avatar', { method: 'POST', headers: { 'content-type': type, origin, cookie, accept: 'application/json' }, body: bytes });
+    assert.equal((await upload(png, 'image/png', 'https://evil.example')).status, 403);
+    assert.equal((await upload(new Uint8Array([1, 2, 3]))).status, 415, 'not an image');
+    assert.equal((await upload(png)).status, 200);
+    assert.equal((await worker.call('/account/avatar-image', get(cookie))).status, 200);
+    assert.match(await (await worker.call('/account/profile', get(cookie))).text(), /移除頭像/);
+    const google = await worker.call('/account/avatar/google', { method: 'POST', headers: { origin: ORIGIN, cookie, accept: 'application/json' } });
+    assert.equal(google.status, 404, 'this member has no remembered Google photo');
+    const removed = await worker.call('/account/avatar/remove', { method: 'POST', headers: { origin: ORIGIN, cookie, accept: 'application/json' } });
+    assert.equal(removed.status, 200);
+    assert.equal((await worker.call('/account/avatar-image', get(cookie))).status, 404);
+  });
+
   test('an admin kill switch disables one App for sign-in and remote config', async () => {
     const adminCookie = await webSignIn('staff-killer');
     await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(await userIdOf('staff-killer'), Date.now()).run();

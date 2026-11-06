@@ -7,7 +7,7 @@ import type { AppBindings } from '../env';
 import { rememberAppleToken } from '../identity/apple';
 import { logoutEverywhere } from '../identity/devices';
 import { DELETION_GRACE_MS } from '../identity/lifecycle';
-import { importProviderAvatar, r2Store } from '../identity/avatars';
+import { importProviderAvatar, r2Store, rememberProviderPhoto } from '../identity/avatars';
 import { consentRequired, findOrCreateMember } from '../identity/members';
 import { consumeNonce, issueNonce, NONCE_TTL_MS } from '../identity/nonces';
 import { WEB_APP_ID } from '../identity/web-sessions';
@@ -181,6 +181,7 @@ async function signIn(c: Ctx, provider: Provider, body: z.infer<typeof SignInReq
     db.prepare('INSERT OR IGNORE INTO member_apps (user_id, app_id, first_seen_at) VALUES (?, ?, ?)').bind(member.user_id, app.app_id, now),
     auditStatement(db, { actorType: 'user', actorUserId: member.user_id, action: `auth.login.${provider}`, targetType: 'session', targetId: sessionId, appId: app.app_id, result: 'success', requestId, retention: 'security' }, now),
   ]);
+  await rememberProviderPhoto(db, identity.subject, identity.picture);
   if (isNew && identity.picture && c.env.AVATARS) {
     const photo = background(c, importProviderAvatar(db, r2Store(c.env.AVATARS), (url, init) => fetch(url, init), { userId: member.user_id, url: identity.picture, appId: app.app_id, requestId }, now));
     if (photo) await photo;

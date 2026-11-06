@@ -11,7 +11,7 @@ import { appleRedirectFor, background, fail, readProviderRequest, verifyProvider
 import { activeEntitlements } from '../billing/revenuecat';
 import type { AppBindings } from '../env';
 import { rememberAppleToken } from '../identity/apple';
-import { importProviderAvatar, MAX_AVATAR_BYTES, r2Store, removeAvatar, setAvatar, signedAvatarPath } from '../identity/avatars';
+import { importProviderAvatar, MAX_AVATAR_BYTES, r2Store, rememberProviderPhoto, removeAvatar, setAvatar, signedAvatarPath } from '../identity/avatars';
 import { cleanupAfterDeletion } from '../identity/erase';
 import { cancelDeletion, DELETION_GRACE_MS, deleteMemberNow } from '../identity/lifecycle';
 import { linkIdentity } from '../identity/link';
@@ -47,6 +47,18 @@ async function profileJson(env: { DATA_ENCRYPTION_KEY?: string }, p: ProfileRow,
     region: p.region,
     city: p.city,
     motto: p.motto,
+    nickname: p.nickname,
+    occupation: p.occupation,
+    organization: p.organization,
+    website: p.website,
+    bio: p.bio,
+    languages: p.languages,
+    interests: p.interests,
+    skills: p.skills,
+    university: p.university,
+    university_dept: p.university_dept,
+    grad_school: p.grad_school,
+    grad_dept: p.grad_dept,
     derived: derivedOf(p.birthday),
     visibility: effectiveVisibility(p, now),
     field_updated_at: fieldUpdates,
@@ -121,6 +133,18 @@ const ProfilePatchSchema = z
     region: z.string().nullable().optional().openapi({ description: 'State, province or county, at most 60 characters' }),
     city: z.string().nullable().optional().openapi({ description: 'At most 60 characters' }),
     motto: z.string().nullable().optional().openapi({ description: 'At most 200 characters' }),
+    nickname: z.string().nullable().optional().openapi({ description: 'Nickname (暱稱), at most 30 characters. Always public.' }),
+    occupation: z.string().nullable().optional().openapi({ description: 'At most 60 characters' }),
+    organization: z.string().nullable().optional().openapi({ description: 'Employer or organization, at most 80 characters' }),
+    website: z.string().nullable().optional().openapi({ description: 'https:// URL, at most 200 characters' }),
+    bio: z.string().nullable().optional().openapi({ description: 'At most 500 characters' }),
+    languages: z.string().nullable().optional().openapi({ description: 'At most 100 characters' }),
+    interests: z.string().nullable().optional().openapi({ description: 'At most 200 characters' }),
+    skills: z.string().nullable().optional().openapi({ description: 'At most 200 characters' }),
+    university: z.string().nullable().optional().openapi({ description: 'University, at most 80 characters' }),
+    university_dept: z.string().nullable().optional().openapi({ description: 'Department, at most 60 characters' }),
+    grad_school: z.string().nullable().optional().openapi({ description: 'Graduate school, at most 80 characters' }),
+    grad_dept: z.string().nullable().optional().openapi({ description: 'Graduate department, at most 60 characters' }),
     visibility: VisibilitySchema.partial().optional().openapi({ description: 'Only the fields to change' }),
   })
   .strict();
@@ -375,6 +399,7 @@ async function link(c: Context<AppBindings>, provider: Provider, body: z.infer<t
     );
     if (pending) await pending;
   }
+  if (outcome === 'linked' || outcome === 'merged') await rememberProviderPhoto(c.env.DB_IDENTITY, verified.identity.subject, verified.identity.picture);
   if ((outcome === 'linked' || outcome === 'merged') && verified.identity.picture && c.env.AVATARS) {
     // A member without an avatar (for example one who registered with Apple) gets the Google photo once Google is linked.
     const photo = background(c, importProviderAvatar(c.env.DB_IDENTITY, r2Store(c.env.AVATARS), (url, init) => fetch(url, init), { userId, url: verified.identity.picture, appId, requestId }, now));

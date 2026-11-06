@@ -142,13 +142,13 @@ export async function importProviderAvatar(
   db: D1Database,
   store: ObjectStore,
   fetchFn: FetchLike,
-  input: { userId: string; url: string; appId: string | null; requestId: string | null },
+  input: { userId: string; url: string; appId: string | null; requestId: string | null; replace?: boolean },
   now: number,
 ): Promise<boolean> {
   if (!isProviderPhotoUrl(input.url)) return false;
   try {
     const current = await db.prepare('SELECT avatar_key FROM profiles WHERE user_id = ?').bind(input.userId).first<{ avatar_key: string | null }>();
-    if (!current || current.avatar_key) return false;
+    if (!current || (current.avatar_key && !input.replace)) return false;
     // Google's photo URLs end in a size option; ask for a 256-pixel square.
     const url = input.url.replace(/=s\d+(-c)?$/, '') + '=s256-c';
     const response = await fetchFn(url, { signal: AbortSignal.timeout(5000), redirect: 'error' });
@@ -160,4 +160,16 @@ export async function importProviderAvatar(
   } catch {
     return false;
   }
+}
+
+/** Remembers the Google photo URL of a signed-in identity so the member can later choose "use my Google avatar". */
+export async function rememberProviderPhoto(db: D1Database, subject: string, url: string | null | undefined): Promise<void> {
+  if (!url || !isProviderPhotoUrl(url)) return;
+  await db.prepare("UPDATE auth_identities SET photo_url = ? WHERE provider = 'google' AND subject = ?").bind(url, subject).run();
+}
+
+/** The Google photo URL remembered for a member, or null. */
+export async function googlePhotoOf(db: D1Database, userId: string): Promise<string | null> {
+  const row = await db.prepare("SELECT photo_url FROM auth_identities WHERE user_id = ? AND provider = 'google'").bind(userId).first<{ photo_url: string | null }>();
+  return row?.photo_url ?? null;
 }

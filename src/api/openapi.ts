@@ -100,13 +100,20 @@ const VisibilityValue = z.enum(['public', 'private']);
 export const VisibilitySchema = z
   .object({
     display_name: VisibilityValue,
-    avatar: VisibilityValue,
+    avatar: VisibilityValue.openapi({ description: 'Always public; a request to hide it is refused' }),
     birthday: VisibilityValue.openapi({ description: 'Public shows month and day only; always private for members under 18' }),
     derived: VisibilityValue.openapi({ description: 'Zodiac and life path number; always private for members under 18' }),
     location: VisibilityValue.openapi({ description: 'Country, state/province and city' }),
     phone: VisibilityValue,
     motto: VisibilityValue,
     contact_email: VisibilityValue.openapi({ description: 'Shown only once verified' }),
+    occupation: VisibilityValue.openapi({ description: 'Occupation and organization' }),
+    website: VisibilityValue,
+    bio: VisibilityValue,
+    languages: VisibilityValue,
+    interests: VisibilityValue,
+    skills: VisibilityValue,
+    education: VisibilityValue.openapi({ description: 'University and graduate school with their departments' }),
   })
   .openapi('ProfileVisibility');
 
@@ -124,7 +131,8 @@ export const DerivedSchema = z
 export const PublicProfileSchema = z
   .object({
     display_name: z.string().nullable(),
-    avatar_url: z.string().nullable(),
+    nickname: z.string().nullable().openapi({ description: 'Always public' }),
+    avatar_url: z.string().nullable().openapi({ description: 'Always public' }),
     birthday_month_day: z.string().nullable().openapi({ example: '02-28' }),
     zodiac_name: z.string().nullable(),
     life_path_number: z.number().int().nullable(),
@@ -132,6 +140,16 @@ export const PublicProfileSchema = z
     phone: z.string().nullable(),
     motto: z.string().nullable(),
     contact_email: z.string().nullable(),
+    occupation: z.string().nullable(),
+    organization: z.string().nullable(),
+    website: z.string().nullable(),
+    bio: z.string().nullable(),
+    languages: z.string().nullable(),
+    interests: z.string().nullable(),
+    skills: z.string().nullable(),
+    education: z
+      .object({ university: z.string().nullable(), university_dept: z.string().nullable(), grad_school: z.string().nullable(), grad_dept: z.string().nullable() })
+      .nullable(),
   })
   .openapi('PublicProfile');
 
@@ -148,6 +166,18 @@ export const ProfileSchema = z
     region: z.string().nullable().openapi({ description: 'State, province or county', example: '臺北市' }),
     city: z.string().nullable().openapi({ example: '大安區' }),
     motto: z.string().nullable(),
+    nickname: z.string().nullable().openapi({ description: 'Nickname (暱稱), at most 30 characters. Always public.' }),
+    occupation: z.string().nullable(),
+    organization: z.string().nullable(),
+    website: z.string().nullable().openapi({ description: 'https:// URL' }),
+    bio: z.string().nullable(),
+    languages: z.string().nullable(),
+    interests: z.string().nullable(),
+    skills: z.string().nullable(),
+    university: z.string().nullable(),
+    university_dept: z.string().nullable(),
+    grad_school: z.string().nullable(),
+    grad_dept: z.string().nullable(),
     derived: DerivedSchema.nullable().openapi({ description: 'From the birthday; null without one' }),
     visibility: VisibilitySchema,
     field_updated_at: z

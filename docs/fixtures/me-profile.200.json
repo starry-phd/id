@@ -11,6 +11,18 @@
     "region": "臺北市",
     "city": "大安區",
     "motto": "慢慢來，比較快。",
+    "nickname": null,
+    "occupation": null,
+    "organization": null,
+    "website": null,
+    "bio": null,
+    "languages": null,
+    "interests": null,
+    "skills": null,
+    "university": null,
+    "university_dept": null,
+    "grad_school": null,
+    "grad_dept": null,
     "derived": {
       "zodiac": "pisces",
       "zodiac_name": "雙魚座",
@@ -68,7 +80,14 @@
       "location": "private",
       "phone": "private",
       "motto": "public",
-      "contact_email": "private"
+      "contact_email": "private",
+      "occupation": "private",
+      "website": "private",
+      "bio": "private",
+      "languages": "private",
+      "interests": "private",
+      "skills": "private",
+      "education": "private"
     },
     "field_updated_at": {
       "display_name": {

@@ -6,7 +6,7 @@ import { signedAvatarPath } from '../identity/avatars';
 import { PROFILE_SQL, publicProfile, type ProfileRow } from '../identity/profile';
 
 /**
- * POST /v1/directory/members — for an App's backend (x-starry-app-key): the public name, avatar and member number
+ * POST /v1/directory/members — for an App's backend (x-starry-app-key): the public nickname, name, avatar and member number
  * of up to 50 of ITS OWN members, for features such as leaderboards. Names and avatars follow each member's
  * visibility settings (hidden ones come back as null); Email and every other field are never returned here.
  * Members who never signed in to the calling App are left out. Deliberately not part of the generated OpenAPI file;
@@ -40,7 +40,7 @@ directoryRoutes.post('/members', async (c) => {
     const key = c.env.DATA_ENCRYPTION_KEY;
     const avatar = profile.avatar_key && key ? await signedAvatarPath(key, profile.avatar_key, now) : null;
     const shown = publicProfile(profile, avatar, now);
-    members.push({ user_id: row.user_id, member_no: row.member_no, display_name: shown.display_name, avatar_url: shown.avatar_url });
+    members.push({ user_id: row.user_id, member_no: row.member_no, nickname: shown.nickname, display_name: shown.display_name, avatar_url: shown.avatar_url });
   }
   return c.json({ members }, 200);
 });

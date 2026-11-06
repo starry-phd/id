@@ -49,7 +49,7 @@ describe('Starry Battery API (S-BAT-03/04/06)', () => {
     assert.equal((await ask(ECHO_KEY, [])).status, 400);
     assert.equal((await ask(ECHO_KEY, ['not-an-id'])).status, 400);
     const own = await (await ask(ECHO_KEY, [me.user_id])).json();
-    assert.deepEqual(own.members, [{ user_id: me.user_id, member_no: me.member_no, display_name: '排行榜小星', avatar_url: null }]);
+    assert.deepEqual(own.members, [{ user_id: me.user_id, member_no: me.member_no, nickname: null, display_name: '排行榜小星', avatar_url: null }]);
     assert.deepEqual((await (await ask(OTHER_KEY, [me.user_id])).json()).members, [], "another App's members only");
     await worker.db.prepare('UPDATE profiles SET visibility = ? WHERE user_id = ?').bind(JSON.stringify({ display_name: 'private' }), me.user_id).run();
     assert.equal((await (await ask(ECHO_KEY, [me.user_id])).json()).members[0].display_name, null, 'hidden names stay hidden');
