@@ -9,7 +9,7 @@ import { adjustAllowance, enableAppBattery, getBalance, hasAppBatteryKey, getPol
 import type { AppBindings } from '../env';
 import { listAudit } from '../identity/audit-query';
 import { WEB_APP_ID } from '../identity/web-sessions';
-import { hasRole, isRecentLogin, restoreMember, roleOf, searchMembers, setStaffRole, suspendMember, type Role, type StaffActor, type StatusChangeResult } from '../identity/roles';
+import { hasRole, restoreMember, roleOf, searchMembers, setStaffRole, suspendMember, type Role, type StaffActor, type StatusChangeResult } from '../identity/roles';
 import { auditStatement } from '../lib/audit';
 import { mailSettings, notifyStaffChange } from '../notify/email';
 import { ATTACHMENT_EXTENSIONS, getAttachment, listAttachments } from '../support/attachments';
@@ -21,8 +21,7 @@ import { formatTime, page, readForm, sameOrigin, webContext, type Html, type Web
  * Spec S-ADM-01 Admin Lite: server-rendered, phone-friendly, Starry ID sign-in plus a
  * role check on every request. Support can read; Admin can suspend, restore, adjust a
  * member's Battery and switch App status; only the Owner manages staff roles and the
- * Battery policy. Sensitive writes need a sign-in from the
- * last 10 minutes (S-ID-10).
+ * Battery policy.
  */
 export const adminApp = new Hono<AppBindings>();
 adminApp.use('*', webContext, sameOrigin);
@@ -46,26 +45,10 @@ async function staff(c: WebContext, minimum: Role): Promise<StaffActor | Respons
   return { userId: web.userId, role, requestId: c.get('requestId') };
 }
 
-/** Sensitive writes: the sign-in must be at most 10 minutes old. */
-async function needsReauth(c: WebContext): Promise<Response | null> {
-  const web = c.get('web');
-  if (web && isRecentLogin(web.createdAt, Date.now())) return null;
-  return c.html(
-    page(
-      c,
-      '請重新登入',
-      html`<h1>請重新登入</h1><div class="banner">這個操作需要 10 分鐘內登入的身分確認。請登出後重新登入，再回到這一頁操作。</div>
-<form method="post" action="/account/logout"><button type="submit">登出並重新登入</button></form>`,
-      { admin: true },
-    ),
-    403,
-  );
-}
-
 const nav = html`<p><a href="/admin/members">會員</a>&emsp;<a href="/admin/tickets">客服單</a>&emsp;<a href="/admin/battery">Battery</a>&emsp;<a href="/admin/apps">App</a>&emsp;<a href="/admin/audit">稽核紀錄</a></p>`;
 
-function adminPage(c: WebContext, title: string, body: Html): Html {
-  return page(c, title, html`${nav}${body}`, { admin: true });
+function adminPage(c: WebContext, title: string, body: Html, scripts?: Html): Html {
+  return page(c, title, html`${nav}${body}`, { admin: true, ...(scripts ? { scripts } : {}) });
 }
 
 adminApp.get('/', async (c) => {
@@ -172,8 +155,6 @@ adminApp.get('/members/:id', async (c) => {
 adminApp.post('/members/:id/suspend', async (c) => {
   const actor = await staff(c, 'admin');
   if (actor instanceof Response) return actor;
-  const reauth = await needsReauth(c);
-  if (reauth) return reauth;
   const reason = ((await readForm(c)).reason ?? '').trim();
   if (reason.length < 1 || reason.length > 200) return memberPage(c, actor, c.req.param('id'), '請填寫 1～200 字的停權原因。');
   const result = await suspendMember(c.env.DB_IDENTITY, c.env.OWNER_USER_IDS, actor, c.req.param('id'), reason, Date.now());
@@ -183,8 +164,6 @@ adminApp.post('/members/:id/suspend', async (c) => {
 adminApp.post('/members/:id/restore', async (c) => {
   const actor = await staff(c, 'admin');
   if (actor instanceof Response) return actor;
-  const reauth = await needsReauth(c);
-  if (reauth) return reauth;
   const result = await restoreMember(c.env.DB_IDENTITY, actor, c.req.param('id'), Date.now());
   return memberPage(c, actor, c.req.param('id'), RESULT_TEXT[result]);
 });
@@ -192,8 +171,6 @@ adminApp.post('/members/:id/restore', async (c) => {
 adminApp.post('/members/:id/role', async (c) => {
   const actor = await staff(c, 'owner');
   if (actor instanceof Response) return actor;
-  const reauth = await needsReauth(c);
-  if (reauth) return reauth;
   const value = (await readForm(c)).role;
   const role = value === 'admin' || value === 'support' ? value : value === 'none' ? null : undefined;
   if (role === undefined) return memberPage(c, actor, c.req.param('id'), '請選擇角色。');
@@ -204,8 +181,6 @@ adminApp.post('/members/:id/role', async (c) => {
 adminApp.post('/members/:id/battery', async (c) => {
   const actor = await staff(c, 'admin');
   if (actor instanceof Response) return actor;
-  const reauth = await needsReauth(c);
-  if (reauth) return reauth;
   const userId = c.req.param('id');
   if (userId === actor.userId) return memberPage(c, actor, userId, '不能調整自己的 Battery。');
   const exists = await c.env.DB_IDENTITY.prepare('SELECT 1 AS ok FROM users WHERE user_id = ?').bind(userId).first();
@@ -276,8 +251,6 @@ adminApp.get('/battery', async (c) => {
 adminApp.post('/battery/policy', async (c) => {
   const actor = await staff(c, 'owner');
   if (actor instanceof Response) return actor;
-  const reauth = await needsReauth(c);
-  if (reauth) return reauth;
   const form = await readForm(c);
   const now = Date.now();
   const ok = await setPolicy(c.env.DB_BATTERY, { monthlyAllowance: Number(form.allowance), defaultTimeoutMs: Number(form.timeout) * 1000, actorUserId: actor.userId }, now);
@@ -289,8 +262,6 @@ adminApp.post('/battery/policy', async (c) => {
 adminApp.post('/battery/tasks', async (c) => {
   const actor = await staff(c, 'owner');
   if (actor instanceof Response) return actor;
-  const reauth = await needsReauth(c);
-  if (reauth) return reauth;
   const form = await readForm(c);
   const appId = form.app_id ?? '';
   if (!appRegistry.has(appId) || appId === WEB_APP_ID) return batteryPage(c, actor, '請選擇 App。');
@@ -528,8 +499,6 @@ adminApp.get('/apps/new', async (c) => {
 adminApp.post('/apps/new', async (c) => {
   const actor = await staff(c, 'owner');
   if (actor instanceof Response) return actor;
-  const reauth = await needsReauth(c);
-  if (reauth) return reauth;
   const form = (await readForm(c)) as AppForm;
   const built = definitionFromForm(form, { defaults: true });
   if (!built.ok) return appForm(c, 'create', form, built.error);
@@ -549,8 +518,6 @@ adminApp.get('/apps/:id/edit', async (c) => {
 adminApp.post('/apps/:id/edit', async (c) => {
   const actor = await staff(c, 'owner');
   if (actor instanceof Response) return actor;
-  const reauth = await needsReauth(c);
-  if (reauth) return reauth;
   const form = { ...((await readForm(c)) as AppForm), app_id: c.req.param('id') };
   const built = definitionFromForm(form);
   if (!built.ok) return appForm(c, 'update', form, built.error);
@@ -562,19 +529,40 @@ adminApp.post('/apps/:id/edit', async (c) => {
 async function handoffPage(c: WebContext, role: Role, app: AppEntry, notice: string, serviceKey?: string): Promise<Response> {
   const hasKey = serviceKey !== undefined || (await hasAppBatteryKey(c.env.DB_BATTERY, app.app_id));
   const text = buildHandoff(app, new URL(c.req.url).origin, { battery: hasKey });
+  const regenerate =
+    role === 'owner'
+      ? html`<form method="post" action="/admin/apps/${app.app_id}/battery-key" class="inline"><button type="submit">${hasKey ? '重新產生 Battery 服務金鑰' : '開通 Battery'}</button></form>`
+      : '';
+  const nonce = c.get('cspNonce');
   return c.html(
     adminPage(
       c,
       '串接指令',
       html`<h1>${app.name} 的串接指令</h1>
 ${notice ? html`<div class="banner">${notice}</div>` : ''}
-${serviceKey ? html`<div class="card"><p><strong>Battery 服務金鑰（只顯示這一次，請現在複製保存）</strong></p>
-<textarea readonly rows="2" style="width:100%;font-family:monospace" onclick="this.select()">${serviceKey}</textarea>
-<p class="muted">只放進這款 App 後端的 Secret（名稱 STARRY_BATTERY_KEY）。不要貼進 App、Git 或公開的地方；遺失或外洩就按下面的「重新產生」，舊金鑰會立刻失效。</p></div>` : ''}
-<p class="muted">下面整段複製後貼給負責開發這款 App 的 AI。內容只有已登記的公開資料，沒有任何秘密；服務金鑰請另外提供給它。</p>
-<textarea readonly rows="30" style="width:100%;font-family:monospace" onclick="this.select()">${text}</textarea>
-${role === 'owner' ? html`<form method="post" action="/admin/apps/${app.app_id}/battery-key" class="card"><button type="submit">${hasKey ? '重新產生 Battery 服務金鑰' : '開通 Battery'}</button></form>` : ''}
+<div class="card"><p><strong>Battery 服務金鑰</strong></p>
+${serviceKey
+  ? html`<p class="muted">只顯示這一次，請現在複製保存。只放進這款 App 後端的 Secret（名稱 STARRY_BATTERY_KEY），不要貼進 App、Git 或公開的地方。遺失或外洩就重新產生，舊金鑰立即失效。</p>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input id="battery-key" readonly value="${serviceKey}" style="flex:1;min-width:220px;font-family:monospace"><button type="button" data-copy="battery-key">複製金鑰</button>${regenerate}</div>`
+  : html`<p class="muted">${hasKey ? '已開通；金鑰只在建立或重新產生時顯示一次。' : '尚未開通。'}</p><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${regenerate}</div>`}
+</div>
+<div class="card"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:space-between"><strong>給開發 AI 的串接指令</strong><button type="button" data-copy="handoff-text">複製給AI指令</button></div>
+<p class="muted">整段貼給負責開發這款 App 的 AI。內容只有已登記的公開資料，沒有任何秘密；服務金鑰請依上面的方式另外處理。</p>
+<textarea id="handoff-text" readonly rows="24" style="width:100%;font-family:monospace">${text}</textarea></div>
 <p><a href="/admin/apps">回到 App 清單</a></p>`,
+      html`<script nonce="${nonce}">
+document.querySelectorAll('[data-copy]').forEach(function (button) {
+  button.addEventListener('click', function () {
+    var field = document.getElementById(button.getAttribute('data-copy'));
+    var label = button.textContent;
+    var done = function () { button.textContent = '已複製'; setTimeout(function () { button.textContent = label; }, 1500); };
+    field.select();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(field.value).then(done, function () { document.execCommand('copy'); done(); });
+    } else { document.execCommand('copy'); done(); }
+  });
+});
+</script>`,
     ),
   );
 }
@@ -600,16 +588,12 @@ adminApp.get('/apps/:id/handoff', async (c) => {
 adminApp.post('/apps/:id/battery-key', async (c) => {
   const actor = await staff(c, 'owner');
   if (actor instanceof Response) return actor;
-  const reauth = await needsReauth(c);
-  if (reauth) return reauth;
   return enableBatteryAndShow(c, actor, c.req.param('id'), 'Battery 已開通，服務金鑰已更新（舊金鑰立即失效）。');
 });
 
 adminApp.post('/apps/:id/status', async (c) => {
   const actor = await staff(c, 'admin');
   if (actor instanceof Response) return actor;
-  const reauth = await needsReauth(c);
-  if (reauth) return reauth;
   const appId = c.req.param('id');
   if (!appRegistry.has(appId)) return appsPage(c, '找不到此 App。');
   const form = await readForm(c);

@@ -12,7 +12,7 @@
 - `config/apps.json` 仍是既有 App 的來源，app_id 衝突時它優先；`account` 保留給帳號中心，不能被登記。
 - Worker 以全域 middleware 每個 isolate 最多每 30 秒重新載入一次後台登記的 App（與 App 狀態 kill switch 同一個時間窗），排程工作開始時也會載入。載入失敗或單列資料不合格時略過，不影響 `config/apps.json` 的 App。
 - `appRegistry` 改為同時涵蓋兩個來源的唯讀檢視，呼叫端不需要改成非同步。CORS 允許來源也由此即時計算。
-- 登記頁面（`/admin/apps/new`、`/admin/apps/:id/edit`）限 Owner、需 10 分鐘內登入、寫入稽核紀錄（`admin.app_registered`／`admin.app_updated`）。串接指令頁 `/admin/apps/:id/handoff` 限 Admin 以上。
+- 登記頁面（`/admin/apps/new`、`/admin/apps/:id/edit`）限 Owner、寫入稽核紀錄（2026-11-07 業主決定：Admin Lite 不再要求 10 分鐘內重新登入）（`admin.app_registered`／`admin.app_updated`）。串接指令頁 `/admin/apps/:id/handoff` 限 Admin 以上。
 - 新 App 預設接受帳號中心的 Apple Services ID 與 Google 網頁用戶端，所以 iOS、Android、網頁三個平台都走 Starry 登入中繼（2026-11-06 業主決定），不必再向 Apple、Google 登記任何東西。
 - 串接指令只含公開資料，不含任何金鑰；它要求開發 AI 在 starry-phd 組織以 app_id 建立 Repo 與 Worker，並把需要業主的事項列出回報。
 
