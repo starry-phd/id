@@ -459,6 +459,11 @@ accountApp.post('/link', async (c) => {
     );
     if (pending) await pending;
   }
+  if (outcome === 'linked' && identity.picture && c.env.AVATARS) {
+    // A member without an avatar (for example one who registered with Apple) gets the Google photo once Google is linked.
+    const photo = background(c, importProviderAvatar(db, r2Store(c.env.AVATARS), (url, init) => fetch(url, init), { userId: web.userId, url: identity.picture, appId: WEB_APP_ID, requestId }, now));
+    if (photo) await photo;
+  }
   return c.json({ ok: true, result: outcome });
 });
 
