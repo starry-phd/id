@@ -1,6 +1,7 @@
 import { auditStatement } from '../lib/audit';
 import { processQueuedObjectDeletions, type ObjectStore } from '../support/attachments';
 import { purgeOldTickets } from '../support/tickets';
+import { enqueueCleanup } from './cleanup-jobs';
 import { processAppleRevocations, type AppleSecrets, type FetchLike } from './apple';
 import { purgeExpiredDeletions } from './lifecycle';
 
@@ -40,8 +41,24 @@ export interface MaintenanceReport {
 export async function runDailyMaintenance(deps: MaintenanceDeps, now: number): Promise<MaintenanceReport> {
   const { db } = deps;
   const purge = await purgeExpiredDeletions(db, now);
-  if (purge.avatarKeys.length > 0 && deps.deleteObjects) await deps.deleteObjects(purge.avatarKeys);
-  if (purge.purgedUserIds.length > 0 && deps.onPurged) await deps.onPurged(purge.purgedUserIds);
+  // A failed clean-up goes to the retry queue instead of stopping the run (nothing may be left behind).
+  if (purge.avatarKeys.length > 0 && deps.deleteObjects) {
+    try {
+      await deps.deleteObjects(purge.avatarKeys);
+    } catch {
+      for (const key of purge.avatarKeys) await enqueueCleanup(db, 'avatar', 'purged', key, now);
+    }
+  }
+  if (purge.purgedUserIds.length > 0 && deps.onPurged) {
+    try {
+      await deps.onPurged(purge.purgedUserIds);
+    } catch {
+      for (const userId of purge.purgedUserIds) {
+        await enqueueCleanup(db, 'billing', userId, null, now);
+        await enqueueCleanup(db, 'battery', userId, null, now);
+      }
+    }
+  }
   const apple = await processAppleRevocations(db, deps.secrets, deps.fetch, now);
   const [nonces, sessions, audit] = await db.batch([
     db.prepare('DELETE FROM auth_nonces WHERE expires_at < ?').bind(now - DAY_MS),

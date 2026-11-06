@@ -1,5 +1,6 @@
 import type { Context, MiddlewareHandler } from 'hono';
 import type { AppBindings } from '../env';
+import { sha256Hex } from './crypto';
 import { errorBody } from './errors';
 
 /** Minimal shape of the Workers Rate Limiting binding (wrangler.jsonc "ratelimits"). */
@@ -7,7 +8,7 @@ export interface RateLimiter {
   limit(options: { key: string }): Promise<{ success: boolean }>;
 }
 
-export type LimiterName = 'RL_AUTH' | 'RL_API' | 'RL_WEB';
+export type LimiterName = 'RL_AUTH' | 'RL_API' | 'RL_WEB' | 'RL_APP';
 
 export function clientIp(c: Context<AppBindings>): string {
   return c.req.header('cf-connecting-ip') ?? 'unknown';
@@ -40,3 +41,18 @@ export function limitByIp(name: LimiterName): MiddlewareHandler<AppBindings> {
     await next();
   };
 }
+
+/**
+ * /v1 limit. App backends share the IP addresses of Cloudflare's network, so a request that carries a service key
+ * (x-starry-app-key) is counted per key in its own, larger bucket (RL_APP); every other request is counted per IP (RL_API).
+ * Service keys are long random values, so guessing one by trying many is not possible.
+ */
+export const limitApi: MiddlewareHandler<AppBindings> = async (c, next) => {
+  const key = c.req.header('x-starry-app-key');
+  if (key && key.length >= 16 && key.length <= 256) {
+    if (!(await withinLimit(c, 'RL_APP', `key:${(await sha256Hex(key)).slice(0, 24)}`))) return tooManyRequests(c);
+  } else if (!(await withinLimit(c, 'RL_API', `ip:${clientIp(c)}`))) {
+    return tooManyRequests(c);
+  }
+  await next();
+};

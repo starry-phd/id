@@ -15,7 +15,7 @@ import type { AppBindings } from './env';
 import { errorBody, type ErrorCode } from './lib/errors';
 import { apiCors } from './lib/cors';
 import { reportError } from './lib/error-report';
-import { limitByIp } from './lib/rate-limit';
+import { limitApi, limitByIp } from './lib/rate-limit';
 import { meRoutes } from './me/routes';
 import { accountApp, publicPages } from './web/account';
 import { loginRelay } from './web/login-relay';
@@ -106,7 +106,7 @@ app.openapi(jwksRoute, async (c) => {
 });
 
 app.use('/v1/*', apiCors);
-app.use('/v1/*', limitByIp('RL_API'));
+app.use('/v1/*', limitApi);
 app.use('/v1/auth/*', limitByIp('RL_AUTH'));
 app.use('/account/session', limitByIp('RL_WEB'));
 app.use('/account/link', limitByIp('RL_WEB'));
