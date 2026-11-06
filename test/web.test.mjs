@@ -322,6 +322,7 @@ describe('web account center, support form and Admin Lite', () => {
     assert.equal(preflight.headers.get('access-control-allow-origin'), 'https://clock.starry.phd');
     const handoff = await (await worker.call('/admin/apps/clock/handoff', get(ownerCookie))).text();
     assert.ok(handoff.includes('phd.starry.clock') && handoff.includes('/v1/apps/clock/config'));
+    assert.ok(handoff.includes('給 AI 的') && handoff.includes('給你自己的') && handoff.includes('不含金鑰'), 'the page separates what the AI gets from what only the owner keeps');
     assert.equal((await worker.call('/admin/apps/new', form(fields, ownerCookie))).status, 400, 'duplicate app_id');
     assert.equal((await worker.call('/admin/apps/new', form({ ...fields, app_id: 'echo' }, ownerCookie))).status, 400, 'shipped app_id');
     const withBattery = await worker.call('/admin/apps/new', form({ app_id: 'clock-b', name: '最少欄位' }, ownerCookie));
