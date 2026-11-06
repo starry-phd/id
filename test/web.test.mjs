@@ -303,6 +303,33 @@ describe('web account center, support form and Admin Lite', () => {
     assert.equal((await (await worker.call('/v1/apps/echo/config')).json()).status, 'active');
   });
 
+  test('the Owner registers a new App in Admin Lite and gets an instruction for the developer AI', async () => {
+    const ownerCookie = await webSignIn('app-registrar');
+    const ownerId = await userIdOf('app-registrar');
+    await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'owner', ?)").bind(ownerId, Date.now()).run();
+    assert.equal((await worker.call('/v1/apps/clock/config')).status, 404, 'not registered yet');
+    const fields = { app_id: 'clock', name: '繁星時鐘', ios_bundle_id: 'phd.starry.clock', android_package: 'phd.starry.clock', web_origins: 'https://clock.starry.phd' };
+    const bad = await worker.call('/admin/apps/new', form({ ...fields, web_origins: 'http://clock.example' }, ownerCookie));
+    assert.equal(bad.status, 400);
+    const created = await worker.call('/admin/apps/new', form(fields, ownerCookie));
+    assert.equal(created.status, 303);
+    assert.equal(created.headers.get('location'), '/admin/apps/clock/handoff?created=1');
+    const config = await worker.call('/v1/apps/clock/config');
+    assert.equal(config.status, 200);
+    assert.equal((await config.json()).status, 'active');
+    const preflight = await worker.call('/v1/apps/clock/config', { method: 'OPTIONS', headers: { origin: 'https://clock.starry.phd', 'access-control-request-method': 'GET' } });
+    assert.equal(preflight.headers.get('access-control-allow-origin'), 'https://clock.starry.phd');
+    const handoff = await (await worker.call('/admin/apps/clock/handoff', get(ownerCookie))).text();
+    assert.ok(handoff.includes('phd.starry.clock') && handoff.includes('/v1/apps/clock/config'));
+    assert.equal((await worker.call('/admin/apps/new', form(fields, ownerCookie))).status, 400, 'duplicate app_id');
+    assert.equal((await worker.call('/admin/apps/new', form({ ...fields, app_id: 'echo' }, ownerCookie))).status, 400, 'shipped app_id');
+    const staffCookie = await webSignIn('app-staff');
+    await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(await userIdOf('app-staff'), Date.now()).run();
+    assert.equal((await worker.call('/admin/apps/new', form({ ...fields, app_id: 'clock-2' }, staffCookie))).status, 403, 'only the Owner registers Apps');
+    await worker.db.prepare('DELETE FROM registered_apps').run();
+    await worker.db.prepare('DELETE FROM user_roles WHERE user_id = ?').bind(ownerId).run();
+  });
+
   test('owner claim works once with the configured passphrase', async () => {
     const cookie = await webSignIn('future-owner');
     assert.equal((await worker.call('/account/claim-owner', form({ code: 'wrong-passphrase' }, cookie))).status, 403);

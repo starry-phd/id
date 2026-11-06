@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { html } from 'hono/html';
-import { appRegistry, type AppStatus } from '../apps/registry';
+import { definitionFromForm, listRegisteredAppIds, saveRegisteredApp, type AppForm } from '../apps/dynamic';
+import { buildHandoff } from '../apps/handoff';
+import { appRegistry, getApp, type AppEntry, type AppStatus } from '../apps/registry';
 import { listAppStatusOverrides, setAppStatusOverride } from '../apps/status';
 import { background } from '../auth/routes';
 import { adjustAllowance, getBalance, getPolicy, listTaskTypes, setPolicy, staffLedger, upsertTaskType } from '../battery/battery';
@@ -60,7 +62,7 @@ async function needsReauth(c: WebContext): Promise<Response | null> {
   );
 }
 
-const nav = html`<p><a href="/admin/members">會員</a>&emsp;<a href="/admin/tickets">客服單</a>&emsp;<a href="/admin/battery">Battery</a>&emsp;<a href="/admin/apps">App 狀態</a>&emsp;<a href="/admin/audit">稽核紀錄</a></p>`;
+const nav = html`<p><a href="/admin/members">會員</a>&emsp;<a href="/admin/tickets">客服單</a>&emsp;<a href="/admin/battery">Battery</a>&emsp;<a href="/admin/apps">App</a>&emsp;<a href="/admin/audit">稽核紀錄</a></p>`;
 
 function adminPage(c: WebContext, title: string, body: Html): Html {
   return page(c, title, html`${nav}${body}`, { admin: true });
@@ -438,17 +440,21 @@ adminApp.post('/tickets/:id/status', async (c) => {
 
 async function appsPage(c: WebContext, message?: string): Promise<Response> {
   const overrides = await listAppStatusOverrides(c.env.DB_IDENTITY);
+  const registered = await listRegisteredAppIds(c.env.DB_IDENTITY);
   return c.html(
     adminPage(
       c,
-      'App 狀態',
-      html`<h1>App 狀態</h1>
+      'App',
+      html`<h1>App</h1>
 ${message ? html`<div class="banner">${message}</div>` : ''}
-<p class="muted">預設值來自 Repo 的 config/apps.json；在這裡設定的狀態會覆蓋預設值，30 秒內生效。paused：App 顯示維護中；killed：停用此 App 的登入與服務，不影響其他 App。</p>
-${[...appRegistry.values()].map((app) => {
+<p><a class="button" href="/admin/apps/new">新增 App</a></p>
+<p class="muted">新增的 App 存在資料庫，不必改程式碼，30 秒內生效。Repo 的 config/apps.json 是既有 App 的預設值；在這裡設定的狀態會覆蓋預設值。paused：App 顯示維護中；killed：停用此 App 的登入與服務，不影響其他 App。</p>
+${appRegistry.values().filter((app) => app.app_id !== WEB_APP_ID).map((app) => {
   const o = overrides.get(app.app_id);
+  const own = registered.has(app.app_id);
   return html`<form method="post" action="/admin/apps/${app.app_id}/status" class="card">
-<p><strong>${app.name}</strong> <code>${app.app_id}</code><br>預設：${app.status}｜目前：<strong>${o?.status ?? app.status}</strong>${o?.reason ? html`（${o.reason}）` : ''}</p>
+<p><strong>${app.name}</strong> <code>${app.app_id}</code>（${own ? '後台登記' : 'config/apps.json'}）<br>預設：${app.status}｜目前：<strong>${o?.status ?? app.status}</strong>${o?.reason ? html`（${o.reason}）` : ''}</p>
+<p><a href="/admin/apps/${app.app_id}/handoff">給開發 AI 的串接指令</a>${own ? html`&emsp;<a href="/admin/apps/${app.app_id}/edit">編輯登記資料</a>` : ''}</p>
 <label>新狀態</label><select name="status"><option value="default">使用預設</option><option value="active">active</option><option value="paused">paused</option><option value="killed">killed</option></select>
 <label>原因（最多 200 字）</label><input name="reason" maxlength="200">
 <button type="submit">更新</button></form>`;
@@ -457,10 +463,113 @@ ${[...appRegistry.values()].map((app) => {
   );
 }
 
+function appForm(c: WebContext, mode: 'create' | 'update', values: AppForm, message?: string): Response | Promise<Response> {
+  const create = mode === 'create';
+  return c.html(
+    adminPage(
+      c,
+      create ? '新增 App' : '編輯 App',
+      html`<h1>${create ? '新增 App' : `編輯 ${values.app_id ?? ''}`}</h1>
+${message ? html`<div class="banner danger">${message}</div>` : ''}
+<p class="muted">登入預設走 Starry 登入中繼：帳號中心的 Apple Services ID 與 Google 網頁用戶端會自動加進這款 App，網頁版與 Android 不必再到 Apple、Google 後台登記。原生 iOS 的 Google 登入另外有 iOS 用戶端時，填在最下面的欄位。</p>
+<form method="post" action="${create ? '/admin/apps/new' : `/admin/apps/${values.app_id ?? ''}/edit`}" class="card">
+<label for="app_id">app_id（小寫英文、數字、連字號，2～32 字，建立後不能改）</label><input id="app_id" name="app_id" value="${values.app_id ?? ''}" pattern="[a-z][a-z0-9-]{1,31}" required ${create ? '' : 'readonly'}>
+<label for="name">名稱</label><input id="name" name="name" value="${values.name ?? ''}" maxlength="80" required>
+<label for="ios_bundle_id">iOS Bundle ID（沒有就留空）</label><input id="ios_bundle_id" name="ios_bundle_id" value="${values.ios_bundle_id ?? ''}" placeholder="phd.starry.example">
+<label for="android_package">Android package（沒有就留空）</label><input id="android_package" name="android_package" value="${values.android_package ?? ''}" placeholder="phd.starry.example">
+<label for="scheme">App 深層連結 scheme（留空則用 app_id 去掉連字號）</label><input id="scheme" name="scheme" value="${values.scheme ?? ''}" placeholder="example">
+<label for="web_origins">網頁版來源（每行一個，例如 https://example.starry.phd；沒有網頁版就留空）</label><textarea id="web_origins" name="web_origins" rows="3">${values.web_origins ?? ''}</textarea>
+<label for="return_urls">額外的深層連結回傳網址（每行一個；留空則自動產生 scheme://auth/apple 與 scheme://auth/google）</label><textarea id="return_urls" name="return_urls" rows="2">${values.return_urls ?? ''}</textarea>
+<label for="min_version">最低版本（例如 1.0.0，預設 0.0.0）</label><input id="min_version" name="min_version" value="${values.min_version ?? ''}" pattern="\d+\.\d+\.\d+">
+<label for="extra_apple_audiences">額外的 Apple 登入對象（每行一個，進階，通常留空）</label><textarea id="extra_apple_audiences" name="extra_apple_audiences" rows="2">${values.extra_apple_audiences ?? ''}</textarea>
+<label for="extra_google_audiences">額外的 Google 用戶端 ID（每行一個，例如 iOS 用戶端，進階，通常留空）</label><textarea id="extra_google_audiences" name="extra_google_audiences" rows="2">${values.extra_google_audiences ?? ''}</textarea>
+<button type="submit">${create ? '建立並產生串接指令' : '儲存'}</button></form>`,
+    ),
+    message ? 400 : 200,
+  );
+}
+
+function formFromEntry(app: AppEntry): AppForm {
+  const shared = getApp(WEB_APP_ID);
+  const sharedApple = new Set([...(shared?.auth.apple ?? []), ...(app.ios_bundle_id ? [app.ios_bundle_id] : [])]);
+  const sharedGoogle = new Set(shared?.auth.google ?? []);
+  return {
+    app_id: app.app_id,
+    name: app.name,
+    ios_bundle_id: app.ios_bundle_id ?? '',
+    android_package: app.android_package ?? '',
+    web_origins: app.web_origins.join('\n'),
+    return_urls: app.return_urls.join('\n'),
+    min_version: app.min_version,
+    extra_apple_audiences: app.auth.apple.filter((a) => !sharedApple.has(a)).join('\n'),
+    extra_google_audiences: app.auth.google.filter((a) => !sharedGoogle.has(a)).join('\n'),
+  };
+}
+
 adminApp.get('/apps', async (c) => {
   const actor = await staff(c, 'support');
   if (actor instanceof Response) return actor;
   return appsPage(c);
+});
+
+adminApp.get('/apps/new', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  return appForm(c, 'create', {});
+});
+
+adminApp.post('/apps/new', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const reauth = await needsReauth(c);
+  if (reauth) return reauth;
+  const form = (await readForm(c)) as AppForm;
+  const built = definitionFromForm(form);
+  if (!built.ok) return appForm(c, 'create', form, built.error);
+  const result = await saveRegisteredApp(c.env.DB_IDENTITY, actor, built.app, 'create', Date.now());
+  if (result === 'reserved' || result === 'exists') return appForm(c, 'create', form, '這個 app_id 已被使用，請換一個。');
+  return c.redirect(`/admin/apps/${built.app.app_id}/handoff?created=1`, 303);
+});
+
+adminApp.get('/apps/:id/edit', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const app = getApp(c.req.param('id'));
+  if (!app || app.app_id === WEB_APP_ID || !(await listRegisteredAppIds(c.env.DB_IDENTITY)).has(app.app_id)) return appsPage(c, '只有在後台登記的 App 可以編輯；config/apps.json 的 App 請由 Claude 修改。');
+  return appForm(c, 'update', formFromEntry(app));
+});
+
+adminApp.post('/apps/:id/edit', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const reauth = await needsReauth(c);
+  if (reauth) return reauth;
+  const form = { ...((await readForm(c)) as AppForm), app_id: c.req.param('id') };
+  const built = definitionFromForm(form);
+  if (!built.ok) return appForm(c, 'update', form, built.error);
+  const result = await saveRegisteredApp(c.env.DB_IDENTITY, actor, built.app, 'update', Date.now());
+  if (result !== 'updated') return appsPage(c, '找不到這個後台登記的 App。');
+  return c.redirect(`/admin/apps/${built.app.app_id}/handoff?updated=1`, 303);
+});
+
+adminApp.get('/apps/:id/handoff', async (c) => {
+  const actor = await staff(c, 'admin');
+  if (actor instanceof Response) return actor;
+  const app = getApp(c.req.param('id'));
+  if (!app || app.app_id === WEB_APP_ID) return appsPage(c, '找不到此 App。');
+  const text = buildHandoff(app, new URL(c.req.url).origin);
+  const notice = c.req.query('created') ? '已建立，30 秒內生效。' : c.req.query('updated') ? '已儲存。' : '';
+  return c.html(
+    adminPage(
+      c,
+      '串接指令',
+      html`<h1>${app.name} 的串接指令</h1>
+${notice ? html`<div class="banner">${notice}</div>` : ''}
+<p class="muted">整段複製後貼給負責開發這款 App 的 AI。內容只有已登記的公開資料，沒有任何秘密。</p>
+<textarea readonly rows="30" style="width:100%;font-family:monospace" onclick="this.select()">${text}</textarea>
+<p><a href="/admin/apps">回到 App 清單</a></p>`,
+    ),
+  );
 });
 
 adminApp.post('/apps/:id/status', async (c) => {

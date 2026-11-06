@@ -1,4 +1,5 @@
 import { app } from './app';
+import { refreshDynamicApps } from './apps/dynamic';
 import { appRegistry } from './apps/registry';
 import { batteryRetention, forgetBatteryMembers, releaseExpired } from './battery/battery';
 import { reconcileWithRevenueCat } from './billing/reconcile';
@@ -20,6 +21,7 @@ async function minutely(env: Env, now: number): Promise<void> {
 /** Daily: deletion purge, revocations, retention (S-ID-06, S-PLT-06), billing repair and reconciliation (S-BIL-04). */
 async function daily(env: Env, now: number): Promise<void> {
   const fetcher = (url: string, init?: RequestInit) => fetch(url, init);
+  await refreshDynamicApps(env.DB_IDENTITY, now);
   const storeApps = [...appRegistry.keys()].filter((id) => id !== WEB_APP_ID);
   const avatars = env.AVATARS;
   const supportFiles = env.SUPPORT_FILES;
