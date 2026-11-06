@@ -4,6 +4,7 @@ import { secureHeaders } from 'hono/secure-headers';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { DOCUMENT_CONFIG, errorResponses, json } from './api/openapi';
 import { avatarRoutes } from './apps/avatar-route';
+import { directoryRoutes } from './apps/directory';
 import { refreshDynamicApps } from './apps/dynamic';
 import { appRoutes } from './apps/routes';
 import { loadSigningKey } from './auth/access-token';
@@ -115,6 +116,7 @@ app.use('/auth/*', limitByIp('RL_WEB'));
 
 app.route('/v1/apps', appRoutes);
 app.route('/v1/avatars', avatarRoutes);
+app.route('/v1/directory', directoryRoutes);
 app.route('/v1/billing', billingRoutes);
 app.route('/v1/auth', authRoutes);
 app.route('/v1/me/battery', myBatteryRoutes);

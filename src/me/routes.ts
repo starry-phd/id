@@ -71,13 +71,13 @@ meRoutes.openapi(meRoute, async (c) => {
   const db = c.env.DB_IDENTITY;
   const [[user, identities, consents], loaded] = await Promise.all([
     db.batch([
-      db.prepare('SELECT user_id, status, created_at, deletion_requested_at FROM users WHERE user_id = ?').bind(userId),
+      db.prepare('SELECT user_id, member_no, status, created_at, deletion_requested_at FROM users WHERE user_id = ?').bind(userId),
       db.prepare('SELECT provider, email, email_is_private_relay FROM auth_identities WHERE user_id = ? ORDER BY provider').bind(userId),
       db.prepare('SELECT document, version FROM consents WHERE user_id = ? AND withdrawn_at IS NULL').bind(userId),
     ]),
     loadProfile(db, userId),
   ]);
-  const u = user?.results[0] as { user_id: string; status: string; created_at: number; deletion_requested_at: number | null } | undefined;
+  const u = user?.results[0] as { user_id: string; member_no: string | null; status: string; created_at: number; deletion_requested_at: number | null } | undefined;
   if (!u || !loaded) return fail(c, 404, 'NOT_FOUND', 'Member not found');
   const p = loaded.row;
   const accepted = (consents?.results ?? []) as { document: string; version: string }[];
@@ -86,6 +86,7 @@ meRoutes.openapi(meRoute, async (c) => {
   return c.json(
     {
       user_id: u.user_id,
+      member_no: u.member_no,
       status: u.status,
       created_at: u.created_at,
       deletion_requested_at: u.deletion_requested_at,

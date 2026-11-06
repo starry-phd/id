@@ -178,6 +178,7 @@ async function signIn(c: Ctx, provider: Provider, body: z.infer<typeof SignInReq
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(sessionId, member.user_id, app.app_id, refresh.hash, member.session_version, deviceLabel, now, now, now + REFRESH_TTL_MS),
+    db.prepare('INSERT OR IGNORE INTO member_apps (user_id, app_id, first_seen_at) VALUES (?, ?, ?)').bind(member.user_id, app.app_id, now),
     auditStatement(db, { actorType: 'user', actorUserId: member.user_id, action: `auth.login.${provider}`, targetType: 'session', targetId: sessionId, appId: app.app_id, result: 'success', requestId, retention: 'security' }, now),
   ]);
   if (isNew && identity.picture && c.env.AVATARS) {

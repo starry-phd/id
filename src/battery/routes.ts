@@ -77,8 +77,8 @@ const reservationJson = (r: Reservation, replayed = false) => ({
 });
 
 // Never valid app_ids (registry ids are lowercase letters, digits and dashes).
-const UNCONFIGURED = '#unconfigured';
-const INVALID = '#invalid';
+export const UNCONFIGURED = '#unconfigured';
+export const INVALID = '#invalid';
 
 type ConflictCode = 'BATTERY_INSUFFICIENT' | 'RESERVATION_EXPIRED' | 'RESERVATION_CLOSED' | 'IDEMPOTENCY_CONFLICT';
 
@@ -94,7 +94,7 @@ function conflictBody(c: Ctx, code: ConflictCode, message: string, extra: { bala
  * The App whose backend is calling, from x-starry-app-key: its app_id, 'unconfigured' or 'invalid'.
  * Keys come from the BATTERY_SERVICE_KEYS secret or from Admin Lite (hashed in battery_app_keys).
  */
-async function callingApp(c: Ctx): Promise<string> {
+export async function callingApp(c: Ctx): Promise<string> {
   const presented = c.req.header('x-starry-app-key');
   const fromSecret = appForServiceKey(perAppSecrets(c.env.BATTERY_SERVICE_KEYS), presented);
   if (fromSecret) return fromSecret;

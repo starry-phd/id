@@ -299,6 +299,12 @@
           "user_id": {
             "type": "string"
           },
+          "member_no": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "status": {
             "type": "string"
           },
@@ -370,6 +376,7 @@
         },
         "required": [
           "user_id",
+          "member_no",
           "status",
           "created_at",
           "deletion_requested_at",
