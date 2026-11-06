@@ -8,9 +8,10 @@ import type { Provider } from '../auth/provider-keys';
 import { background, readProviderRequest, verifyProviderRequest } from '../auth/routes';
 import type { AppBindings } from '../env';
 import { rememberAppleToken } from '../identity/apple';
-import { mailSettings, notifyDeletionRequested } from '../notify/email';
+import { mailSettings } from '../notify/email';
 import { listActiveSessions, logoutEverywhere, revokeOwnSession } from '../identity/devices';
-import { cancelDeletion, DELETION_GRACE_MS, requestDeletion } from '../identity/lifecycle';
+import { cleanupAfterDeletion } from '../identity/erase';
+import { cancelDeletion, DELETION_GRACE_MS, deleteMemberNow } from '../identity/lifecycle';
 import { linkIdentity, type LinkResult } from '../identity/link';
 import { completeMerge, findMergeCandidate, type MergeBlocker } from '../identity/merge';
 import { acceptConsents, consentRequired, findOrCreateMember, PROFILE_SQL, type ProfileRow } from '../identity/members';
@@ -342,7 +343,7 @@ ${battery && batteryActivity
 </div>`
   : ''}
 ${role && hasRole(role, 'support') ? html`<p><a class="button" href="/admin">進入 Admin Lite</a></p>` : ''}
-${pending ? '' : html`<h2>刪除帳號</h2><p class="muted">刪除後 7 天內可撤回，期滿永久清除個人資料。</p><a href="/account/delete">申請刪除帳號</a>`}`;
+${pending ? '' : html`<h2>刪除帳號</h2><p class="muted">確認後立即永久刪除，無法復原。</p><a href="/account/delete">申請刪除帳號</a>`}`;
   return c.html(page(c, '我的帳號', body));
 });
 
@@ -805,13 +806,13 @@ accountApp.get('/delete', (c) => {
       html`<h1>刪除 Starry 帳號</h1>
 <div class="card">
   <ul>
-    <li>帳號會立即停用，所有繁星 App 與裝置都會登出。</li>
-    <li>7 天內用同一個 Apple 或 Google 帳號登入，可以撤回刪除。</li>
-    <li>7 天後永久刪除個人資料、頭像、登入方式與客服紀錄，無法復原。</li>
+    <li>按下刪除後，帳號<strong>立即永久刪除</strong>，所有繁星 App 與裝置都會登出。</li>
+    <li>個人資料、頭像、登入方式、客服紀錄與 Battery 都會一併刪除，<strong>無法復原</strong>。</li>
+    <li>你的會員編號不會再發給任何人。</li>
     <li>刪除帳號不會自動取消 App Store 或 Google Play 的訂閱，請先到商店取消。</li>
   </ul>
   <form method="post" action="/account/delete">
-    <label><input type="checkbox" name="confirm" value="yes" required style="width:auto"> 我了解並要刪除帳號</label>
+    <label for="confirm">請輸入大寫英文 DELETE 以確認</label><input id="confirm" name="confirm" autocomplete="off" required>
     <button class="danger" type="submit">刪除帳號</button> <a href="/account">取消</a>
   </form>
 </div>`,
@@ -823,20 +824,20 @@ accountApp.post('/delete', async (c) => {
   const web = c.get('web');
   if (!web || web.status !== 'active') return c.redirect('/account', 303);
   const form = await readForm(c);
-  if (form.confirm !== 'yes') return c.redirect('/account/delete', 303);
-  const result = await requestDeletion(c.env.DB_IDENTITY, { userId: web.userId, appId: WEB_APP_ID, requestId: c.get('requestId') }, Date.now());
+  if (form.confirm?.trim() !== 'DELETE') return c.redirect('/account/delete', 303);
+  const now = Date.now();
+  const result = await deleteMemberNow(c.env.DB_IDENTITY, { userId: web.userId, appId: WEB_APP_ID, requestId: c.get('requestId') }, now);
   deleteCookie(c, SESSION_COOKIE, { prefix: 'host', path: '/', secure: true });
   c.set('web', null);
   if (!result.ok) return c.redirect('/account', 303);
-  const pending = background(c, notifyDeletionRequested(c.env.DB_IDENTITY, mailSettings(c.env, new URL(c.req.url).origin), web.userId, result.purgeAt));
-  if (pending) await pending;
+  await cleanupAfterDeletion(c.env, web.userId, result.avatarKey, now);
   return c.html(
     page(
       c,
-      '已收到刪除申請',
-      html`<h1>已收到刪除申請</h1>
-<div class="card"><p>帳號已停用，並將於 <strong>${formatTime(result.purgeAt)}</strong> 永久刪除。</p>
-<p>如果改變心意，請在此之前回到<a href="/account">帳號中心</a>或任一繁星 App 重新登入並撤回。</p></div>`,
+      '帳號已刪除',
+      html`<h1>帳號已刪除</h1>
+<div class="card"><p>你的 Starry 帳號與資料已永久刪除，所有裝置都已登出。</p>
+<p>如果你有訂閱，請記得到 App Store 或 Google Play 取消。</p></div>`,
     ),
   );
 });

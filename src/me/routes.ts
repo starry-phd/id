@@ -12,7 +12,8 @@ import { activeEntitlements } from '../billing/revenuecat';
 import type { AppBindings } from '../env';
 import { rememberAppleToken } from '../identity/apple';
 import { MAX_AVATAR_BYTES, r2Store, removeAvatar, setAvatar, signedAvatarPath } from '../identity/avatars';
-import { cancelDeletion, DELETION_GRACE_MS, requestDeletion } from '../identity/lifecycle';
+import { cleanupAfterDeletion } from '../identity/erase';
+import { cancelDeletion, DELETION_GRACE_MS, deleteMemberNow } from '../identity/lifecycle';
 import { linkIdentity } from '../identity/link';
 import { completeMerge, findMergeCandidate } from '../identity/merge';
 import { acceptConsents } from '../identity/members';
@@ -20,7 +21,7 @@ import { sendContactEmailVerification } from '../identity/contact-email';
 import { randomMotto } from '../identity/mottos';
 import { derivedOf, effectiveVisibility, hasChanges, loadProfile, publicProfile, saveProfile, validateProfileInput, type FieldUpdate, type ProfileRow } from '../identity/profile';
 import { errorBody } from '../lib/errors';
-import { mailSettings, notifyDeletionRequested } from '../notify/email';
+import { mailSettings } from '../notify/email';
 import { getPreferences, isCategory, isPushToken, registerPushToken, setPreferences, unregisterPushToken } from '../notify/push';
 import type { Context } from 'hono';
 
@@ -237,27 +238,27 @@ const deletionRoute = createRoute({
   method: 'post',
   path: '/deletion',
   tags: ['Account'],
-  summary: 'Delete the account (disabled at once, purged after 7 days unless cancelled)',
+  summary: 'Delete the account at once and permanently',
   security: bearer,
   middleware: [requireAuth] as const,
   request: { body: jsonBody(z.object({ confirm: z.literal(true) })) },
   responses: {
-    202: json(z.object({ status: z.string(), deletion_purge_at: z.number().int() }), 'Deletion scheduled; all sessions ended'),
+    202: json(z.object({ status: z.string(), deletion_purge_at: z.number().int() }), 'Account deleted; all sessions ended'),
     ...errorResponses(400, 401, 403, 409, 415, 429, 503),
   },
 });
 
 /**
- * POST /v1/me/deletion — starts account deletion (S-ID-06). The account is disabled at once;
- * signing in again within 7 days allows cancelling. Requires {"confirm": true}.
+ * POST /v1/me/deletion — deletes the account at once and permanently (S-ID-06, no waiting period since 2026-11-07).
+ * Requires {"confirm": true}.
  */
 meRoutes.openapi(deletionRoute, async (c) => {
   const { userId, appId } = c.get('auth');
-  const result = await requestDeletion(c.env.DB_IDENTITY, { userId, appId, requestId: c.get('requestId') }, Date.now());
+  const now = Date.now();
+  const result = await deleteMemberNow(c.env.DB_IDENTITY, { userId, appId, requestId: c.get('requestId') }, now);
   if (!result.ok) return fail(c, 409, 'CONFLICT', 'The account cannot be deleted in its current state');
-  const pending = background(c, notifyDeletionRequested(c.env.DB_IDENTITY, mailSettings(c.env, new URL(c.req.url).origin), userId, result.purgeAt));
-  if (pending) await pending;
-  return c.json({ status: 'pending_deletion', deletion_purge_at: result.purgeAt }, 202);
+  await cleanupAfterDeletion(c.env, userId, result.avatarKey, now);
+  return c.json({ status: 'deleted', deletion_purge_at: now }, 202);
 });
 
 const cancelDeletionRoute = createRoute({

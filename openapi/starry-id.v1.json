@@ -2565,7 +2565,7 @@
         "tags": [
           "Account"
         ],
-        "summary": "Delete the account (disabled at once, purged after 7 days unless cancelled)",
+        "summary": "Delete the account at once and permanently",
         "security": [
           {
             "bearerAuth": []
@@ -2594,7 +2594,7 @@
         },
         "responses": {
           "202": {
-            "description": "Deletion scheduled; all sessions ended",
+            "description": "Account deleted; all sessions ended",
             "content": {
               "application/json": {
                 "schema": {

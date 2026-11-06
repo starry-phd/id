@@ -9,6 +9,8 @@ import { adjustAllowance, enableAppBattery, getBalance, hasAppBatteryKey, getPol
 import type { AppBindings } from '../env';
 import { listAudit } from '../identity/audit-query';
 import { WEB_APP_ID } from '../identity/web-sessions';
+import { cleanupAfterDeletion } from '../identity/erase';
+import { deleteMemberNow } from '../identity/lifecycle';
 import { findMemberSummary, searchMembers } from '../identity/member-search';
 import { hasRole, restoreMember, revokeAllSessions, roleOf, setStaffRole, suspendMember, type Role, type StaffActor, type StatusChangeResult } from '../identity/roles';
 import { auditStatement } from '../lib/audit';
@@ -235,6 +237,10 @@ ${canModerate && m.status === 'suspended'
   ? html`<h2>復權</h2><form method="post" action="/admin/members/${m.user_id}/restore" class="card"><p>復權後會員需要重新登入。</p><button type="submit">復權</button></form>`
   : ''}
 ${actor.role === 'owner' && m.role !== 'owner' && m.user_id !== actor.userId
+  ? html`<h2>永久刪除會員</h2><form method="post" action="/admin/members/${m.user_id}/delete" class="card"><p>立即永久刪除這位會員的所有資料，無法復原；會員編號不會再發給任何人。</p>
+<label for="confirm">請輸入大寫英文 DELETE 以確認</label><input id="confirm" name="confirm" autocomplete="off" required><button class="danger" type="submit">永久刪除</button></form>`
+  : ''}
+${actor.role === 'owner' && m.role !== 'owner' && m.user_id !== actor.userId
   ? html`<h2>管理角色</h2><form method="post" action="/admin/members/${m.user_id}/role" class="card"><label for="role">角色</label>
 <select id="role" name="role"><option value="none">一般會員</option><option value="support">Support</option><option value="admin">Admin</option></select><button type="submit">更新角色</button></form>`
   : ''}`,
@@ -263,6 +269,21 @@ adminApp.post('/members/:id/signout', async (c) => {
   if (actor instanceof Response) return actor;
   const result = await revokeAllSessions(c.env.DB_IDENTITY, c.env.OWNER_USER_IDS, actor, c.req.param('id'), Date.now());
   return memberPage(c, actor, c.req.param('id'), result === 'ok' ? '已強制登出此會員的所有裝置。' : RESULT_TEXT[result]);
+});
+
+adminApp.post('/members/:id/delete', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const userId = c.req.param('id');
+  const m = await findMemberSummary(c.env.DB_IDENTITY, null, c.env.OWNER_USER_IDS, userId, Date.now());
+  if (!m) return memberPage(c, actor, userId);
+  if (m.user_id === actor.userId || m.role === 'owner') return memberPage(c, actor, userId, RESULT_TEXT.not_allowed);
+  if (((await readForm(c)).confirm ?? '').trim() !== 'DELETE') return memberPage(c, actor, userId, '請輸入大寫英文 DELETE 才能刪除。');
+  const now = Date.now();
+  const result = await deleteMemberNow(c.env.DB_IDENTITY, { userId: m.user_id, appId: null, requestId: actor.requestId, staffId: actor.userId }, now);
+  if (!result.ok) return memberPage(c, actor, userId);
+  await cleanupAfterDeletion(c.env, m.user_id, result.avatarKey, now);
+  return c.html(adminPage(c, '會員已刪除', html`<h1>會員已刪除</h1><div class="banner">已永久刪除會員 <code>${result.memberNo ?? ''}</code>，編號不會再發給任何人。</div><p><a href="/admin/members">回到會員列表</a></p>`));
 });
 
 adminApp.post('/members/:id/restore', async (c) => {
