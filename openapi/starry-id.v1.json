@@ -3795,8 +3795,8 @@
                   "units": {
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 100,
-                    "description": "Battery units to reserve (what the App decided this task costs), at most 100"
+                    "maximum": 100000,
+                    "description": "Battery units to reserve (what the App decided this task costs). The server refuses more than 100 with 400."
                   },
                   "idempotency_key": {
                     "type": "string",
@@ -3959,7 +3959,7 @@
                   "units": {
                     "type": "integer",
                     "minimum": 0,
-                    "maximum": 100
+                    "maximum": 100000
                   }
                 }
               }

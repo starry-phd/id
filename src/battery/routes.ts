@@ -150,7 +150,7 @@ const reserveRoute = createRoute({
       z.object({
         task_type: z.string().min(3).max(64).openapi({ example: 'echo.transcribe', description: 'Starts with "<app_id>."; chosen by the App, no registration needed' }),
         task_label: z.string().min(1).max(40).optional().openapi({ example: '語音轉文字', description: 'Name shown to the member in their Battery history' }),
-        units: z.number().int().min(1).max(100).openapi({ description: 'Battery units to reserve (what the App decided this task costs), at most 100' }),
+        units: z.number().int().min(1).max(100000).openapi({ description: 'Battery units to reserve (what the App decided this task costs). The server refuses more than 100 with 400.' }),
         idempotency_key: z.string().min(8).max(128),
       }),
     ),
@@ -200,7 +200,7 @@ const commitRoute = createRoute({
   request: {
     params: reservationParams,
     headers: z.object({ 'x-starry-app-key': z.string().optional() }),
-    body: { required: false, content: { 'application/json': { schema: z.object({ units: z.number().int().min(0).max(100).optional() }) } } },
+    body: { required: false, content: { 'application/json': { schema: z.object({ units: z.number().int().min(0).max(100000).optional() }) } } },
   },
   responses: {
     200: json(ReservationSchema, 'Committed'),
