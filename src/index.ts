@@ -7,6 +7,7 @@ import { forgetMembers, perAppSecrets, processPendingEvents, processRevenueCatDe
 import type { Env } from './env';
 import { reportError } from './lib/error-report';
 import { runDailyMaintenance } from './identity/maintenance';
+import { assignMissingMemberNumbers } from './identity/member-number';
 import { WEB_APP_ID } from './identity/web-sessions';
 
 /** The every-minute Cron Trigger in wrangler.jsonc; any other schedule is the daily run. */
@@ -14,6 +15,7 @@ const EVERY_MINUTE = '* * * * *';
 
 /** Every minute (S-BAT-03): release Battery reservations whose timeout passed. */
 async function minutely(env: Env, now: number): Promise<void> {
+  await assignMissingMemberNumbers(env.DB_IDENTITY, now).catch(() => 0);
   const released = await releaseExpired(env.DB_BATTERY, now);
   if (released > 0) console.log(JSON.stringify({ level: 'info', event: 'battery.reservations_expired', released }));
 }

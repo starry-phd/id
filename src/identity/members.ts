@@ -1,5 +1,6 @@
 import { auditStatement } from '../lib/audit';
 import { uuidv7 } from '../lib/crypto';
+import { issueMemberNumber } from './member-number';
 import type { VerifiedIdentity } from './link';
 import { PROFILE_SQL, saveProfile, type EditableField, type ProfileRow } from './profile';
 
@@ -28,7 +29,7 @@ export function findMember(db: D1Database, provider: string, subject: string): P
 export async function findOrCreateMember(
   db: D1Database,
   identity: VerifiedIdentity,
-  context: { appId: string; requestId: string | null },
+  context: { appId: string; requestId: string | null; country?: string | null },
   now: number,
 ): Promise<{ member: MemberRow; isNew: boolean }> {
   const existing = await findMember(db, identity.provider, identity.subject);
@@ -53,6 +54,8 @@ export async function findOrCreateMember(
   }
   const member = await findMember(db, identity.provider, identity.subject);
   if (!member) throw new Error('MEMBER_CREATE_FAILED');
+  // Best effort: a failed draw is retried by the maintenance job.
+  if (isNew) await issueMemberNumber(db, member.user_id, context.country, now).catch(() => null);
   return { member, isNew };
 }
 
