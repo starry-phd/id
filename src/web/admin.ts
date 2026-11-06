@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { html } from 'hono/html';
+import { html, raw } from 'hono/html';
 import { definitionFromForm, listRegisteredAppIds, saveRegisteredApp, type AppForm } from '../apps/dynamic';
 import { buildHandoff } from '../apps/handoff';
 import { appRegistry, getApp, type AppEntry, type AppStatus } from '../apps/registry';
@@ -9,7 +9,8 @@ import { adjustAllowance, enableAppBattery, getBalance, hasAppBatteryKey, getPol
 import type { AppBindings } from '../env';
 import { listAudit } from '../identity/audit-query';
 import { WEB_APP_ID } from '../identity/web-sessions';
-import { hasRole, restoreMember, roleOf, searchMembers, setStaffRole, suspendMember, type Role, type StaffActor, type StatusChangeResult } from '../identity/roles';
+import { findMemberSummary, searchMembers } from '../identity/member-search';
+import { hasRole, restoreMember, revokeAllSessions, roleOf, setStaffRole, suspendMember, type Role, type StaffActor, type StatusChangeResult } from '../identity/roles';
 import { auditStatement } from '../lib/audit';
 import { mailSettings, notifyStaffChange } from '../notify/email';
 import { ATTACHMENT_EXTENSIONS, getAttachment, listAttachments } from '../support/attachments';
@@ -70,39 +71,111 @@ adminApp.get('/', async (c) => {
   );
 });
 
+const COPY_SCRIPT = (nonce: string) => html`<script nonce="${nonce}">
+document.querySelectorAll('[data-copy-text]').forEach(function (button) {
+  button.addEventListener('click', function () {
+    var text = button.getAttribute('data-copy-text');
+    var label = button.textContent;
+    var done = function () { button.textContent = '已複製'; setTimeout(function () { button.textContent = label; }, 1500); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () {});
+  });
+});
+</script>`;
+
+const dayStart = (value: string | undefined): number | undefined => {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+  const ms = Date.parse(`${value}T00:00:00+08:00`);
+  return Number.isNaN(ms) ? undefined : ms;
+};
+const wholeNumber = (value: string | undefined): number | undefined => (value && /^\d{1,9}$/.test(value) ? Number(value) : undefined);
+const PROVIDER_LABELS: Record<string, string> = { apple: 'Apple', google: 'Google' };
+const COUNTRY_CODE = /^[A-Za-z]{2}$/;
+
 adminApp.get('/members', async (c) => {
   const actor = await staff(c, 'support');
   if (actor instanceof Response) return actor;
   const q = c.req.query('q') ?? '';
-  const result = await searchMembers(c.env.DB_IDENTITY, c.env.OWNER_USER_IDS, { query: q, cursor: c.req.query('cursor') });
+  const status = c.req.query('status') ?? '';
+  const provider = c.req.query('provider') ?? '';
+  const countryInput = c.req.query('country') ?? '';
+  const country = COUNTRY_CODE.test(countryInput) ? countryInput.toUpperCase() : '';
+  const from = c.req.query('from') ?? '';
+  const to = c.req.query('to') ?? '';
+  const batteryMin = c.req.query('battery_min') ?? '';
+  const batteryMax = c.req.query('battery_max') ?? '';
+  const staffOnly = c.req.query('staff') === '1';
+  const toStart = dayStart(to);
+  const filters = {
+    query: q,
+    status: status || undefined,
+    provider: provider || undefined,
+    country: country || undefined,
+    from: dayStart(from),
+    to: toStart === undefined ? undefined : toStart + 24 * 60 * 60 * 1000,
+    staffOnly,
+    batteryMin: wholeNumber(batteryMin),
+    batteryMax: wholeNumber(batteryMax),
+  };
+  const now = Date.now();
+  const result = await searchMembers(c.env.DB_IDENTITY, c.env.DB_BATTERY, c.env.OWNER_USER_IDS, { ...filters, cursor: c.req.query('cursor') }, now);
+  const params = { q, status, provider, country, from, to, battery_min: batteryMin, battery_max: batteryMax, ...(staffOnly ? { staff: '1' } : {}) };
+  const next = result.nextCursor ? `/admin/members?${new URLSearchParams({ ...Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '')), cursor: result.nextCursor }).toString()}` : null;
+  const option = (value: string, label: string, current: string) => html`<option value="${value}"${value === current ? raw(' selected') : ''}>${label}</option>`;
   return c.html(
     adminPage(
       c,
       '會員',
       html`<h1>會員</h1>
-<form method="get" action="/admin/members" class="card"><label for="q">以會員編號或完整 Email 查詢</label><input id="q" name="q" value="${q}"><button type="submit">查詢</button></form>
-<table><thead><tr><th>會員</th><th>狀態</th><th>登入方式</th><th>加入</th></tr></thead><tbody>
+<form method="get" action="/admin/members" class="card">
+<label for="q">關鍵字（會員編號、姓名、Email，輸入一部分即可）</label><input id="q" name="q" value="${q}">
+<label for="status">狀態</label><select id="status" name="status">${option('', '全部', status)}${option('active', '正常', status)}${option('suspended', '停權', status)}${option('pending_deletion', '刪除中（舊資料）', status)}</select>
+<label for="provider">登入方式</label><select id="provider" name="provider">${option('', '全部', provider)}${option('apple', 'Apple', provider)}${option('google', 'Google', provider)}</select>
+<label for="country">註冊國家（兩碼，例如 TW、JP）</label><input id="country" name="country" maxlength="2" value="${country}">
+<label for="from">加入日期（起）</label><input id="from" name="from" type="date" value="${from}">
+<label for="to">加入日期（迄）</label><input id="to" name="to" type="date" value="${to}">
+<label for="battery_min">本月 Battery 剩餘（最少）</label><input id="battery_min" name="battery_min" inputmode="numeric" value="${batteryMin}">
+<label for="battery_max">本月 Battery 剩餘（最多，填 0 可找出用完的人）</label><input id="battery_max" name="battery_max" inputmode="numeric" value="${batteryMax}">
+<label><input type="checkbox" name="staff" value="1"${staffOnly ? raw(' checked') : ''}> 只看管理人員</label>
+<button type="submit">查詢</button>&emsp;<a href="/admin/members">清除條件</a>
+</form>
+<table><thead><tr><th>會員</th><th>Email／登入</th><th>狀態</th><th>Battery 剩餘</th><th>加入／最近登入</th></tr></thead><tbody>
 ${result.members.map(
-  (m) => html`<tr><td><a href="/admin/members/${m.user_id}">${m.display_name ?? '（未命名）'}</a><br><code>${m.user_id}</code>${m.role ? html`<br>${ROLE_LABELS[m.role]}` : ''}</td>
-<td>${STATUS_LABELS[m.status] ?? m.status}</td><td>${m.providers.join('、')}<br><span class="muted">${m.emails.filter((e) => e !== null).join('、')}</span></td><td>${formatTime(m.created_at)}</td></tr>`,
+  (m) => html`<tr><td><a href="/admin/members/${m.user_id}">${m.display_name ?? '（未命名）'}</a><br><code>${m.member_no ?? '（發放中）'}</code>${m.role ? html`<br>${ROLE_LABELS[m.role]}` : ''}</td>
+<td>${m.contact_email ?? m.emails.find((e) => e !== null) ?? '（無 Email）'}<br><span class="muted">${m.providers.map((p) => PROVIDER_LABELS[p] ?? p).join('、')}${m.country ? html`｜${m.country}` : ''}</span></td>
+<td>${STATUS_LABELS[m.status] ?? m.status}</td>
+<td>${m.battery ? html`<strong>${m.battery.remaining}</strong> / ${m.battery.allowance}` : '—'}</td>
+<td>${formatTime(m.created_at)}<br><span class="muted">${m.last_login_at ? formatTime(m.last_login_at) : '—'}</span></td></tr>`,
 )}
 </tbody></table>
 ${result.members.length === 0 ? html`<p class="muted">沒有符合的會員。</p>` : ''}
-${result.nextCursor ? html`<p class="pager"><a href="/admin/members?cursor=${result.nextCursor}">下一頁</a></p>` : ''}`,
+${next ? html`<p class="pager"><a href="${next}">下一頁</a></p>` : ''}`,
     ),
   );
 });
 
 async function memberPage(c: WebContext, actor: StaffActor, userId: string, message?: string): Promise<Response> {
   const db = c.env.DB_IDENTITY;
-  const { members } = await searchMembers(db, c.env.OWNER_USER_IDS, { query: userId });
-  const m = members[0];
+  const now = Date.now();
+  const m = await findMemberSummary(db, c.env.DB_BATTERY, c.env.OWNER_USER_IDS, userId, now);
   if (!m) return c.html(adminPage(c, '找不到會員', html`<h1>找不到會員</h1>`), 404);
-  await auditStatement(db, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.member_viewed', targetType: 'user', targetId: m.user_id, result: 'success', requestId: actor.requestId, retention: 'general' }, Date.now()).run();
+  // Names and emails are shown in full, so every time staff open a member is recorded.
+  await auditStatement(db, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.member_viewed', targetType: 'user', targetId: m.user_id, result: 'success', requestId: actor.requestId, retention: 'general' }, now).run();
   const canModerate = hasRole(actor.role, 'admin') && m.role !== 'owner' && m.user_id !== actor.userId;
   const canAdjust = hasRole(actor.role, 'admin') && m.user_id !== actor.userId;
-  const now = Date.now();
-  const [balance, ledger] = await Promise.all([getBalance(c.env.DB_BATTERY, m.user_id, now), staffLedger(c.env.DB_BATTERY, m.user_id, 10)]);
+  const [balance, ledger, sessions, tickets] = await Promise.all([
+    getBalance(c.env.DB_BATTERY, m.user_id, now),
+    staffLedger(c.env.DB_BATTERY, m.user_id, 10),
+    db
+      .prepare('SELECT app_id, device_label, created_at, last_used_at FROM sessions WHERE user_id = ? AND revoked_at IS NULL AND expires_at > ? ORDER BY last_used_at DESC LIMIT 20')
+      .bind(m.user_id, now)
+      .all<{ app_id: string; device_label: string | null; created_at: number; last_used_at: number }>(),
+    db
+      .prepare('SELECT ticket_id, created_at, category, status FROM support_tickets WHERE user_id = ? ORDER BY ticket_id DESC LIMIT 10')
+      .bind(m.user_id)
+      .all<{ ticket_id: string; created_at: number; category: string; status: string }>(),
+  ]);
+  const copy = (text: string, label: string) => html`<button type="button" data-copy-text="${text}">${label}</button>`;
+  const email = m.contact_email ?? m.emails.find((e) => e !== null) ?? null;
   return c.html(
     adminPage(
       c,
@@ -110,12 +183,35 @@ async function memberPage(c: WebContext, actor: StaffActor, userId: string, mess
       html`<h1>${m.display_name ?? '（未命名）'}</h1>
 ${message ? html`<div class="banner">${message}</div>` : ''}
 <div class="card">
-<p><strong>會員編號：</strong><code>${m.user_id}</code><br>
+<p><strong>會員編號：</strong><code>${m.member_no ?? '（發放中）'}</code> ${m.member_no ? copy(m.member_no, '複製編號') : ''}<br>
+<strong>姓名：</strong>${m.display_name ?? '（未設定）'}<br>
+<strong>聯絡 Email：</strong>${m.contact_email ?? '（未設定）'} ${m.contact_email ? copy(m.contact_email, '複製') : ''}<br>
+<strong>登入方式：</strong>${m.providers.map((p, i) => html`${PROVIDER_LABELS[p] ?? p}（${m.emails[i] ?? '無 Email'}）&ensp;`)}${email ? copy(email, '複製 Email') : ''}<br>
 <strong>狀態：</strong>${STATUS_LABELS[m.status] ?? m.status}${m.status_reason ? html`（${m.status_reason}）` : ''}<br>
 <strong>角色：</strong>${m.role ? ROLE_LABELS[m.role] : '一般會員'}<br>
-<strong>登入方式：</strong>${m.providers.join('、')}（${m.emails.filter((e) => e !== null).join('、') || '無 Email'}）<br>
-<strong>加入：</strong>${formatTime(m.created_at)}</p>
+<strong>註冊國家：</strong>${m.country ?? '（未記錄）'}<br>
+<strong>加入：</strong>${formatTime(m.created_at)}｜<strong>最近登入：</strong>${m.last_login_at ? formatTime(m.last_login_at) : '—'}</p>
+<details><summary>內部 ID（UUID）</summary><p><code>${m.user_id}</code> ${copy(m.user_id, '複製')}</p></details>
 <p><a href="/admin/audit?member=${m.user_id}">查看此會員的稽核紀錄</a></p>
+</div>
+<h2>登入中的裝置</h2>
+<div class="card">
+${sessions.results.length > 0
+  ? html`<table><thead><tr><th>App</th><th>裝置</th><th>登入</th><th>最近使用</th></tr></thead><tbody>
+${sessions.results.map((s) => html`<tr><td>${s.app_id}</td><td>${s.device_label ?? '—'}</td><td>${formatTime(s.created_at)}</td><td>${formatTime(s.last_used_at)}</td></tr>`)}
+</tbody></table>`
+  : html`<p class="muted">目前沒有登入中的裝置。</p>`}
+${canModerate && sessions.results.length > 0
+  ? html`<form method="post" action="/admin/members/${m.user_id}/signout"><button class="danger" type="submit">強制登出所有裝置</button></form>`
+  : ''}
+</div>
+<h2>客服單</h2>
+<div class="card">
+${tickets.results.length > 0
+  ? html`<table><thead><tr><th>時間</th><th>類別</th><th>狀態</th></tr></thead><tbody>
+${tickets.results.map((t) => html`<tr><td><a href="/admin/tickets/${t.ticket_id}">${formatTime(t.created_at)}</a></td><td>${CATEGORY_LABELS[t.category as keyof typeof CATEGORY_LABELS] ?? t.category}</td><td>${t.status === 'open' ? '未結' : '已結'}</td></tr>`)}
+</tbody></table>`
+  : html`<p class="muted">沒有客服單。</p>`}
 </div>
 <h2>Starry Battery（${balance.period}）</h2>
 <div class="card">
@@ -142,6 +238,7 @@ ${actor.role === 'owner' && m.role !== 'owner' && m.user_id !== actor.userId
   ? html`<h2>管理角色</h2><form method="post" action="/admin/members/${m.user_id}/role" class="card"><label for="role">角色</label>
 <select id="role" name="role"><option value="none">一般會員</option><option value="support">Support</option><option value="admin">Admin</option></select><button type="submit">更新角色</button></form>`
   : ''}`,
+      COPY_SCRIPT(c.get('cspNonce')),
     ),
   );
 }
@@ -159,6 +256,13 @@ adminApp.post('/members/:id/suspend', async (c) => {
   if (reason.length < 1 || reason.length > 200) return memberPage(c, actor, c.req.param('id'), '請填寫 1～200 字的停權原因。');
   const result = await suspendMember(c.env.DB_IDENTITY, c.env.OWNER_USER_IDS, actor, c.req.param('id'), reason, Date.now());
   return memberPage(c, actor, c.req.param('id'), RESULT_TEXT[result]);
+});
+
+adminApp.post('/members/:id/signout', async (c) => {
+  const actor = await staff(c, 'admin');
+  if (actor instanceof Response) return actor;
+  const result = await revokeAllSessions(c.env.DB_IDENTITY, c.env.OWNER_USER_IDS, actor, c.req.param('id'), Date.now());
+  return memberPage(c, actor, c.req.param('id'), result === 'ok' ? '已強制登出此會員的所有裝置。' : RESULT_TEXT[result]);
 });
 
 adminApp.post('/members/:id/restore', async (c) => {
