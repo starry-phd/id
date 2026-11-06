@@ -12,8 +12,8 @@ const asD1 = (db: ReturnType<typeof migratedDb>) => db as unknown as D1Database;
 const actor = { userId: 'owner-1', requestId: null };
 const clock = { app_id: 'clock', name: '繁星時鐘', ios_bundle_id: 'phd.starry.clock', android_package: 'phd.starry.clock', web_origins: 'https://clock.starry.phd' };
 
-function build(form: Parameters<typeof definitionFromForm>[0]) {
-  const built = definitionFromForm(form);
+function build(form: Parameters<typeof definitionFromForm>[0], options?: Parameters<typeof definitionFromForm>[1]) {
+  const built = definitionFromForm(form, options);
   assert.ok(built.ok, built.ok ? '' : built.error);
   return built.app;
 }
@@ -27,6 +27,17 @@ describe('registering an App without a code change', () => {
     assert.deepEqual(app.web_origins, ['https://clock.starry.phd']);
     assert.equal(app.status, 'active');
     assert.equal(app.min_version, '0.0.0');
+  });
+
+  test('a new App needs only app_id and name: platform names and the web origin are derived', () => {
+    const app = build({ app_id: 'my-clock', name: '時鐘' }, { defaults: true });
+    assert.equal(app.ios_bundle_id, 'phd.starry.myclock');
+    assert.equal(app.android_package, 'phd.starry.myclock');
+    assert.deepEqual(app.web_origins, ['https://my-clock.starry.phd']);
+    assert.deepEqual(app.return_urls, ['myclock://auth/apple', 'myclock://auth/google']);
+    assert.deepEqual(app.auth.apple, ['phd.starry.myclock', 'phd.starry.id.web']);
+    assert.equal(build({ app_id: 'my-clock', name: '時鐘', ios_bundle_id: 'com.example.clock' }, { defaults: true }).ios_bundle_id, 'com.example.clock', 'advanced values win');
+    assert.equal(build({ app_id: 'my-clock', name: '時鐘' }).ios_bundle_id, null, 'editing never invents values');
   });
 
   test('bad input is rejected with a readable error and nothing unsafe gets through', () => {

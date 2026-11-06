@@ -56,7 +56,6 @@ export interface AppForm {
   extra_apple_audiences?: string;
   extra_google_audiences?: string;
   min_version?: string;
-  battery?: string;
 }
 
 function lines(value: string | undefined): string[] {
@@ -71,17 +70,21 @@ function unique(values: readonly string[]): string[] {
 }
 
 /**
- * Builds the definition an Owner form describes. Sign-in works through the shared Starry relay by default:
+ * Builds the definition an Owner form describes (with defaults: true, blank platform fields are derived from the app_id). Sign-in works through the shared Starry relay by default:
  * the Apple Services ID and Google Web client of the account center are accepted for every new App, so
  * nothing has to be added in the Apple or Google consoles for a web or Android version.
  */
-export function definitionFromForm(form: AppForm): { ok: true; app: AppEntry } | { ok: false; error: string } {
+export function definitionFromForm(form: AppForm, options: { defaults?: boolean } = {}): { ok: true; app: AppEntry } | { ok: false; error: string } {
   const appId = (form.app_id ?? '').trim();
   const shared = getApp(WEB_APP_ID);
   if (!shared) return { ok: false, error: '帳號中心的登入設定遺失，無法建立 App。' };
-  const ios = (form.ios_bundle_id ?? '').trim() || null;
-  const android = (form.android_package ?? '').trim() || null;
-  const scheme = (form.scheme ?? '').trim() || appId.replace(/-/g, '');
+  // Every Starry App ships on iOS, Android and the web, so a new App gets names derived from its app_id.
+  const compact = appId.replace(/-/g, '');
+  const ios = (form.ios_bundle_id ?? '').trim() || (options.defaults ? `phd.starry.${compact}` : null);
+  const android = (form.android_package ?? '').trim() || (options.defaults ? `phd.starry.${compact}` : null);
+  const scheme = (form.scheme ?? '').trim() || compact;
+  const webOrigins = lines(form.web_origins);
+  if (webOrigins.length === 0 && options.defaults) webOrigins.push(`https://${appId}.starry.phd`);
   const returnUrls = lines(form.return_urls);
   if (returnUrls.length === 0) returnUrls.push(`${scheme}://auth/apple`, `${scheme}://auth/google`);
   const definition = {
@@ -97,7 +100,7 @@ export function definitionFromForm(form: AppForm): { ok: true; app: AppEntry } |
       apple_audiences: unique([...(ios ? [ios] : []), ...shared.auth.apple, ...lines(form.extra_apple_audiences)]),
       google_audiences: unique([...shared.auth.google, ...lines(form.extra_google_audiences)]),
     },
-    web_origins: lines(form.web_origins),
+    web_origins: webOrigins,
     return_urls: unique(returnUrls),
   };
   try {

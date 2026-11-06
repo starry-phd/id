@@ -312,8 +312,8 @@ describe('web account center, support form and Admin Lite', () => {
     const bad = await worker.call('/admin/apps/new', form({ ...fields, web_origins: 'http://clock.example' }, ownerCookie));
     assert.equal(bad.status, 400);
     const created = await worker.call('/admin/apps/new', form(fields, ownerCookie));
-    assert.equal(created.status, 303);
-    assert.equal(created.headers.get('location'), '/admin/apps/clock/handoff?created=1');
+    assert.equal(created.status, 200, 'creating shows the instruction and the one-time Battery key');
+    assert.match(await created.text(), /sbk_[A-Za-z0-9_-]{43}/);
     const config = await worker.call('/v1/apps/clock/config');
     assert.equal(config.status, 200);
     assert.equal((await config.json()).status, 'active');
@@ -323,12 +323,13 @@ describe('web account center, support form and Admin Lite', () => {
     assert.ok(handoff.includes('phd.starry.clock') && handoff.includes('/v1/apps/clock/config'));
     assert.equal((await worker.call('/admin/apps/new', form(fields, ownerCookie))).status, 400, 'duplicate app_id');
     assert.equal((await worker.call('/admin/apps/new', form({ ...fields, app_id: 'echo' }, ownerCookie))).status, 400, 'shipped app_id');
-    const withBattery = await worker.call('/admin/apps/new', form({ ...fields, app_id: 'clock-b', battery: '1' }, ownerCookie));
+    const withBattery = await worker.call('/admin/apps/new', form({ app_id: 'clock-b', name: '最少欄位' }, ownerCookie));
     assert.equal(withBattery.status, 200);
     const shown = await withBattery.text();
     const key = /sbk_[A-Za-z0-9_-]{43}/.exec(shown)?.[0];
     assert.ok(key, 'the service key is shown once');
     assert.ok(shown.includes('clock-b.ai'));
+    assert.ok(shown.includes('phd.starry.clockb') && shown.includes('https://clock-b.starry.phd'), 'derived defaults');
     const rows = await worker.battery.prepare("SELECT app_id FROM battery_task_types WHERE task_type = 'clock-b.ai'").all();
     assert.equal(rows.results.length, 1);
     assert.ok(!(await (await worker.call('/admin/apps/clock-b/handoff', get(ownerCookie))).text()).includes(key), 'the key is not shown again');
@@ -337,7 +338,7 @@ describe('web account center, support form and Admin Lite', () => {
     const staffCookie = await webSignIn('app-staff');
     await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(await userIdOf('app-staff'), Date.now()).run();
     assert.equal((await worker.call('/admin/apps/new', form({ ...fields, app_id: 'clock-2' }, staffCookie))).status, 403, 'only the Owner registers Apps');
-    await worker.battery.prepare("DELETE FROM battery_task_types WHERE app_id = 'clock-b'").run();
+    await worker.battery.prepare("DELETE FROM battery_task_types WHERE app_id IN ('clock', 'clock-b')").run();
     await worker.battery.prepare('DELETE FROM battery_app_keys').run();
     await worker.db.prepare('DELETE FROM registered_apps').run();
     await worker.db.prepare('DELETE FROM user_roles WHERE user_id = ?').bind(ownerId).run();

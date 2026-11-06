@@ -463,6 +463,11 @@ ${appRegistry.values().filter((app) => app.app_id !== WEB_APP_ID).map((app) => {
   );
 }
 
+/** True when any advanced field already has a value, so the section opens by itself. */
+function advancedFilled(values: AppForm): boolean {
+  return [values.ios_bundle_id, values.android_package, values.web_origins, values.scheme, values.return_urls, values.min_version, values.extra_apple_audiences, values.extra_google_audiences].some((v) => (v ?? '').trim() !== '');
+}
+
 function appForm(c: WebContext, mode: 'create' | 'update', values: AppForm, message?: string): Response | Promise<Response> {
   const create = mode === 'create';
   return c.html(
@@ -471,19 +476,20 @@ function appForm(c: WebContext, mode: 'create' | 'update', values: AppForm, mess
       create ? '新增 App' : '編輯 App',
       html`<h1>${create ? '新增 App' : `編輯 ${values.app_id ?? ''}`}</h1>
 ${message ? html`<div class="banner danger">${message}</div>` : ''}
-<p class="muted">三個平台（iOS、Android、網頁）預設都走 Starry 登入中繼：帳號中心的 Apple Services ID 與 Google 網頁用戶端會自動加進這款 App，不必到 Apple、Google 後台為它做任何設定。只有日後改用原生登入時，才需要填最下面的進階欄位。</p>
 <form method="post" action="${create ? '/admin/apps/new' : `/admin/apps/${values.app_id ?? ''}/edit`}" class="card">
-<label for="app_id">app_id（小寫英文、數字、連字號，2～32 字，建立後不能改）</label><input id="app_id" name="app_id" value="${values.app_id ?? ''}" pattern="[a-z][a-z0-9-]{1,31}" required ${create ? '' : 'readonly'}>
-<label for="name">名稱</label><input id="name" name="name" value="${values.name ?? ''}" maxlength="80" required>
-<label for="ios_bundle_id">iOS Bundle ID（沒有就留空）</label><input id="ios_bundle_id" name="ios_bundle_id" value="${values.ios_bundle_id ?? ''}" placeholder="phd.starry.example">
-<label for="android_package">Android package（沒有就留空）</label><input id="android_package" name="android_package" value="${values.android_package ?? ''}" placeholder="phd.starry.example">
-<label for="scheme">App 深層連結 scheme（留空則用 app_id 去掉連字號）</label><input id="scheme" name="scheme" value="${values.scheme ?? ''}" placeholder="example">
-<label for="web_origins">網頁版來源（每行一個，例如 https://example.starry.phd；沒有網頁版就留空）</label><textarea id="web_origins" name="web_origins" rows="3">${values.web_origins ?? ''}</textarea>
-<label for="return_urls">額外的深層連結回傳網址（每行一個；留空則自動產生 scheme://auth/apple 與 scheme://auth/google）</label><textarea id="return_urls" name="return_urls" rows="2">${values.return_urls ?? ''}</textarea>
-<label for="min_version">最低版本（例如 1.0.0，預設 0.0.0）</label><input id="min_version" name="min_version" value="${values.min_version ?? ''}" pattern="\d+\.\d+\.\d+">
-<label for="extra_apple_audiences">額外的 Apple 登入對象（每行一個，進階，通常留空）</label><textarea id="extra_apple_audiences" name="extra_apple_audiences" rows="2">${values.extra_apple_audiences ?? ''}</textarea>
-<label for="extra_google_audiences">額外的 Google 用戶端 ID（每行一個，例如 iOS 用戶端，進階，通常留空）</label><textarea id="extra_google_audiences" name="extra_google_audiences" rows="2">${values.extra_google_audiences ?? ''}</textarea>
-${create ? html`<label><input type="checkbox" name="battery" value="1" checked> 同時開通 Starry Battery（建立預設任務 AI 任務並產生後端服務金鑰）</label>` : ''}
+<label for="app_id">app_id（小寫英文、數字、連字號，建立後不能改）</label><input id="app_id" name="app_id" value="${values.app_id ?? ''}" pattern="[a-z][a-z0-9-]{1,31}" placeholder="clock" required ${create ? '' : 'readonly'}>
+<label for="name">名稱</label><input id="name" name="name" value="${values.name ?? ''}" maxlength="80" placeholder="繁星時鐘 Clock" required>
+<p class="muted">iOS、Android、網頁三個平台，以及 Starry Battery 都會自動開通；Bundle ID、套件名稱、網頁網址都會依 app_id 自動產生。</p>
+<details${create && !advancedFilled(values) ? '' : ' open'}><summary>進階（通常不用填，需要才展開）</summary>
+<label for="ios_bundle_id">iOS Bundle ID（留空＝自動：phd.starry.&lt;app_id&gt;）</label><input id="ios_bundle_id" name="ios_bundle_id" value="${values.ios_bundle_id ?? ''}">
+<label for="android_package">Android package（留空＝自動：phd.starry.&lt;app_id&gt;）</label><input id="android_package" name="android_package" value="${values.android_package ?? ''}">
+<label for="web_origins">網頁版來源（每行一個；留空＝自動：https://&lt;app_id&gt;.starry.phd）</label><textarea id="web_origins" name="web_origins" rows="2">${values.web_origins ?? ''}</textarea>
+<label for="scheme">App 深層連結 scheme（留空＝自動：app_id）</label><input id="scheme" name="scheme" value="${values.scheme ?? ''}">
+<label for="return_urls">額外的深層連結回傳網址（每行一個，留空＝自動）</label><textarea id="return_urls" name="return_urls" rows="2">${values.return_urls ?? ''}</textarea>
+<label for="min_version">最低版本（留空＝0.0.0）</label><input id="min_version" name="min_version" value="${values.min_version ?? ''}" pattern="\d+\.\d+\.\d+">
+<label for="extra_apple_audiences">額外的 Apple 登入對象（每行一個，改用原生登入才需要）</label><textarea id="extra_apple_audiences" name="extra_apple_audiences" rows="2">${values.extra_apple_audiences ?? ''}</textarea>
+<label for="extra_google_audiences">額外的 Google 用戶端 ID（每行一個，改用原生登入才需要）</label><textarea id="extra_google_audiences" name="extra_google_audiences" rows="2">${values.extra_google_audiences ?? ''}</textarea>
+</details>
 <button type="submit">${create ? '建立並產生串接指令' : '儲存'}</button></form>`,
     ),
     message ? 400 : 200,
@@ -525,12 +531,11 @@ adminApp.post('/apps/new', async (c) => {
   const reauth = await needsReauth(c);
   if (reauth) return reauth;
   const form = (await readForm(c)) as AppForm;
-  const built = definitionFromForm(form);
+  const built = definitionFromForm(form, { defaults: true });
   if (!built.ok) return appForm(c, 'create', form, built.error);
   const result = await saveRegisteredApp(c.env.DB_IDENTITY, actor, built.app, 'create', Date.now());
   if (result === 'reserved' || result === 'exists') return appForm(c, 'create', form, '這個 app_id 已被使用，請換一個。');
-  if (form.battery === '1') return enableBatteryAndShow(c, actor, built.app.app_id, '已建立並開通 Battery，30 秒內生效。');
-  return c.redirect(`/admin/apps/${built.app.app_id}/handoff?created=1`, 303);
+  return enableBatteryAndShow(c, actor, built.app.app_id, '已建立並開通 Battery，30 秒內生效。');
 });
 
 adminApp.get('/apps/:id/edit', async (c) => {
