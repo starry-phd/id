@@ -14,7 +14,6 @@ const json = (body, headers = {}) => ({ method: 'POST', headers: { 'content-type
 
 const keys = await authBindings();
 const worker = await startWorker({ bindings: { ...keys.bindings, BATTERY_SERVICE_KEYS: JSON.stringify({ echo: KEY }) } });
-await worker.battery.prepare("INSERT INTO battery_task_types (task_type, app_id, label, unit_cost, max_units, timeout_ms, enabled, updated_at) VALUES ('echo.ai', 'echo', 'AI', 1, 10, NULL, 1, 0)").run();
 
 const timings = new Map();
 const failures = [];
