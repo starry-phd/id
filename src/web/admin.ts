@@ -635,15 +635,17 @@ async function handoffPage(c: WebContext, role: Role, app: AppEntry, notice: str
       '串接指令',
       html`<h1>${app.name} 的串接指令</h1>
 ${notice ? html`<div class="banner">${notice}</div>` : ''}
-<div class="card"><p><strong>Battery 服務金鑰</strong></p>
+<h2>① 給 AI 的</h2>
+<div class="card"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:space-between"><strong>給開發 AI 的串接指令</strong><button type="button" data-copy="handoff-text">複製給AI指令（不含金鑰）</button></div>
+<p class="muted">整段貼給負責開發這款 App 的 AI。內容只有已登記的公開資料，<strong>沒有任何金鑰</strong>；請不要把下面「給你自己的」那一塊貼給 AI。</p>
+<textarea id="handoff-text" readonly rows="24" style="width:100%;font-family:monospace">${text}</textarea></div>
+<h2>② 給你自己的</h2>
+<div class="card"><p><strong>Battery 服務金鑰</strong>（只給你自己用，<strong>不要貼給 AI</strong>）</p>
 ${serviceKey
-  ? html`<p class="muted">只顯示這一次，請現在複製保存。只放進這款 App 後端的 Secret（名稱 STARRY_BATTERY_KEY），不要貼進 App、Git 或公開的地方。遺失或外洩就重新產生，舊金鑰立即失效。</p>
+  ? html`<p class="muted">只顯示這一次，請現在複製保存，並自己貼到這款 App 後端的 Cloudflare Secret（名稱 STARRY_BATTERY_KEY）。不要貼進 App、Git、AI 對話或公開的地方。遺失或外洩就重新產生，舊金鑰立即失效。</p>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input id="battery-key" readonly value="${serviceKey}" style="flex:1;min-width:220px;font-family:monospace"><button type="button" data-copy="battery-key">複製金鑰</button>${regenerate}</div>`
   : html`<p class="muted">${hasKey ? '已開通；金鑰只在建立或重新產生時顯示一次。' : '尚未開通。'}</p><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${regenerate}</div>`}
 </div>
-<div class="card"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:space-between"><strong>給開發 AI 的串接指令</strong><button type="button" data-copy="handoff-text">複製給AI指令</button></div>
-<p class="muted">整段貼給負責開發這款 App 的 AI。內容只有已登記的公開資料，沒有任何秘密；服務金鑰請依上面的方式另外處理。</p>
-<textarea id="handoff-text" readonly rows="24" style="width:100%;font-family:monospace">${text}</textarea></div>
 <p><a href="/admin/apps">回到 App 清單</a></p>`,
       html`<script nonce="${nonce}">
 document.querySelectorAll('[data-copy]').forEach(function (button) {
