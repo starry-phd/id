@@ -138,18 +138,17 @@ describe('web account center, support form and Admin Lite', () => {
     assert.match(await (await worker.call('/account', get(cookie))).text(), /\+886912345678/);
   });
 
-  test('deletion from the web ends the cookie session and can be cancelled after signing in again', async () => {
+  test('deletion from the web needs the typed word DELETE and removes the account at once', async () => {
     const cookie = await webSignIn('web-delete');
+    const userId = await userIdOf('web-delete');
     assert.equal((await worker.call('/account/delete', form({}, cookie))).status, 303, 'confirmation required');
-    const res = await worker.call('/account/delete', form({ confirm: 'yes' }, cookie));
+    assert.equal((await worker.call('/account/delete', form({ confirm: 'yes' }, cookie))).status, 303, 'the word must be DELETE');
+    assert.equal(await worker.db.prepare('SELECT COUNT(*) AS n FROM users WHERE user_id = ?').bind(userId).first('n'), 1);
+    const res = await worker.call('/account/delete', form({ confirm: 'DELETE' }, cookie));
     assert.equal(res.status, 200);
-    assert.match(await res.text(), /已收到刪除申請/);
+    assert.match(await res.text(), /帳號已刪除/);
+    assert.equal(await worker.db.prepare('SELECT COUNT(*) AS n FROM users WHERE user_id = ?').bind(userId).first('n'), 0);
     assert.match(await (await worker.call('/account', get(cookie))).text(), /登入 Starry/, 'old cookie no longer works');
-    const again = await webSignIn('web-delete');
-    assert.match(await (await worker.call('/account', get(again))).text(), /撤回刪除申請/);
-    assert.equal((await worker.call('/account/delete/cancel', form({}, again))).status, 303);
-    const status = await worker.db.prepare('SELECT status FROM users WHERE user_id = ?').bind(await userIdOf('web-delete')).first();
-    assert.equal(status.status, 'active');
   });
 
   test('support form accepts visitors and members, with validation', async () => {
@@ -254,6 +253,7 @@ describe('web account center, support form and Admin Lite', () => {
     const restored = await worker.call(`/admin/members/${target}/restore`, form({}, adminCookie));
     assert.match(await restored.text(), /已完成/);
     assert.equal((await worker.call(`/admin/members/${target}/role`, form({ role: 'admin' }, adminCookie))).status, 403, 'only the owner manages roles');
+    assert.equal((await worker.call(`/admin/members/${target}/delete`, form({ confirm: 'DELETE' }, adminCookie))).status, 403, 'only the owner deletes members');
     assert.equal((await worker.call('/admin/audit', get(adminCookie))).status, 200);
     assert.equal((await worker.call('/admin/tickets', get(adminCookie))).status, 200);
   });
