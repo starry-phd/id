@@ -1,0 +1,2 @@
+POST /v1/battery/reservations the `units` request property's max was decreased to `100.00`
+POST /v1/battery/reservations/{reservationId}/commit the `units` request property's max was decreased to `100.00`
