@@ -56,6 +56,7 @@ export interface AppForm {
   extra_apple_audiences?: string;
   extra_google_audiences?: string;
   min_version?: string;
+  battery?: string;
 }
 
 function lines(value: string | undefined): string[] {
