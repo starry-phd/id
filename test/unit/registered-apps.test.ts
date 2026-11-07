@@ -100,6 +100,16 @@ describe('registering an App without a code change', () => {
     assert.deepEqual(invalidRegisteredApps(), []);
   });
 
+  test('editing a registered App preserves its status, scopes and config instead of resetting them', () => {
+    const old = build(clock);
+    const existing = { ...old, status: 'paused' as const, scopes: ['profile:read'], config: { feature_enabled: true } };
+    const edited = build({ ...clock, name: '新名稱' }, { existing });
+    assert.equal(edited.name, '新名稱');
+    assert.equal(edited.status, 'paused');
+    assert.deepEqual(edited.scopes, ['profile:read']);
+    assert.deepEqual(edited.config, { feature_enabled: true });
+  });
+
   test('Android fingerprints: typed at creation, left empty, or added later; any common paste format is accepted; the Team ID is never stored per App', () => {
     const FP = 'AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99';
     assert.equal(normalizeFingerprint(FP), FP);

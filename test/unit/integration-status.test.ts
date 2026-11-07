@@ -14,13 +14,13 @@ const ready: StatusInputs = { batteryKey: true, products: 0, revenuecat: { webho
 const state = (checks: ReturnType<typeof appChecks>, key: string) => checks.find((c) => c.key === key)?.state;
 
 describe('central Team ID', () => {
-  test('only a valid 10-character value counts; a value stored on the App wins', () => {
+  test('only a valid 10-character value counts; a legacy per-App value never overrides the central one', () => {
     assert.equal(centralTeamId({ STARRY_APPLE_TEAM_ID: '4W7QRTXN5Y' }), '4W7QRTXN5Y');
     assert.equal(centralTeamId({ STARRY_APPLE_TEAM_ID: ' 4w7qrtxn5y ' }), '4W7QRTXN5Y');
     assert.equal(centralTeamId({ STARRY_APPLE_TEAM_ID: 'short' }), null);
     assert.equal(centralTeamId({}), null);
     assert.equal(effectiveTeamId(parseApp(def()), { STARRY_APPLE_TEAM_ID: '4W7QRTXN5Y' }), '4W7QRTXN5Y');
-    assert.equal(effectiveTeamId(parseApp(def({ ios_team_id: 'ZZZZZ99999' })), { STARRY_APPLE_TEAM_ID: '4W7QRTXN5Y' }), 'ZZZZZ99999');
+    assert.equal(effectiveTeamId(parseApp(def({ ios_team_id: 'ZZZZZ99999' })), { STARRY_APPLE_TEAM_ID: '4W7QRTXN5Y' }), '4W7QRTXN5Y');
   });
 });
 

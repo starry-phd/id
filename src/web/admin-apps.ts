@@ -35,7 +35,7 @@ export async function appsPage(c: WebContext, message?: string): Promise<Respons
 ${message ? html`<div class="banner">${message}</div>` : ''}
 ${invalid.length > 0 ? html`<div class="banner danger">這些 App 的登記資料目前無法通過檢查：${invalid.join('、')}。系統暫時沿用上一次正常的版本，請到「編輯登記資料」修正後儲存。</div>` : ''}
 <p><a class="button" href="/admin/apps/new">新增 App</a> <a href="/admin/apps/status">整合狀態總覽</a></p>
-<p class="muted">新增的 App 存在資料庫，不必改程式碼，30 秒內生效。Repo 的 config/apps.json 是既有 App 的預設值；在這裡設定的狀態會覆蓋預設值。paused：App 顯示維護中；killed：停用此 App 的登入與服務，不影響其他 App。</p>
+<p class="muted">所有 App 登記資料都在 D1，config/apps.json 只保留帳號中心。登記修改約 30 秒內生效；在這裡設定的暫停／停用狀態會覆蓋 App 預設值。paused：App 顯示維護中；killed：停用此 App 的登入與服務，不影響其他 App。</p>
 ${appRegistry.values().filter((app) => app.app_id !== WEB_APP_ID).map((app) => {
   const o = overrides.get(app.app_id);
   const own = registered.has(app.app_id);
@@ -89,6 +89,7 @@ ${message ? html`<div class="banner danger">${message}</div>` : ''}
 <details${create && !advancedFilled(values) ? '' : ' open'}><summary>進階（通常不用填，需要才展開）</summary>
 <label for="ios_bundle_id">iOS Bundle ID（留空＝自動：phd.starry.&lt;app_id&gt;）</label><input id="ios_bundle_id" name="ios_bundle_id" value="${values.ios_bundle_id ?? ''}">
 <label for="android_package">Android package（留空＝自動：phd.starry.&lt;app_id&gt;）</label><input id="android_package" name="android_package" value="${values.android_package ?? ''}">
+${create ? '' : html`<p class="muted">變更既有 Bundle ID 或 package 可能使已發行 App 的關聯、登入與 Passkey 失效。正式上架階段禁止變更；其他階段需要再次輸入 app_id 確認。</p><label for="confirm_platform_change">變更上述平台識別碼時，輸入 app_id 確認（一般編輯請留空）</label><input id="confirm_platform_change" name="confirm_platform_change" autocomplete="off">`}
 <label for="web_origins">網頁版來源（每行一個；留空＝自動：https://&lt;app_id&gt;.starry.phd）</label><textarea id="web_origins" name="web_origins" rows="2">${values.web_origins ?? ''}</textarea>
 <label for="scheme">App 深層連結 scheme（留空＝自動：app_id）</label><input id="scheme" name="scheme" value="${values.scheme ?? ''}">
 <label for="return_urls">額外的深層連結回傳網址（每行一個，留空＝自動）</label><textarea id="return_urls" name="return_urls" rows="2">${values.return_urls ?? ''}</textarea>
@@ -158,7 +159,15 @@ adminApp.post('/apps/:id/edit', async (c) => {
   const stepUp = await requireStepUp(c, actor);
   if (stepUp) return stepUp;
   const form = { ...((await readForm(c)) as AppForm), app_id: c.req.param('id') };
-  const built = definitionFromForm(form);
+  const current = getApp(form.app_id);
+  if (!current || current.app_id === WEB_APP_ID || !(await listRegisteredAppIds(c.env.DB_IDENTITY)).has(current.app_id)) return appsPage(c, '找不到這個後台登記的 App。');
+  const changingPlatform = (form.ios_bundle_id ?? '').trim() !== (current.ios_bundle_id ?? '') || (form.android_package ?? '').trim() !== (current.android_package ?? '');
+  if (changingPlatform) {
+    const stage = (await listAppStages(c.env.DB_IDENTITY)).get(current.app_id) ?? 'dev';
+    if (stage === 'live') return appForm(c, 'update', form, '已上架 App 的 Bundle ID 與 Android package 不可變更；請先制定遷移方案。');
+    if (form.confirm_platform_change?.trim() !== current.app_id) return appForm(c, 'update', form, '變更平台識別碼需要輸入正確的 app_id 確認。');
+  }
+  const built = definitionFromForm(form, { existing: current });
   if (!built.ok) return appForm(c, 'update', form, built.error);
   const result = await saveRegisteredApp(c.env.DB_IDENTITY, actor, built.app, 'update', Date.now());
   if (result !== 'updated') return appsPage(c, '找不到這個後台登記的 App。');

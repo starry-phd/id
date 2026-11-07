@@ -55,7 +55,7 @@ export interface Env {
   SUPPORT_EMAIL?: string;
   /** Optional Expo access token for the push service (only needed if Enhanced Push Security is on). */
   EXPO_PUSH_ACCESS_TOKEN?: string;
-  /** Apple Developer Team ID shared by every Starry App (public value, see src/apps/team-id.ts). Not the APPLE_TEAM_ID secret used for Sign in with Apple token revocation. */
+  /** Emergency fallback for the D1-persisted central Apple Team ID (public value). Not the APPLE_TEAM_ID secret used for Apple token revocation. */
   STARRY_APPLE_TEAM_ID?: string;
   /** Sentry DSN (public key, set as a variable) for error monitoring; without it nothing is sent. */
   SENTRY_DSN?: string;
