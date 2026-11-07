@@ -5,7 +5,7 @@ import {
 } from '../api/openapi';
 import { getApp } from '../apps/registry';
 import { withEffectiveStatus } from '../apps/status';
-import { requireAuth, requireAuthAllowPending } from '../auth/middleware';
+import { requireAuth } from '../auth/middleware';
 import type { Provider } from '../auth/provider-keys';
 import { appleRedirectFor, background, fail, readProviderRequest, verifyProviderRequest } from '../auth/routes';
 import { activeEntitlements } from '../billing/revenuecat';
@@ -13,7 +13,7 @@ import type { AppBindings } from '../env';
 import { rememberAppleToken } from '../identity/apple';
 import { importProviderAvatar, MAX_AVATAR_BYTES, r2Store, rememberProviderPhoto, removeAvatar, setAvatar, signedAvatarPath } from '../identity/avatars';
 import { cleanupAfterDeletion } from '../identity/erase';
-import { cancelDeletion, DELETION_GRACE_MS, deleteMemberNow } from '../identity/lifecycle';
+import { deleteMemberNow } from '../identity/lifecycle';
 import { linkIdentity } from '../identity/link';
 import { completeMerge, findMergeCandidate } from '../identity/merge';
 import { acceptConsents } from '../identity/members';
@@ -71,10 +71,9 @@ const meRoute = createRoute({
   method: 'get',
   path: '/',
   tags: ['Account'],
-  summary: 'The signed-in member: profile, sign-in methods, consent and deletion state',
-  description: 'Also available while deletion is pending, so the App can offer to cancel it.',
+  summary: 'The signed-in member: profile, sign-in methods and consent state',
   security: bearer,
-  middleware: [requireAuthAllowPending] as const,
+  middleware: [requireAuth] as const,
   responses: { 200: json(MeSchema, 'Member'), ...errorResponses(401, 403, 404, 429, 503) },
 });
 
@@ -84,13 +83,13 @@ meRoutes.openapi(meRoute, async (c) => {
   const db = c.env.DB_IDENTITY;
   const [[user, identities, consents], loaded] = await Promise.all([
     db.batch([
-      db.prepare('SELECT user_id, member_no, status, created_at, deletion_requested_at FROM users WHERE user_id = ?').bind(userId),
+      db.prepare('SELECT user_id, member_no, status, created_at FROM users WHERE user_id = ?').bind(userId),
       db.prepare('SELECT provider, email, email_is_private_relay FROM auth_identities WHERE user_id = ? ORDER BY provider').bind(userId),
       db.prepare('SELECT document, version FROM consents WHERE user_id = ? AND withdrawn_at IS NULL').bind(userId),
     ]),
     loadProfile(db, userId),
   ]);
-  const u = user?.results[0] as { user_id: string; member_no: string | null; status: string; created_at: number; deletion_requested_at: number | null } | undefined;
+  const u = user?.results[0] as { user_id: string; member_no: string | null; status: string; created_at: number } | undefined;
   if (!u || !loaded) return fail(c, 404, 'NOT_FOUND', 'Member not found');
   const p = loaded.row;
   const accepted = (consents?.results ?? []) as { document: string; version: string }[];
@@ -103,8 +102,8 @@ meRoutes.openapi(meRoute, async (c) => {
       staff_role: await roleOf(db, c.env.OWNER_USER_IDS, userId),
       status: u.status,
       created_at: u.created_at,
-      deletion_requested_at: u.deletion_requested_at,
-      deletion_purge_at: u.deletion_requested_at === null ? null : u.deletion_requested_at + DELETION_GRACE_MS,
+      deletion_requested_at: null,
+      deletion_purge_at: null,
       profile: await profileJson(c.env, p, loaded.fieldUpdates),
       public_profile: publicProfile(p, await avatarUrlOf(c.env, p, Date.now()), Date.now()),
       identities: ((identities?.results ?? []) as { provider: string; email: string | null; email_is_private_relay: number }[]).map((i) => ({
@@ -292,19 +291,14 @@ const cancelDeletionRoute = createRoute({
   method: 'delete',
   path: '/deletion',
   tags: ['Account'],
-  summary: 'Cancel a pending deletion',
+  summary: 'Cancel a pending deletion (kept for old Apps; deletion is immediate, so there is never one to cancel)',
   security: bearer,
-  middleware: [requireAuthAllowPending] as const,
+  middleware: [requireAuth] as const,
   responses: { 200: json(z.object({ status: z.string() }), 'Account active again'), ...errorResponses(401, 403, 409, 429, 503) },
 });
 
-/** DELETE /v1/me/deletion — cancels a pending deletion during the grace period. */
-meRoutes.openapi(cancelDeletionRoute, async (c) => {
-  const { userId, appId } = c.get('auth');
-  const cancelled = await cancelDeletion(c.env.DB_IDENTITY, { userId, appId, requestId: c.get('requestId') }, Date.now());
-  if (!cancelled) return fail(c, 409, 'CONFLICT', 'No deletion is pending');
-  return c.json({ status: 'active' }, 200);
-});
+/** DELETE /v1/me/deletion — compatibility only: since 2026-11-07 deletion is immediate, so nothing can be pending. */
+meRoutes.openapi(cancelDeletionRoute, async (c) => fail(c, 409, 'CONFLICT', 'No deletion is pending'));
 
 const LinkResultSchema = z.object({
   provider: z.string(),
@@ -514,7 +508,7 @@ const pushDeleteRoute = createRoute({
   tags: ['Notifications'],
   summary: 'Remove a push token; call before signing out on the device',
   security: bearer,
-  middleware: [requireAuthAllowPending] as const,
+  middleware: [requireAuth] as const,
   request: { body: jsonBody(z.object({ token: z.string() })) },
   responses: { 204: { description: 'Removed' }, ...errorResponses(400, 401, 403, 415, 429, 503) },
 });

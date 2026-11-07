@@ -80,25 +80,6 @@ export function formatTaipei(ms: number): string {
   return new Date(ms).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false });
 }
 
-/** Sent right after a deletion request (S-ID-06), so a member who did not ask can stop it. */
-export function deletionRequestedEmail(s: MailSettings, to: string, purgeAt: number): Omit<OutgoingEmail, 'from'> {
-  return {
-    to,
-    replyTo: s.supportAddress,
-    subject: '已收到刪除 Starry 帳號的申請',
-    text: `您好：
-
-我們已收到刪除您 Starry 帳號的申請。帳號已停用，所有繁星 App 與裝置都已登出。
-
-您的帳號與個人資料將於 ${formatTaipei(purgeAt)}（台灣時間）永久刪除，刪除後無法復原。
-
-如果改變心意，請在此之前用同一個 Apple 或 Google 帳號登入 ${s.baseUrl}/account 並撤回申請。
-如果這不是您本人的操作，請立即登入撤回，並聯絡客服。
-
-提醒：刪除帳號不會取消 App Store 或 Google Play 的訂閱，請到商店自行取消。${FOOTER(s)}`,
-  };
-}
-
 export function ticketReference(ticketId: string): string {
   return ticketId.slice(-8).toUpperCase();
 }
@@ -181,12 +162,4 @@ export async function notifyStaffChange(db: D1Database, mail: MailSettings | nul
   const to = await contactEmailOf(db, userId);
   if (!to) return null;
   return sendEmail(mail, staffChangeEmail(mail, to, field));
-}
-
-/** Deletion confirmation for the member's contact address; null when email is off or there is no address. */
-export async function notifyDeletionRequested(db: D1Database, mail: MailSettings | null, userId: string, purgeAt: number): Promise<SendOutcome | null> {
-  if (!mail) return null;
-  const to = await contactEmailOf(db, userId);
-  if (!to) return null;
-  return sendEmail(mail, deletionRequestedEmail(mail, to, purgeAt));
 }

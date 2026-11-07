@@ -6,7 +6,6 @@ import { withEffectiveStatus } from '../apps/status';
 import type { AppBindings } from '../env';
 import { rememberAppleToken } from '../identity/apple';
 import { logoutEverywhere } from '../identity/devices';
-import { DELETION_GRACE_MS } from '../identity/lifecycle';
 import { importProviderAvatar, r2Store, rememberProviderPhoto } from '../identity/avatars';
 import { consentRequired, findOrCreateMember } from '../identity/members';
 import { consumeNonce, issueNonce, NONCE_TTL_MS } from '../identity/nonces';
@@ -17,7 +16,7 @@ import { errorBody, type ErrorCode } from '../lib/errors';
 import { boundedString } from '../lib/validate';
 import { loadSigningKey } from './access-token';
 import { verifyIdToken, type ProviderIdentity } from './id-token';
-import { requireAuthAllowPending } from './middleware';
+import { requireAuth } from './middleware';
 import type { Provider } from './provider-keys';
 import { issueTokenPair, newRefreshToken, parseRefreshToken, REFRESH_TTL_MS } from './sessions';
 
@@ -207,7 +206,7 @@ async function signIn(c: Ctx, provider: Provider, body: z.infer<typeof SignInReq
         user_id: member.user_id,
         status: member.status,
         is_new: isNew,
-        deletion_purge_at: member.status === 'pending_deletion' && member.deletion_requested_at !== null ? member.deletion_requested_at + DELETION_GRACE_MS : null,
+        deletion_purge_at: null,
       },
       consent_required: await consentRequired(db, member.user_id, c.env.TERMS_VERSION, c.env.PRIVACY_VERSION),
     },
@@ -228,7 +227,7 @@ interface RefreshRow {
   expires_at: number;
   revoked_at: number | null;
   user_session_version: number;
-  status: 'active' | 'suspended' | 'pending_deletion';
+  status: 'active' | 'suspended';
 }
 
 const refreshRoute = createRoute({
@@ -295,7 +294,7 @@ const logoutRoute = createRoute({
   tags: ['Auth'],
   summary: 'End the current session',
   security: bearer,
-  middleware: [requireAuthAllowPending] as const,
+  middleware: [requireAuth] as const,
   responses: { 204: { description: 'Signed out' }, ...errorResponses(401, 403, 429, 503) },
 });
 
@@ -317,7 +316,7 @@ const logoutAllRoute = createRoute({
   tags: ['Auth'],
   summary: 'End every session of the member in every Starry App',
   security: bearer,
-  middleware: [requireAuthAllowPending] as const,
+  middleware: [requireAuth] as const,
   responses: { 204: { description: 'All sessions ended' }, ...errorResponses(401, 403, 429, 503) },
 });
 

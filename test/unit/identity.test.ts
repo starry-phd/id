@@ -4,7 +4,7 @@ import { generateKeyPairSync } from 'node:crypto';
 import { describe, test } from 'node:test';
 import { periodOf } from '../../src/battery/battery';
 import { clientSecret, processAppleRevocations, rememberAppleToken, type FetchLike } from '../../src/identity/apple';
-import { cancelDeletion, DELETION_GRACE_MS, deleteMemberNow, purgeExpiredDeletions, requestDeletion } from '../../src/identity/lifecycle';
+import { deleteMemberNow } from '../../src/identity/lifecycle';
 import { linkIdentity } from '../../src/identity/link';
 import { runDailyMaintenance } from '../../src/identity/maintenance';
 import { searchMembers } from '../../src/identity/member-search';
@@ -43,51 +43,6 @@ const one = async (db: Db, sql: string, ...args: unknown[]) => (await db.prepare
 const count = async (db: Db, sql: string, ...args: unknown[]) => Number((await one(db, sql, ...args))?.n ?? 0);
 
 describe('account deletion (S-ID-06)', () => {
-  test('request disables the account at once and ends every session', async () => {
-    const db = migratedDb();
-    const id = await member(db);
-    const sid = await session(db, id);
-    const result = await requestDeletion(db as unknown as D1Database, { userId: id, appId: 'echo', requestId: 'r1' }, NOW);
-    assert.deepEqual(result, { ok: true, purgeAt: NOW + DELETION_GRACE_MS });
-    const user = await one(db, 'SELECT status, deletion_requested_at, session_version FROM users WHERE user_id = ?', id);
-    assert.deepEqual(user, { status: 'pending_deletion', deletion_requested_at: NOW, session_version: 2 });
-    assert.equal((await one(db, 'SELECT revoke_reason FROM sessions WHERE session_id = ?', sid))?.revoke_reason, 'deletion_requested');
-    assert.deepEqual(await requestDeletion(db as unknown as D1Database, { userId: id, appId: 'echo', requestId: 'r2' }, NOW), { ok: false, reason: 'not_active' });
-    assert.deepEqual(await requestDeletion(db as unknown as D1Database, { userId: 'nobody', appId: null, requestId: null }, NOW), { ok: false, reason: 'not_found' });
-  });
-
-  test('cancel within the grace period restores the account', async () => {
-    const db = migratedDb();
-    const id = await member(db);
-    await requestDeletion(db as unknown as D1Database, { userId: id, appId: 'echo', requestId: null }, NOW);
-    assert.equal(await cancelDeletion(db as unknown as D1Database, { userId: id, appId: 'echo', requestId: null }, NOW + DAY), true);
-    assert.deepEqual(await one(db, 'SELECT status, deletion_requested_at FROM users WHERE user_id = ?', id), { status: 'active', deletion_requested_at: null });
-    assert.equal(await cancelDeletion(db as unknown as D1Database, { userId: id, appId: 'echo', requestId: null }, NOW + DAY), false);
-  });
-
-  test('purge removes personal data after 7 days, keeps audit rows and queues Apple revocation', async () => {
-    const db = migratedDb();
-    const due = await member(db, { provider: 'apple', subject: 'apple-due', email: 'x@privaterelay.appleid.com' });
-    const early = await member(db);
-    const other = await member(db);
-    await db.prepare("UPDATE profiles SET avatar_key = 'avatars/due.webp' WHERE user_id = ?").bind(due).run();
-    await db
-      .prepare('INSERT INTO apple_tokens (subject, client_id, user_id, refresh_token_enc, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
-      .bind('apple-due', 'phd.starry.echo', due, 'v1.sealed', NOW, NOW)
-      .run();
-    await requestDeletion(db as unknown as D1Database, { userId: due, appId: 'echo', requestId: null }, NOW - DELETION_GRACE_MS);
-    await requestDeletion(db as unknown as D1Database, { userId: early, appId: 'echo', requestId: null }, NOW - DAY);
-    const result = await purgeExpiredDeletions(db as unknown as D1Database, NOW);
-    assert.deepEqual(result, { purgedUserIds: [due], avatarKeys: ['avatars/due.webp'] });
-    for (const table of ['users', 'profiles', 'auth_identities', 'sessions', 'consents', 'apple_tokens']) {
-      assert.equal(await count(db, `SELECT COUNT(*) AS n FROM ${table} WHERE user_id = ?`, due), 0, table);
-    }
-    assert.equal(await count(db, 'SELECT COUNT(*) AS n FROM users WHERE user_id IN (?, ?)', early, other), 2);
-    assert.equal(await count(db, "SELECT COUNT(*) AS n FROM apple_revocations WHERE client_id = 'phd.starry.echo'"), 1);
-    assert.equal(await count(db, "SELECT COUNT(*) AS n FROM audit_log WHERE action = 'account.purged' AND target_id = ?", due), 1);
-    assert.equal(await count(db, "SELECT COUNT(*) AS n FROM audit_log WHERE action = 'account.deletion_requested' AND target_id = ?", due), 1);
-  });
-
   test('deleting now removes everything at once, retires the member number and queues Apple revocation', async () => {
     const db = migratedDb();
     const d = db as unknown as D1Database;
@@ -118,15 +73,6 @@ describe('account deletion (S-ID-06)', () => {
     const id = await member(db);
     assert.equal((await deleteMemberNow(db as unknown as D1Database, { userId: id, appId: null, requestId: null, staffId }, NOW)).ok, true);
     assert.equal(await count(db, "SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.member_deleted' AND actor_user_id = ? AND target_id = ?", staffId, id), 1);
-  });
-
-  test('a member who cancelled is never purged', async () => {
-    const db = migratedDb();
-    const id = await member(db);
-    await requestDeletion(db as unknown as D1Database, { userId: id, appId: null, requestId: null }, NOW - DELETION_GRACE_MS - DAY);
-    await cancelDeletion(db as unknown as D1Database, { userId: id, appId: null, requestId: null }, NOW - DAY);
-    assert.deepEqual((await purgeExpiredDeletions(db as unknown as D1Database, NOW)).purgedUserIds, []);
-    assert.equal(await count(db, 'SELECT COUNT(*) AS n FROM users WHERE user_id = ?', id), 1);
   });
 });
 
@@ -347,9 +293,8 @@ describe('sealed secrets and Apple token revocation', () => {
     const row = await one(db, 'SELECT refresh_token_enc FROM apple_tokens WHERE user_id = ?', id);
     assert.doesNotMatch(String(row?.refresh_token_enc), /apple-refresh-1/);
 
-    await requestDeletion(d, { userId: id, appId: 'echo', requestId: null }, NOW - DELETION_GRACE_MS);
+    await deleteMemberNow(d, { userId: id, appId: 'echo', requestId: null }, NOW);
     const report = await runDailyMaintenance({ db: d, secrets, fetch: fetchOk }, NOW);
-    assert.equal(report.purgedMembers, 1);
     assert.equal(report.appleRevoked, 1);
     const revoke = calls.find((c) => c.url.endsWith('/auth/revoke'));
     assert.equal(revoke?.body.get('token'), 'apple-refresh-1');
@@ -383,18 +328,6 @@ describe('sealed secrets and Apple token revocation', () => {
 });
 
 describe('daily maintenance (S-PLT-06)', () => {
-  test('tells other domains which members were purged', async () => {
-    const db = migratedDb();
-    const d = db as unknown as D1Database;
-    const id = await member(db);
-    await requestDeletion(d, { userId: id, appId: null, requestId: null }, NOW - DELETION_GRACE_MS);
-    const seen: string[][] = [];
-    await runDailyMaintenance({ db: d, secrets: {}, fetch: async () => new Response(null), onPurged: async (ids) => void seen.push(ids) }, NOW);
-    assert.deepEqual(seen, [[id]]);
-    await runDailyMaintenance({ db: d, secrets: {}, fetch: async () => new Response(null), onPurged: async (ids) => void seen.push(ids) }, NOW);
-    assert.equal(seen.length, 1, 'not called when nobody was purged');
-  });
-
   test('removes expired nonces, old sessions and audit rows past retention', async () => {
     const db = migratedDb();
     const d = db as unknown as D1Database;

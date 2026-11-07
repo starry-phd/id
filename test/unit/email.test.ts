@@ -1,14 +1,12 @@
 // Unit tests for system email (S-NTF-02): settings, sending, message content and ticket replies.
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { DELETION_GRACE_MS } from '../../src/identity/lifecycle';
 import { findOrCreateMember } from '../../src/identity/members';
 import {
   contactEmailOf,
-  deletionRequestedEmail,
   mailSettings,
   newTicketNoticeEmail,
-  notifyDeletionRequested,
+  notifyStaffChange,
   sendEmail,
   type EmailSender,
   type MailSettings,
@@ -75,16 +73,6 @@ describe('mail settings and sending', () => {
 });
 
 describe('message content', () => {
-  test('deletion confirmation names the purge time, how to cancel, and the subscription caveat', () => {
-    const { mail } = settings();
-    const email = deletionRequestedEmail(mail, 'member@example.com', NOW + DELETION_GRACE_MS);
-    assert.equal(email.subject, '已收到刪除 Starry 帳號的申請');
-    assert.equal(email.replyTo, 'support@starry.phd');
-    assert.match(email.text, /2026\/11\/10/);
-    assert.match(email.text, /https:\/\/id\.starry\.phd\/account/);
-    assert.match(email.text, /不會取消 App Store 或 Google Play 的訂閱/);
-  });
-
   test('staff notices link to Admin Lite without the ticket text', () => {
     const { mail } = settings();
     const notice = newTicketNoticeEmail(mail, { ticketId: '01900000-0000-7000-8000-00000000abcd', categoryLabel: '帳號與登入', appName: null, hasAttachment: true });
@@ -94,16 +82,16 @@ describe('message content', () => {
     assert.match(notice.text, /附件：有/);
   });
 
-  test('deletion notices are skipped when email is off or the member shared no address', async () => {
+  test('member notices are skipped when email is off or the member shared no address', async () => {
     const db = migratedDb();
     const d = asD1(db);
     const { member } = await findOrCreateMember(d, { provider: 'google', subject: 'g-del', email: 'del@example.com', isPrivateRelay: false }, { appId: 'account', requestId: null }, NOW);
-    assert.equal(await notifyDeletionRequested(d, null, member.user_id, NOW), null);
+    assert.equal(await notifyStaffChange(d, null, member.user_id, 'display_name'), null);
     const { mail, sender } = settings();
-    assert.deepEqual(await notifyDeletionRequested(d, mail, member.user_id, NOW), { ok: true, messageId: 'msg-1' });
+    assert.deepEqual(await notifyStaffChange(d, mail, member.user_id, 'display_name'), { ok: true, messageId: 'msg-1' });
     assert.equal(sender.sent[0]?.to, 'del@example.com');
     const { member: silent } = await findOrCreateMember(d, { provider: 'apple', subject: 'a-del', email: null, isPrivateRelay: false }, { appId: 'account', requestId: null }, NOW);
-    assert.equal(await notifyDeletionRequested(d, mail, silent.user_id, NOW), null);
+    assert.equal(await notifyStaffChange(d, mail, silent.user_id, 'display_name'), null);
   });
 });
 

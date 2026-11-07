@@ -2379,8 +2379,7 @@
         "tags": [
           "Account"
         ],
-        "summary": "The signed-in member: profile, sign-in methods, consent and deletion state",
-        "description": "Also available while deletion is pending, so the App can offer to cancel it.",
+        "summary": "The signed-in member: profile, sign-in methods and consent state",
         "security": [
           {
             "bearerAuth": []
@@ -3290,7 +3289,7 @@
         "tags": [
           "Account"
         ],
-        "summary": "Cancel a pending deletion",
+        "summary": "Cancel a pending deletion (kept for old Apps; deletion is immediate, so there is never one to cancel)",
         "security": [
           {
             "bearerAuth": []

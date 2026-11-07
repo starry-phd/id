@@ -10,18 +10,15 @@ interface SessionRow {
   created_at: number;
   session_version: number;
   user_session_version: number;
-  status: 'active' | 'suspended' | 'pending_deletion';
+  status: 'active' | 'suspended';
 }
 
 /**
  * Requires a valid access token AND a live session (spec S-ID-04, S-ID-05, S-ID-07):
  * revoked sessions, "log out all devices" and suspension take effect immediately,
  * not when the 15-minute access token expires.
- *
- * A member whose deletion is pending (S-ID-06) is disabled: only routes guarded with
- * `allowPendingDeletion` (read own account, cancel deletion, log out) accept them.
  */
-function authGuard(options: { allowPendingDeletion: boolean }): MiddlewareHandler<AppBindings> {
+function authGuard(): MiddlewareHandler<AppBindings> {
   return async (c, next) => {
     const requestId = c.get('requestId');
     const deny = () => c.json(errorBody('UNAUTHORIZED', 'Sign-in required', requestId), 401);
@@ -43,9 +40,6 @@ function authGuard(options: { allowPendingDeletion: boolean }): MiddlewareHandle
     if (!row || row.revoked_at !== null || row.expires_at <= now) return deny();
     if (row.session_version !== claims.sv || row.user_session_version !== claims.sv) return deny();
     if (row.status === 'suspended') return c.json(errorBody('ACCOUNT_SUSPENDED', 'Account suspended', requestId), 403);
-    if (row.status === 'pending_deletion' && !options.allowPendingDeletion) {
-      return c.json(errorBody('ACCOUNT_PENDING_DELETION', 'Account deletion is pending; cancel it to continue', requestId), 403);
-    }
     if (!(await withinLimit(c, 'RL_API', `user:${claims.sub}`))) return tooManyRequests(c);
     c.set('auth', { userId: claims.sub, sessionId: claims.sid, appId: claims.app_id, status: row.status, sessionCreatedAt: row.created_at });
     await next();
@@ -53,7 +47,4 @@ function authGuard(options: { allowPendingDeletion: boolean }): MiddlewareHandle
 }
 
 /** Active members only. */
-export const requireAuth = authGuard({ allowPendingDeletion: false });
-
-/** Also accepts members in the deletion grace period, so they can see their state and cancel. */
-export const requireAuthAllowPending = authGuard({ allowPendingDeletion: true });
+export const requireAuth = authGuard();
