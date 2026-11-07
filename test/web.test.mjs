@@ -569,7 +569,12 @@ describe('web account center, support form and Admin Lite', () => {
     const battery = await worker.call('/admin/battery', get(owner));
     assert.match(await battery.text(), /\/admin\/battery\/codes[\s\S]*序號產生器|序號產生器[\s\S]*\/admin\/battery\/codes/, 'the generator is the first thing on the 電池艙 page');
     assert.match(await (await worker.call('/admin/battery/codes', get(owner))).text(), /序號產生器/);
-    assert.match(await (await worker.call('/admin/battery/codes', form({ kind: 'quantum', app_id: '', units: '5', count: '1', max_uses: '1' }, owner))).text(), /要先選一款 App/);
+    assert.match(await (await worker.call('/admin/battery/codes', form({ kind: 'quantum', app_id: 'nope', units: '5', count: '1', max_uses: '1' }, owner))).text(), /找不到這款 App/);
+    // A universal quantum code names no App: the member chooses one when redeeming and the units stay in that App.
+    const universal = await (await worker.call('/admin/battery/codes', form({ kind: 'quantum', app_id: '', units: '6', count: '1', max_uses: '3' }, owner))).text();
+    assert.match(universal, /通用，兌換時自選 App/);
+    const ucode = /\/account\/redeem\/([A-Z0-9]{10})/.exec(universal)?.[1];
+    assert.ok(ucode);
     const made = await (await worker.call('/admin/battery/codes', form({ kind: 'battery', app_id: '', units: '3', count: '2', max_uses: '1', note: '測試批次' }, owner))).text();
     assert.match(made, /已產生 2 組序號/);
     const urls = [...made.matchAll(/https:\/\/[^<"\s]*\/account\/redeem\/([A-Z0-9]{10})/g)].map((m) => m[1]);
@@ -578,7 +583,7 @@ describe('web account center, support form and Admin Lite', () => {
     const quantum = await (await worker.call('/admin/battery/codes', form({ kind: 'quantum', app_id: 'recordnote', units: '4', count: '1', max_uses: '2' }, owner))).text();
     const qcode = /\/account\/redeem\/([A-Z0-9]{10})/.exec(quantum)?.[1];
     assert.ok(qcode);
-    assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.redeem_codes_created'").first('n'), 2);
+    assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.redeem_codes_created'").first('n'), 3);
 
     // The link signs the member in first, then shows what the code gives; opening it never redeems.
     const unauth = await worker.call(`/account/redeem/${first}`, get());
@@ -597,6 +602,16 @@ describe('web account center, support form and Admin Lite', () => {
     assert.equal((await worker.call('/account/redeem', form({ code: qcode.toLowerCase() }, member))).headers.get('location'), '/account?invite=ok', 'typing works too, in any case');
     assert.equal(await worker.battery.prepare("SELECT balance FROM quantum_accounts WHERE user_id = ? AND app_id = 'recordnote'").bind(memberId).first('balance'), 4);
     assert.equal(await worker.battery.prepare("SELECT COUNT(*) AS n FROM quantum_accounts WHERE user_id = ? AND app_id <> 'recordnote'").bind(memberId).first('n'), 0, 'quantum stays in its own App');
+    assert.equal((await worker.call(`/account/redeem/${qcode}`, get(member))).status, 200);
+
+    const pick = await (await worker.call(`/account/redeem/${ucode}`, get(member))).text();
+    assert.match(pick, /<select id="app_id" name="app_id" required>/, 'the link page asks which App');
+    assert.equal((await worker.call('/account/redeem', form({ code: ucode }, member))).headers.get('location'), `/account/redeem/${ucode}`, 'typing a universal code without an App leads to the page that asks');
+    assert.equal(await worker.battery.prepare('SELECT used FROM invite_codes WHERE code = ?').bind(ucode).first('used'), 0, 'nothing is spent before an App is chosen');
+    assert.equal((await worker.call('/account/redeem', form({ code: ucode, app_id: 'nope' }, member))).headers.get('location'), `/account/redeem/${ucode}`);
+    assert.equal((await worker.call('/account/redeem', form({ code: ucode, app_id: 'echo' }, member))).headers.get('location'), '/account?invite=ok');
+    assert.equal(await worker.battery.prepare("SELECT balance FROM quantum_accounts WHERE user_id = ? AND app_id = 'echo'").bind(memberId).first('balance'), 6);
+    assert.equal(await worker.battery.prepare("SELECT balance FROM quantum_accounts WHERE user_id = ? AND app_id = 'recordnote'").bind(memberId).first('balance'), 4, 'the chosen App got it, no other App changed');
 
     // A batch can be switched off as a whole.
     const batchId = /\/admin\/battery\/codes\/([0-9a-f-]{36})\/disable/.exec(made)?.[1];

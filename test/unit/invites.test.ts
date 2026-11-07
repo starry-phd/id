@@ -60,9 +60,8 @@ describe('invite codes', () => {
     assert.deepEqual(await redeemInvite(db, B, 'WELCOME1', NOW), { ok: false, reason: 'already' });
   });
 
-  test('a battery code adds free Starry Battery to this month only; a quantum code needs an App', async () => {
+  test('a battery code adds free Starry Battery to this month only and is never tied to an App', async () => {
     const db = d();
-    assert.equal(await createBatch(db, { kind: 'quantum', appId: null, units: 1, count: 1, maxUsesPerCode: 1, expiresAt: null, note: '', actorUserId: STAFF }, NOW), null);
     assert.equal(await createBatch(db, { kind: 'battery', appId: 'echo', units: 1, count: 1, maxUsesPerCode: 1, expiresAt: null, note: '', actorUserId: STAFF }, NOW), null, 'battery codes are not tied to an App');
     assert.equal(await createBatch(db, { kind: 'battery', appId: null, units: 1, count: 101, maxUsesPerCode: 1, expiresAt: null, note: '', actorUserId: STAFF }, NOW), null);
     const made = await createBatch(db, { kind: 'battery', appId: null, units: 3, count: 3, maxUsesPerCode: 1, expiresAt: null, note: '活動', actorUserId: STAFF }, NOW);
@@ -84,5 +83,20 @@ describe('invite codes', () => {
     assert.equal((await batchCodes(db, made.batchId)).length, 3);
     const q = await createBatch(db, { kind: 'quantum', appId: 'recordnote', units: 2, count: 1, maxUsesPerCode: 5, expiresAt: null, note: '', actorUserId: STAFF }, NOW);
     assert.deepEqual(await redeemInvite(db, B, q?.codes[0] ?? '', NOW), { ok: true, kind: 'quantum', appId: 'recordnote', units: 2 });
+  });
+
+  test('a universal quantum code needs the member to choose one App, and the units stay in that App', async () => {
+    const db = d();
+    const made = await createBatch(db, { kind: 'quantum', appId: null, units: 7, count: 1, maxUsesPerCode: 2, expiresAt: null, note: '', actorUserId: STAFF }, NOW);
+    assert.ok(made);
+    const code = made.codes[0] ?? '';
+    assert.deepEqual(await codeInfo(db, code, NOW), { kind: 'quantum', appId: null, units: 7 });
+    assert.deepEqual(await redeemInvite(db, A, code, NOW), { ok: false, reason: 'need_app' });
+    assert.equal((await getQuantum(db, A, 'echo')).available, 0, 'nothing happened without a choice');
+    assert.deepEqual(await redeemInvite(db, A, code, NOW, 'echo'), { ok: true, kind: 'quantum', appId: 'echo', units: 7 });
+    assert.equal((await getQuantum(db, A, 'echo')).available, 7);
+    assert.equal((await getQuantum(db, A, 'recordnote')).available, 0, 'no other App changed');
+    assert.deepEqual(await redeemInvite(db, A, code, NOW, 'recordnote'), { ok: false, reason: 'already' }, 'the same member cannot take it again into another App');
+    assert.deepEqual(await redeemInvite(db, B, code, NOW, 'recordnote'), { ok: true, kind: 'quantum', appId: 'recordnote', units: 7 });
   });
 });

@@ -19,7 +19,7 @@ import { issueNonce } from '../identity/nonces';
 import { listPasskeys, MAX_PASSKEYS } from '../identity/passkeys';
 import { hasRole, isRecentLogin, listAppStaffApps, roleOf } from '../identity/roles';
 import { memberSubscriptions } from '../billing/revenuecat';
-import { getApp } from '../apps/registry';
+import { appRegistry, getApp } from '../apps/registry';
 import { WEB_APP_ID } from '../identity/web-sessions';
 import { errorBody } from '../lib/errors';
 import { open as unseal, seal } from '../lib/sealed';
@@ -331,8 +331,8 @@ accountApp.get('/redeem/:code', async (c) => {
       c,
       '兌換序號',
       html`<h1>兌換序號</h1>
-${info ? html`<div class="card"><p>這組序號可領取：<strong>${info.units}</strong> 顆${info.kind === 'battery' ? '電池（全部 App 共用，只加本月額度）' : html`量子電池（只能在「${getApp(info.appId ?? '')?.name ?? info.appId}」使用）`}</p>
-<form method="post" action="/account/redeem"><input type="hidden" name="code" value="${code}"><button type="submit">兌換</button></form></div>` : html`<div class="banner danger">序號不正確、已停用、已過期或已被領完。</div>`}
+${info ? html`<div class="card"><p>這組序號可領取：<strong>${info.units}</strong> 顆${info.kind === 'battery' ? '電池（全部 App 共用，只加本月額度）' : info.appId ? html`量子電池（只能在「${getApp(info.appId)?.name ?? info.appId}」使用）` : '量子電池（請選一款 App，兌換後只能在那一款 App 使用，之後不能更改）'}</p>
+<form method="post" action="/account/redeem"><input type="hidden" name="code" value="${code}">${info.kind === 'quantum' && !info.appId ? html`<label for="app_id">要用在哪一款 App</label><select id="app_id" name="app_id" required><option value="">請選擇</option>${[...appRegistry.values()].filter((a) => a.app_id !== WEB_APP_ID).map((a) => html`<option value="${a.app_id}">${a.name}</option>`)}</select>` : ''}<button type="submit">兌換</button></form></div>` : html`<div class="banner danger">序號不正確、已停用、已過期或已被領完。</div>`}
 <p><a href="/account">回到帳號中心</a></p>`,
     ),
   );
@@ -342,7 +342,10 @@ accountApp.post('/redeem', async (c) => {
   const web = c.get('web');
   if (!web || web.status !== 'active') return c.redirect('/account', 303);
   const form = await readForm(c);
-  const result = await redeemInvite(c.env.DB_BATTERY, web.userId, form.code ?? '', Date.now());
+  const chosen = form.app_id ? getApp(form.app_id) : null;
+  const result = await redeemInvite(c.env.DB_BATTERY, web.userId, form.code ?? '', Date.now(), chosen && chosen.app_id !== WEB_APP_ID ? chosen.app_id : null);
+  // A universal code typed on the account page still needs the App: send the member to the link page that asks for it.
+  if (!result.ok && result.reason === 'need_app') return c.redirect(`/account/redeem/${normalizeCode(form.code ?? '')}`, 303);
   return c.redirect(`/account?invite=${result.ok ? (result.kind === 'battery' ? 'ok_battery' : 'ok') : result.reason}`, 303);
 });
 
