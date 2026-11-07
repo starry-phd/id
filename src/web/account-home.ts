@@ -89,7 +89,7 @@ ${html`<h2>Passkey</h2>
 <h2>已登入的 App</h2>
 <div class="card">
   ${signedInApps.length > 0
-    ? html`<ul>${signedInApps.map((a) => html`<li>${appLabel(a)}<form class="inline" method="post" action="/account/apps/${a}/logout"><button class="secondary" type="submit">登出這款 App</button></form></li>`)}</ul><p class="muted">只會登出這款 App 在你所有裝置上的登入，其他 App 和這個網頁不受影響；再次打開 App 需要重新登入。</p>`
+    ? html`<ul>${signedInApps.map((a) => html`<li>${appLabel(a)}</li>`)}</ul><p class="muted">所有繁星 App 共用登入：在任一款 App 登入，同一支手機上的其他繁星 App 也會自動登入；登出或切換帳號，所有 App 都會跟著變。要全部登出，請用下方「登出所有裝置」。</p>`
     : html`<p class="muted">目前沒有任何 App 在登入中。</p>`}
 </div>
 <h2>登入中的裝置</h2>

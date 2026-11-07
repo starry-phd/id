@@ -214,6 +214,47 @@ describe('Starry ID sign-in, sessions and profile', () => {
     assert.equal((await worker.call('/v1/me', authed(fresh.access_token))).status, 200);
   });
 
+  test('device sign-on: one sign-in reaches other Apps, a switch or sign-out follows everywhere', async () => {
+    const post = (path, body, token) => worker.call(path, json(body, token ? { authorization: `Bearer ${token}` } : {}));
+    const a = await signInOk('google', 'sso-sub-a');
+    const started = await post('/v1/auth/sso/start', {}, a.access_token);
+    assert.equal(started.status, 200);
+    const { sso_token } = await started.json();
+    // Another App signs in with the shared token as the same member.
+    const ex = await post('/v1/auth/sso/exchange', { app_id: 'recordnote', sso_token });
+    assert.equal(ex.status, 200, await ex.clone().text());
+    const other = await ex.json();
+    assert.equal(other.user.user_id, a.user.user_id);
+    assert.equal((await worker.call('/v1/me', authed(other.access_token))).status, 200);
+    assert.equal((await (await post('/v1/auth/sso/status', { sso_token })).json()).user_id, a.user.user_id);
+    // A forged or unknown token and an unknown App are refused.
+    assert.equal((await post('/v1/auth/sso/exchange', { app_id: 'recordnote', sso_token: `${sso_token.slice(0, -3)}AAA` })).status, 401);
+    assert.equal((await post('/v1/auth/sso/exchange', { app_id: 'nope', sso_token })).status, 400);
+    // Another member signs in on this device: the first member's sessions end in every App.
+    const b = await signInOk('google', 'sso-sub-b');
+    const switched = await post('/v1/auth/sso/start', { previous_sso_token: sso_token }, b.access_token);
+    assert.equal(switched.status, 200);
+    const next = (await switched.json()).sso_token;
+    assert.equal((await (await post('/v1/auth/sso/status', { sso_token })).json()).active, false);
+    assert.equal((await post('/v1/auth/refresh', { refresh_token: other.refresh_token })).status, 401);
+    assert.equal((await worker.call('/v1/me', authed(a.access_token))).status, 401);
+    const nb = await (await post('/v1/auth/sso/exchange', { app_id: 'recordnote', sso_token: next })).json();
+    assert.equal(nb.user.user_id, b.user.user_id);
+    // Signing out once signs out every App on the device.
+    assert.equal((await post('/v1/auth/sso/logout', { sso_token: next })).status, 204);
+    assert.equal((await worker.call('/v1/me', authed(nb.access_token))).status, 401);
+    assert.equal((await worker.call('/v1/me', authed(b.access_token))).status, 401);
+    assert.equal((await post('/v1/auth/sso/exchange', { app_id: 'recordnote', sso_token: next })).status, 401);
+    assert.equal((await post('/v1/auth/sso/logout', { sso_token: next })).status, 204);
+  });
+
+  test('logout-all also ends the device sign-on token', async () => {
+    const a = await signInOk('google', 'sso-all-sub');
+    const { sso_token } = await (await worker.call('/v1/auth/sso/start', json({}, { authorization: `Bearer ${a.access_token}` }))).json();
+    assert.equal((await worker.call('/v1/auth/logout-all', authed(a.access_token, { method: 'POST' }))).status, 204);
+    assert.equal((await worker.call('/v1/auth/sso/exchange', json({ app_id: 'recordnote', sso_token }))).status, 401);
+  });
+
   test('a suspended member cannot use existing tokens or sign in', async () => {
     const session = await signInOk('google', 'suspend-sub');
     await worker.db.prepare("UPDATE users SET status = 'suspended' WHERE user_id = ?").bind(session.user.user_id).run();

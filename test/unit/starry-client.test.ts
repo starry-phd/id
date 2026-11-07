@@ -302,3 +302,51 @@ describe('start-up check', () => {
     await assert.rejects(client.checkApp('1.0.0'), (e: unknown) => e instanceof StarryError && e.status === 500);
   });
 });
+
+describe('device sign-on (shared storage)', () => {
+  const jwt = (sub: string) => `h.${base64urlEncode(new TextEncoder().encode(JSON.stringify({ sub })))}.s`;
+  const pair = (n: number, sub: string) => ({ ...tokens(n), access_token: jwt(sub) });
+  const sso = (n: number, sub: string) => () => Response.json({ ...pair(n, sub), user: { user_id: sub, status: 'active', is_new: false, deletion_purge_at: null }, consent_required: false });
+
+  test('signing in shares the device token; another App signs in from it', async () => {
+    const shared = memoryStorage();
+    const a = make({ 'POST /v1/auth/google': sso(1, 'u1'), 'POST /v1/auth/sso/start': () => Response.json({ sso_token: 'sso-1' }) }, { sharedStorage: shared });
+    await a.client.signInWithIdToken('google', { idToken: 'idt', nonce: 'n'.repeat(20) });
+    assert.equal(await shared.get('starry.sso'), 'sso-1');
+    const b = make({ 'POST /v1/auth/sso/status': () => Response.json({ active: true, user_id: 'u1' }), 'POST /v1/auth/sso/exchange': sso(2, 'u1') }, { sharedStorage: shared, appId: 'recordnote' });
+    assert.equal(await b.client.restore(), true);
+    assert.equal(b.calls.find((c) => c.path === '/v1/auth/sso/exchange')?.body?.app_id, 'recordnote');
+  });
+
+  test('signed out elsewhere signs this App out; another member elsewhere switches this App', async () => {
+    const shared = memoryStorage();
+    await shared.set('starry.sso', 'sso-1');
+    let active = true;
+    let who = 'u1';
+    const c = make(
+      { 'POST /v1/auth/sso/status': () => Response.json({ active, user_id: active ? who : null }), 'POST /v1/auth/sso/exchange': () => sso(3, who)(), 'POST /v1/auth/refresh': () => Response.json(pair(9, 'u1')) },
+      { sharedStorage: shared },
+    );
+    assert.equal(await c.client.restore(), true);
+    who = 'u2';
+    assert.equal(await c.client.syncDeviceSignIn(), true);
+    assert.equal(c.calls.filter((x) => x.path === '/v1/auth/sso/exchange').length, 2);
+    active = false;
+    assert.equal(await c.client.syncDeviceSignIn(), false);
+    assert.equal(await shared.get('starry.sso'), null);
+    assert.equal(c.client.signedIn, false);
+  });
+
+  test('signing out ends the device token for every App; offline keeps the session', async () => {
+    const shared = memoryStorage();
+    const a = make({ 'POST /v1/auth/google': sso(1, 'u1'), 'POST /v1/auth/sso/start': () => Response.json({ sso_token: 'sso-1' }), 'POST /v1/auth/logout': () => new Response(null, { status: 204 }), 'POST /v1/auth/sso/logout': () => new Response(null, { status: 204 }) }, { sharedStorage: shared });
+    await a.client.signInWithIdToken('google', { idToken: 'idt', nonce: 'n'.repeat(20) });
+    await a.client.signOut();
+    assert.ok(a.calls.some((x) => x.path === '/v1/auth/sso/logout' && x.body?.sso_token === 'sso-1'));
+    assert.equal(await shared.get('starry.sso'), null);
+    const offline = make({}, { sharedStorage: shared, fetch: async () => Promise.reject(new Error('offline')) });
+    await shared.set('starry.sso', 'sso-2');
+    await offline.storage.set('starry.refresh.clock', 'r');
+    assert.equal(await offline.client.syncDeviceSignIn(), true);
+  });
+});
