@@ -18,6 +18,7 @@ import { bulkPush } from '../notify/bulk';
 import { mailSettings, notifyStaffChange } from '../notify/email';
 import { CATEGORY_LABELS } from '../support/tickets';
 import { formatTime, readForm, type WebContext } from './layout';
+import { changeMemberNo } from '../identity/member-number';
 import { RESULT_TEXT, ROLE_LABELS, STATUS_LABELS, adminApp, adminPage, staff, requireStepUp, supportAccess } from './admin-lib';
 import { scopedMemberPage, scopedMembersPage } from './admin-scoped';
 
@@ -306,8 +307,12 @@ ${canModerate && m.status === 'active'
 ${canModerate && m.status === 'suspended'
   ? html`<h2>復權</h2><form method="post" action="/admin/members/${m.user_id}/restore" class="card"><p>復權後會員需要重新登入。</p><button type="submit">復權</button></form>`
   : ''}
+${actor.role === 'owner'
+  ? html`<h2>修改會員編號</h2><form method="post" action="/admin/members/${m.user_id}/member-no" class="card"><p>格式：2 個英文字母的國家代碼加 7 位數字，例如 TW0112342。修改後此會員的公開個人頁與邀請連結會一起改變，舊連結失效；組織網不受影響。需要 Passkey 驗證。</p>
+<label for="new-no">新的會員編號</label><input id="new-no" name="no" autocomplete="off" maxlength="9" required value="${m.member_no ?? ''}"><button type="submit">修改編號</button></form>`
+  : ''}
 ${actor.role === 'owner' && m.role !== 'owner' && m.user_id !== actor.userId
-  ? html`<h2>永久刪除會員</h2><form method="post" action="/admin/members/${m.user_id}/delete" class="card"><p>立即永久刪除這位會員的所有資料，無法復原；會員編號不會再發給任何人。</p>
+  ? html`<h2>永久刪除會員</h2><form method="post" action="/admin/members/${m.user_id}/delete" class="card"><p>立即永久刪除這位會員的所有資料，無法復原；會員編號會釋放給日後的新會員。</p>
 <label for="confirm">請輸入大寫英文 DELETE 以確認</label><input id="confirm" name="confirm" autocomplete="off" required><button class="danger" type="submit">永久刪除</button></form>`
   : ''}
 ${actor.role === 'owner' && m.user_id !== actor.userId
@@ -419,7 +424,22 @@ adminApp.post('/members/:id/delete', async (c) => {
   const result = await deleteMemberNow(c.env.DB_IDENTITY, { userId: m.user_id, appId: null, requestId: actor.requestId, staffId: actor.userId }, now);
   if (!result.ok) return memberPage(c, actor, userId);
   await cleanupAfterDeletion(c.env, m.user_id, result.avatarKey, now);
-  return c.html(adminPage(c, '會員已刪除', html`<h1>會員已刪除</h1><div class="banner">已永久刪除會員 <code>${result.memberNo ?? ''}</code>，編號不會再發給任何人。</div><p><a href="/admin/members">回到會員列表</a></p>`));
+  return c.html(adminPage(c, '會員已刪除', html`<h1>會員已刪除</h1><div class="banner">已永久刪除會員 <code>${result.memberNo ?? ''}</code>，編號已釋放。</div><p><a href="/admin/members">回到會員列表</a></p>`));
+});
+
+adminApp.post('/members/:id/member-no', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const stepUp = await requireStepUp(c, actor);
+  if (stepUp) return stepUp;
+  const userId = c.req.param('id');
+  const m = await findMemberSummary(c.env.DB_IDENTITY, null, c.env.OWNER_USER_IDS, userId, Date.now());
+  if (!m) return memberPage(c, actor, userId);
+  const result = await changeMemberNo(c.env.DB_IDENTITY, { userId: m.user_id, requested: (await readForm(c)).no ?? '', byAdminId: actor.userId, requestId: actor.requestId }, Date.now());
+  const text = result.ok
+    ? result.unchanged ? '編號沒有變更。' : `已將會員編號改為 ${result.memberNo}。`
+    : result.reason === 'invalid' ? '編號格式不正確：需要 2 個英文字母的國家代碼加 7 位數字。' : result.reason === 'taken' ? '這個編號已經有人使用。' : '找不到會員。';
+  return memberPage(c, actor, userId, text);
 });
 
 adminApp.post('/members/:id/restore', async (c) => {

@@ -1,5 +1,6 @@
 import { getBalances, type Balance } from '../battery/battery';
 import { ownerIds, type Role } from './roles';
+import { normalizeMemberNo } from './member-number';
 
 export const MEMBER_STATUSES = ['active', 'suspended'] as const;
 
@@ -186,7 +187,7 @@ export async function findMemberSummary(db: D1Database, batteryDb: D1Database | 
   const key = id.trim().toLowerCase();
   const row = UUID.test(key)
     ? await db.prepare('SELECT user_id FROM users WHERE user_id = ?').bind(key).first<{ user_id: string }>()
-    : await db.prepare('SELECT user_id FROM users WHERE member_no = ?').bind(key).first<{ user_id: string }>();
+    : await db.prepare('SELECT user_id FROM users WHERE member_no = ?').bind(normalizeMemberNo(key) ?? key.toUpperCase()).first<{ user_id: string }>();
   if (!row) return null;
   const [member] = await summaries(db, ownerUserIds, [row.user_id]);
   if (member && batteryDb) member.battery = (await getBalances(batteryDb, [member.user_id], now)).get(member.user_id) ?? null;

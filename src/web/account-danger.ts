@@ -24,7 +24,7 @@ ${subList.length > 0 ? html`<div class="banner danger"><strong>你目前還有�
   <ul>
     <li>按下刪除後，帳號<strong>立即永久刪除</strong>，所有繁星 App 與裝置都會登出。</li>
     <li>個人資料、頭像、登入方式、客服紀錄與 Battery 都會一併刪除，<strong>無法復原</strong>。</li>
-    <li>你的會員編號不會再發給任何人。</li>
+    <li>你的會員編號會釋放，日後可能發給其他人。</li>
     <li>刪除帳號不會自動取消 App Store 或 Google Play 的訂閱，請先到商店取消。</li>
   </ul>
   <form method="post" action="/account/delete">

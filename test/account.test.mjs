@@ -37,13 +37,13 @@ describe('account lifecycle API', () => {
   test('deletion removes the account at once and for good; the member number is never reused', async () => {
     const first = await signIn('google', 'delete-me');
     const row = await worker.db.prepare('SELECT user_id, member_no FROM users WHERE user_id = (SELECT user_id FROM auth_identities WHERE subject = ?)').bind('delete-me').first();
-    assert.match(row.member_no, /^\d{1,4}-\d{7}$/);
+    assert.match(row.member_no, /^[A-Z]{2}\d{7}$/);
     assert.equal((await worker.call('/v1/me/deletion', authed(first.access_token, json({})))).status, 400);
     const res = await worker.call('/v1/me/deletion', authed(first.access_token, json({ confirm: true })));
     assert.equal(res.status, 202);
     assert.equal((await res.json()).status, 'deleted');
     assert.equal(await worker.db.prepare('SELECT COUNT(*) AS n FROM users WHERE user_id = ?').bind(row.user_id).first('n'), 0, 'the member is gone immediately');
-    assert.equal(await worker.db.prepare('SELECT COUNT(*) AS n FROM retired_member_numbers WHERE member_no = ?').bind(row.member_no).first('n'), 1, 'the number is retired');
+    assert.equal(await worker.db.prepare('SELECT COUNT(*) AS n FROM users WHERE member_no = ?').bind(row.member_no).first('n'), 0, 'the number is released');
     assert.equal((await worker.call('/v1/me', authed(first.access_token))).status, 401, 'old sessions end immediately');
     assert.equal((await worker.call('/v1/auth/refresh', json({ refresh_token: first.refresh_token }))).status, 401);
 

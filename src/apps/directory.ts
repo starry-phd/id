@@ -18,7 +18,7 @@ const MAX_IDS = 50;
 const DirectoryMemberSchema = z
   .object({
     user_id: z.string(),
-    member_no: z.string().nullable().openapi({ example: '886-0112342' }),
+    member_no: z.string().nullable().openapi({ example: 'TW0112342' }),
     nickname: z.string().nullable(),
     display_name: z.string().nullable().openapi({ description: 'null when the member chose to hide their name' }),
     avatar_url: z.string().nullable(),

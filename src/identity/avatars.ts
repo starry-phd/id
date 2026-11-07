@@ -37,8 +37,8 @@ export function sniffImage(bytes: Uint8Array): AvatarType | null {
   return null;
 }
 
-// Folder is the member number (new uploads) or the internal member ID (older uploads).
-const KEY = /^avatars\/([0-9a-f-]{36}|\d{1,4}-\d{7})\/[0-9a-f-]{36}\.(webp|jpg|png)$/;
+// Folder is the internal member ID (UUID, never changes); older uploads may sit under a member number.
+const KEY = /^avatars\/([0-9a-f-]{36}|\d{1,4}-\d{7}|[A-Z]{2}\d{7})\/[0-9a-f-]{36}\.(webp|jpg|png)$/;
 
 export function isAvatarKey(key: string): boolean {
   return KEY.test(key);
@@ -57,8 +57,7 @@ export async function setAvatar(
   if (!type) return { ok: false, reason: 'unsupported' };
   const previous = await db.prepare('SELECT avatar_key FROM profiles WHERE user_id = ?').bind(input.userId).first<{ avatar_key: string | null }>();
   if (!previous) return { ok: false, reason: 'not_found' };
-  const owner = await db.prepare('SELECT member_no FROM users WHERE user_id = ?').bind(input.userId).first<{ member_no: string | null }>();
-  const key = `avatars/${owner?.member_no ?? input.userId}/${uuidv7(now)}.${EXTENSIONS[type]}`;
+  const key = `avatars/${input.userId}/${uuidv7(now)}.${EXTENSIONS[type]}`;
   await store.put(key, toArrayBuffer(input.bytes), { httpMetadata: { contentType: type, cacheControl: 'private, max-age=3600' } });
   await db.batch([
     db.prepare('UPDATE profiles SET avatar_key = ?, version = version + 1, updated_at = ? WHERE user_id = ?').bind(key, now, input.userId),

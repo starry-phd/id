@@ -8,7 +8,7 @@ import { accountApp, publicPages } from './account-lib';
 import { webContext } from './layout';
 import { loadProfile, publicProfile } from '../identity/profile';
 
-/** Invite link and code: /Invite<member number>, e.g. https://id.starry.phd/Invite886-0112342 */
+/** Invite link and code: /Invite<member number>, e.g. https://id.starry.phd/InviteTW0112342 */
 export const inviteCode = (memberNo: string): string => `Invite${memberNo}`;
 
 async function ownMemberNo(c: WebContext, userId: string): Promise<string | null> {
@@ -108,7 +108,7 @@ ${top.length > 0
 
 // ---------- public pages (no sign-in needed to look) ----------
 
-const PUBLIC_NO = '\\d{1,4}-\\d{7}';
+const PUBLIC_NO = '[A-Z]{2}\\d{7}';
 
 /** GET /a/<member number> — a member's public picture (the picture is always public). */
 publicPages.get(`/a/:no{${PUBLIC_NO}}`, async (c) => {

@@ -122,6 +122,14 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 ### 3c31 會員版帳號中心改版、推薦達人與組織網（2026-11-08）
 - 會員版樣式：星空深色主題（`MEMBER_STYLE`，`layout.ts`），移除說明小字；置頂主選單 `memberNav`（`member-nav.ts`）：電池與量子電池數量、頭像＋名字、關於我（`/account/profile`）、推薦達人（`/account/referral`）、組織網（`/account/network`），無漢堡選單。首頁的登入紀錄、登入方式、訂閱改為手動展開（`details.fold`）。
 - 頭像：Google 照片優先（既有）、沒有照片顯示 `initialsOf`（姓、名各取第一個字，`identity/initials.ts`）、可自訂並裁切（既有）。API 新增 `initials`（`GET /v1/me` 的 profile 與 public_profile、`/v1/directory/members`）。公開圖 `GET /a/<會員編號>`。
-- 公開基本資料頁：`GET /<會員編號>`（例 `/886-0112342`），只顯示會員設為公開的欄位（`publicProfile`）。
+- 公開基本資料頁：`GET /<會員編號>`（例 `/TW0112342`），只顯示會員設為公開的欄位（`publicProfile`）。
 - 推薦：migration 0030 `referrals`（每人至多一個推薦人，綁定後不可改；不可綁自己或下線，`bindReferrer` 防環）。邀請連結 `GET /Invite<會員編號>`：未登入顯示推薦人姓名與登入鈕（登入後回到此頁），已登入自動綁定並顯示推薦人姓名。`src/web/account-network.ts`：推薦達人頁（連結、邀請碼、`navigator.share` 原生分享、複製）、組織網（`orgNetwork` 遞迴查詢，最多 1500 人、深度 50；顯示總人數、第 1 層、層數、各層人數，樹狀全部展開）。
 - 串接指令版本 `2026-11-07.15`（補會員頭像與邀請連結）。
+
+### 3c32 會員編號改為「國家 ISO＋7 位數字」（2026-11-08）
+- 格式 `TW0112342`（`^[A-Z]{2}\d{7}$`），取代舊的 `886-0112342`。migration 0031 把既有編號轉換（ISO 取註冊國家，國碼對得上才用，否則用該國碼最常見的國家），並刪除 `retired_member_numbers`、新增 `member_no_changes`（修改紀錄與頻率限制）。
+- 唯一性只看目前會員；會員刪除後編號釋放（`deleteMemberNow` 不再保留），可再發給別人。
+- 會員自改：基本資料頁「會員編號」卡片（國家下拉可輸入國碼／國名篩選，台灣附近優先排序；7 位數字；即時檢查；隨機鍵）。`POST /account/member-no`，24 小時內最多 3 次（`MEMBER_NO_CHANGES_PER_DAY`）；稽核 `member.no_changed`。Owner 可在後台會員頁修改（需 Passkey 驗證，不受次數限制）。
+- 修改後公開頁 `/<編號>` 與邀請連結 `/Invite<編號>` 一起改變，舊連結不轉址。組織網與其他資料都以內部 user_id 為鍵，不受影響。
+- R2 一律以不會變的內部 UUID 命名（頭像為 `avatars/<user_id>/…`）；舊物件仍可讀取。業主 2026-11-08 收回「以會員編號命名 R2」。
+- 串接指令版本 `2026-11-07.16`（說明 member_no 會被會員修改，App 不可當主鍵）。

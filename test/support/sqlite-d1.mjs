@@ -110,11 +110,16 @@ function splitSql(sql) {
     }, []);
 }
 
-/** A fresh in-memory database with every migration in `dir` applied in order. */
-export function migratedDb(dir = 'migrations/identity') {
+/** A fresh in-memory database with the migrations in `dir` applied in order (stopping before `stopBefore`, e.g. "0031"). */
+export function migratedDb(dir = 'migrations/identity', stopBefore = null) {
   const db = new SqliteD1();
   for (const file of readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()) {
-    for (const statement of splitSql(readFileSync(`${dir}/${file}`, 'utf8'))) db.sqlite.exec(statement);
+    if (stopBefore && file >= stopBefore) break;
+    applyMigration(db, `${dir}/${file}`);
   }
   return db;
+}
+
+export function applyMigration(db, path) {
+  for (const statement of splitSql(readFileSync(path, 'utf8'))) db.sqlite.exec(statement);
 }
