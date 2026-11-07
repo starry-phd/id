@@ -1,6 +1,6 @@
 import type { Context, MiddlewareHandler } from 'hono';
 import { getCookie } from 'hono/cookie';
-import { html } from 'hono/html';
+import { html, raw } from 'hono/html';
 import type { HtmlEscapedString } from 'hono/utils/html';
 import type { AppBindings } from '../env';
 import { readWebSession } from '../identity/web-sessions';
@@ -126,7 +126,7 @@ export function page(c: WebContext, title: string, body: Html, options: { script
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>${title}｜Starry 帳號中心</title>
-<style>${STYLE}${options.admin ? ADMIN_STYLE : ''}</style>
+<style>${raw(STYLE + (options.admin ? ADMIN_STYLE : ''))}</style>
 </head>
 <body class="${options.admin ? 'admin' : ''}">
 ${options.admin ? adminHeader(c, signedIn, options.menu) : ''}
