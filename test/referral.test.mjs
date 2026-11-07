@@ -85,6 +85,15 @@ describe('referrals, the organization network and public profiles', () => {
     assert.ok(network.includes('otree') && network.includes('class="pn me"'), 'round chart with me on top');
     assert.ok(!network.includes(b.no) && !network.includes(c.no), 'member numbers are not shown in the chart');
     assert.match(network, /第 2 層 1 人/);
+    assert.ok(network.includes(`data-id="${b.userId}"`) && network.includes('id="pcard"'), 'every picture opens a pop-up');
+    const card = await worker.call(`/account/network/card/${b.userId}`, get(a.cookie));
+    assert.equal(card.status, 200, 'I can open a member below me');
+    const cardHtml = await card.text();
+    assert.ok(cardHtml.includes('John Smith') && !cardHtml.includes(b.no), 'the pop-up shows the public profile without the member number');
+    assert.equal((await worker.call(`/account/network/card/${a.userId}`, get(c.cookie))).status, 404, 'not someone above me');
+    assert.equal((await worker.call(`/account/network/card/${b.userId}`)).status, 401, 'sign-in needed');
+    const profilePage = await (await worker.call('/account/profile', get(a.cookie))).text();
+    assert.equal(profilePage.split('class="inline crown"').length - 1, 2, 'a crown button beside the nickname and beside the name');
 
     const referral = await (await worker.call('/account/referral', get(a.cookie))).text();
     assert.ok(referral.includes(`https://api.test/Invite/${a.no}`));

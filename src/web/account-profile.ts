@@ -8,7 +8,7 @@ import { type ProfileRow } from '../identity/members';
 import { confirmContactEmail, sendContactEmailVerification, type ConfirmResult } from '../identity/contact-email';
 import { randomMotto } from '../identity/mottos';
 import { randomNickname } from '../identity/nicknames';
-import { ageOn, derivedOf, EDITABLE_FIELDS, effectiveVisibility, GRID_LAYOUT, hasChanges, loadProfile, saveProfile, validateProfileInput, VISIBILITY_FIELDS, type EditableField, type FieldUpdate, type Visibility, type VisibilityField } from '../identity/profile';
+import { isPrimaryName, setPrimaryName, ageOn, derivedOf, EDITABLE_FIELDS, effectiveVisibility, GRID_LAYOUT, hasChanges, loadProfile, saveProfile, validateProfileInput, VISIBILITY_FIELDS, type EditableField, type FieldUpdate, type Visibility, type VisibilityField } from '../identity/profile';
 import { WEB_APP_ID } from '../identity/web-sessions';
 import { formatTime, page, readForm, type Html, type WebContext } from './layout';
 import { LOCALES, accountApp } from './account-lib';
@@ -36,7 +36,7 @@ interface FieldSpec {
 }
 
 const PROFILE_FIELDS: readonly FieldSpec[] = [
-  { field: 'nickname', label: '暱稱', eye: null, input: 'text', max: 30, alwaysPublic: true, hint: '一律公開（排行榜等功能會顯示暱稱與頭像），所有繁星 App 優先顯示暱稱，最多 30 字。' },
+  { field: 'nickname', label: '暱稱', eye: null, input: 'text', max: 30, alwaysPublic: true, hint: '一律公開（排行榜等功能會顯示頭像與主要顯示名稱），最多 30 字。' },
   { field: 'display_name', label: '姓名', eye: 'display_name', input: 'text', max: 50, hint: '你的姓名，1～50 字，可以選擇不公開。' },
   { field: 'contact_email', label: '主要聯絡 Email', eye: 'contact_email', input: 'email', hint: '變更後會寄確認信；確認前，系統通知仍寄到登入用的信箱。' },
   { field: 'phone', label: '手機（選填）', eye: 'phone', input: 'tel', hint: '可輸入 0912345678，會依國家自動加上國碼。預設不公開。' },
@@ -123,6 +123,13 @@ function derivedCard(p: ProfileRow, visibility: Record<VisibilityField, Visibili
 </div>`;
 }
 
+/** "👑 主要顯示名稱" button beside the nickname and the real name: exactly one of them is the primary display name. */
+function crownForm(field: 'nickname' | 'display_name', p: ProfileRow): Html {
+  const on = p.primary_name === field;
+  const label = field === 'nickname' ? '暱稱' : '姓名';
+  return html`<form class="inline crown" method="post" action="/account/profile/primary-name" data-label="${label}"><input type="hidden" name="version" value="${p.version}"><input type="hidden" name="choice" value="${field}"><button type="submit" class="${on ? '' : 'secondary'}" aria-pressed="${on ? 'true' : 'false'}" title="${on ? `目前以${label}作為主要顯示名稱` : `改用${label}作為主要顯示名稱`}">👑 主要顯示名稱</button></form>`;
+}
+
 function profilePage(c: WebContext, loaded: { row: ProfileRow; fieldUpdates: Record<string, FieldUpdate> }, memberNo: string | null, message?: { text: string; danger: boolean }): Html {
   const p = loaded.row;
   const countries = countryOptions().map((x) => `${x.iso}:${x.callingCode}`).join(',');
@@ -133,7 +140,7 @@ function profilePage(c: WebContext, loaded: { row: ProfileRow; fieldUpdates: Rec
   const rows = PROFILE_FIELDS.map((spec) => {
     const locked = minor && spec.eye === 'birthday';
     return html`<div class="card field" data-field="${spec.field}">
-<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>${spec.label}</strong><span>${spec.alwaysPublic ? html`<span class="muted">🌐 一律公開</span>` : spec.eye ? eyeForm(spec.eye, visibility, p.version, locked) : ''}<button class="secondary pencil" type="button" aria-label="編輯${spec.label}" hidden>✏️ 編輯</button></span></div>
+<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>${spec.label}</strong><span>${spec.field === 'nickname' || spec.field === 'display_name' ? crownForm(spec.field, p) : ''}${spec.alwaysPublic ? html`<span class="muted">🌐 一律公開</span>` : spec.eye ? eyeForm(spec.eye, visibility, p.version, locked) : ''}<button class="secondary pencil" type="button" aria-label="編輯${spec.label}" hidden>✏️ 編輯</button></span></div>
 <p class="value">${displayValue(p, spec.field) || html`<span class="muted">（未設定）</span>`}</p>
 <form class="field-form" method="post" action="/account/profile">
 <input type="hidden" name="version" value="${p.version}"><input type="hidden" name="field" value="${spec.field}">
@@ -157,7 +164,7 @@ ${message ? html`<div class="banner ${message.danger ? 'danger' : ''}">${message
 
 <div id="vis-toast" hidden role="status" aria-live="assertive"><div class="vt"></div></div>
 <div class="actions" id="vis-all" hidden><button type="button" id="vis-all-public">👁 全部公開</button><button type="button" class="secondary" id="vis-all-private">🙈 全部隱藏</button></div>
-<style>#vis-toast{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(5,5,25,.45)}#vis-toast[hidden]{display:none}#vis-toast .vt{max-width:86vw;padding:26px 34px;border-radius:22px;background:#1d1d52;border:2px solid var(--accent,#8b7cf6);box-shadow:0 12px 50px rgba(0,0,0,.6);font-size:1.7rem;font-weight:700;text-align:center;line-height:1.4}.js .field-form{display:none}.js .field.editing .field-form{display:block}.js .field.editing .value{display:none}.grid9{width:auto;margin:8px 0}.grid9 td{width:56px;height:56px;text-align:center;border:1px solid var(--line);font-size:1.2rem}.eye button,.pencil{margin:0 0 0 8px;padding:4px 10px}</style>
+<style>#vis-toast{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(5,5,25,.45)}#vis-toast[hidden]{display:none}#vis-toast .vt{max-width:86vw;padding:26px 34px;border-radius:22px;background:#1d1d52;border:2px solid var(--accent,#8b7cf6);box-shadow:0 12px 50px rgba(0,0,0,.6);font-size:1.7rem;font-weight:700;text-align:center;line-height:1.4}.js .field-form{display:none}.js .field.editing .field-form{display:block}.js .field.editing .value{display:none}.grid9{width:auto;margin:8px 0}.grid9 td{width:56px;height:56px;text-align:center;border:1px solid var(--line);font-size:1.2rem}.eye button,.pencil,.crown button{margin:0 0 0 8px;padding:4px 10px}.crown{display:inline}</style>
 <div class="card" id="avatar-card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>頭像</strong></div>
 <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px">
 ${p.avatar_key ? html`<img id="avatar-now" src="/account/avatar-image?v=${encodeURIComponent(p.avatar_key.split('/').pop() ?? '')}" alt="目前的頭像" width="96" height="96" style="border-radius:50%;object-fit:cover">` : avatarBubble({ initials: initialsOf(p.display_name ?? p.nickname), photo: null, size: 96, label: p.display_name ?? '' })}
@@ -389,6 +396,28 @@ async function save(form) {
   }
   status.textContent = res && res.status === 409 ? STATUS.conflict : (body.message || STATUS.failed);
 }
+document.querySelectorAll('form.crown').forEach((form) => {
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const choice = form.querySelector('[name=choice]').value;
+    const label = form.getAttribute('data-label');
+    const res = await fetch('/account/profile/primary-name', { method: 'POST', headers: { accept: 'application/json' }, body: new URLSearchParams({ version: String(version), choice: choice }) }).catch(() => null);
+    const body = res ? await res.json().catch(() => ({})) : {};
+    if (res && res.ok && body.ok) {
+      setVersion(body.version);
+      document.querySelectorAll('form.crown').forEach((f) => {
+        const on = f.querySelector('[name=choice]').value === choice;
+        const b = f.querySelector('button');
+        b.classList.toggle('secondary', !on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      if (choice === 'display_name') document.querySelectorAll('form.eye[data-group="display_name"]').forEach((f) => applyEye(f, true));
+      toast('👑 主要顯示名稱：' + label);
+    } else {
+      toast(res && res.status === 409 ? '資料已在其他地方更新，請重新整理頁面' : (body.message || '設定失敗，請再試一次'));
+    }
+  });
+});
 document.querySelectorAll('.field[data-field]').forEach((field) => {
   const form = field.querySelector('.field-form');
   const pencil = field.querySelector('.pencil');
@@ -504,6 +533,23 @@ accountApp.post('/profile', async (c) => {
     if (pending) await pending;
   }
   return respond(200, { text: saved.newContactEmail ? '已儲存，並寄出聯絡信箱的確認信。' : '已儲存。', danger: false });
+});
+
+/** POST /account/profile/primary-name — chooses which of nickname / real name is the primary display name. */
+accountApp.post('/profile/primary-name', async (c) => {
+  const web = c.get('web');
+  const wantsJson = (c.req.header('accept') ?? '').includes('application/json');
+  if (!web || web.status !== 'active') return wantsJson ? c.json({ ok: false, message: '請重新登入。' }, 401) : c.redirect('/account', 303);
+  const form = await readForm(c);
+  const version = Number(form.version);
+  if (!isPrimaryName(form.choice) || !Number.isInteger(version)) return wantsJson ? c.json({ ok: false, message: '要求不正確。' }, 400) : c.redirect('/account/profile', 303);
+  const db = c.env.DB_IDENTITY;
+  const result = await setPrimaryName(db, { userId: web.userId, expectedVersion: version, choice: form.choice, actorUserId: web.userId, appId: WEB_APP_ID, requestId: c.get('requestId') }, Date.now());
+  const current = await loadProfile(db, web.userId);
+  if (!wantsJson) return c.redirect('/account/profile', 303);
+  if (result === 'missing_name') return c.json({ ok: false, message: form.choice === 'nickname' ? '請先設定暱稱，才能作為主要顯示名稱。' : '請先填寫姓名，才能作為主要顯示名稱。' }, 400);
+  if (result === 'conflict') return c.json({ ok: false, message: '個人資料已在其他地方更新，請重新整理頁面。' }, 409);
+  return c.json({ ok: true, version: current?.row.version ?? version, primary_name: form.choice });
 });
 
 /** GET /account/avatar-image — the signed-in member's own avatar for the account page. */

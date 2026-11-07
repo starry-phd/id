@@ -3,6 +3,7 @@ import { BATTERY_ICON } from '../lib/battery-icons';
 import { getBalance } from '../battery/battery';
 import { listQuantum } from '../battery/quantum';
 import { initialsOf } from '../identity/initials';
+import { shownName, type PrimaryName } from '../identity/profile';
 import type { Html, WebContext } from './layout';
 
 /** The little round picture: the member's photo, or the first letters of family and given name. */
@@ -27,12 +28,12 @@ export async function memberNav(c: WebContext): Promise<Html> {
   const db = c.env.DB_IDENTITY;
   const now = Date.now();
   const [profile, user, battery, quantum] = await Promise.all([
-    db.prepare('SELECT display_name, nickname, avatar_key FROM profiles WHERE user_id = ?').bind(web.userId).first<{ display_name: string | null; nickname: string | null; avatar_key: string | null }>(),
+    db.prepare('SELECT display_name, nickname, primary_name, avatar_key FROM profiles WHERE user_id = ?').bind(web.userId).first<{ display_name: string | null; nickname: string | null; primary_name: PrimaryName; avatar_key: string | null }>(),
     db.prepare('SELECT member_no FROM users WHERE user_id = ?').bind(web.userId).first<{ member_no: string | null }>(),
     getBalance(c.env.DB_BATTERY, web.userId, now).catch(() => null),
     listQuantum(c.env.DB_BATTERY, web.userId).catch(() => []),
   ]);
-  const name = profile?.nickname || profile?.display_name || '我';
+  const name = shownName(profile?.nickname, profile?.display_name, profile?.primary_name) ?? '我';
   const path = new URL(c.req.url).pathname;
   const on = (href: string) => (path === href || (href !== '/account' && path.startsWith(`${href}/`)) ? ' class="on" aria-current="page"' : '');
   const photo = profile?.avatar_key && user?.member_no ? `/account/avatar-image?v=${encodeURIComponent(profile.avatar_key.split('/').pop() ?? '')}` : null;

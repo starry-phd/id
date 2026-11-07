@@ -175,7 +175,7 @@
               "string",
               "null"
             ],
-            "description": "THE name to show for this member in every Starry App: the nickname first, the real name only when there is no nickname (null when neither exists; then show initials)",
+            "description": "THE name to show for this member in every Starry App: the primary display name the member chose (nickname or real name, exactly one; default nickname; null when neither exists, then show initials)",
             "example": "陽光海豚"
           },
           "nickname": {
@@ -595,7 +595,7 @@
               "string",
               "null"
             ],
-            "description": "THE name to show for this member in every Starry App: the nickname first, the real name only when there is no nickname (null when neither exists; then show initials)",
+            "description": "THE name to show for this member in every Starry App: the primary display name the member chose (nickname or real name, exactly one; default nickname; null when neither exists, then show initials)",
             "example": "陽光海豚"
           },
           "display_name": {
@@ -1028,7 +1028,7 @@
               "string",
               "null"
             ],
-            "description": "THE name to show for this member in every Starry App: the nickname first, the real name only when there is no nickname (null when neither exists; then show initials)",
+            "description": "THE name to show for this member in every Starry App: the primary display name the member chose (nickname or real name, exactly one; default nickname; null when neither exists, then show initials)",
             "example": "陽光海豚"
           },
           "display_name": {

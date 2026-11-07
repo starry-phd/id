@@ -38,7 +38,7 @@ async function avatarUrlOf(env: { DATA_ENCRYPTION_KEY?: string }, p: ProfileRow,
 async function profileJson(env: { DATA_ENCRYPTION_KEY?: string }, p: ProfileRow, fieldUpdates: Record<string, FieldUpdate>) {
   const now = Date.now();
   return {
-    shown_name: shownName(p.nickname, p.display_name),
+    shown_name: shownName(p.nickname, p.display_name, p.primary_name),
     display_name: p.display_name,
     avatar_url: await avatarUrlOf(env, p, now),
     initials: initialsOf(p.display_name ?? p.nickname),

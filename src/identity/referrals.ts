@@ -16,8 +16,15 @@ export interface Referrer {
   has_avatar: boolean;
 }
 
-/** What other people may see as a member's name: nickname, else a public name, else the member number. */
-export const DISPLAY_SQL = `COALESCE(NULLIF(p.nickname, ''), CASE WHEN COALESCE(json_extract(p.visibility, '$.display_name'), 'public') <> 'private' THEN NULLIF(p.display_name, '') END, u.member_no, '星友')`;
+/**
+ * What other people see as a member's name: the member's chosen primary name (nickname or a public real name),
+ * else the other one if it may be shown, else a neutral word. Never the member number.
+ */
+export const DISPLAY_SQL = `COALESCE(
+  CASE WHEN p.primary_name = 'display_name' AND COALESCE(json_extract(p.visibility, '$.display_name'), 'public') <> 'private' THEN NULLIF(p.display_name, '') END,
+  NULLIF(p.nickname, ''),
+  CASE WHEN COALESCE(json_extract(p.visibility, '$.display_name'), 'public') <> 'private' THEN NULLIF(p.display_name, '') END,
+  '星友')`;
 
 export async function memberByNo(db: D1Database, memberNo: string): Promise<Referrer | null> {
   if (!MEMBER_NO.test(memberNo)) return null;
