@@ -72,6 +72,8 @@ ${message ? html`<div class="banner danger">${message}</div>` : ''}
   <label for="app_id">相關 App</label>
   <select id="app_id" name="app_id"><option value="">Starry 帳號／不限</option>${apps.map((a) => html`<option value="${a.app_id}" ${values.app_id === a.app_id ? 'selected' : ''}>${a.name}</option>`)}</select>
   ${signedIn ? html`<p class="muted">你已登入，我們會回覆到你登入帳號的 Email。</p>` : html`<label for="email">你的 Email（回覆用）</label><input id="email" name="email" type="email" maxlength="254" required value="${values.email ?? ''}">`}
+  ${values.app_version ? html`<input type="hidden" name="app_version" value="${values.app_version}">` : ''}${values.device ? html`<input type="hidden" name="device" value="${values.device}">` : ''}
+  ${values.app_version || values.device ? html`<p class="muted">已附上 App 版本與裝置資訊：${[values.app_version, values.device].filter(Boolean).join('｜')}</p>` : ''}
   <label for="message">內容（最多 2000 字）</label>
   <textarea id="message" name="message" rows="8" maxlength="2000" required>${values.message ?? ''}</textarea>
   ${uploads ? html`<label for="attachment">附件（選填：截圖或 PDF，最多 2 MB）</label><input id="attachment" name="attachment" type="file" accept="${ATTACHMENT_ACCEPT}">` : ''}
@@ -84,7 +86,11 @@ ${message ? html`<div class="banner danger">${message}</div>` : ''}
   );
 }
 
-supportApp.get('/', (c) => form(c));
+/** An App opens /support?app_id=…&app_version=…&device=… so the ticket arrives with its context. */
+supportApp.get('/', (c) => {
+  const q = c.req.query();
+  return form(c, { ...(q.app_id ? { app_id: q.app_id } : {}), ...(q.app_version ? { app_version: q.app_version } : {}), ...(q.device ? { device: q.device } : {}) });
+});
 
 supportApp.post('/', async (c) => {
   // Refuse oversized uploads before reading them; the form itself plus 2 MB fits well below this.
@@ -106,7 +112,7 @@ supportApp.post('/', async (c) => {
   const now = Date.now();
   const result = await createTicket(
     c.env.DB_IDENTITY,
-    { userId: web?.userId ?? null, contactEmail: web ? null : (values.email ?? null), category, appId, message: values.message ?? '', clientIp: c.req.header('cf-connecting-ip') ?? null },
+    { userId: web?.userId ?? null, contactEmail: web ? null : (values.email ?? null), category, appId, message: values.message ?? '', clientIp: c.req.header('cf-connecting-ip') ?? null, appVersion: values.app_version ?? null, device: values.device ?? null },
     now,
     c.get('requestId'),
   );

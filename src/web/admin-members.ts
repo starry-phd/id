@@ -3,8 +3,9 @@ import { cleanupBacklog } from '../identity/cleanup-jobs';
 import { readHeartbeats } from '../lib/heartbeat';
 import { listQuantum } from '../battery/quantum';
 import { listGrants } from '../billing/grants';
-import { getApp } from '../apps/registry';
-import { listAppStages, STAGE_LABELS } from '../apps/status';
+import { appRegistry, getApp } from '../apps/registry';
+import { listAppStages, listAppStatusOverrides, STAGE_LABELS } from '../apps/status';
+import { trafficLights, type Light } from './traffic-lights';
 import { background } from '../auth/routes';
 import { adjustAllowance, getBalance, staffLedger } from '../battery/battery';
 import { WEB_APP_ID } from '../identity/web-sessions';
@@ -31,7 +32,7 @@ adminApp.get('/', async (c) => {
     db.prepare('SELECT app_id, COUNT(DISTINCT user_id) AS n FROM sessions WHERE last_used_at >= ? GROUP BY app_id ORDER BY n DESC LIMIT 20').bind(since),
   ]);
   const count = (r: typeof members) => Number((r?.results[0] as { n?: number } | undefined)?.n ?? 0);
-  const [beats, backlog, usage, seen, subs, stages] = await Promise.all([
+  const [beats, backlog, usage, seen, subs, stages, overrides, oldestOpen] = await Promise.all([
     readHeartbeats(db),
     cleanupBacklog(db),
     c.env.DB_BATTERY.prepare('SELECT app_id, SUM(amount) AS used, COUNT(DISTINCT user_id) AS members FROM battery_ledger WHERE kind = ? AND created_at >= ? GROUP BY app_id ORDER BY used DESC LIMIT 20')
@@ -42,15 +43,27 @@ adminApp.get('/', async (c) => {
       .all<{ app_id: string; total: number; week: number; month: number }>(),
     c.env.DB_BILLING.prepare("SELECT app_id, COUNT(*) AS n FROM entitlements WHERE active = 1 AND (environment IS NULL OR environment != 'SANDBOX') GROUP BY app_id").all<{ app_id: string; n: number }>(),
     listAppStages(db),
+    listAppStatusOverrides(db),
+    db.prepare("SELECT MIN(created_at) AS oldest FROM support_tickets WHERE status = 'open'").first<{ oldest: number | null }>(),
   ]);
   const activeRows = (active?.results ?? []) as { app_id: string; n: number }[];
   const stale = (b: { job: string; last_success_at: number | null }) => b.last_success_at === null || now - b.last_success_at > (b.job === 'minutely' ? 10 * 60 * 1000 : 36 * 60 * 60 * 1000);
   const problems = beats.filter(stale).length + backlog.abandoned;
+  const lights = trafficLights({
+    now,
+    jobsStale: beats.filter(stale).length,
+    cleanupWaiting: backlog.waiting,
+    cleanupAbandoned: backlog.abandoned,
+    openTickets: count(open),
+    oldestOpenTicketAt: oldestOpen?.oldest ?? null,
+    appStatuses: [...appRegistry.values()].map((a) => overrides.get(a.app_id)?.status ?? a.status),
+  });
   return c.html(
     adminPage(
       c,
       'Admin Lite',
       html`<h1>Admin Lite</h1><p class="muted">你的角色：${ROLE_LABELS[actor.role]} ｜ <a href="/admin/notices">公告與維護模式</a></p>
+<div class="card" style="display:flex;gap:16px;flex-wrap:wrap">${lights.map((l: Light) => html`<div style="min-width:130px"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:middle;background:${l.color === 'green' ? '#2e9e4f' : l.color === 'yellow' ? '#e0a800' : '#d32f2f'}"></span> <strong>${l.label}</strong><br><span class="muted">${l.text}</span></div>`)}</div>
 ${problems > 0 ? html`<div class="banner danger">有 ${problems} 項系統狀況需要注意，請看下方「系統狀態」。</div>` : ''}
 <div class="card"><p>會員總數：<strong>${count(members)}</strong>（近 24 小時新增 <strong>${count(today)}</strong>）</p><p>未結客服單：<strong>${count(open)}</strong></p></div>
 <h2>各 App 使用概況</h2>

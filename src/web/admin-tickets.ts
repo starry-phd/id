@@ -1,4 +1,6 @@
 import { html, raw } from 'hono/html';
+import { appRegistry } from '../apps/registry';
+import { WEB_APP_ID } from '../identity/web-sessions';
 import { type StaffActor } from '../identity/roles';
 import { auditStatement } from '../lib/audit';
 import { mailSettings } from '../notify/email';
@@ -12,20 +14,24 @@ adminApp.get('/tickets', async (c) => {
   const actor = await staff(c, 'support');
   if (actor instanceof Response) return actor;
   const status = c.req.query('status') === 'closed' ? 'closed' : 'open';
-  const result = await listTickets(c.env.DB_IDENTITY, { status, cursor: c.req.query('cursor') });
+  const appFilter = c.req.query('app') ?? '';
+  const appId = appFilter === '' ? undefined : appFilter === '-' || appRegistry.has(appFilter) ? appFilter : undefined;
+  const result = await listTickets(c.env.DB_IDENTITY, { status, cursor: c.req.query('cursor'), appId });
+  const appQuery = appId === undefined ? '' : `&app=${encodeURIComponent(appId)}`;
   return c.html(
     adminPage(
       c,
       '客服單',
       html`<h1>客服單</h1>
-<p>${status === 'open' ? html`<strong>未結</strong>&emsp;<a href="/admin/tickets?status=closed">已結</a>` : html`<a href="/admin/tickets">未結</a>&emsp;<strong>已結</strong>`}</p>
+<p>${status === 'open' ? html`<strong>未結</strong>&emsp;<a href="/admin/tickets?status=closed${appQuery}">已結</a>` : html`<a href="/admin/tickets?status=open${appQuery}">未結</a>&emsp;<strong>已結</strong>`}</p>
+<form method="get" action="/admin/tickets" class="inline"><input type="hidden" name="status" value="${status}"><label for="app" class="muted">依 App 篩選</label> <select id="app" name="app"><option value="">全部</option><option value="-"${appId === '-' ? ' selected' : ''}>未指定 App（Starry 帳號）</option>${[...appRegistry.values()].filter((a) => a.app_id !== WEB_APP_ID).map((a) => html`<option value="${a.app_id}"${appId === a.app_id ? ' selected' : ''}>${a.name}</option>`)}</select> <button type="submit" class="secondary">篩選</button></form>
 <table><thead><tr><th>時間</th><th>類別</th><th>內容</th></tr></thead><tbody>
 ${result.tickets.map(
   (t) => html`<tr><td><a href="/admin/tickets/${t.ticket_id}">${formatTime(t.created_at)}</a></td><td>${CATEGORY_LABELS[t.category]}${t.app_id ? html`<br><span class="muted">${t.app_id}</span>` : ''}</td><td>${t.message.length > 80 ? `${t.message.slice(0, 80)}…` : t.message}</td></tr>`,
 )}
 </tbody></table>
 ${result.tickets.length === 0 ? html`<p class="muted">沒有客服單。</p>` : ''}
-${result.nextCursor ? html`<p class="pager"><a href="/admin/tickets?status=${status}&cursor=${result.nextCursor}">下一頁</a></p>` : ''}`,
+${result.nextCursor ? html`<p class="pager"><a href="/admin/tickets?status=${status}${appQuery}&cursor=${result.nextCursor}">下一頁</a></p>` : ''}`,
     ),
   );
 });
@@ -48,6 +54,7 @@ async function ticketPage(c: WebContext, actor: StaffActor, ticketId: string, me
   const replies = await listReplies(db, t.ticket_id);
   const canEmail = mailSettings(c.env, new URL(c.req.url).origin) !== null;
   const recipient = await replyRecipient(db, t);
+  const memberNo = t.user_id ? ((await db.prepare('SELECT member_no FROM users WHERE user_id = ?').bind(t.user_id).first<{ member_no: string | null }>())?.member_no ?? null) : null;
   return c.html(
     adminPage(
       c,
@@ -56,6 +63,8 @@ async function ticketPage(c: WebContext, actor: StaffActor, ticketId: string, me
 ${message ? html`<div class="banner">${message}</div>` : ''}
 <div class="card">
 <p class="muted">${formatTime(t.created_at)}｜${CATEGORY_LABELS[t.category]}${t.app_id ? `｜${t.app_id}` : ''}｜${t.status === 'open' ? '未結' : `已結（${formatTime(t.closed_at)}）`}</p>
+${t.app_version || t.device ? html`<p class="muted">App 版本：${t.app_version ?? '—'}｜裝置：${t.device ?? '—'}</p>` : ''}
+${memberNo ? html`<p class="muted">會員編號：<strong>${memberNo}</strong></p>` : ''}
 <p style="white-space:pre-wrap">${t.message}</p>
 <p><strong>回覆對象：</strong>${t.contact_email ?? '（會員，請以會員登入 Email 回覆）'}${t.user_id ? html`<br><a href="/admin/members/${t.user_id}">查看會員</a>` : ''}</p>
 ${t.staff_note ? html`<p><strong>內部備註：</strong>${t.staff_note}</p>` : ''}
