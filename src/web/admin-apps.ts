@@ -11,7 +11,8 @@ import { hasRole, roleOf, type Role, type StaffActor } from '../identity/roles';
 import { revenueSummary } from '../billing/revenue';
 import { auditStatement } from '../lib/audit';
 import { readForm, type WebContext } from './layout';
-import { adminApp, adminPage, staff } from './admin-lib';
+import { adminApp, adminPage, requireStepUp, staff } from './admin-lib';
+import { BLOCKER_TEXT, previewReset, resetAppData, type ResetCounts } from '../apps/reset';
 
 export async function appsPage(c: WebContext, message?: string): Promise<Response> {
   const overrides = await listAppStatusOverrides(c.env.DB_IDENTITY);
@@ -44,7 +45,7 @@ ${appRegistry.values().filter((app) => app.app_id !== WEB_APP_ID).map((app) => {
 <p>本月 Battery <strong>${st?.batteryUsed ?? 0}</strong>${st?.batteryCap != null ? ` ／ 上限 ${st.batteryCap}` : ''}｜近 24 小時用量 <strong>${st?.batteryUsed24h ?? 0}</strong>｜每小時暴增上限 ${st?.hourlyLimit != null ? html`<strong>${st.hourlyLimit}</strong>` : '未設定'}</p>
 <p>最低版本 <strong>${st?.minVersionOverride ?? app.min_version ?? '0.0.0'}</strong>${st?.minVersionOverride ? '（遠端設定）' : '（預設）'}｜未結客服單 <a href="/admin/tickets?app=${app.app_id}"><strong>${st?.openTickets ?? 0}</strong></a>&emsp;${quick}</p>
 ${revenue ? html`<p>近 30 天營收（估計，USD）<strong>${(revenue.get(app.app_id)?.revenueUsd ?? 0).toFixed(2)}</strong>｜退款 ${(revenue.get(app.app_id)?.refundedUsd ?? 0).toFixed(2)}｜新訂閱 ${revenue.get(app.app_id)?.newPurchases ?? 0}｜退訂 ${revenue.get(app.app_id)?.cancellations ?? 0}｜<a href="/admin/revenue">營收明細</a></p>` : ''}
-<p>${revenue ? html`<a href="/admin/apps/${app.app_id}/config">遠端設定</a>｜<a href="/admin/apps/${app.app_id}/products">商品目錄</a>｜<a href="/admin/apps/${app.app_id}/quantum">量子電池</a>｜<a href="/admin/apps/${app.app_id}/invites">邀請碼</a>｜` : ''}<a href="/admin/apps/${app.app_id}/handoff">給開發 AI 的串接指令</a>${own ? html`&emsp;<a href="/admin/apps/${app.app_id}/edit">編輯登記資料</a>` : ''}</p>
+<p>${revenue ? html`<a href="/admin/apps/${app.app_id}/config">遠端設定</a>｜<a href="/admin/apps/${app.app_id}/products">商品目錄</a>｜<a href="/admin/apps/${app.app_id}/quantum">量子電池</a>｜<a href="/admin/apps/${app.app_id}/invites">邀請碼</a>｜` : ''}<a href="/admin/apps/${app.app_id}/handoff">給開發 AI 的串接指令</a>${viewer === 'owner' && (stages.get(app.app_id) ?? 'dev') !== 'live' ? html`&emsp;<a href="/admin/apps/${app.app_id}/reset">清除測試資料</a>` : ''}${own ? html`&emsp;<a href="/admin/apps/${app.app_id}/edit">編輯登記資料</a>` : ''}</p>
 <p>階段：<strong>${STAGE_LABELS[stages.get(app.app_id) ?? 'dev']}</strong>
 <select name="stage_value" form="stage-${app.app_id}">${APP_STAGES.map((st) => html`<option value="${st}"${(stages.get(app.app_id) ?? 'dev') === st ? ' selected' : ''}>${STAGE_LABELS[st]}</option>`)}</select> <button type="submit" form="stage-${app.app_id}" class="secondary">改階段</button></p>
 <label>新狀態</label><select name="status"><option value="default">使用預設</option><option value="active">active</option><option value="paused">paused</option><option value="killed">killed</option></select>
@@ -216,4 +217,59 @@ adminApp.get('/apps/:id/handoff', async (c) => {
   const app = getApp(c.req.param('id'));
   if (!app || app.app_id === WEB_APP_ID) return appsPage(c, '找不到此 App。');
   return handoffPage(c, actor.role, app, c.req.query('created') ? '已建立，30 秒內生效。' : c.req.query('updated') ? '已儲存。' : '');
+});
+
+const COUNT_LABELS: [keyof ResetCounts, string][] = [
+  ['sessions', '登入狀態（會員會被登出這款 App）'],
+  ['memberApps', '使用紀錄（用過這款 App 的會員）'],
+  ['pushTokens', '推播裝置'],
+  ['pushPreferences', '推播類別設定'],
+  ['entitlements', '訂閱與買斷權益'],
+  ['grants', '客服補發的權益'],
+  ['rcEvents', 'RevenueCat 事件紀錄'],
+  ['quantumAccounts', '量子電池餘額'],
+  ['quantumLedger', '量子電池流水'],
+  ['inviteRedemptions', '邀請碼兌換紀錄（邀請碼本身保留，已用次數歸零）'],
+];
+
+async function resetPage(c: WebContext, appId: string, message?: string): Promise<Response> {
+  const app = getApp(appId);
+  if (!app || app.app_id === WEB_APP_ID) return appsPage(c, '找不到此 App。');
+  const preview = await previewReset({ identity: c.env.DB_IDENTITY, billing: c.env.DB_BILLING, battery: c.env.DB_BATTERY }, appId, Date.now());
+  return c.html(
+    adminPage(
+      c,
+      '清除測試資料',
+      html`<h1>清除測試資料：${app.name}</h1>
+${message ? html`<div class="banner">${message}</div>` : ''}
+<div class="card"><p>階段：<strong>${STAGE_LABELS[preview.stage]}</strong>（只有「開發中」或「測試中」才能清除）</p>
+<table><thead><tr><th>會被刪除的資料</th><th>筆數</th></tr></thead><tbody>${COUNT_LABELS.map(([key, label]) => html`<tr><td>${label}</td><td>${preview.counts[key]}</td></tr>`)}</tbody></table>
+<p class="muted"><strong>不會動：</strong>會員帳號、稽核紀錄、這款 App 的登記與設定、客服單、全站共用的免費 Battery。刪除後無法復原。</p></div>
+${preview.blockers.length > 0
+  ? html`<div class="banner danger">${preview.blockers.map((b) => html`<p>${BLOCKER_TEXT[b]}</p>`)}</div>`
+  : html`<form method="post" action="/admin/apps/${appId}/reset" class="card"><label for="confirm">請輸入 App 代碼 <code>${appId}</code> 以確認</label><input id="confirm" name="confirm" autocomplete="off" required><button class="danger" type="submit">永久清除測試資料</button></form>`}
+<p><a href="/admin/apps">回到 App 列表</a></p>`,
+    ),
+  );
+}
+
+adminApp.get('/apps/:id/reset', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  return resetPage(c, c.req.param('id'));
+});
+
+adminApp.post('/apps/:id/reset', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const stepUp = await requireStepUp(c, actor);
+  if (stepUp) return stepUp;
+  const appId = c.req.param('id');
+  const app = getApp(appId);
+  if (!app || app.app_id === WEB_APP_ID) return appsPage(c, '找不到此 App。');
+  if (((await readForm(c)).confirm ?? '').trim() !== appId) return resetPage(c, appId, '請輸入正確的 App 代碼才能清除。');
+  const result = await resetAppData({ identity: c.env.DB_IDENTITY, billing: c.env.DB_BILLING, battery: c.env.DB_BATTERY }, actor, appId, Date.now());
+  if (!result.ok) return resetPage(c, appId, '目前不能清除，原因見下方。');
+  const total = Object.values(result.counts).reduce((a, b) => a + b, 0);
+  return resetPage(c, appId, `已清除 ${total} 筆測試資料。`);
 });
