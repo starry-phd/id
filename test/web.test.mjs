@@ -410,6 +410,12 @@ describe('web account center, support form and Admin Lite', () => {
     const adminCookie = await webSignIn('stage-admin');
     await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(await userIdOf('stage-admin'), Date.now()).run();
     assert.match(await (await worker.call('/admin/apps', get(adminCookie))).text(), /階段：<strong>開發中/);
+    const cards = await (await worker.call('/admin/apps', get(adminCookie))).text();
+    assert.match(cards, /近 24 小時活躍/);
+    assert.match(cards, /近 24 小時用量/);
+    assert.match(cards, /最低版本 <strong>[\d.]+<\/strong>（預設）/);
+    assert.ok(cards.includes('/admin/tickets?app=echo'), 'ticket count links to that App\'s tickets');
+    assert.ok(cards.includes('/admin/apps/echo/config') && cards.includes('/admin/apps/echo/products'), 'shortcuts to the App settings pages');
     assert.match(await (await worker.call('/admin/apps/echo/stage', form({ stage_value: 'live' }, adminCookie))).text(), /已改為「已上架」/);
     assert.match(await (await worker.call('/admin/apps/echo/stage', form({ stage_value: 'nope' }, adminCookie))).text(), /請選擇階段/);
     assert.equal((await worker.db.prepare("SELECT stage FROM app_stages WHERE app_id = 'echo'").first()).stage, 'live');
