@@ -13,7 +13,7 @@ import type { StaffActor } from '../identity/roles';
  * (App Store 3.1.1 / Google Play payments policy), and members redeem them on the web account center, not inside an App.
  */
 
-const KIND_LABELS: Record<CodeKind, string> = { battery: '電池（全 App 共用，只加本月額度）', quantum: '量子電池（只能在指定的 App 使用）' };
+const KIND_LABELS: Record<CodeKind, string> = { battery: '電池（全 App 共用，只加本月額度）', quantum: '量子電池（兌換後只能在一款 App 使用）' };
 
 const apps = () => [...appRegistry.values()].filter((a) => a.app_id !== WEB_APP_ID);
 
@@ -30,8 +30,8 @@ ${message ? html`<div class="banner${status >= 400 ? ' danger' : ''}">${message}
 <form method="post" action="/admin/battery/codes" class="card">
 <label for="kind">類型</label>
 <select id="kind" name="kind">${(['battery', 'quantum'] as CodeKind[]).map((k) => html`<option value="${k}"${kind === k ? ' selected' : ''}>${KIND_LABELS[k]}</option>`)}</select>
-<label for="app_id">App（只有量子電池需要選；電池不分 App）</label>
-<select id="app_id" name="app_id"><option value="">— 不指定 —</option>${apps().map((a) => html`<option value="${a.app_id}"${values.app_id === a.app_id ? ' selected' : ''}>${a.name}（${a.app_id}）</option>`)}</select>
+<label for="app_id">App（只有量子電池用；不指定＝通用序號，由兌換的人自己選一款 App，入帳後固定在那一款）</label>
+<select id="app_id" name="app_id"><option value="">— 不指定（通用，兌換時自選 App）—</option>${apps().map((a) => html`<option value="${a.app_id}"${values.app_id === a.app_id ? ' selected' : ''}>${a.name}（${a.app_id}）</option>`)}</select>
 <label for="units">每組序號給幾顆（1～1000）</label><input id="units" name="units" type="number" min="1" max="1000" step="1" value="${values.units ?? '5'}" required>
 <label for="count">要產生幾組（1～${MAX_BATCH}）</label><input id="count" name="count" type="number" min="1" max="${MAX_BATCH}" step="1" value="${values.count ?? '10'}" required>
 <label for="max_uses">每組可被幾個人兌換（1＝一人一組；每人同一組只能兌換一次）</label><input id="max_uses" name="max_uses" type="number" min="1" max="100000" step="1" value="${values.max_uses ?? '1'}" required>
@@ -42,7 +42,7 @@ ${message ? html`<div class="banner${status >= 400 ? ' danger' : ''}">${message}
 </form>
 <h2 id="recent">已產生的批次</h2>
 <div class="card"><div class="tablewrap"><table><thead><tr><th>時間</th><th>類型</th><th>App</th><th>每組</th><th>組數</th><th>已兌換／可兌換</th><th>狀態</th><th></th></tr></thead><tbody>
-${batches.map((b) => html`<tr><td>${formatTime(b.created_at)}${b.note ? html`<br><span class="muted">${b.note}</span>` : ''}</td><td>${b.kind === 'battery' ? '電池' : '量子電池'}</td><td>${b.app_id ? html`<code>${b.app_id}</code>` : '全部'}</td><td>${b.units}</td><td>${b.codes}</td><td>${b.used}／${b.max_uses}</td><td>${b.active ? '可兌換' : '已停用'}${b.expires_at ? html`<br><span class="muted">到期 ${formatTime(b.expires_at)}</span>` : ''}</td><td><a href="/admin/battery/codes/${b.batch_id}">查看序號與網址</a></td></tr>`)}
+${batches.map((b) => html`<tr><td>${formatTime(b.created_at)}${b.note ? html`<br><span class="muted">${b.note}</span>` : ''}</td><td>${b.kind === 'battery' ? '電池' : '量子電池'}</td><td>${b.app_id ? html`<code>${b.app_id}</code>` : b.kind === 'battery' ? '全部' : '兌換時自選'}</td><td>${b.units}</td><td>${b.codes}</td><td>${b.used}／${b.max_uses}</td><td>${b.active ? '可兌換' : '已停用'}${b.expires_at ? html`<br><span class="muted">到期 ${formatTime(b.expires_at)}</span>` : ''}</td><td><a href="/admin/battery/codes/${b.batch_id}">查看序號與網址</a></td></tr>`)}
 </tbody></table></div>${batches.length === 0 ? html`<p class="muted">還沒有產生過序號。</p>` : ''}</div>`,
       undefined,
       actor,
@@ -62,7 +62,7 @@ function batchPage(c: WebContext, actor: StaffActor, batchId: string, codes: Awa
       '序號批次',
       html`<h1>序號批次</h1>
 ${message ? html`<div class="banner">${message}</div>` : ''}
-${first ? html`<p>${kind === 'battery' ? '電池' : html`量子電池（<code>${first.app_id}</code>）`}｜每組 <strong>${first.units}</strong> 顆｜每組可兌換 ${first.max_uses} 人｜${first.expires_at ? `到期 ${formatTime(first.expires_at)}` : '不會到期'}${first.note ? `｜${first.note}` : ''}</p>` : ''}
+${first ? html`<p>${kind === 'battery' ? '電池' : first.app_id ? html`量子電池（<code>${first.app_id}</code>）` : '量子電池（通用，兌換時自選 App）'}｜每組 <strong>${first.units}</strong> 顆｜每組可兌換 ${first.max_uses} 人｜${first.expires_at ? `到期 ${formatTime(first.expires_at)}` : '不會到期'}${first.note ? `｜${first.note}` : ''}</p>` : ''}
 <div class="actions"><button type="button" data-copy-text="${lines}">複製全部（序號＋網址）</button><a class="button secondary" href="/admin/battery/codes">回序號產生器</a>
 <form method="post" action="/admin/battery/codes/${batchId}/${active ? 'disable' : 'enable'}" class="inline"><button type="submit" class="secondary">${active ? '停用整批' : '重新啟用整批'}</button></form></div>
 <p class="muted">每一行是「序號」加上「兌換網址」。把網址傳給對方即可：對方點開、登入後按「兌換」就會入帳。序號請只免費發送，不要販售。</p>
@@ -89,7 +89,7 @@ adminApp.post('/battery/codes', async (c) => {
   const form = await readForm(c);
   const kind: CodeKind = form.kind === 'quantum' ? 'quantum' : 'battery';
   const app = form.app_id ? getApp(form.app_id) : null;
-  if (kind === 'quantum' && (!app || app.app_id === WEB_APP_ID)) return generatorPage(c, actor, '量子電池序號要先選一款 App。', form, 400);
+  if (form.app_id && (!app || app.app_id === WEB_APP_ID)) return generatorPage(c, actor, '找不到這款 App。', form, 400);
   const now = Date.now();
   const expiresAt = form.expires ? Date.parse(`${form.expires}T23:59:59+08:00`) : null;
   if (expiresAt !== null && Number.isNaN(expiresAt)) return generatorPage(c, actor, '到期日格式不正確。', form, 400);
@@ -109,8 +109,7 @@ adminApp.get('/battery/codes/:batch', async (c) => {
   const batchId = c.req.param('batch');
   const codes = /^[0-9a-f-]{36}$/.test(batchId) ? await batchCodes(c.env.DB_BATTERY, batchId) : [];
   if (codes.length === 0) return generatorPage(c, actor, '找不到這個批次。', {}, 404);
-  const kind: CodeKind = codes[0]?.app_id ? 'quantum' : 'battery';
-  return batchPage(c, actor, batchId, codes, kind);
+  return batchPage(c, actor, batchId, codes, codes[0]?.kind ?? 'battery');
 });
 
 for (const action of ['disable', 'enable'] as const) {
@@ -122,6 +121,6 @@ for (const action of ['disable', 'enable'] as const) {
     await setBatchActive(c.env.DB_BATTERY, batchId, action === 'enable');
     await auditStatement(c.env.DB_IDENTITY, { actorType: 'admin', actorUserId: actor.userId, action: action === 'enable' ? 'admin.redeem_codes_enabled' : 'admin.redeem_codes_disabled', targetType: 'code_batch', targetId: batchId, result: 'success', requestId: actor.requestId, retention: 'security' }, Date.now()).run();
     const codes = await batchCodes(c.env.DB_BATTERY, batchId);
-    return batchPage(c, actor, batchId, codes, codes[0]?.app_id ? 'quantum' : 'battery', action === 'enable' ? '已重新啟用。' : '已停用，這批序號不能再兌換。');
+    return batchPage(c, actor, batchId, codes, codes[0]?.kind ?? 'battery', action === 'enable' ? '已重新啟用。' : '已停用，這批序號不能再兌換。');
   });
 }

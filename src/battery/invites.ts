@@ -5,6 +5,7 @@ export type CodeKind = 'quantum' | 'battery';
 
 export interface InviteCode {
   code: string;
+  kind: CodeKind;
   app_id: string | null;
   units: number;
   max_uses: number;
@@ -27,7 +28,7 @@ export function generateCode(): string {
 
 export async function listInvites(db: D1Database, appId: string, limit = 50): Promise<InviteCode[]> {
   const rows = await db
-    .prepare('SELECT code, app_id, units, max_uses, used, expires_at, active, note, created_at FROM invite_codes WHERE app_id = ? ORDER BY created_at DESC, code LIMIT ?')
+    .prepare('SELECT code, kind, app_id, units, max_uses, used, expires_at, active, note, created_at FROM invite_codes WHERE app_id = ? ORDER BY created_at DESC, code LIMIT ?')
     .bind(appId, limit)
     .all<InviteCode>();
   return rows.results;
@@ -59,13 +60,13 @@ export async function setInviteActive(db: D1Database, appId: string, code: strin
   await db.prepare('UPDATE invite_codes SET active = ? WHERE code = ? AND app_id = ?').bind(active ? 1 : 0, code, appId).run();
 }
 
-export type RedeemResult = { ok: true; kind: CodeKind; appId: string | null; units: number } | { ok: false; reason: 'invalid' | 'already' | 'used_up' | 'error' };
+export type RedeemResult = { ok: true; kind: CodeKind; appId: string | null; units: number } | { ok: false; reason: 'invalid' | 'already' | 'used_up' | 'error' | 'need_app' };
 
 /**
  * A member redeems a code once. A 'quantum' code adds Quantum Battery in the code's App only; a 'battery' code adds
  * free Starry Battery to this month's allowance (it resets to the standard monthly amount next month).
  */
-export async function redeemInvite(db: D1Database, userId: string, rawCode: string, now: number): Promise<RedeemResult> {
+export async function redeemInvite(db: D1Database, userId: string, rawCode: string, now: number, chosenAppId: string | null = null): Promise<RedeemResult> {
   const code = normalizeCode(rawCode);
   if (!CODE_RE.test(code)) return { ok: false, reason: 'invalid' };
   const row = await db
@@ -74,6 +75,8 @@ export async function redeemInvite(db: D1Database, userId: string, rawCode: stri
     .first<{ kind: CodeKind; app_id: string | null; units: number; max_uses: number; used: number; expires_at: number | null; active: number }>();
   if (!row || row.active !== 1 || (row.expires_at !== null && row.expires_at <= now)) return { ok: false, reason: 'invalid' };
   if (row.used >= row.max_uses) return { ok: false, reason: 'used_up' };
+  // A universal quantum code (no App on it) needs the member's choice; the caller checked that the App exists.
+  if (row.kind === 'quantum' && !row.app_id && !chosenAppId) return { ok: false, reason: 'need_app' };
   // The primary key makes a second redemption by the same member fail here.
   try {
     await db.prepare('INSERT INTO invite_redemptions (code, user_id, redeemed_at) VALUES (?, ?, ?)').bind(code, userId, now).run();
@@ -107,7 +110,7 @@ export async function redeemInvite(db: D1Database, userId: string, rawCode: stri
     }
     return { ok: true, kind: 'battery', appId: null, units: row.units };
   }
-  const appId = row.app_id as string;
+  const appId = (row.app_id ?? chosenAppId) as string;
   await db.batch([
     db.prepare('INSERT INTO quantum_accounts (user_id, app_id, balance, reserved, updated_at) VALUES (?, ?, 0, 0, ?) ON CONFLICT (user_id, app_id) DO NOTHING').bind(userId, appId, now),
     db.prepare('UPDATE quantum_accounts SET balance = balance + ?, updated_at = ? WHERE user_id = ? AND app_id = ?').bind(row.units, now, userId, appId),
@@ -146,7 +149,7 @@ export const MAX_BATCH = 100;
 /** Owner generates a batch of codes of one kind. Returns the batch id and codes, or null when the input is invalid. */
 export async function createBatch(db: D1Database, input: BatchInput, now: number): Promise<{ batchId: string; codes: string[] } | null> {
   const note = input.note.trim().slice(0, 100);
-  if (input.kind === 'quantum' ? !input.appId : input.appId !== null) return null;
+  if (input.kind === 'battery' && input.appId !== null) return null;
   if (!Number.isInteger(input.units) || input.units < 1 || input.units > 1000) return null;
   if (!Number.isInteger(input.count) || input.count < 1 || input.count > MAX_BATCH) return null;
   if (!Number.isInteger(input.maxUsesPerCode) || input.maxUsesPerCode < 1 || input.maxUsesPerCode > 100000) return null;
@@ -200,7 +203,7 @@ export async function recentBatches(db: D1Database, limit = 20): Promise<BatchSu
 
 export async function batchCodes(db: D1Database, batchId: string): Promise<InviteCode[]> {
   const rows = await db
-    .prepare('SELECT code, app_id, units, max_uses, used, expires_at, active, note, created_at FROM invite_codes WHERE batch_id = ? ORDER BY code')
+    .prepare('SELECT code, kind, app_id, units, max_uses, used, expires_at, active, note, created_at FROM invite_codes WHERE batch_id = ? ORDER BY code')
     .bind(batchId)
     .all<InviteCode>();
   return rows.results;
