@@ -2,6 +2,13 @@ import type { AppEntry } from './registry';
 
 const GUIDE_URL = 'https://raw.githubusercontent.com/starry-phd/id/main/docs/integration-guide.md';
 
+/**
+ * Version of the handoff text. Bump both whenever the text below changes (a unit test fails until you do),
+ * so the Owner can tell at a glance whether the copy an App's AI received is the latest one.
+ */
+export const HANDOFF_VERSION = '2026-11-07.3';
+export const HANDOFF_UPDATED = '2026-11-07 11:30（台灣時間）';
+
 function list(values: readonly string[]): string {
   return values.length === 0 ? '（無）' : values.join('、');
 }
@@ -14,6 +21,7 @@ function list(values: readonly string[]): string {
 export function buildHandoff(app: AppEntry, origin: string, options: { battery: boolean } = { battery: false }): string {
   const id = app.app_id;
   const lines = [
+    `【串接指令版本 ${HANDOFF_VERSION}｜更新時間 ${HANDOFF_UPDATED}】`,
     `你是繁星生態系 App「${app.name}」的開發者 AI。Starry ID（繁星中央會員系統）已經替這款 App 登記完成，請照下面的資料串接。不需要、也不可以修改 Starry ID 的程式碼或設定。`,
     '如果這款 App 已經串接過：不要重做。請直接跳到「六、已串接 App 的更新檢查清單」，逐項檢查現有程式，只補上缺少或過時的部分，開 PR 後回報差異。',
     '',
@@ -63,6 +71,7 @@ export function buildHandoff(app: AppEntry, origin: string, options: { battery: 
     '- 需要業主親自登入 Apple、Google、Cloudflare 或商店後台時，停下來，把「要填什麼值、填在哪個頁面」寫清楚回報，不要索取密碼。',
     '',
     '## 五、完成後回報',
+    `- 你依據的串接指令版本（${HANDOFF_VERSION} 以後才是最新；版本較舊請回報業主重新取得）。`,
     '- 已建立的 Repo 與 Worker 名稱、每個 PR 與 CI 結果。',
     `- 用 GET ${origin}/v1/apps/${id}/config 驗證的結果。`,
     '- 還需要業主處理的事項清單（只列確實需要業主的）。',

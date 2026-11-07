@@ -2,7 +2,8 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { clearDynamicAppCache, definitionFromForm, listRegisteredAppIds, refreshDynamicApps, saveRegisteredApp } from '../../src/apps/dynamic';
-import { buildHandoff } from '../../src/apps/handoff';
+import { createHash } from 'node:crypto';
+import { buildHandoff, HANDOFF_UPDATED, HANDOFF_VERSION } from '../../src/apps/handoff';
 import { anyStoredKeys, appForStoredKey, enableAppBattery, hasAppBatteryKey } from '../../src/battery/battery';
 import { appRegistry, getApp, setDynamicApps } from '../../src/apps/registry';
 import { migratedDb } from '../support/sqlite-d1.mjs';
@@ -114,6 +115,15 @@ describe('registering an App without a code change', () => {
     assert.ok(text.includes('已經串接過') && text.includes('六、已串接 App 的更新檢查清單'));
     for (const word of ['BATTERY_APP_CAP', 'quantum_amount', 'starry-sdk.ts', 'min_version', 'kid']) assert.ok(text.includes(word), word);
     assert.ok(!/sbk_[A-Za-z0-9]{8}/.test(text), 'still no key');
+  });
+
+  test('the handoff shows its version, and changing the text requires a new version', () => {
+    const text = buildHandoff(build(clock), 'https://id.starry.phd', { battery: true });
+    assert.ok(text.startsWith(`【串接指令版本 ${HANDOFF_VERSION}｜更新時間 ${HANDOFF_UPDATED}】`));
+    // When this fails you changed the handoff text: bump HANDOFF_VERSION and HANDOFF_UPDATED in src/apps/handoff.ts,
+    // then paste the new hash here.
+    const hash = createHash('sha256').update(text).digest('hex').slice(0, 16);
+    assert.equal(`${HANDOFF_VERSION}:${hash}`, '2026-11-07.3:8dd998f67c80d240');
   });
 
   test('the handoff mentions Battery only as set up or not yet set up, never with a key', () => {
