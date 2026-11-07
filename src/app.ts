@@ -22,6 +22,7 @@ import { limitApi, limitByIp } from './lib/rate-limit';
 import { meRoutes } from './me/routes';
 import { accountApp, publicPages } from './web/account';
 import { loginRelay } from './web/login-relay';
+import { ssoRelay } from './web/sso-relay';
 import { adminApp, setApiDocument } from './web/admin';
 import { supportApp } from './web/support';
 
@@ -138,6 +139,7 @@ app.route('/v1/battery', batteryRoutes);
 app.route('/account', accountApp);
 app.route('/support', supportApp);
 app.route('/admin', adminApp);
+app.route('/auth/sso', ssoRelay);
 app.route('/auth', loginRelay);
 app.route('/', publicPages);
 

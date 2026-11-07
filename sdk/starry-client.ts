@@ -704,6 +704,113 @@ export class StarryClient {
     }
   }
 
+  // ----- web single sign-on (one browser, several Starry web Apps) -----
+
+  private go(url: string): void {
+    (this.options.navigate ?? ((target) => globalThis.location.assign(target)))(url);
+  }
+
+  private ssoPage(path: string, params: Record<string, string>): string {
+    return `${this.base}/auth/sso/${path}?${new URLSearchParams({ app_id: this.options.appId, ...params })}`;
+  }
+
+  /**
+   * Web, after a sign-in: lets id.starry.phd remember this browser as signed in, so the other Starry web Apps open
+   * already signed in. Leaves the page and comes back to returnUrl (a page on your registered web origin); call
+   * completeWebSsoCheck there. Best effort: on any failure it resolves without leaving and this App keeps working.
+   */
+  async shareWebSignIn(options: { returnUrl: string }): Promise<void> {
+    try {
+      const token = await this.getAccessToken();
+      if (!token) return;
+      const started = await this.send<{ sso_token: string }>('POST', '/v1/auth/sso/start', { token, body: {} });
+      const { code } = await this.send<{ code: string }>('POST', '/v1/auth/sso/web-code', { body: { sso_token: started.sso_token } });
+      await this.options.storage.set(this.key('ssoweb'), '1');
+      this.go(this.ssoPage('adopt', { c: code, return: options.returnUrl }));
+    } catch {
+      // The other web Apps will not follow until the next sign-in.
+    }
+  }
+
+  /**
+   * Web, on page load: asks id.starry.phd who is signed in in this browser (signed in elsewhere → signed in here,
+   * another member → switched, signed out → signed out). At most once per everyMs (default 5 minutes); returns true
+   * when it is leaving the page. Handle the way back with completeWebSsoCheck on returnUrl.
+   */
+  async syncWebSignIn(options: { returnUrl: string; everyMs?: number }): Promise<boolean> {
+    const last = Number(await this.options.storage.get(this.key('ssochecked'))) || 0;
+    if (this.now() - last < (options.everyMs ?? 5 * 60_000)) return false;
+    await this.options.storage.set(this.key('ssochecked'), String(this.now()));
+    const nonce = await this.nonce();
+    const hash = await (this.options.sha256Hex ?? webSha256Hex)(nonce);
+    const state = (this.options.randomState ?? webRandomState)();
+    await this.options.storage.set(this.key('ssocheck'), JSON.stringify({ nonce, state }));
+    this.go(this.ssoPage('check', { nonce: hash, return: options.returnUrl, state }));
+    return true;
+  }
+
+  /**
+   * Web, on your return page: finishes shareWebSignIn / syncWebSignIn. Returns null when the address carries no
+   * result, otherwise whether a member is signed in now. The result is removed from the address bar.
+   */
+  async completeWebSsoCheck(url: string = globalThis.location.href): Promise<boolean | null> {
+    const hash = url.includes('#') ? url.slice(url.indexOf('#') + 1) : '';
+    const result = new URLSearchParams(hash);
+    if (!result.has('sso_code') && !result.has('sso_none') && !result.has('sso_adopted')) return null;
+    try {
+      globalThis.history?.replaceState(null, '', url.split('#')[0]);
+    } catch {
+      // Not in a browser (tests): nothing to clean.
+    }
+    const linked = (await this.options.storage.get(this.key('ssoweb'))) !== null;
+    const own = (await this.options.storage.get(this.key('refresh'))) !== null;
+    if (result.has('sso_adopted')) return own;
+    const raw = await this.options.storage.get(this.key('ssocheck'));
+    await this.options.storage.remove(this.key('ssocheck'));
+    if (result.has('sso_none')) {
+      // Signed out elsewhere: follow, but only if this App ever shared its sign-in (older sessions stay).
+      if (linked && own) {
+        await this.options.storage.remove(this.key('ssoweb'));
+        await this.clearSession();
+        return false;
+      }
+      return own;
+    }
+    let pending: { nonce?: string; state?: string } | null;
+    try {
+      pending = raw ? (JSON.parse(raw) as { nonce?: string; state?: string }) : null;
+    } catch {
+      pending = null;
+    }
+    if (!pending?.nonce || pending.state !== result.get('state')) return own;
+    if (own) {
+      const token = await this.getAccessToken().catch(() => null);
+      if (token && this.memberOfToken(token) === result.get('sso_user')) {
+        await this.options.storage.set(this.key('ssoweb'), '1');
+        return true;
+      }
+      await this.clearSession();
+    }
+    try {
+      const signedIn = await this.send<SignInResult & { access_token: string; expires_in: number; refresh_token: string }>('POST', '/v1/auth/sso/web-exchange', {
+        body: { app_id: this.options.appId, code: result.get('sso_code'), nonce: pending.nonce, ...(this.options.deviceLabel ? { device_label: this.options.deviceLabel } : {}) },
+      });
+      await this.storeTokens(signedIn);
+      await this.options.storage.set(this.key('ssoweb'), '1');
+      this.emit('signed-in');
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Web: signs out here, then every Starry web App of this browser. Leaves the page and returns to returnUrl. */
+  async signOutWebEverywhere(options: { returnUrl: string; pushToken?: string }): Promise<void> {
+    await this.signOut(options.pushToken ? { pushToken: options.pushToken } : {});
+    await this.options.storage.remove(this.key('ssoweb'));
+    this.go(this.ssoPage('logout', { return: options.returnUrl }));
+  }
+
   /** Signs the member out of every device and every Starry App. */
   async signOutEverywhere(): Promise<void> {
     try {

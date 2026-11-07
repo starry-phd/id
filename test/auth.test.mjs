@@ -255,6 +255,47 @@ describe('Starry ID sign-in, sessions and profile', () => {
     assert.equal((await worker.call('/v1/auth/sso/exchange', json({ app_id: 'recordnote', sso_token }))).status, 401);
   });
 
+  test('web device sign-on: adopt, check, exchange once, sign out everywhere', async () => {
+    const WEB = 'https://echo.starry.phd/app';
+    const post = (path, body, token) => worker.call(path, json(body, token ? { authorization: `Bearer ${token}` } : {}));
+    const fragment = (res) => new URLSearchParams(new URL(res.headers.get('location')).hash.slice(1));
+    const a = await signInOk('google', 'web-sso-sub');
+    const { sso_token } = await (await post('/v1/auth/sso/start', {}, a.access_token)).json();
+    const { code } = await (await post('/v1/auth/sso/web-code', { sso_token })).json();
+    const query = (extra) => new URLSearchParams({ app_id: 'echo', return: WEB, ...extra }).toString();
+    // The browser keeps the device token in a cookie on id.starry.phd.
+    const adopt = await worker.call(`/auth/sso/adopt?${query({ c: code })}`, { redirect: 'manual' });
+    assert.equal(adopt.status, 302);
+    assert.equal(fragment(adopt).get('sso_adopted'), '1');
+    const setCookie = adopt.headers.get('set-cookie') ?? '';
+    assert.match(setCookie, /__Host-starry_sso=/);
+    assert.match(setCookie, /HttpOnly/i);
+    const cookie = { cookie: `__Host-starry_sso=${/__Host-starry_sso=([^;]+)/.exec(setCookie)[1]}` };
+    // Another web App asks who is signed in and exchanges the one-time code.
+    const n = await nonce();
+    const check = await worker.call(`/auth/sso/check?${query({ nonce: sha256Hex(n), state: 's1' })}`, { redirect: 'manual', headers: cookie });
+    const got = fragment(check);
+    assert.equal(got.get('sso_user'), a.user.user_id);
+    assert.equal(got.get('state'), 's1');
+    const wrongNonce = await post('/v1/auth/sso/web-exchange', { app_id: 'echo', code: got.get('sso_code'), nonce: 'x'.repeat(32) });
+    assert.equal(wrongNonce.status, 401);
+    const ex = await post('/v1/auth/sso/web-exchange', { app_id: 'echo', code: got.get('sso_code'), nonce: n });
+    assert.equal(ex.status, 200, await ex.clone().text());
+    const session = await ex.json();
+    assert.equal(session.user.user_id, a.user.user_id);
+    assert.equal((await post('/v1/auth/sso/web-exchange', { app_id: 'echo', code: got.get('sso_code'), nonce: n })).status, 401, 'one use only');
+    // Without the cookie, or with a forged or bad return address, nothing is released.
+    assert.equal(fragment(await worker.call(`/auth/sso/check?${query({ nonce: sha256Hex(n) })}`, { redirect: 'manual' })).get('sso_none'), '1');
+    assert.equal((await worker.call(`/auth/sso/check?${new URLSearchParams({ app_id: 'echo', return: 'https://evil.example/x', nonce: sha256Hex(n) })}`, { redirect: 'manual', headers: cookie })).status, 400);
+    assert.equal(fragment(await worker.call(`/auth/sso/adopt?${query({ c: 'v1.forged.code' })}`, { redirect: 'manual' })).get('sso_none'), '1');
+    // Signing out once ends every App of this browser.
+    const out = await worker.call(`/auth/sso/logout?${query()}`, { redirect: 'manual', headers: cookie });
+    assert.equal(out.status, 302);
+    assert.equal((await worker.call('/v1/me', authed(session.access_token))).status, 401);
+    const n2 = await nonce();
+    assert.equal(fragment(await worker.call(`/auth/sso/check?${query({ nonce: sha256Hex(n2) })}`, { redirect: 'manual', headers: cookie })).get('sso_none'), '1');
+  });
+
   test('a suspended member cannot use existing tokens or sign in', async () => {
     const session = await signInOk('google', 'suspend-sub');
     await worker.db.prepare("UPDATE users SET status = 'suspended' WHERE user_id = ?").bind(session.user.user_id).run();
