@@ -39,9 +39,9 @@ interface FieldSpec {
 
 const PROFILE_FIELDS: readonly FieldSpec[] = [
   { field: 'nickname', label: '暱稱', eye: null, input: 'text', max: 30, alwaysPublic: true, hint: '一律公開（排行榜等功能會顯示頭像與主要顯示名稱），最多 30 字。' },
-  { field: 'display_name', label: '姓名', eye: 'display_name', input: 'text', max: 50, hint: '你的姓名，1～50 字，可以選擇不公開。' },
+  { field: 'display_name', label: '姓名', eye: 'display_name', input: 'text', max: 50, hint: '你的姓名，1～50 字，可以隱藏。' },
   { field: 'contact_email', label: '主要聯絡 Email', eye: 'contact_email', input: 'email', hint: '變更後會寄確認信；確認前，系統通知仍寄到登入用的信箱。' },
-  { field: 'phone', label: '手機（選填）', eye: 'phone', input: 'tel', hint: '可輸入 0912345678，會依國家自動加上國碼。預設不公開。' },
+  { field: 'phone', label: '手機（選填）', eye: 'phone', input: 'tel', hint: '可輸入 0912345678，會依國家自動加上國碼。預設隱藏。' },
   { field: 'country', label: '國家／地區', eye: 'location', input: 'country', hint: '這裡的公開設定同時套用到省／州／縣市與城市。' },
   { field: 'region', label: '省／州／縣市', eye: null, input: 'text', max: 60 },
   { field: 'city', label: '城市／鄉鎮區', eye: null, input: 'text', max: 60 },
@@ -97,10 +97,15 @@ const GROUP_LABELS: Record<VisibilityField, string> = {
   occupation: '職業', website: '個人網站', bio: '自我介紹', languages: '使用語言', interests: '興趣', skills: '專長', education: '學歷',
 };
 
+/** An eye; the hidden state is the same eye with one red slash across it. */
+const EYE_BODY = '<path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.2" fill="currentColor"/>';
+const EYE_SLASH = '<line x1="3" y1="3" x2="21" y2="21" stroke="#e5484d" stroke-width="2.8" stroke-linecap="round"/>';
+const eyeIcon = (slashed: boolean): Html => raw(`<svg class="eyei" viewBox="0 0 24 24" aria-hidden="true">${EYE_BODY}${slashed ? EYE_SLASH : ''}</svg>`);
+
 function eyeForm(group: VisibilityField, visibility: Record<VisibilityField, Visibility>, version: number, locked: boolean): Html {
   const isPublic = visibility[group] === 'public';
-  if (locked) return html`<span class="muted">🔒 不公開</span>`;
-  return html`<form class="inline eye" data-group="${group}" data-label="${GROUP_LABELS[group]}" method="post" action="/account/profile"><input type="hidden" name="version" value="${version}"><input type="hidden" name="field" value="visibility.${group}"><input type="hidden" name="value" value="${isPublic ? 'private' : 'public'}"><button class="secondary" type="submit" title="${isPublic ? '目前公開，按一下改為不公開' : '目前不公開，按一下改為公開'}">${isPublic ? '👁 公開' : '🙈 不公開'}</button></form>`;
+  if (locked) return html`<span class="muted">${eyeIcon(true)} 隱藏</span>`;
+  return html`<form class="inline eye" data-group="${group}" data-label="${GROUP_LABELS[group]}" method="post" action="/account/profile"><input type="hidden" name="version" value="${version}"><input type="hidden" name="field" value="visibility.${group}"><input type="hidden" name="value" value="${isPublic ? 'private' : 'public'}"><button class="secondary" type="submit" title="${isPublic ? '目前公開，按一下改為隱藏' : '目前隱藏，按一下改為公開'}">${eyeIcon(!isPublic)} ${isPublic ? '公開' : '隱藏'}</button></form>`;
 }
 
 function updatedLine(updates: Record<string, FieldUpdate>, field: string): Html {
@@ -150,6 +155,7 @@ function profilePage(c: WebContext, loaded: { row: ProfileRow; fieldUpdates: Rec
 ${fieldInput(spec, p)}
 ${spec.field === 'motto' ? html`<button class="secondary suggest" data-suggest="motto" type="button" hidden>🎲 隨機提案</button>` : ''}
 ${spec.field === 'nickname' ? html`<button class="secondary suggest" data-suggest="nickname" type="button" hidden>🎲 隨機暱稱</button>` : ''}
+${spec.field === 'nickname' ? html`<label class="same-name" hidden><input type="checkbox" id="nick-same"${p.nickname && p.display_name && p.nickname === p.display_name ? raw(' checked') : ''}> 與姓名相同</label>` : ''}
 <button type="submit">儲存</button><span class="status muted" role="status" aria-live="polite"></span>
 </form>
 ${spec.field === 'contact_email' && p.contact_email && !p.contact_email_verified_at
@@ -165,8 +171,8 @@ ${updatedLine(loaded.fieldUpdates, spec.field)}
 ${message ? html`<div class="banner ${message.danger ? 'danger' : ''}">${message.text}</div>` : ''}
 
 <div id="vis-toast" hidden role="status" aria-live="assertive"><div class="vt"></div></div>
-<div id="vis-all"><button type="button" id="vis-all-public" hidden>👁 全部公開</button><div id="bonus" role="status" aria-live="polite">${BATTERY_ICON} 加碼 <b id="bonus-x">${formatBonus(bonusX10(p, now))}</b> 倍</div><button type="button" class="secondary" id="vis-all-private" hidden>🙈 全部隱藏</button></div>
-<style>#vis-all{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:12px 0}#vis-all button{margin:0}#bonus{flex:1 1 150px;text-align:center;color:#3ddc84;font-size:1.55rem;font-weight:800;line-height:1.2;text-shadow:0 0 14px rgba(61,220,132,.45);transition:transform .2s}#bonus b{font-size:1.15em}#bonus.bump{transform:scale(1.18)}#vis-toast{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(5,5,25,.45)}#vis-toast[hidden]{display:none}#vis-toast .vt{max-width:86vw;padding:26px 34px;border-radius:22px;background:#1d1d52;border:2px solid var(--accent,#8b7cf6);box-shadow:0 12px 50px rgba(0,0,0,.6);font-size:1.7rem;font-weight:700;text-align:center;line-height:1.4}.js .field-form{display:none}.js .field.editing .field-form{display:block}.js .field.editing .value{display:none}.grid9{width:auto;margin:8px 0}.grid9 td{width:56px;height:56px;text-align:center;border:1px solid var(--line);font-size:1.2rem}.eye button,.pencil,.crown button{margin:0 0 0 8px;padding:4px 10px}.crown{display:inline}</style>
+<div id="vis-all"><button type="button" id="vis-all-public" hidden>${eyeIcon(false)} 全部公開</button><div id="bonus" role="status" aria-live="polite">${BATTERY_ICON} 加碼 <b id="bonus-x">${formatBonus(bonusX10(p, now))}</b> 倍</div><button type="button" class="secondary" id="vis-all-private" hidden>${eyeIcon(true)} 全部隱藏</button></div>
+<style>#vis-all{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:12px 0}#vis-all button{margin:0}#bonus{flex:1 1 150px;text-align:center;color:#3ddc84;font-size:1.55rem;font-weight:800;line-height:1.2;text-shadow:0 0 14px rgba(61,220,132,.45);transition:transform .2s}#bonus b{font-size:1.15em}#bonus.bump{transform:scale(1.18)}#vis-toast{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(5,5,25,.45)}#vis-toast[hidden]{display:none}#vis-toast .vt{max-width:86vw;padding:26px 34px;border-radius:22px;background:#1d1d52;border:2px solid var(--accent,#8b7cf6);box-shadow:0 12px 50px rgba(0,0,0,.6);font-size:1.7rem;font-weight:700;text-align:center;line-height:1.4}.js .field-form{display:none}.js .field.editing .field-form{display:block}.js .field.editing .value{display:none}.grid9{width:auto;margin:8px 0}.grid9 td{width:56px;height:56px;text-align:center;border:1px solid var(--line);font-size:1.2rem}.eye button,.pencil,.crown button{margin:0 0 0 8px;padding:4px 10px}.eye button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:5.6em}.eyei{width:1.15em;height:1.15em;flex:none}#vis-all button{display:inline-flex;align-items:center;gap:6px}#vis-toast .vt .eyei{width:1.1em;height:1.1em;vertical-align:-.15em}.same-name{display:flex;align-items:center;gap:8px;margin:8px 0;font-weight:400}.same-name input{width:auto;margin:0}.crown{display:inline}</style>
 <div class="card" id="avatar-card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>頭像</strong></div>
 <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px">
 ${p.avatar_key ? html`<img id="avatar-now" src="/account/avatar-image?v=${encodeURIComponent(p.avatar_key.split('/').pop() ?? '')}" alt="目前的頭像" width="96" height="96" style="border-radius:50%;object-fit:cover">` : avatarBubble({ initials: initialsOf(p.display_name ?? p.nickname), photo: null, size: 96, label: p.display_name ?? '' })}
@@ -195,6 +201,8 @@ ${derivedCard(p, visibility, p.version, minor)}
     {
       scripts: html`<script nonce="${nonce}">
 document.documentElement.classList.add('js');
+var EYE_BODY = ${raw(JSON.stringify(EYE_BODY))}, EYE_SLASH = ${raw(JSON.stringify(EYE_SLASH))};
+function eyeSvg(slashed) { return '<svg class="eyei" viewBox="0 0 24 24" aria-hidden="true">' + EYE_BODY + (slashed ? EYE_SLASH : '') + '</svg>'; }
 
 (function () {
   var card = document.getElementById('mn-card');
@@ -331,9 +339,12 @@ document.documentElement.classList.add('js');
 })();
 let toastTimer = 0;
 function hideToast() { document.getElementById('vis-toast').hidden = true; }
-function toast(text) {
+function toast(text, icon) {
   const box = document.getElementById('vis-toast');
-  box.querySelector('.vt').textContent = text;
+  const vt = box.querySelector('.vt');
+  vt.textContent = '';
+  if (icon) { const holder = document.createElement('span'); holder.innerHTML = icon; vt.appendChild(holder); vt.appendChild(document.createTextNode(' ')); }
+  vt.appendChild(document.createTextNode(text));
   box.hidden = false;
   window.clearTimeout(toastTimer);
   toastTimer = window.setTimeout(hideToast, 1000);
@@ -342,8 +353,8 @@ document.addEventListener('pointerdown', hideToast);
 function applyEye(form, isPublic) {
   form.querySelector('[name=value]').value = isPublic ? 'private' : 'public';
   const button = form.querySelector('button');
-  button.textContent = isPublic ? '👁 公開' : '🙈 不公開';
-  button.title = isPublic ? '目前公開，按一下改為不公開' : '目前不公開，按一下改為公開';
+  button.innerHTML = eyeSvg(!isPublic) + ' ' + (isPublic ? '公開' : '隱藏');
+  button.title = isPublic ? '目前公開，按一下改為隱藏' : '目前隱藏，按一下改為公開';
 }
 document.querySelectorAll('form.eye').forEach((form) => {
   form.addEventListener('submit', async (e) => {
@@ -357,7 +368,7 @@ document.querySelectorAll('form.eye').forEach((form) => {
       setVersion(body.version);
       document.querySelectorAll('form.eye[data-group="' + group + '"]').forEach((f) => applyEye(f, want === 'public'));
       showBonus(body.bonus_x10);
-      toast(body.bonus_note ? body.bonus_note : (want === 'public' ? '👁 「' + label + '」已公開' : '🙈 「' + label + '」已隱藏'));
+      toast(body.bonus_note ? body.bonus_note : (want === 'public' ? '「' + label + '」已公開' : '「' + label + '」已隱藏'), eyeSvg(want !== 'public'));
     } else {
       toast(res && res.status === 409 ? '資料已在其他地方更新，請重新整理頁面' : '設定失敗，請再試一次');
     }
@@ -378,7 +389,7 @@ async function setAll(value) {
     setVersion(body.version);
     document.querySelectorAll('form.eye').forEach((f) => { const v = body.visibility[f.getAttribute('data-group')]; if (v) applyEye(f, v === 'public'); });
     showBonus(body.bonus_x10);
-    toast(value === 'public' ? (body.bonus_note ? '👁 全部欄位已公開。' + body.bonus_note : '👁 全部欄位已公開') : '🙈 全部欄位已隱藏');
+    toast(value === 'public' ? (body.bonus_note ? '全部欄位已公開。' + body.bonus_note : '全部欄位已公開') : '全部欄位已隱藏', eyeSvg(value !== 'public'));
   } else {
     toast(res && res.status === 409 ? '資料已在其他地方更新，請重新整理頁面' : '設定失敗，請再試一次');
   }
@@ -407,6 +418,28 @@ async function save(form) {
   }
   status.textContent = res && res.status === 409 ? STATUS.conflict : (body.message || STATUS.failed);
 }
+(function () {
+  const same = document.getElementById('nick-same');
+  const nick = document.getElementById('f-nickname');
+  const name = document.getElementById('f-display_name');
+  if (!same || !nick || !name) return;
+  const form = nick.closest('form');
+  const status = form.querySelector('.status');
+  const dice = form.querySelector('.suggest');
+  same.closest('label').hidden = false;
+  const lock = (on) => { nick.readOnly = on; if (dice) dice.disabled = on; };
+  lock(same.checked);
+  same.addEventListener('change', () => {
+    if (!same.checked) { lock(false); nick.focus(); return; }
+    const value = name.value.trim();
+    if (value === '') { same.checked = false; status.textContent = '請先填寫姓名。'; return; }
+    if (value.length > 30) { same.checked = false; status.textContent = '姓名超過 30 字，無法與暱稱相同。'; return; }
+    nick.value = value;
+    lock(true);
+    form.requestSubmit();
+  });
+  name.addEventListener('input', () => { if (same.checked && name.value.trim() !== nick.value) { same.checked = false; lock(false); } });
+})();
 document.querySelectorAll('form.crown').forEach((form) => {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
