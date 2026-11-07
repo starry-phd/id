@@ -1,5 +1,5 @@
 import { uuidv7 } from '../lib/crypto';
-import { adjustAllowance } from './battery';
+import { adjustAllowance, bonusOf, scaled } from './battery';
 
 export type CodeKind = 'quantum' | 'battery';
 
@@ -98,8 +98,11 @@ export async function redeemInvite(db: D1Database, userId: string, rawCode: stri
     return { ok: false, reason: 'used_up' };
   }
   if (row.kind === 'battery') {
+    // A free Battery code is a gain, so the member's current bonus multiplier applies to it.
+    const multiplier = await bonusOf(db, userId);
+    const units = scaled(row.units, multiplier);
     try {
-      const granted = await adjustAllowance(db, { userId, delta: row.units, reason: `序號兌換 ${code}`, actorUserId: userId }, now);
+      const granted = await adjustAllowance(db, { userId, delta: units, reason: multiplier > 10 ? `序號兌換 ${code}（加碼 ${(multiplier / 10).toFixed(1)} 倍）` : `序號兌換 ${code}`, actorUserId: userId }, now);
       if (!granted.ok) {
         await undo();
         return { ok: false, reason: 'error' };
@@ -108,7 +111,7 @@ export async function redeemInvite(db: D1Database, userId: string, rawCode: stri
       await undo();
       return { ok: false, reason: 'error' };
     }
-    return { ok: true, kind: 'battery', appId: null, units: row.units };
+    return { ok: true, kind: 'battery', appId: null, units };
   }
   const appId = (row.app_id ?? chosenAppId) as string;
   await db.batch([

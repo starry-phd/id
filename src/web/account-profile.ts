@@ -8,7 +8,9 @@ import { type ProfileRow } from '../identity/members';
 import { confirmContactEmail, sendContactEmailVerification, type ConfirmResult } from '../identity/contact-email';
 import { randomMotto } from '../identity/mottos';
 import { randomNickname } from '../identity/nicknames';
-import { isPrimaryName, setPrimaryName, ageOn, derivedOf, EDITABLE_FIELDS, effectiveVisibility, GRID_LAYOUT, hasChanges, loadProfile, saveProfile, validateProfileInput, VISIBILITY_FIELDS, type EditableField, type FieldUpdate, type Visibility, type VisibilityField } from '../identity/profile';
+import { syncBonus } from '../battery/bonus';
+import { BATTERY_ICON } from '../lib/battery-icons';
+import { bonusX10, formatBonus, isPrimaryName, setPrimaryName, ageOn, derivedOf, EDITABLE_FIELDS, effectiveVisibility, GRID_LAYOUT, hasChanges, loadProfile, saveProfile, validateProfileInput, VISIBILITY_FIELDS, type EditableField, type FieldUpdate, type Visibility, type VisibilityField } from '../identity/profile';
 import { WEB_APP_ID } from '../identity/web-sessions';
 import { formatTime, page, readForm, type Html, type WebContext } from './layout';
 import { LOCALES, accountApp } from './account-lib';
@@ -163,8 +165,8 @@ ${updatedLine(loaded.fieldUpdates, spec.field)}
 ${message ? html`<div class="banner ${message.danger ? 'danger' : ''}">${message.text}</div>` : ''}
 
 <div id="vis-toast" hidden role="status" aria-live="assertive"><div class="vt"></div></div>
-<div class="actions" id="vis-all" hidden><button type="button" id="vis-all-public">👁 全部公開</button><button type="button" class="secondary" id="vis-all-private">🙈 全部隱藏</button></div>
-<style>#vis-toast{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(5,5,25,.45)}#vis-toast[hidden]{display:none}#vis-toast .vt{max-width:86vw;padding:26px 34px;border-radius:22px;background:#1d1d52;border:2px solid var(--accent,#8b7cf6);box-shadow:0 12px 50px rgba(0,0,0,.6);font-size:1.7rem;font-weight:700;text-align:center;line-height:1.4}.js .field-form{display:none}.js .field.editing .field-form{display:block}.js .field.editing .value{display:none}.grid9{width:auto;margin:8px 0}.grid9 td{width:56px;height:56px;text-align:center;border:1px solid var(--line);font-size:1.2rem}.eye button,.pencil,.crown button{margin:0 0 0 8px;padding:4px 10px}.crown{display:inline}</style>
+<div id="vis-all"><button type="button" id="vis-all-public" hidden>👁 全部公開</button><div id="bonus" role="status" aria-live="polite">${BATTERY_ICON} 加碼 <b id="bonus-x">${formatBonus(bonusX10(p, now))}</b> 倍</div><button type="button" class="secondary" id="vis-all-private" hidden>🙈 全部隱藏</button></div>
+<style>#vis-all{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:12px 0}#vis-all button{margin:0}#bonus{flex:1 1 150px;text-align:center;color:#3ddc84;font-size:1.55rem;font-weight:800;line-height:1.2;text-shadow:0 0 14px rgba(61,220,132,.45);transition:transform .2s}#bonus b{font-size:1.15em}#bonus.bump{transform:scale(1.18)}#vis-toast{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(5,5,25,.45)}#vis-toast[hidden]{display:none}#vis-toast .vt{max-width:86vw;padding:26px 34px;border-radius:22px;background:#1d1d52;border:2px solid var(--accent,#8b7cf6);box-shadow:0 12px 50px rgba(0,0,0,.6);font-size:1.7rem;font-weight:700;text-align:center;line-height:1.4}.js .field-form{display:none}.js .field.editing .field-form{display:block}.js .field.editing .value{display:none}.grid9{width:auto;margin:8px 0}.grid9 td{width:56px;height:56px;text-align:center;border:1px solid var(--line);font-size:1.2rem}.eye button,.pencil,.crown button{margin:0 0 0 8px;padding:4px 10px}.crown{display:inline}</style>
 <div class="card" id="avatar-card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>頭像</strong></div>
 <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px">
 ${p.avatar_key ? html`<img id="avatar-now" src="/account/avatar-image?v=${encodeURIComponent(p.avatar_key.split('/').pop() ?? '')}" alt="目前的頭像" width="96" height="96" style="border-radius:50%;object-fit:cover">` : avatarBubble({ initials: initialsOf(p.display_name ?? p.nickname), photo: null, size: 96, label: p.display_name ?? '' })}
@@ -354,20 +356,28 @@ document.querySelectorAll('form.eye').forEach((form) => {
     if (res && res.ok && body.ok) {
       setVersion(body.version);
       document.querySelectorAll('form.eye[data-group="' + group + '"]').forEach((f) => applyEye(f, want === 'public'));
+      showBonus(body.bonus_x10);
       toast((want === 'public' ? '👁 「' + label + '」已公開' : '🙈 「' + label + '」已隱藏'));
     } else {
       toast(res && res.status === 409 ? '資料已在其他地方更新，請重新整理頁面' : '設定失敗，請再試一次');
     }
   });
 });
-const visAll = document.getElementById('vis-all');
-visAll.hidden = false;
+document.querySelectorAll('#vis-all [hidden]').forEach((b) => { b.hidden = false; });
+const bonusBox = document.getElementById('bonus');
+function showBonus(x10) {
+  if (typeof x10 !== 'number') return;
+  document.getElementById('bonus-x').textContent = (x10 / 10).toFixed(1);
+  bonusBox.classList.add('bump');
+  window.setTimeout(() => bonusBox.classList.remove('bump'), 250);
+}
 async function setAll(value) {
   const res = await fetch('/account/profile/visibility-all', { method: 'POST', headers: { accept: 'application/json' }, body: new URLSearchParams({ version: String(version), value: value }) }).catch(() => null);
   const body = res ? await res.json().catch(() => ({})) : {};
   if (res && res.ok && body.ok) {
     setVersion(body.version);
     document.querySelectorAll('form.eye').forEach((f) => { const v = body.visibility[f.getAttribute('data-group')]; if (v) applyEye(f, v === 'public'); });
+    showBonus(body.bonus_x10);
     toast(value === 'public' ? '👁 全部欄位已公開' : '🙈 全部欄位已隱藏');
   } else {
     toast(res && res.status === 409 ? '資料已在其他地方更新，請重新整理頁面' : '設定失敗，請再試一次');
@@ -412,6 +422,7 @@ document.querySelectorAll('form.crown').forEach((form) => {
         b.setAttribute('aria-pressed', on ? 'true' : 'false');
       });
       if (choice === 'display_name') document.querySelectorAll('form.eye[data-group="display_name"]').forEach((f) => applyEye(f, true));
+      showBonus(body.bonus_x10);
       toast('👑 主要顯示名稱：' + label);
     } else {
       toast(res && res.status === 409 ? '資料已在其他地方更新，請重新整理頁面' : (body.message || '設定失敗，請再試一次'));
@@ -456,6 +467,7 @@ accountApp.get('/profile', async (c) => {
   const loaded = await loadProfile(c.env.DB_IDENTITY, web.userId);
   if (!loaded) return c.redirect('/account', 303);
   const notice = PROFILE_NOTICES[c.req.query('notice') ?? ''];
+  await syncBonus(c.env.DB_BATTERY, web.userId, loaded.row, Date.now());
   return c.html(profilePage(c, loaded, await memberNoOf(c.env.DB_IDENTITY, web.userId), notice));
 });
 
@@ -483,7 +495,8 @@ accountApp.post('/profile/visibility-all', async (c) => {
   const saved = await saveProfile(db, { userId: web.userId, expectedVersion: version, changes: validated.changes, source: 'member', actorUserId: web.userId, appId: WEB_APP_ID, requestId: c.get('requestId') }, now);
   if (!saved.written) return c.json({ ok: false, message: '個人資料已在其他地方更新，請重新整理頁面。' }, 409);
   const current = (await loadProfile(db, web.userId)) ?? before;
-  return c.json({ ok: true, version: current.row.version, visibility: effectiveVisibility(current.row, now) });
+  const bonus = await syncBonus(c.env.DB_BATTERY, web.userId, current.row, now);
+  return c.json({ ok: true, version: current.row.version, visibility: effectiveVisibility(current.row, now), bonus_x10: bonus });
 });
 
 /**
@@ -507,6 +520,7 @@ accountApp.post('/profile', async (c) => {
   const validated = validateProfileInput(input, now, before.row.country);
   const respond = async (status: 200 | 400 | 409, message: { text: string; danger: boolean }) => {
     const current = (await loadProfile(db, web.userId)) ?? before;
+    const bonus = status === 200 ? await syncBonus(c.env.DB_BATTERY, web.userId, current.row, now) : bonusX10(current.row, now);
     if (wantsJson) {
       const field = (form.field ?? '') as EditableField;
       const ok = status === 200;
@@ -515,6 +529,7 @@ accountApp.post('/profile', async (c) => {
           ok,
           message: ok ? undefined : message.text,
           version: current.row.version,
+          bonus_x10: bonus,
           display: (EDITABLE_FIELDS as readonly string[]).includes(field) ? displayValue(current.row, field) : undefined,
           updated: updatedText(current.fieldUpdates, field),
           reload: field === 'birthday' || field === 'contact_email' || (form.field ?? '').startsWith('visibility.'),
@@ -549,7 +564,7 @@ accountApp.post('/profile/primary-name', async (c) => {
   if (!wantsJson) return c.redirect('/account/profile', 303);
   if (result === 'missing_name') return c.json({ ok: false, message: form.choice === 'nickname' ? '請先設定暱稱，才能作為主要顯示名稱。' : '請先填寫姓名，才能作為主要顯示名稱。' }, 400);
   if (result === 'conflict') return c.json({ ok: false, message: '個人資料已在其他地方更新，請重新整理頁面。' }, 409);
-  return c.json({ ok: true, version: current?.row.version ?? version, primary_name: form.choice });
+  return c.json({ ok: true, version: current?.row.version ?? version, primary_name: form.choice, bonus_x10: current ? bonusX10(current.row, Date.now()) : undefined });
 });
 
 /** GET /account/avatar-image — the signed-in member's own avatar for the account page. */

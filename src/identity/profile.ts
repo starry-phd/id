@@ -44,6 +44,13 @@ export const DEFAULT_VISIBILITY: Readonly<Record<VisibilityField, Visibility>> =
   education: 'private',
 };
 
+/**
+ * Fields that earn a Battery bonus when the member makes them public: every field group that starts hidden
+ * (name and motto are public from the start, the picture is always public, so none of those count).
+ * Each public one adds 0.1x to the Battery a member earns; none public = 1.0x, ten public = 2.0x.
+ */
+export const BONUS_FIELDS: readonly VisibilityField[] = VISIBILITY_FIELDS.filter((f) => f !== 'avatar' && DEFAULT_VISIBILITY[f] === 'private');
+
 export interface ProfileRow {
   display_name: string | null;
   avatar_key: string | null;
@@ -361,6 +368,13 @@ export function effectiveVisibility(row: Pick<ProfileRow, 'visibility' | 'birthd
   }
   return v;
 }
+
+/** The member's Battery bonus multiplier times ten (10 = 1.0x), from what is public right now. */
+export function bonusX10(row: Pick<ProfileRow, 'visibility' | 'birthday'>, now: number): number {
+  const v = effectiveVisibility(row, now);
+  return 10 + BONUS_FIELDS.filter((f) => v[f] === 'public').length;
+}
+export const formatBonus = (x10: number): string => (x10 / 10).toFixed(1);
 
 /**
  * The name every Starry App shows: the member's chosen primary name (nickname or real name, default nickname).

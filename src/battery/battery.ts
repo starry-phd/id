@@ -48,6 +48,15 @@ export async function getPolicy(db: D1Database): Promise<BatteryPolicy> {
   return row ?? FALLBACK_POLICY;
 }
 
+/** A base amount times a member's bonus multiplier (x10 integer: 10 = 1.0x, 13 = 1.3x), rounded half up. */
+export const scaled = (base: number, multiplierX10: number): number => Math.floor((base * multiplierX10 + 5) / 10);
+
+/** The member's current Battery bonus multiplier (x10); 10 = 1.0x when none is stored. */
+export async function bonusOf(db: D1Database, userId: string): Promise<number> {
+  const row = await db.prepare('SELECT multiplier_x10 FROM battery_bonus WHERE user_id = ?').bind(userId).first<{ multiplier_x10: number }>();
+  return row?.multiplier_x10 ?? 10;
+}
+
 /** Largest single reservation (Battery units); one number for every App (owner decision 2026-11-07). */
 export const MAX_RESERVATION_UNITS = 100;
 export const TASK_TYPE_ID = /^[a-z][a-z0-9-]{1,31}\.[a-z][a-z0-9_-]{1,31}$/;
@@ -68,10 +77,10 @@ interface AccountRow {
   reserved: number;
 }
 
-function toBalance(row: AccountRow | null, policy: BatteryPolicy, now: number): Balance {
+function toBalance(row: AccountRow | null, policy: BatteryPolicy, now: number, multiplierX10: number): Balance {
   const period = periodOf(now);
   // An account last touched in an earlier month has already reset, even if the row says otherwise.
-  const current = row && row.period >= period ? row : { period, allowance: Math.max(policy.monthly_allowance, row?.reserved ?? 0), used: 0, reserved: row?.reserved ?? 0 };
+  const current = row && row.period >= period ? row : { period, allowance: Math.max(scaled(policy.monthly_allowance, multiplierX10), row?.reserved ?? 0), used: 0, reserved: row?.reserved ?? 0 };
   return {
     period,
     allowance: current.allowance,
@@ -84,37 +93,41 @@ function toBalance(row: AccountRow | null, policy: BatteryPolicy, now: number): 
 
 /** The member's balance for the current month; reading never writes. */
 export async function getBalance(db: D1Database, userId: string, now: number): Promise<Balance> {
-  const [policy, row] = await Promise.all([
+  const [policy, row, multiplier] = await Promise.all([
     getPolicy(db),
     db.prepare('SELECT period, allowance, used, reserved FROM battery_accounts WHERE user_id = ?').bind(userId).first<AccountRow>(),
+    bonusOf(db, userId),
   ]);
-  return toBalance(row, policy, now);
+  return toBalance(row, policy, now, multiplier);
 }
 
 /** Balances of several members at once (admin member list); ids are read in chunks to stay under D1's bound-parameter limit. */
 export async function getBalances(db: D1Database, userIds: string[], now: number): Promise<Map<string, Balance>> {
   const policy = await getPolicy(db);
   const rows = new Map<string, AccountRow>();
+  const bonuses = new Map<string, number>();
   for (let i = 0; i < userIds.length; i += 50) {
     const chunk = userIds.slice(i, i + 50);
-    const found = await db
-      .prepare(`SELECT user_id, period, allowance, used, reserved FROM battery_accounts WHERE user_id IN (${chunk.map(() => '?').join(',')})`)
-      .bind(...chunk)
-      .all<AccountRow & { user_id: string }>();
+    const marks = chunk.map(() => '?').join(',');
+    const [found, bonus] = await Promise.all([
+      db.prepare(`SELECT user_id, period, allowance, used, reserved FROM battery_accounts WHERE user_id IN (${marks})`).bind(...chunk).all<AccountRow & { user_id: string }>(),
+      db.prepare(`SELECT user_id, multiplier_x10 FROM battery_bonus WHERE user_id IN (${marks})`).bind(...chunk).all<{ user_id: string; multiplier_x10: number }>(),
+    ]);
     for (const row of found.results) rows.set(row.user_id, row);
+    for (const row of bonus.results) bonuses.set(row.user_id, row.multiplier_x10);
   }
-  return new Map(userIds.map((id) => [id, toBalance(rows.get(id) ?? null, policy, now)]));
+  return new Map(userIds.map((id) => [id, toBalance(rows.get(id) ?? null, policy, now, bonuses.get(id) ?? 10)]));
 }
 
 /** Creates the account, or resets it when its period is over: used back to 0, reservations in flight stay held. */
-function ensureAccount(db: D1Database, userId: string, policy: BatteryPolicy, now: number): D1PreparedStatement {
+function ensureAccount(db: D1Database, userId: string, policy: BatteryPolicy, now: number, multiplierX10: number): D1PreparedStatement {
   return db
     .prepare(
       `INSERT INTO battery_accounts (user_id, period, allowance, used, reserved, updated_at) VALUES (?, ?, ?, 0, 0, ?)
        ON CONFLICT (user_id) DO UPDATE SET period = excluded.period, allowance = MAX(excluded.allowance, reserved), used = 0, updated_at = excluded.updated_at
        WHERE battery_accounts.period < excluded.period`,
     )
-    .bind(userId, periodOf(now), policy.monthly_allowance, now);
+    .bind(userId, periodOf(now), scaled(policy.monthly_allowance, multiplierX10), now);
 }
 
 export interface Reservation {
@@ -205,7 +218,7 @@ export async function reserve(
   // Soft ceiling: protects against a runaway App; concurrent requests may overshoot it by a few tasks.
   const cap = await getAppCap(db, input.appId);
   if (cap !== null && (await appMonthUsage(db, input.appId, now)) + input.units > cap) return { ok: false, reason: 'app_cap' };
-  const policy = await getPolicy(db);
+  const [policy, multiplier] = await Promise.all([getPolicy(db), bonusOf(db, input.userId)]);
   const amount = input.units;
   const label = input.taskLabel?.trim() ? input.taskLabel.trim().slice(0, 40) : null;
   let lastError: unknown = null;
@@ -235,7 +248,7 @@ export async function reserve(
       quantum_charged: null,
     };
     const statements = [
-      ensureAccount(db, input.userId, policy, now),
+      ensureAccount(db, input.userId, policy, now, multiplier),
       db
         .prepare(
           `INSERT INTO battery_reservations (reservation_id, user_id, app_id, task_type, task_label, idempotency_key, units, amount, quantum_amount, status, period, created_at, expires_at)
@@ -387,10 +400,10 @@ export async function adjustAllowance(
   if (!Number.isInteger(input.delta) || input.delta === 0 || Math.abs(input.delta) > MAX_ADJUSTMENT || reason.length < 1 || reason.length > 200) {
     return { ok: false, reason: 'invalid' };
   }
-  const policy = await getPolicy(db);
+  const [policy, multiplier] = await Promise.all([getPolicy(db), bonusOf(db, input.userId)]);
   try {
     await db.batch([
-      ensureAccount(db, input.userId, policy, now),
+      ensureAccount(db, input.userId, policy, now, multiplier),
       db.prepare('UPDATE battery_accounts SET allowance = allowance + ?, updated_at = ? WHERE user_id = ?').bind(input.delta, now, input.userId),
       db
         .prepare(
@@ -429,11 +442,49 @@ export async function setPolicy(
            updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
       )
       .bind(allowance, timeout, now, input.actorUserId),
+    // Each member's change is the difference of their own scaled amounts, so bonus members stay exact.
     db
-      .prepare('UPDATE battery_accounts SET allowance = MAX(used + reserved, allowance + ?), updated_at = ? WHERE period = ? AND ? <> 0')
-      .bind(delta, now, periodOf(now), delta),
+      .prepare(
+        `UPDATE battery_accounts SET allowance = MAX(used + reserved, allowance + (
+           (? * COALESCE((SELECT multiplier_x10 FROM battery_bonus b WHERE b.user_id = battery_accounts.user_id), 10) + 5) / 10
+           - (? * COALESCE((SELECT multiplier_x10 FROM battery_bonus b WHERE b.user_id = battery_accounts.user_id), 10) + 5) / 10)), updated_at = ?
+         WHERE period = ? AND ? <> 0`,
+      )
+      .bind(allowance, current.monthly_allowance, now, periodOf(now), delta),
   ]);
   return true;
+}
+
+/**
+ * Sets the member's Battery bonus multiplier (x10). The change applies at once: this month's allowance moves by the difference
+ * of the scaled monthly amount (never below what is already used or held), and a ledger line records it. Same value: no write.
+ */
+export async function setBonus(db: D1Database, userId: string, multiplierX10: number, now: number): Promise<{ changed: boolean; multiplierX10: number }> {
+  const next = Math.min(100, Math.max(10, Math.trunc(multiplierX10)));
+  const [previous, policy] = await Promise.all([bonusOf(db, userId), getPolicy(db)]);
+  if (previous === next) return { changed: false, multiplierX10: next };
+  const delta = scaled(policy.monthly_allowance, next) - scaled(policy.monthly_allowance, previous);
+  const period = periodOf(now);
+  const statements: D1PreparedStatement[] = [
+    next === 10
+      ? db.prepare('DELETE FROM battery_bonus WHERE user_id = ?').bind(userId)
+      : db
+          .prepare('INSERT INTO battery_bonus (user_id, multiplier_x10, updated_at) VALUES (?, ?, ?) ON CONFLICT (user_id) DO UPDATE SET multiplier_x10 = excluded.multiplier_x10, updated_at = excluded.updated_at')
+          .bind(userId, next, now),
+  ];
+  if (delta !== 0) {
+    statements.push(
+      db
+        .prepare(
+          `INSERT INTO battery_ledger (entry_id, user_id, period, kind, amount, reason, actor_user_id, created_at)
+           SELECT ?, ?, ?, 'adjustment', ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM battery_accounts WHERE user_id = ? AND period = ?)`,
+        )
+        .bind(uuidv7(now), userId, period, delta, `公開欄位加碼 ${(next / 10).toFixed(1)} 倍`, userId, now, userId, period),
+      db.prepare('UPDATE battery_accounts SET allowance = MAX(used + reserved, allowance + ?), updated_at = ? WHERE user_id = ? AND period = ?').bind(delta, now, userId, period),
+    );
+  }
+  await db.batch(statements);
+  return { changed: true, multiplierX10: next };
 }
 
 export interface ActivityEntry {
@@ -492,6 +543,7 @@ export async function forgetBatteryMembers(db: D1Database, userIds: string[]): P
       db.prepare('DELETE FROM battery_ledger WHERE user_id = ?').bind(userId),
       db.prepare('DELETE FROM battery_reservations WHERE user_id = ?').bind(userId),
       db.prepare('DELETE FROM battery_accounts WHERE user_id = ?').bind(userId),
+      db.prepare('DELETE FROM battery_bonus WHERE user_id = ?').bind(userId),
     ]);
   }
   await forgetQuantumMembers(db, userIds);
