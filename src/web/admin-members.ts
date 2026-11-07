@@ -129,7 +129,7 @@ adminApp.get('/members', async (c) => {
       html`<h1>會員</h1>
 <form method="get" action="/admin/members" class="card">
 <label for="q">關鍵字（會員編號、姓名、Email，輸入一部分即可）</label><input id="q" name="q" value="${q}">
-<label for="status">狀態</label><select id="status" name="status">${option('', '全部', status)}${option('active', '正常', status)}${option('suspended', '停權', status)}${option('pending_deletion', '刪除中（舊資料）', status)}</select>
+<label for="status">狀態</label><select id="status" name="status">${option('', '全部', status)}${option('active', '正常', status)}${option('suspended', '停權', status)}</select>
 <label for="provider">登入方式</label><select id="provider" name="provider">${option('', '全部', provider)}${option('apple', 'Apple', provider)}${option('google', 'Google', provider)}</select>
 <label for="country">註冊國家（兩碼，例如 TW、JP）</label><input id="country" name="country" maxlength="2" value="${country}">
 <label for="from">加入日期（起）</label><input id="from" name="from" type="date" value="${from}">

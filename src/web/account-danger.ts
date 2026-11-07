@@ -1,7 +1,7 @@
 import { deleteCookie } from 'hono/cookie';
 import { html } from 'hono/html';
 import { cleanupAfterDeletion } from '../identity/erase';
-import { cancelDeletion, deleteMemberNow } from '../identity/lifecycle';
+import { deleteMemberNow } from '../identity/lifecycle';
 import { claimOwner } from '../identity/roles';
 import { WEB_APP_ID } from '../identity/web-sessions';
 import { getApp } from '../apps/registry';
@@ -56,13 +56,6 @@ accountApp.post('/delete', async (c) => {
 <p>如果你有訂閱，請記得到 App Store 或 Google Play 取消。</p></div>`,
     ),
   );
-});
-
-accountApp.post('/delete/cancel', async (c) => {
-  const web = c.get('web');
-  if (!web) return c.redirect('/account', 303);
-  await cancelDeletion(c.env.DB_IDENTITY, { userId: web.userId, appId: WEB_APP_ID, requestId: c.get('requestId') }, Date.now());
-  return c.redirect('/account', 303);
 });
 
 /** One-time owner bootstrap (see claimOwner); only visible while OWNER_CLAIM_CODE is set. */

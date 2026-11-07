@@ -9,7 +9,6 @@ import { background, readProviderRequest, verifyProviderRequest } from '../auth/
 import { rememberAppleToken } from '../identity/apple';
 import { listActiveSessions, logoutEverywhere, revokeOwnSession } from '../identity/devices';
 import { importProviderAvatar, r2Store, rememberProviderPhoto } from '../identity/avatars';
-import { DELETION_GRACE_MS } from '../identity/lifecycle';
 import { linkIdentity, type LinkResult } from '../identity/link';
 import { completeMerge, findMergeCandidate, type MergeBlocker } from '../identity/merge';
 import { acceptConsents, consentRequired } from '../identity/members';
@@ -36,26 +35,19 @@ accountApp.get('/', async (c) => {
   const needsConsent = await consentRequired(db, web.userId, c.env.TERMS_VERSION, c.env.PRIVACY_VERSION);
   const role = await roleOf(db, c.env.OWNER_USER_IDS, web.userId);
   const p = account.profile;
-  const pending = web.status === 'pending_deletion' && account.deletionRequestedAt !== null;
   const app = await webApp(c);
-  const linkable = app && !pending ? linkableProviders(c, app, account.identities.map((i) => i.provider)) : { google: null, apple: null };
-  const sessions = pending ? [] : await listActiveSessions(db, web.userId, now);
-  const passkeys = pending ? [] : await listPasskeys(db, web.userId);
-  const managedApps = pending ? [] : await listAppStaffApps(db, web.userId);
+  const linkable = app ? linkableProviders(c, app, account.identities.map((i) => i.provider)) : { google: null, apple: null };
+  const sessions = await listActiveSessions(db, web.userId, now);
+  const passkeys = await listPasskeys(db, web.userId);
+  const managedApps = await listAppStaffApps(db, web.userId);
   const inviteMsg = ({ ok: '兌換成功，已加入量子電池。', invalid: '邀請碼不正確、已停用或已過期。', already: '你已經兌換過這組邀請碼。', used_up: '這組邀請碼已被領完。' } as Record<string, string>)[c.req.query('invite') ?? ''] ?? '';
-  const [battery, batteryActivity, quantum] = pending
-    ? [null, null, []]
-    : await Promise.all([getBalance(c.env.DB_BATTERY, web.userId, now), recentActivity(c.env.DB_BATTERY, web.userId, now, { limit: 10 }), listQuantum(c.env.DB_BATTERY, web.userId)]);
+  const [battery, batteryActivity, quantum] = await Promise.all([getBalance(c.env.DB_BATTERY, web.userId, now), recentActivity(c.env.DB_BATTERY, web.userId, now, { limit: 10 }), listQuantum(c.env.DB_BATTERY, web.userId)]);
   const notices = await getNotices(db);
   const body = html`<h1>${p.display_name ?? '我的帳號'}</h1>
 ${notices.maintenance ? html`<div class="banner danger">系統維護中：${notices.maintenanceMessage || 'AI 功能暫時停用，帳號功能可正常使用。'}</div>` : ''}
 ${notices.announcement ? html`<div class="banner">${notices.announcement}</div>` : ''}
 ${notice ? html`<div class="banner">${notice}</div>` : ''}
-${pending
-  ? html`<div class="banner danger"><strong>帳號將於 ${formatTime((account.deletionRequestedAt ?? 0) + DELETION_GRACE_MS)} 永久刪除。</strong><br>在此之前可以撤回，撤回後帳號立即恢復。
-<form method="post" action="/account/delete/cancel"><button type="submit">撤回刪除申請</button></form></div>`
-  : ''}
-${!pending && needsConsent
+${needsConsent
   ? html`<div class="banner"><strong>請確認服務條款與隱私權政策</strong><br>請閱讀<a href="/terms">服務條款</a>與<a href="/privacy">隱私權政策</a>（版本 ${c.env.TERMS_VERSION}／${c.env.PRIVACY_VERSION}）。
 <form method="post" action="/account/consent"><button type="submit">我已閱讀並同意</button></form></div>`
   : ''}
@@ -68,7 +60,7 @@ ${!pending && needsConsent
   <strong>座右銘：</strong>${p.motto ?? '（未設定）'}<br>
   <strong>語系：</strong>${LOCALES[p.locale] ?? p.locale}<br>
   <span class="muted">加入時間：${formatTime(account.createdAt)}</span></p>
-  ${pending ? '' : html`<a class="button" href="/account/profile">編輯個人資料與公開設定</a>`}
+  ${html`<a class="button" href="/account/profile">編輯個人資料與公開設定</a>`}
 </div>
 <h2>登入方式</h2>
 <div class="card">
@@ -77,9 +69,7 @@ ${!pending && needsConsent
   ${linkable.google || linkable.apple ? html`<a class="button" href="/account/link">加綁${linkable.apple && linkable.google ? '其他' : linkable.apple ? ' Apple ' : ' Google '}登入方式</a>` : ''}
 </div>
 ${managedApps.length > 0 ? html`<h2>我管理的 App</h2><div class="card"><ul>${managedApps.map((a) => html`<li>${appLabel(a)}：<a href="/admin/apps/${a}/config">遠端設定</a></li>`)}</ul></div>` : ''}
-${pending
-  ? ''
-  : html`<h2>Passkey</h2>
+${html`<h2>Passkey</h2>
 <div class="card">
   ${passkeys.length > 0
     ? html`<ul>${passkeys.map((k) => html`<li>${k.name}（${formatTime(k.created_at)} 新增）<form class="inline" method="post" action="/account/passkey/${k.credential_id}/remove"><button class="secondary" type="submit">移除</button></form></li>`)}</ul>`
@@ -118,9 +108,9 @@ ${battery && batteryActivity
 </div>`
   : ''}
 ${role && hasRole(role, 'support') ? html`<p><a class="button" href="/admin">進入 Admin Lite</a></p>` : ''}
-${pending ? '' : html`<h2>下載我的資料</h2><p class="muted">取得 Starry 保存的您的個人資料、登入方式、同意紀錄、使用過的 App 與電池紀錄（JSON 檔，不含密碼或憑證）。</p><a href="/account/export">下載我的資料</a>`}
-${pending ? '' : html`<h2>刪除帳號</h2><p class="muted">確認後立即永久刪除，無法復原。</p><a href="/account/delete">申請刪除帳號</a>`}`;
-  return c.html(page(c, '我的帳號', body, { scripts: pending ? html`` : passkeyScript(c, 'register') }));
+${html`<h2>下載我的資料</h2><p class="muted">取得 Starry 保存的您的個人資料、登入方式、同意紀錄、使用過的 App 與電池紀錄（JSON 檔，不含密碼或憑證）。</p><a href="/account/export">下載我的資料</a>`}
+${html`<h2>刪除帳號</h2><p class="muted">確認後立即永久刪除，無法復原。</p><a href="/account/delete">申請刪除帳號</a>`}`;
+  return c.html(page(c, '我的帳號', body, { scripts: passkeyScript(c, 'register') }));
 });
 
 /** POST /account/sessions/:id/revoke — ends one of the member's other sessions (S-ID-05). */

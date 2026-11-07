@@ -20,7 +20,7 @@ Starry ID 會員與登入、App Registry、購買權益投影與每日對帳、S
 | `GET /v1/me/motto-suggestion` | 隨機座右銘提案（不會儲存） | S-ID-08 |
 | `PUT`／`DELETE /v1/me/avatar` | 上傳（WebP／JPEG／PNG ≤ 256 KB）或移除頭像 | S-ID-08 |
 | `POST /v1/me/consents` | 同意目前版本的條款與隱私權政策 | S-ID-09 |
-| `POST`／`DELETE /v1/me/deletion` | 立即永久刪除帳號（無等待期）／撤回（僅限舊的待刪除帳號） | S-ID-06 |
+| `POST`／`DELETE /v1/me/deletion` | 立即永久刪除帳號（無等待期）／`DELETE` 僅為舊 App 相容（永遠回 409，沒有可撤回的刪除） | S-ID-06 |
 | `POST /v1/me/identities/{apple\|google}` | 加綁另一種登入方式；該登入方式之前另外建立過帳號時，可帶 `merge_other_account` 合併（有購買、管理人員、停權者除外） | S-ID-02 |
 | `GET /v1/me/entitlements` | 本 App 的有效權益（RevenueCat 投影） | S-BIL-04 |
 | `GET /v1/me/battery` | 本月 Battery 額度、已用、預留、剩餘、下次恢復時間與近 30 天紀錄 | S-BAT-04 |
@@ -36,7 +36,7 @@ Starry ID 會員與登入、App Registry、購買權益投影與每日對帳、S
 
 | 路徑 | 說明 | 規格 |
 |---|---|---|
-| `/account` | 登入（Google／Apple 網頁登入）、個人資料、同意條款、刪除與撤回、登入中的裝置（登出單一裝置／所有裝置）、Starry Battery 額度與紀錄 | S-WEB-01、S-ID-05、S-BAT-04 |
+| `/account` | 登入（Google／Apple 網頁登入）、個人資料、同意條款、刪除、登入中的裝置（登出單一裝置／所有裝置）、Starry Battery 額度與紀錄 | S-WEB-01、S-ID-05、S-BAT-04 |
 | `/account/profile` | 個人資料：每欄 ✏️ 編輯、自動儲存、👁 公開設定、最後修改時間、生日推算資訊與彩色九宮格、隨機座右銘；`/account/verify-email` 確認聯絡信箱 | S-ID-08 |
 | `/account/link` | 加綁另一種登入方式（需 10 分鐘內登入過）；Google、Apple 分開登入過時，確認後合併成同一個帳號 | S-ID-02 |
 | `/privacy`、`/terms` | 隱私權政策（版本 2026-11-03.2）、服務條款（版本 2026-11-03） | S-WEB-01 |

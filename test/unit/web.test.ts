@@ -4,7 +4,7 @@ import { describe, test } from 'node:test';
 import type { AppEntry } from '../../src/apps/registry';
 import { clearAppStatusCache, setAppStatusOverride, withEffectiveStatus } from '../../src/apps/status';
 import { listAudit } from '../../src/identity/audit-query';
-import { requestDeletion } from '../../src/identity/lifecycle';
+import { deleteMemberNow } from '../../src/identity/lifecycle';
 import { runDailyMaintenance } from '../../src/identity/maintenance';
 import { acceptConsents, consentRequired, findOrCreateMember, updateProfile } from '../../src/identity/members';
 import { consumeNonce, issueNonce, NONCE_TTL_MS } from '../../src/identity/nonces';
@@ -23,7 +23,7 @@ describe('members (S-ID-01, S-ID-03, S-ID-08, S-ID-09)', () => {
     const a = await findOrCreateMember(d, google('g-1', 'same@example.com'), { appId: 'echo', requestId: null }, NOW);
     assert.equal(a.isNew, true);
     assert.match(a.member.user_id, /^[0-9a-f]{8}-[0-9a-f]{4}-7/);
-    assert.deepEqual({ ...a.member, user_id: 'x' }, { user_id: 'x', status: 'active', session_version: 1, deletion_requested_at: null });
+    assert.deepEqual({ ...a.member, user_id: 'x' }, { user_id: 'x', status: 'active', session_version: 1 });
     const again = await findOrCreateMember(d, google('g-1'), { appId: 'echo', requestId: null }, NOW);
     assert.deepEqual([again.isNew, again.member.user_id], [false, a.member.user_id]);
     const other = await findOrCreateMember(d, { provider: 'apple', subject: 'a-1', email: 'same@example.com', isPrivateRelay: false }, { appId: 'echo', requestId: null }, NOW);
@@ -87,7 +87,7 @@ describe('web sessions', () => {
     assert.equal(await readWebSession(suspended.d, suspended.cookieValue, NOW), null);
 
     const deleting = await setup();
-    await requestDeletion(deleting.d, { userId: deleting.userId, appId: 'account', requestId: null }, NOW);
+    await deleteMemberNow(deleting.d, { userId: deleting.userId, appId: 'account', requestId: null }, NOW);
     assert.equal(await readWebSession(deleting.d, deleting.cookieValue, NOW), null);
   });
 
@@ -134,7 +134,7 @@ describe('support tickets (S-WEB-02)', () => {
     assert.equal(await setTicketStatus(d, { userId: 'staff', requestId: null }, ids[0]!, 'closed', '已回信', NOW + 5), true);
     assert.deepEqual([(await getTicket(d, ids[0]!))?.status, (await getTicket(d, ids[0]!))?.staff_note], ['closed', '已回信']);
     assert.equal(await setTicketStatus(d, { userId: 'staff', requestId: null }, 'missing', 'closed', null, NOW), false);
-    await requestDeletion(d, { userId: member.user_id, appId: null, requestId: null }, NOW - 8 * DAY);
+    await deleteMemberNow(d, { userId: member.user_id, appId: null, requestId: null }, NOW);
     await runDailyMaintenance({ db: d, secrets: {}, fetch: async () => new Response(null) }, NOW);
     assert.equal(Number((await db.prepare('SELECT COUNT(*) AS n FROM support_tickets').first())?.n), 0);
   });

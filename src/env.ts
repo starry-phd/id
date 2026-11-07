@@ -62,7 +62,7 @@ export interface AuthContext {
   userId: string;
   sessionId: string;
   appId: string;
-  status: 'active' | 'pending_deletion';
+  status: 'active';
   /** When this session was created by a sign-in; used for the recent-login rule. */
   sessionCreatedAt: number;
 }
@@ -71,7 +71,7 @@ export interface AuthContext {
 export interface WebVisitor {
   sessionId: string;
   userId: string;
-  status: 'active' | 'pending_deletion';
+  status: 'active';
   createdAt: number;
 }
 

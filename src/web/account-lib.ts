@@ -309,21 +309,20 @@ export function linkableProviders(c: WebContext, app: AppEntry, linked: readonly
 interface AccountView {
   createdAt: number;
   memberNo: string | null;
-  deletionRequestedAt: number | null;
   profile: ProfileRow;
   identities: { provider: string; email: string | null }[];
 }
 
 export async function loadAccount(db: D1Database, userId: string): Promise<AccountView | null> {
   const [user, profile, identities] = await db.batch([
-    db.prepare('SELECT created_at, deletion_requested_at, member_no FROM users WHERE user_id = ?').bind(userId),
+    db.prepare('SELECT created_at, member_no FROM users WHERE user_id = ?').bind(userId),
     db.prepare(PROFILE_SQL).bind(userId),
     db.prepare('SELECT provider, email FROM auth_identities WHERE user_id = ? ORDER BY provider').bind(userId),
   ]);
-  const u = user?.results[0] as { created_at: number; deletion_requested_at: number | null; member_no: string | null } | undefined;
+  const u = user?.results[0] as { created_at: number; member_no: string | null } | undefined;
   const p = profile?.results[0] as ProfileRow | undefined;
   if (!u || !p) return null;
-  return { createdAt: u.created_at, memberNo: u.member_no, deletionRequestedAt: u.deletion_requested_at, profile: p, identities: (identities?.results ?? []) as AccountView['identities'] };
+  return { createdAt: u.created_at, memberNo: u.member_no, profile: p, identities: (identities?.results ?? []) as AccountView['identities'] };
 }
 
 export const PROVIDER_NAMES: Record<string, string> = { apple: 'Apple', google: 'Google' };

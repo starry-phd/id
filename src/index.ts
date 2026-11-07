@@ -1,18 +1,16 @@
 import { app } from './app';
 import { refreshDynamicApps } from './apps/dynamic';
-import { appRegistry } from './apps/registry';
-import { batteryRetention, forgetBatteryMembers, releaseExpired } from './battery/battery';
+import { batteryRetention, releaseExpired } from './battery/battery';
 import { reconcileWithRevenueCat } from './billing/reconcile';
 import { quantumHook } from './battery/purchases';
 import { loadRevenueCatSecrets } from './billing/app-secrets';
-import { forgetMembers, processPendingEvents, processRevenueCatDeletions } from './billing/revenuecat';
+import { processPendingEvents, processRevenueCatDeletions } from './billing/revenuecat';
 import type { Env } from './env';
 import { reportError } from './lib/error-report';
 import { markFinished, markStarted, type JobName } from './lib/heartbeat';
 import { executeCleanup, runCleanupJobs } from './identity/cleanup-jobs';
 import { runDailyMaintenance } from './identity/maintenance';
 import { assignMissingMemberNumbers } from './identity/member-number';
-import { WEB_APP_ID } from './identity/web-sessions';
 
 /** The every-minute Cron Trigger in wrangler.jsonc; any other schedule is the daily run. */
 const EVERY_MINUTE = '* * * * *';
@@ -58,7 +56,7 @@ async function minutely(env: Env, now: number): Promise<void> {
   ]);
 }
 
-/** Daily: deletion purge, revocations, retention (S-ID-06, S-PLT-06), billing repair and reconciliation (S-BIL-04). */
+/** Daily: revocations, retention (S-ID-06, S-PLT-06), billing repair and reconciliation (S-BIL-04). */
 async function daily(env: Env, now: number): Promise<void> {
   const fetcher = (url: string, init?: RequestInit) => fetch(url, init);
   const apiKeys = (await loadRevenueCatSecrets(env)).api;
@@ -68,8 +66,6 @@ async function daily(env: Env, now: number): Promise<void> {
     [
       'identity',
       async () => {
-        const storeApps = [...appRegistry.keys()].filter((id) => id !== WEB_APP_ID);
-        const avatars = env.AVATARS;
         const supportFiles = env.SUPPORT_FILES;
         Object.assign(
           report,
@@ -78,12 +74,7 @@ async function daily(env: Env, now: number): Promise<void> {
               db: env.DB_IDENTITY,
               secrets: env,
               fetch: fetcher,
-              ...(avatars ? { deleteObjects: (keys: string[]) => avatars.delete(keys) } : {}),
               ...(supportFiles ? { supportFiles } : {}),
-              onPurged: async (userIds) => {
-                await forgetMembers(env.DB_BILLING, userIds, storeApps, now);
-                await forgetBatteryMembers(env.DB_BATTERY, userIds);
-              },
             },
             now,
           ),

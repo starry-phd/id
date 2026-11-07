@@ -6,15 +6,14 @@ import { PROFILE_SQL, saveProfile, type EditableField, type ProfileRow } from '.
 
 export interface MemberRow {
   user_id: string;
-  status: 'active' | 'suspended' | 'pending_deletion';
+  status: 'active' | 'suspended';
   session_version: number;
-  deletion_requested_at: number | null;
 }
 
 export function findMember(db: D1Database, provider: string, subject: string): Promise<MemberRow | null> {
   return db
     .prepare(
-      `SELECT u.user_id, u.status, u.session_version, u.deletion_requested_at FROM auth_identities i
+      `SELECT u.user_id, u.status, u.session_version FROM auth_identities i
        JOIN users u ON u.user_id = i.user_id WHERE i.provider = ? AND i.subject = ?`,
     )
     .bind(provider, subject)

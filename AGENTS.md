@@ -79,5 +79,5 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 3c8. 串接指令有版本號（`HANDOFF_VERSION`、`HANDOFF_UPDATED`，顯示在後台串接指令頁，也寫在指令第一行；AI 回報時要附上）。改動 `src/apps/handoff.ts` 的文字就必須更新版本與日期時間，否則單元測試會失敗。
 3c3. 邀請碼：Owner 在 `/admin/apps/<id>/invites` 建立，會員在帳號中心輸入後獲得該 App 的免費量子電池（`invite_codes`／`invite_redemptions`）；每人每組碼限一次、有次數與到期日上限；贈送不是購買，不影響每月免費 Battery。
 3c. 簽章金鑰輪替：Secret `ACCESS_TOKEN_PREVIOUS_JWKS` 放舊公鑰，輪替期間舊 Token 仍有效，步驟見 `docs/owner-setup.md`。
-3d. 刻意保留的設計（不是漏做）：echo／recordnote／account 留在 `config/apps.json`（資料庫故障時既有 App 仍可登入）；7 天刪除寬限期仍是現行對外行為（`deletion_purge_at` 欄位）；Email 登入依業主決定不做。
+3d. 刻意保留的設計（不是漏做）：echo／recordnote／account 留在 `config/apps.json`（資料庫故障時既有 App 仍可登入）；刪除帳號一律立即永久刪除（2026-11-07 起沒有 7 天寬限期，舊的待刪除程式已移除）。為了舊版 App 相容，`deletion_requested_at`／`deletion_purge_at` 欄位仍存在但永遠是 null，`DELETE /v1/me/deletion` 永遠回 409；Email 登入依業主決定不做。
 4. 業主外部事項：`docs/owner-setup.md`（Google Play 帳號類型、App Store 付費協議、GitHub 帳號整併等）。

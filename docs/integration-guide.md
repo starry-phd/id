@@ -26,7 +26,7 @@ App 啟動時呼叫 `GET /v1/apps/{app_id}/config`：
    回應：`access_token`（15 分鐘）、`refresh_token`（30 天）、`user.user_id`、`user.status`、`user.is_new`、`user.deletion_purge_at`、`consent_required`。
 4. 兩個 Token 都存在 `expo-secure-store`，不放 AsyncStorage。
 5. `consent_required` 為 true：顯示條款與隱私權政策（連到 `/terms`、`/privacy`），同意後 `POST /v1/me/consents` `{"terms_version", "privacy_version"}`（版本取自 `GET /v1/me` 的 `consent`）。
-6. `user.status` 為 `pending_deletion`：顯示「帳號將於 … 刪除」與撤回按鈕（`DELETE /v1/me/deletion`）；撤回前其他 API 會回 403 `ACCOUNT_PENDING_DELETION`。
+6. 帳號刪除是立即永久刪除，沒有撤回期；`user.status` 只會是 `active`（停權時 API 回 403 `ACCOUNT_SUSPENDED`）。舊欄位 `deletion_purge_at`、`deletion_requested_at` 永遠是 `null`，不需處理。
 
 ## 3. 呼叫 API 與換發
 

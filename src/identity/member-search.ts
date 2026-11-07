@@ -1,7 +1,7 @@
 import { getBalances, type Balance } from '../battery/battery';
 import { ownerIds, type Role } from './roles';
 
-export const MEMBER_STATUSES = ['active', 'suspended', 'pending_deletion'] as const;
+export const MEMBER_STATUSES = ['active', 'suspended'] as const;
 
 export interface MemberFilters {
   /** Matches member number, full name, any sign-in or contact email (part of it is enough), or the exact internal ID. */

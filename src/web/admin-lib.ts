@@ -14,7 +14,7 @@ import { page, sameOrigin, webContext, type Html, type WebContext } from './layo
 export const adminApp = new Hono<AppBindings>();
 adminApp.use('*', webContext, sameOrigin);
 
-export const STATUS_LABELS: Record<string, string> = { active: '正常', suspended: '停權', pending_deletion: '刪除中' };
+export const STATUS_LABELS: Record<string, string> = { active: '正常', suspended: '停權' };
 export const ROLE_LABELS: Record<Role, string> = { owner: 'Owner', admin: 'Admin', support: 'Support' };
 export const RESULT_TEXT: Record<StatusChangeResult, string> = {
   ok: '已完成。',

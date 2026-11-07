@@ -16,7 +16,7 @@ const TOUCH_INTERVAL_MS = 60 * 60 * 1000;
 export interface WebSession {
   sessionId: string;
   userId: string;
-  status: 'active' | 'pending_deletion';
+  status: 'active';
   createdAt: number;
 }
 
@@ -60,7 +60,7 @@ export async function readWebSession(db: D1Database, cookieValue: string | undef
       expires_at: number;
       revoked_at: number | null;
       user_session_version: number;
-      status: 'active' | 'suspended' | 'pending_deletion';
+      status: 'active' | 'suspended';
     }>();
   if (!row || row.app_id !== WEB_APP_ID || row.revoked_at !== null || row.expires_at <= now) return null;
   if (now - row.last_used_at > WEB_SESSION_IDLE_MS || row.session_version !== row.user_session_version || row.status === 'suspended') return null;

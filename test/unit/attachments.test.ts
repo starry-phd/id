@@ -1,7 +1,7 @@
 // Unit tests for support ticket attachments (S-WEB-02): type detection, storage and cleanup.
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { DELETION_GRACE_MS, requestDeletion } from '../../src/identity/lifecycle';
+import { deleteMemberNow } from '../../src/identity/lifecycle';
 import { runDailyMaintenance } from '../../src/identity/maintenance';
 import { findOrCreateMember } from '../../src/identity/members';
 import { ATTACHMENT_MAX_BYTES, checkAttachment, detectAttachmentType, getAttachment, listAttachments, saveAttachment, type ObjectStore } from '../../src/support/attachments';
@@ -100,11 +100,10 @@ describe('storing and removing attachments', () => {
     const kept = await saveAttachment(d, store, { ticketId: keep, bytes: WEBP, type: 'image/webp' }, NOW);
     assert.equal(store.objects.size, 3);
 
-    await requestDeletion(d, { userId: member.user_id, appId: 'account', requestId: null }, NOW - DELETION_GRACE_MS - 1);
+    await deleteMemberNow(d, { userId: member.user_id, appId: 'account', requestId: null }, NOW);
     await setTicketStatus(d, { userId: 'staff', requestId: null }, visitor, 'closed', null, NOW - 366 * DAY);
     const report = await runDailyMaintenance({ db: d, secrets: {}, fetch: async () => new Response(null), supportFiles: store }, NOW);
 
-    assert.equal(report.purgedMembers, 1);
     assert.equal(report.tickets, 1);
     assert.equal(report.supportFiles, 2);
     assert.deepEqual([...store.objects.keys()], [kept.object_key]);

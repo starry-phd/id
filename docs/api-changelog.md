@@ -8,6 +8,8 @@
 
 ## 2026-11-07
 
+舊的「7 天刪除寬限期」程式已移除（正式資料庫確認沒有待刪除帳號）。對外格式不變：`deletion_requested_at`、`deletion_purge_at` 欄位保留但永遠是 `null`，`DELETE /v1/me/deletion` 保留並永遠回 409 `CONFLICT`（沒有可撤回的刪除）；不再回 403 `ACCOUNT_PENDING_DELETION`。
+
 `GET /v1/apps/{app_id}/config` 的 `min_version` 與 `config` 現在可由 Owner／Admin 在後台「遠端設定」覆寫（約 30 秒生效）；回應格式不變。
 
 維護模式：Owner 開啟後，`POST /v1/battery/reservations` 回 503 `SERVICE_UNAVAILABLE`（新任務暫停；進行中的任務仍可 commit／release）。App 端請顯示「暫時無法使用 AI 功能」，稍後再試。
