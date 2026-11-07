@@ -35,7 +35,7 @@ export async function memberNav(c: WebContext): Promise<Html> {
   const name = profile?.nickname || profile?.display_name || '我';
   const path = new URL(c.req.url).pathname;
   const on = (href: string) => (path === href || (href !== '/account' && path.startsWith(`${href}/`)) ? ' class="on" aria-current="page"' : '');
-  const photo = profile?.avatar_key && user?.member_no ? '/account/avatar-image' : null;
+  const photo = profile?.avatar_key && user?.member_no ? `/account/avatar-image?v=${encodeURIComponent(profile.avatar_key.split('/').pop() ?? '')}` : null;
   const quantumTotal = quantum.reduce((sum, q) => sum + q.available, 0);
   return html`<nav class="starnav" aria-label="主選單">
   <a class="stat" href="/account#battery" title="電池">${BATTERY_ICON.normal} <b>${battery ? battery.remaining : '–'}</b></a>

@@ -357,7 +357,16 @@ export function effectiveVisibility(row: Pick<ProfileRow, 'visibility' | 'birthd
   return v;
 }
 
+/** The name every Starry App shows: the nickname first, the real name only when there is no nickname. */
+export function shownName(nickname: string | null | undefined, displayName: string | null | undefined): string | null {
+  const nick = nickname?.trim();
+  if (nick) return nick;
+  const name = displayName?.trim();
+  return name ? name : null;
+}
+
 export interface PublicProfile {
+  shown_name: string | null;
   display_name: string | null;
   nickname: string | null;
   avatar_url: string | null;
@@ -390,6 +399,7 @@ export function publicProfile(row: ProfileRow, avatarUrl: string | null, now: nu
   const hasLocation = row.country !== null || row.region !== null || row.city !== null;
   const hasEducation = row.university !== null || row.university_dept !== null || row.grad_school !== null || row.grad_dept !== null;
   return {
+    shown_name: shownName(row.nickname, v.display_name === 'public' ? row.display_name : null),
     display_name: v.display_name === 'public' ? row.display_name : null,
     nickname: row.nickname,
     avatar_url: avatarUrl,

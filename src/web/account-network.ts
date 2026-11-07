@@ -151,7 +151,7 @@ publicPages.get(`/a/:no{${PUBLIC_NO}}`, async (c) => {
   const row = await c.env.DB_IDENTITY.prepare("SELECT p.avatar_key FROM users u JOIN profiles p ON p.user_id = u.user_id WHERE u.member_no = ? AND u.status = 'active'").bind(no).first<{ avatar_key: string | null }>();
   const object = row?.avatar_key ? await c.env.AVATARS.get(row.avatar_key) : null;
   if (!object) return c.body(null, 404);
-  return new Response(object.body, { headers: { 'content-type': object.httpMetadata?.contentType ?? 'image/jpeg', 'cache-control': 'public, max-age=300' } });
+  return new Response(object.body, { headers: { 'content-type': object.httpMetadata?.contentType ?? 'image/jpeg', 'cache-control': 'public, max-age=60' } });
 });
 
 /** GET /<member number> — the member's public profile; only what they chose to make public. */

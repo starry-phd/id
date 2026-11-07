@@ -130,6 +130,7 @@ export const DerivedSchema = z
 
 export const PublicProfileSchema = z
   .object({
+    shown_name: z.string().nullable().openapi({ description: 'THE name to show for this member in every Starry App: the nickname first, the real name only when there is no nickname (null when neither exists; then show initials)', example: '陽光海豚' }),
     display_name: z.string().nullable(),
     nickname: z.string().nullable().openapi({ description: 'Always public' }),
     avatar_url: z.string().nullable().openapi({ description: 'Always public' }),
@@ -156,6 +157,7 @@ export const PublicProfileSchema = z
 
 export const ProfileSchema = z
   .object({
+    shown_name: z.string().nullable().openapi({ description: 'THE name to show for this member in every Starry App: the nickname first, the real name only when there is no nickname (null when neither exists; then show initials)', example: '陽光海豚' }),
     display_name: z.string().nullable().openapi({ description: 'Name shown to others (姓名), 1-50 characters' }),
     avatar_url: z.string().nullable().openapi({ description: 'Signed path, valid for one hour' }),
     initials: z.string().openapi({ description: 'Show this in a circle when avatar_url is null (first letter of family name and of given name)' }),

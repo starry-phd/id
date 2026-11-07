@@ -147,3 +147,10 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 ### 3c34 基本資料預設從 Google 預填（2026-11-08）
 - Google 登入或綁定時（`seedProfileFromGoogle`，`identity/google-seed.ts`），只填「空白且會員從未改過」的欄位：姓名（`name`）、語言（`locale`，對應 zh-TW／en-US／ja-JP）、已驗證的 Email 當聯絡信箱（視為已驗證，Apple 私人轉寄不用）。會員自己填過或清空過（`profile_field_updates` 有紀錄）的欄位絕不覆蓋。稽核 `profile.seeded_from_google`。
 - 頭像仍優先用 Google 照片（既有）。生日、手機、地址等不在登入 token 內，要另外申請 Google 權限（People API），目前不抓。
+
+### 3c35 顯示名稱優先暱稱、暱稱骰子、公開／隱藏改版、頭像同步（2026-11-08）
+- API 新增 `shown_name`（`GET /v1/me` 的 profile 與 public_profile、`/v1/directory/members`）：暱稱優先，沒有暱稱才用姓名（`shownName`，`identity/profile.ts`）；兩者都沒有才顯示 `initials`。串接指令要求各 App 一律用它。
+- 暱稱欄位新增「🎲 隨機暱稱」（`identity/nicknames.ts`：正向形容詞＋動物／昆蟲／花卉，`GET /account/nickname-suggestion`，只填入輸入框，按儲存才生效）。
+- 基本資料頁：最上方「全部公開／全部隱藏」（`POST /account/profile/visibility-all`；頭像一律公開，未滿 18 歲的生日與推算維持不公開）。單一欄位的公開／隱藏改為原地更新（不重新載入、不跳回頁首），並顯示大提示窗（1 秒或點任意處消失，寫明欄位名稱與公開／隱藏）。
+- 頭像同步：網頁的頭像圖片網址帶上每次上傳都不同的檔名參數，換頭像後立即更新（先前導覽列因同一網址被瀏覽器快取 5 分鐘而不更新）；公開頭像快取縮為 60 秒。App 端：串接指令要求用 avatar_url 問號前的路徑當快取 key，回到前景重讀 `/v1/me`。
+- 串接指令版本 `2026-11-07.19`。

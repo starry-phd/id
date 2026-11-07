@@ -154,4 +154,41 @@ describe('referrals, the organization network and public profiles', () => {
     assert.equal(row.contact_email, 'seed-g@example.com');
     assert.ok(row.contact_email_verified_at > 0);
   });
+  test('profile page: all public / all hidden, one field in place, nickname dice, and the shown name in the API', async () => {
+    const m = await member('vis-a', '許小光');
+    const post = (path, params) => worker.call(path, { method: 'POST', headers: { cookie: m.cookie, origin: ORIGIN, accept: 'application/json', 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(params) });
+    const version = async () => (await worker.db.prepare('SELECT version FROM profiles WHERE user_id = ?').bind(m.userId).first()).version;
+    const page = await (await worker.call('/account/profile', get(m.cookie))).text();
+    for (const text of ['id="vis-all-public"', 'id="vis-all-private"', 'id="vis-toast"', 'data-suggest="nickname"', 'data-label="姓名"']) assert.ok(page.includes(text), text);
+
+    const hidden = await post('/account/profile/visibility-all', { value: 'private', version: String(await version()) });
+    assert.equal(hidden.status, 200);
+    const body = await hidden.json();
+    assert.equal(body.ok, true);
+    assert.equal(body.visibility.phone, 'private');
+    assert.equal(body.visibility.display_name, 'private');
+    assert.equal(body.visibility.avatar, 'public', 'the picture is always public');
+    assert.equal((await post('/account/profile/visibility-all', { value: 'public', version: '0' })).status, 409, 'stale version is refused');
+    const shown = await post('/account/profile/visibility-all', { value: 'public', version: String(body.version) });
+    const all = await shown.json();
+    assert.ok(Object.values(all.visibility).every((v) => v === 'public'));
+    assert.equal((await post('/account/profile/visibility-all', { value: 'maybe', version: String(all.version) })).status, 400);
+
+    // one field: JSON answer, no redirect, version moves on
+    const one = await post('/account/profile', { version: String(all.version), field: 'visibility.phone', value: 'private' });
+    assert.equal(one.status, 200);
+    assert.equal((await one.json()).ok, true);
+    assert.equal((await worker.db.prepare("SELECT json_extract(visibility, '$.phone') AS v FROM profiles WHERE user_id = ?").bind(m.userId).first()).v, 'private');
+
+    const dice = await (await worker.call('/account/nickname-suggestion?current=x', get(m.cookie))).json();
+    assert.match(dice.nickname, /^[\u4e00-\u9fff]{3,12}$/);
+    assert.equal((await worker.call('/account/nickname-suggestion', get())).status, 401);
+
+    // the shown name: nickname first, then the real name
+    const token = await (await worker.call('/account', get(m.cookie))).text();
+    assert.ok(token.includes('許小光'), 'no nickname yet: the real name is shown');
+    await worker.db.prepare("UPDATE profiles SET nickname = '樂觀蜜蜂' WHERE user_id = ?").bind(m.userId).run();
+    const home = await (await worker.call('/account', get(m.cookie))).text();
+    assert.ok(home.includes('樂觀蜜蜂') && !home.includes('<h1>許小光</h1>'));
+  });
 });

@@ -170,6 +170,14 @@
             ],
             "example": "TW0112342"
           },
+          "shown_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "THE name to show for this member in every Starry App: the nickname first, the real name only when there is no nickname (null when neither exists; then show initials)",
+            "example": "陽光海豚"
+          },
           "nickname": {
             "type": [
               "string",
@@ -197,6 +205,7 @@
         "required": [
           "user_id",
           "member_no",
+          "shown_name",
           "nickname",
           "display_name",
           "avatar_url",
@@ -581,6 +590,14 @@
       "Profile": {
         "type": "object",
         "properties": {
+          "shown_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "THE name to show for this member in every Starry App: the nickname first, the real name only when there is no nickname (null when neither exists; then show initials)",
+            "example": "陽光海豚"
+          },
           "display_name": {
             "type": [
               "string",
@@ -769,6 +786,7 @@
           }
         },
         "required": [
+          "shown_name",
           "display_name",
           "avatar_url",
           "initials",
@@ -1005,6 +1023,14 @@
       "PublicProfile": {
         "type": "object",
         "properties": {
+          "shown_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "THE name to show for this member in every Starry App: the nickname first, the real name only when there is no nickname (null when neither exists; then show initials)",
+            "example": "陽光海豚"
+          },
           "display_name": {
             "type": [
               "string",
@@ -1179,6 +1205,7 @@
           }
         },
         "required": [
+          "shown_name",
           "display_name",
           "nickname",
           "avatar_url",

@@ -19,6 +19,7 @@ const DirectoryMemberSchema = z
   .object({
     user_id: z.string(),
     member_no: z.string().nullable().openapi({ example: 'TW0112342' }),
+    shown_name: z.string().nullable().openapi({ description: 'THE name to show for this member in every Starry App: the nickname first, the real name only when there is no nickname (null when neither exists; then show initials)', example: '陽光海豚' }),
     nickname: z.string().nullable(),
     display_name: z.string().nullable().openapi({ description: 'null when the member chose to hide their name' }),
     avatar_url: z.string().nullable(),
@@ -63,7 +64,7 @@ directoryRoutes.openapi(membersRoute, async (c) => {
     const key = c.env.DATA_ENCRYPTION_KEY;
     const avatar = profile.avatar_key && key ? await signedAvatarPath(key, profile.avatar_key, now) : null;
     const shown = publicProfile(profile, avatar, now);
-    members.push({ user_id: row.user_id, member_no: row.member_no, nickname: shown.nickname, display_name: shown.display_name, avatar_url: shown.avatar_url, initials: shown.initials });
+    members.push({ user_id: row.user_id, member_no: row.member_no, shown_name: shown.shown_name, nickname: shown.nickname, display_name: shown.display_name, avatar_url: shown.avatar_url, initials: shown.initials });
   }
   return c.json({ members }, 200);
 });
