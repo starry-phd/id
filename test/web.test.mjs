@@ -505,6 +505,43 @@ describe('web account center, support form and Admin Lite', () => {
     await worker.db.prepare("DELETE FROM user_roles WHERE role = 'owner'").run();
   });
 
+  test('the owner clears a test App\'s data after typing its code; nobody else can, and a live App is refused (item 6)', async () => {
+    const owner = await webSignIn('rs-owner');
+    await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'owner', ?)").bind(await userIdOf('rs-owner'), Date.now()).run();
+    const admin = await webSignIn('rs-admin');
+    await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(await userIdOf('rs-admin'), Date.now()).run();
+    const member = await webSignIn('rs-member');
+    const memberId = await userIdOf('rs-member');
+    const now = Date.now();
+    await worker.db.prepare('INSERT INTO member_apps (user_id, app_id, first_seen_at, last_seen_at) VALUES (?, ?, ?, ?)').bind(memberId, 'recordnote', now, now).run();
+    await worker.db.prepare("INSERT INTO push_tokens (token, user_id, app_id, platform, created_at, updated_at) VALUES ('ExponentPushToken[resettest12345]', ?, 'recordnote', 'ios', ?, ?)").bind(memberId, now, now).run();
+
+    assert.equal((await worker.call('/admin/apps/recordnote/reset', get(admin))).status, 403, 'Admin is not enough');
+    assert.equal((await worker.call('/admin/apps/recordnote/reset', form({ confirm: 'recordnote' }, admin))).status, 403);
+    assert.equal((await worker.call('/admin/apps/recordnote/reset', get(member))).status, 403);
+    const preview = await (await worker.call('/admin/apps/recordnote/reset', get(owner))).text();
+    assert.match(preview, /清除測試資料：/);
+    assert.match(preview, /推播裝置<\/td><td>1</);
+    const used = () => worker.db.prepare("SELECT COUNT(*) AS n FROM member_apps WHERE app_id = 'recordnote'").first('n');
+    const usedBefore = await used();
+    assert.ok(usedBefore >= 1);
+    assert.match(await (await worker.call('/admin/apps/recordnote/reset', form({ confirm: 'wrong' }, owner))).text(), /請輸入正確的 App 代碼/);
+    assert.equal(await used(), usedBefore, 'a wrong code deletes nothing');
+
+    await worker.db.prepare("INSERT INTO app_stages (app_id, stage, updated_at, updated_by) VALUES ('recordnote', 'live', ?, 'o')").bind(now).run();
+    assert.match(await (await worker.call('/admin/apps/recordnote/reset', form({ confirm: 'recordnote' }, owner))).text(), /目前不能清除/);
+    assert.equal(await used(), usedBefore, 'a live App is refused');
+    await worker.db.prepare("DELETE FROM app_stages WHERE app_id = 'recordnote'").run();
+
+    assert.match(await (await worker.call('/admin/apps/recordnote/reset', form({ confirm: 'recordnote' }, owner))).text(), /已清除 \d+ 筆測試資料/);
+    assert.equal(await used(), 0);
+    assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM push_tokens WHERE app_id = 'recordnote'").first('n'), 0);
+    assert.equal(await worker.db.prepare('SELECT COUNT(*) AS n FROM users WHERE user_id = ?').bind(memberId).first('n'), 1, 'the member account stays');
+    assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.app_data_reset'").first('n'), 1);
+    assert.match(await (await worker.call('/admin/apps', get(owner))).text(), /\/admin\/apps\/recordnote\/reset/, 'the card links to it for the owner');
+    await worker.db.prepare("DELETE FROM user_roles WHERE role = 'owner'").run();
+  });
+
   test('Battery in Admin Lite: admins adjust a member, only the owner sets the monthly policy (S-BAT-02/05)', async () => {
     const memberCookie = await webSignIn('battery-member');
     const target = await userIdOf('battery-member');
