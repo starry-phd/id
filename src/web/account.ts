@@ -3,6 +3,7 @@ import { deleteCookie, setCookie } from 'hono/cookie';
 import { html, raw } from 'hono/html';
 import { audiencesFor, getApp, type AppEntry } from '../apps/registry';
 import { getBalance, recentActivity } from '../battery/battery';
+import { redeemInvite } from '../battery/invites';
 import { listQuantum } from '../battery/quantum';
 import { exportMemberData } from '../identity/export';
 import { getNotices } from '../lib/notices';
@@ -350,6 +351,7 @@ accountApp.get('/', async (c) => {
   const sessions = pending ? [] : await listActiveSessions(db, web.userId, now);
   const passkeys = pending ? [] : await listPasskeys(db, web.userId);
   const managedApps = pending ? [] : await listAppStaffApps(db, web.userId);
+  const inviteMsg = ({ ok: '兌換成功，已加入量子電池。', invalid: '邀請碼不正確、已停用或已過期。', already: '你已經兌換過這組邀請碼。', used_up: '這組邀請碼已被領完。' } as Record<string, string>)[c.req.query('invite') ?? ''] ?? '';
   const [battery, batteryActivity, quantum] = pending
     ? [null, null, []]
     : await Promise.all([getBalance(c.env.DB_BATTERY, web.userId, now), recentActivity(c.env.DB_BATTERY, web.userId, now, { limit: 10 }), listQuantum(c.env.DB_BATTERY, web.userId)]);
@@ -416,6 +418,9 @@ ${battery && batteryActivity
         (e) => html`<tr><td>${formatTime(e.created_at)}</td><td>${e.kind === 'usage' ? (e.task_label ?? appLabel(e.app_id ?? '')) : '客服調整'}</td><td>${e.kind === 'usage' ? `-${e.amount}` : e.amount > 0 ? `+${e.amount}` : `${e.amount}`}</td></tr>`,
       )}</table><p class="muted">顯示最近 30 天內最新 10 筆。</p>`
     : html`<p class="muted">最近 30 天沒有使用紀錄。</p>`}
+  <h3>邀請碼</h3>
+  ${inviteMsg ? html`<div class="banner">${inviteMsg}</div>` : ''}
+  <form method="post" action="/account/redeem"><label for="invite-code">輸入邀請碼，領取免費量子電池</label><input id="invite-code" name="code" maxlength="40" autocomplete="off" required><button type="submit">兌換</button></form>
   ${quantum.length > 0
     ? html`<h3>量子電池</h3><table><tr><th>App</th><th>剩餘</th></tr>${quantum.map((q) => html`<tr><td>${appLabel(q.app_id)}</td><td>${q.available}</td></tr>`)}</table><p class="muted">在該 App 內購買的加量包，只能在購買的那款 App 使用；每次先用免費 Battery，用完才使用量子電池，不會過期。</p>`
     : ''}
@@ -597,6 +602,14 @@ accountApp.post('/link/merge', async (c) => {
   );
   if (!merged) return c.json(errorBody('CONFLICT', 'The accounts changed; link again', requestId), 409);
   return c.json({ ok: true, result: 'merged' });
+});
+
+accountApp.post('/redeem', async (c) => {
+  const web = c.get('web');
+  if (!web || web.status !== 'active') return c.redirect('/account', 303);
+  const form = await readForm(c);
+  const result = await redeemInvite(c.env.DB_BATTERY, web.userId, form.code ?? '', Date.now());
+  return c.redirect(`/account?invite=${result.ok ? 'ok' : result.reason}`, 303);
 });
 
 accountApp.post('/consent', async (c) => {

@@ -1,4 +1,5 @@
 import { forgetBatteryMembers } from '../battery/battery';
+import { moveInvites } from '../battery/invites';
 import { moveQuantum } from '../battery/quantum';
 import { auditStatement } from '../lib/audit';
 import { randomToken } from '../lib/crypto';
@@ -121,6 +122,7 @@ export async function completeMerge(
   const merged = await mergeInto(deps.db, actor, identity, fromUserId, now);
   if (!merged.ok) return false;
   await moveQuantum(deps.battery, fromUserId, actor.userId, now); // purchased Quantum Battery is kept
+  await moveInvites(deps.battery, fromUserId, actor.userId);
   await forgetBatteryMembers(deps.battery, [fromUserId]);
   if (merged.avatarKey && deps.avatars) await deps.avatars.delete(merged.avatarKey).catch(() => undefined);
   return true;
