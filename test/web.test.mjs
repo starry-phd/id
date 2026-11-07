@@ -185,6 +185,19 @@ describe('web account center, support form and Admin Lite', () => {
     assert.match(await (await worker.call('/account', get(cookie))).text(), /\+886912345678/);
   });
 
+  test('the delete page warns about active store subscriptions, and Admin Lite shows per-App activity', async () => {
+    const cookie = await webSignIn('web-subs');
+    const userId = await userIdOf('web-subs');
+    assert.doesNotMatch(await (await worker.call('/account/delete', get(cookie))).text(), /生效中的訂閱/);
+    await worker.billing.prepare("INSERT INTO entitlements (user_id, app_id, entitlement, active, expires_at, store, environment, last_event_ms, updated_at) VALUES (?, 'recordnote', 'pro', 1, NULL, 'APP_STORE', 'PRODUCTION', 1, 1)").bind(userId).run();
+    await worker.billing.prepare("INSERT INTO entitlements (user_id, app_id, entitlement, active, expires_at, store, environment, last_event_ms, updated_at) VALUES (?, 'echo', 'test', 1, NULL, 'APP_STORE', 'SANDBOX', 1, 1)").bind(userId).run();
+    const page = await (await worker.call('/account/delete', get(cookie))).text();
+    assert.match(page, /生效中的訂閱/);
+    assert.match(page, /pro/);
+    assert.doesNotMatch(page, /<li>[^<]*test/, 'sandbox purchases are not listed');
+    await worker.billing.prepare('DELETE FROM entitlements WHERE user_id = ?').bind(userId).run();
+  });
+
   test('deletion from the web needs the typed word DELETE and removes the account at once', async () => {
     const cookie = await webSignIn('web-delete');
     const userId = await userIdOf('web-delete');

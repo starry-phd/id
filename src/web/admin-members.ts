@@ -29,12 +29,16 @@ adminApp.get('/', async (c) => {
     db.prepare('SELECT app_id, COUNT(DISTINCT user_id) AS n FROM sessions WHERE last_used_at >= ? GROUP BY app_id ORDER BY n DESC LIMIT 20').bind(since),
   ]);
   const count = (r: typeof members) => Number((r?.results[0] as { n?: number } | undefined)?.n ?? 0);
-  const [beats, backlog, usage] = await Promise.all([
+  const [beats, backlog, usage, seen, subs] = await Promise.all([
     readHeartbeats(db),
     cleanupBacklog(db),
     c.env.DB_BATTERY.prepare('SELECT app_id, SUM(amount) AS used, COUNT(DISTINCT user_id) AS members FROM battery_ledger WHERE kind = ? AND created_at >= ? GROUP BY app_id ORDER BY used DESC LIMIT 20')
       .bind('usage', since)
       .all<{ app_id: string; used: number; members: number }>(),
+    db.prepare('SELECT app_id, COUNT(*) AS total, SUM(CASE WHEN last_seen_at >= ? THEN 1 ELSE 0 END) AS week, SUM(CASE WHEN last_seen_at >= ? THEN 1 ELSE 0 END) AS month FROM member_apps GROUP BY app_id')
+      .bind(now - 7 * 86400_000, now - 30 * 86400_000)
+      .all<{ app_id: string; total: number; week: number; month: number }>(),
+    c.env.DB_BILLING.prepare("SELECT app_id, COUNT(*) AS n FROM entitlements WHERE active = 1 AND (environment IS NULL OR environment != 'SANDBOX') GROUP BY app_id").all<{ app_id: string; n: number }>(),
   ]);
   const activeRows = (active?.results ?? []) as { app_id: string; n: number }[];
   const stale = (b: { job: string; last_success_at: number | null }) => b.last_success_at === null || now - b.last_success_at > (b.job === 'minutely' ? 10 * 60 * 1000 : 36 * 60 * 60 * 1000);
@@ -46,6 +50,10 @@ adminApp.get('/', async (c) => {
       html`<h1>Admin Lite</h1><p class="muted">你的角色：${ROLE_LABELS[actor.role]} ｜ <a href="/admin/notices">公告與維護模式</a></p>
 ${problems > 0 ? html`<div class="banner danger">有 ${problems} 項系統狀況需要注意，請看下方「系統狀態」。</div>` : ''}
 <div class="card"><p>會員總數：<strong>${count(members)}</strong>（近 24 小時新增 <strong>${count(today)}</strong>）</p><p>未結客服單：<strong>${count(open)}</strong></p></div>
+<h2>各 App 使用概況</h2>
+<div class="card"><table><thead><tr><th>App</th><th>用過的會員</th><th>7 天內</th><th>30 天內</th><th>有效權益</th></tr></thead><tbody>
+${seen.results.map((r) => html`<tr><td><code>${r.app_id}</code></td><td>${r.total}</td><td>${r.week}</td><td>${r.month}</td><td>${subs.results.find((x) => x.app_id === r.app_id)?.n ?? 0}</td></tr>`)}
+</tbody></table>${seen.results.length === 0 ? html`<p class="muted">還沒有會員使用任何 App。</p>` : ''}<p class="muted">有效權益＝目前生效的訂閱或買斷（不含測試環境）。</p></div>
 <h2>近 24 小時各 App</h2>
 <div class="card"><table><thead><tr><th>App</th><th>活躍會員</th><th>Battery 用量</th></tr></thead><tbody>
 ${activeRows.map((r) => {

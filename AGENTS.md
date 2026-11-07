@@ -73,6 +73,7 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 3c1. 後台批次操作（會員清單勾選 → 調整 Battery／停權／強制登出，一次最多 50 位）；遠端設定表單（`/admin/apps/<id>/config`，覆寫 App 的 config 與 min_version，約 30 秒生效）；RevenueCat 金鑰可在 `/admin/apps/<id>/revenuecat` 管理（加密保存）。
 3c2. App 管理員：Owner 在會員頁指派某會員管理指定 App（`app_staff`），僅能編輯該 App 的遠端設定並檢視量子電池商品；不能看會員資料或 RevenueCat 金鑰。
 3c4. 程式結構：`src/web/admin.ts`、`account.ts` 只是入口，路由分散在 `admin-*.ts`、`account-*.ts`；路由註冊順序即入口檔的 import 順序，不可隨意調換。
+3c5. 各 App 使用概況：`member_apps.last_seen_at`（登入與換發 Token 時更新，每小時最多寫一次）；後台首頁顯示用過／7 天內／30 天內人數與有效權益數；網頁刪帳頁若有生效中的商店訂閱會提醒先取消。
 3c3. 邀請碼：Owner 在 `/admin/apps/<id>/invites` 建立，會員在帳號中心輸入後獲得該 App 的免費量子電池（`invite_codes`／`invite_redemptions`）；每人每組碼限一次、有次數與到期日上限；贈送不是購買，不影響每月免費 Battery。
 3c. 簽章金鑰輪替：Secret `ACCESS_TOKEN_PREVIOUS_JWKS` 放舊公鑰，輪替期間舊 Token 仍有效，步驟見 `docs/owner-setup.md`。
 3d. 刻意保留的設計（不是漏做）：echo／recordnote／account 留在 `config/apps.json`（資料庫故障時既有 App 仍可登入）；7 天刪除寬限期仍是現行對外行為（`deletion_purge_at` 欄位）；Email 登入依業主決定不做。
