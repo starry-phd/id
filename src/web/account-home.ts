@@ -57,7 +57,7 @@ accountApp.get('/', async (c) => {
   const timed = await activeScopedNotices(db, now).catch(() => []);
   const memberNo = (await db.prepare('SELECT member_no FROM users WHERE user_id = ?').bind(web.userId).first<{ member_no: string | null }>())?.member_no ?? null;
   const location = [countryName(p.country), p.region, p.city].filter((v) => v).join(' ');
-  const body = html`<div class="hero">${avatarBubble({ initials: initialsOf(p.display_name ?? p.nickname), photo: p.avatar_key ? '/account/avatar-image' : null, size: 72, label: p.display_name ?? '' })}<div><h1>${p.display_name ?? '我的帳號'}</h1>${memberNo ? html`<span class="badge">${memberNo}</span>` : ''}</div></div>
+  const body = html`<div class="hero">${avatarBubble({ initials: initialsOf(p.display_name ?? p.nickname), photo: p.avatar_key ? `/account/avatar-image?v=${encodeURIComponent(p.avatar_key.split('/').pop() ?? '')}` : null, size: 72, label: p.nickname || p.display_name || '' })}<div><h1>${p.nickname || p.display_name || '我的帳號'}</h1>${memberNo ? html`<span class="badge">${memberNo}</span>` : ''}</div></div>
 ${notices.maintenance ? html`<div class="banner danger">系統維護中：${notices.maintenanceMessage || 'AI 功能暫時停用，帳號功能可正常使用。'}</div>` : ''}
 ${notices.announcement ? html`<div class="banner">${notices.announcement}</div>` : ''}
 ${timed.map((n) => html`<div class="banner">${n.message}</div>`)}

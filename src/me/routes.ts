@@ -22,7 +22,7 @@ import { acceptConsents } from '../identity/members';
 import { sendContactEmailVerification } from '../identity/contact-email';
 import { randomMotto } from '../identity/mottos';
 import { roleOf } from '../identity/roles';
-import { derivedOf, effectiveVisibility, hasChanges, loadProfile, publicProfile, saveProfile, validateProfileInput, type FieldUpdate, type ProfileRow } from '../identity/profile';
+import { derivedOf, effectiveVisibility, hasChanges, loadProfile, publicProfile, saveProfile, shownName, validateProfileInput, type FieldUpdate, type ProfileRow } from '../identity/profile';
 import { errorBody } from '../lib/errors';
 import { mailSettings } from '../notify/email';
 import { getPreferences, isCategory, isPushToken, registerPushToken, setPreferences, unregisterPushToken } from '../notify/push';
@@ -38,6 +38,7 @@ async function avatarUrlOf(env: { DATA_ENCRYPTION_KEY?: string }, p: ProfileRow,
 async function profileJson(env: { DATA_ENCRYPTION_KEY?: string }, p: ProfileRow, fieldUpdates: Record<string, FieldUpdate>) {
   const now = Date.now();
   return {
+    shown_name: shownName(p.nickname, p.display_name),
     display_name: p.display_name,
     avatar_url: await avatarUrlOf(env, p, now),
     initials: initialsOf(p.display_name ?? p.nickname),

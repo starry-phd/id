@@ -7,7 +7,8 @@ import { googlePhotoOf, importProviderAvatarDetailed, MAX_AVATAR_BYTES, r2Store,
 import { type ProfileRow } from '../identity/members';
 import { confirmContactEmail, sendContactEmailVerification, type ConfirmResult } from '../identity/contact-email';
 import { randomMotto } from '../identity/mottos';
-import { ageOn, derivedOf, EDITABLE_FIELDS, effectiveVisibility, GRID_LAYOUT, hasChanges, loadProfile, saveProfile, validateProfileInput, type EditableField, type FieldUpdate, type Visibility, type VisibilityField } from '../identity/profile';
+import { randomNickname } from '../identity/nicknames';
+import { ageOn, derivedOf, EDITABLE_FIELDS, effectiveVisibility, GRID_LAYOUT, hasChanges, loadProfile, saveProfile, validateProfileInput, VISIBILITY_FIELDS, type EditableField, type FieldUpdate, type Visibility, type VisibilityField } from '../identity/profile';
 import { WEB_APP_ID } from '../identity/web-sessions';
 import { formatTime, page, readForm, type Html, type WebContext } from './layout';
 import { LOCALES, accountApp } from './account-lib';
@@ -35,7 +36,7 @@ interface FieldSpec {
 }
 
 const PROFILE_FIELDS: readonly FieldSpec[] = [
-  { field: 'nickname', label: '暱稱', eye: null, input: 'text', max: 30, alwaysPublic: true, hint: '一律公開（排行榜等功能會顯示暱稱與頭像），最多 30 字。' },
+  { field: 'nickname', label: '暱稱', eye: null, input: 'text', max: 30, alwaysPublic: true, hint: '一律公開（排行榜等功能會顯示暱稱與頭像），所有繁星 App 優先顯示暱稱，最多 30 字。' },
   { field: 'display_name', label: '姓名', eye: 'display_name', input: 'text', max: 50, hint: '你的姓名，1～50 字，可以選擇不公開。' },
   { field: 'contact_email', label: '主要聯絡 Email', eye: 'contact_email', input: 'email', hint: '變更後會寄確認信；確認前，系統通知仍寄到登入用的信箱。' },
   { field: 'phone', label: '手機（選填）', eye: 'phone', input: 'tel', hint: '可輸入 0912345678，會依國家自動加上國碼。預設不公開。' },
@@ -89,10 +90,15 @@ function fieldInput(spec: FieldSpec, p: ProfileRow): Html {
   }
 }
 
+const GROUP_LABELS: Record<VisibilityField, string> = {
+  display_name: '姓名', avatar: '頭像', birthday: '生日', derived: '由生日推算', location: '國家／地區', phone: '手機', motto: '座右銘', contact_email: '主要聯絡 Email',
+  occupation: '職業', website: '個人網站', bio: '自我介紹', languages: '使用語言', interests: '興趣', skills: '專長', education: '學歷',
+};
+
 function eyeForm(group: VisibilityField, visibility: Record<VisibilityField, Visibility>, version: number, locked: boolean): Html {
   const isPublic = visibility[group] === 'public';
   if (locked) return html`<span class="muted">🔒 不公開</span>`;
-  return html`<form class="inline eye" method="post" action="/account/profile"><input type="hidden" name="version" value="${version}"><input type="hidden" name="field" value="visibility.${group}"><input type="hidden" name="value" value="${isPublic ? 'private' : 'public'}"><button class="secondary" type="submit" title="${isPublic ? '目前公開，按一下改為不公開' : '目前不公開，按一下改為公開'}">${isPublic ? '👁 公開' : '🙈 不公開'}</button></form>`;
+  return html`<form class="inline eye" data-group="${group}" data-label="${GROUP_LABELS[group]}" method="post" action="/account/profile"><input type="hidden" name="version" value="${version}"><input type="hidden" name="field" value="visibility.${group}"><input type="hidden" name="value" value="${isPublic ? 'private' : 'public'}"><button class="secondary" type="submit" title="${isPublic ? '目前公開，按一下改為不公開' : '目前不公開，按一下改為公開'}">${isPublic ? '👁 公開' : '🙈 不公開'}</button></form>`;
 }
 
 function updatedLine(updates: Record<string, FieldUpdate>, field: string): Html {
@@ -133,7 +139,8 @@ function profilePage(c: WebContext, loaded: { row: ProfileRow; fieldUpdates: Rec
 <input type="hidden" name="version" value="${p.version}"><input type="hidden" name="field" value="${spec.field}">
 <label for="f-${spec.field}" class="muted" style="font-weight:400">${spec.hint ?? `修改${spec.label}`}</label>
 ${fieldInput(spec, p)}
-${spec.field === 'motto' ? html`<button class="secondary suggest" type="button" hidden>🎲 隨機提案</button>` : ''}
+${spec.field === 'motto' ? html`<button class="secondary suggest" data-suggest="motto" type="button" hidden>🎲 隨機提案</button>` : ''}
+${spec.field === 'nickname' ? html`<button class="secondary suggest" data-suggest="nickname" type="button" hidden>🎲 隨機暱稱</button>` : ''}
 <button type="submit">儲存</button><span class="status muted" role="status" aria-live="polite"></span>
 </form>
 ${spec.field === 'contact_email' && p.contact_email && !p.contact_email_verified_at
@@ -148,10 +155,12 @@ ${updatedLine(loaded.fieldUpdates, spec.field)}
     html`<h1>個人資料</h1>
 ${message ? html`<div class="banner ${message.danger ? 'danger' : ''}">${message.text}</div>` : ''}
 
-<style>.js .field-form{display:none}.js .field.editing .field-form{display:block}.js .field.editing .value{display:none}.grid9{width:auto;margin:8px 0}.grid9 td{width:56px;height:56px;text-align:center;border:1px solid var(--line);font-size:1.2rem}.eye button,.pencil{margin:0 0 0 8px;padding:4px 10px}</style>
+<div id="vis-toast" hidden role="status" aria-live="assertive"><div class="vt"></div></div>
+<div class="actions" id="vis-all" hidden><button type="button" id="vis-all-public">👁 全部公開</button><button type="button" class="secondary" id="vis-all-private">🙈 全部隱藏</button></div>
+<style>#vis-toast{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(5,5,25,.45)}#vis-toast[hidden]{display:none}#vis-toast .vt{max-width:86vw;padding:26px 34px;border-radius:22px;background:#1d1d52;border:2px solid var(--accent,#8b7cf6);box-shadow:0 12px 50px rgba(0,0,0,.6);font-size:1.7rem;font-weight:700;text-align:center;line-height:1.4}.js .field-form{display:none}.js .field.editing .field-form{display:block}.js .field.editing .value{display:none}.grid9{width:auto;margin:8px 0}.grid9 td{width:56px;height:56px;text-align:center;border:1px solid var(--line);font-size:1.2rem}.eye button,.pencil{margin:0 0 0 8px;padding:4px 10px}</style>
 <div class="card" id="avatar-card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>頭像</strong></div>
 <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px">
-${p.avatar_key ? html`<img id="avatar-now" src="/account/avatar-image?v=${p.version}" alt="目前的頭像" width="96" height="96" style="border-radius:50%;object-fit:cover">` : avatarBubble({ initials: initialsOf(p.display_name ?? p.nickname), photo: null, size: 96, label: p.display_name ?? '' })}
+${p.avatar_key ? html`<img id="avatar-now" src="/account/avatar-image?v=${encodeURIComponent(p.avatar_key.split('/').pop() ?? '')}" alt="目前的頭像" width="96" height="96" style="border-radius:50%;object-fit:cover">` : avatarBubble({ initials: initialsOf(p.display_name ?? p.nickname), photo: null, size: 96, label: p.display_name ?? '' })}
 <div><label for="avatar-file" class="button secondary" style="background:transparent;color:var(--accent);margin:0">上傳並裁切頭像</label><input id="avatar-file" type="file" accept="image/png,image/jpeg,image/webp" hidden>
 <button type="button" class="secondary" id="avatar-google">使用我的 Google 頭像</button>${p.avatar_key ? html`<button type="button" class="secondary" id="avatar-remove">移除頭像</button>` : ''}
 <p id="avatar-status" role="status" aria-live="polite"></p></div></div>
@@ -311,6 +320,54 @@ document.documentElement.classList.add('js');
   var removeButton = document.getElementById('avatar-remove');
   if (removeButton) removeButton.addEventListener('click', function () { if (confirm('確定要移除頭像嗎？')) send('/account/avatar/remove', { method: 'POST', headers: { accept: 'application/json' } }, '頭像已移除。'); });
 })();
+let toastTimer = 0;
+function hideToast() { document.getElementById('vis-toast').hidden = true; }
+function toast(text) {
+  const box = document.getElementById('vis-toast');
+  box.querySelector('.vt').textContent = text;
+  box.hidden = false;
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(hideToast, 1000);
+}
+document.addEventListener('pointerdown', hideToast);
+function applyEye(form, isPublic) {
+  form.querySelector('[name=value]').value = isPublic ? 'private' : 'public';
+  const button = form.querySelector('button');
+  button.textContent = isPublic ? '👁 公開' : '🙈 不公開';
+  button.title = isPublic ? '目前公開，按一下改為不公開' : '目前不公開，按一下改為公開';
+}
+document.querySelectorAll('form.eye').forEach((form) => {
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const group = form.getAttribute('data-group');
+    const label = form.getAttribute('data-label');
+    const want = form.querySelector('[name=value]').value;
+    const res = await fetch('/account/profile', { method: 'POST', headers: { accept: 'application/json' }, body: new URLSearchParams({ version: String(version), field: 'visibility.' + group, value: want }) }).catch(() => null);
+    const body = res ? await res.json().catch(() => ({})) : {};
+    if (res && res.ok && body.ok) {
+      setVersion(body.version);
+      document.querySelectorAll('form.eye[data-group="' + group + '"]').forEach((f) => applyEye(f, want === 'public'));
+      toast((want === 'public' ? '👁 「' + label + '」已公開' : '🙈 「' + label + '」已隱藏'));
+    } else {
+      toast(res && res.status === 409 ? '資料已在其他地方更新，請重新整理頁面' : '設定失敗，請再試一次');
+    }
+  });
+});
+const visAll = document.getElementById('vis-all');
+visAll.hidden = false;
+async function setAll(value) {
+  const res = await fetch('/account/profile/visibility-all', { method: 'POST', headers: { accept: 'application/json' }, body: new URLSearchParams({ version: String(version), value: value }) }).catch(() => null);
+  const body = res ? await res.json().catch(() => ({})) : {};
+  if (res && res.ok && body.ok) {
+    setVersion(body.version);
+    document.querySelectorAll('form.eye').forEach((f) => { const v = body.visibility[f.getAttribute('data-group')]; if (v) applyEye(f, v === 'public'); });
+    toast(value === 'public' ? '👁 全部欄位已公開' : '🙈 全部欄位已隱藏');
+  } else {
+    toast(res && res.status === 409 ? '資料已在其他地方更新，請重新整理頁面' : '設定失敗，請再試一次');
+  }
+}
+document.getElementById('vis-all-public').addEventListener('click', () => setAll('public'));
+document.getElementById('vis-all-private').addEventListener('click', () => setAll('private'));
 const STATUS = { saving: '儲存中…', saved: '已儲存', conflict: '資料已在其他地方更新，請重新整理頁面。', failed: '儲存失敗，請再試一次。' };
 let version = ${p.version};
 function setVersion(v) { version = v; document.querySelectorAll('input[name=version]').forEach((i) => { i.value = String(v); }); }
@@ -346,9 +403,10 @@ document.querySelectorAll('.field[data-field]').forEach((field) => {
   if (suggest) {
     suggest.hidden = false;
     suggest.addEventListener('click', async () => {
-      const res = await fetch('/account/motto-suggestion?current=' + encodeURIComponent(input.value)).catch(() => null);
+      const kind = suggest.getAttribute('data-suggest') || 'motto';
+      const res = await fetch('/account/' + kind + '-suggestion?current=' + encodeURIComponent(input.value)).catch(() => null);
       const body = res && res.ok ? await res.json() : null;
-      if (body && body.motto) { input.value = body.motto; form.querySelector('.status').textContent = '這是提案，按「儲存」才會更新。'; }
+      if (body && body[kind]) { input.value = body[kind]; form.querySelector('.status').textContent = '這是提案，按「儲存」才會更新。'; }
     });
   }
 });
@@ -377,6 +435,27 @@ const PROFILE_NOTICES: Record<string, { text: string; danger: boolean }> = {
   verification_unavailable: { text: '目前無法寄出確認信，請稍後再試。', danger: true },
   verified: { text: '聯絡信箱已確認，之後的系統通知會寄到這裡。', danger: false },
 };
+
+/** POST /account/profile/visibility-all — every field public or every field hidden (the picture is always public; minors' birthday stays private). */
+accountApp.post('/profile/visibility-all', async (c) => {
+  const web = c.get('web');
+  if (!web || web.status !== 'active') return c.json({ ok: false, message: '請重新登入。' }, 401);
+  const form = await readForm(c);
+  const value = form.value === 'public' || form.value === 'private' ? form.value : null;
+  const version = Number(form.version);
+  const db = c.env.DB_IDENTITY;
+  const now = Date.now();
+  const before = await loadProfile(db, web.userId);
+  if (!value || !Number.isInteger(version) || !before) return c.json({ ok: false, message: '要求不正確。' }, 400);
+  const minor = before.row.birthday !== null && ageOn(before.row.birthday, now) < 18;
+  const groups = VISIBILITY_FIELDS.filter((g) => g !== 'avatar' && !(minor && (g === 'birthday' || g === 'derived')));
+  const validated = validateProfileInput({ visibility: Object.fromEntries(groups.map((g) => [g, value])) }, now, before.row.country);
+  if (!validated.ok) return c.json({ ok: false, message: '設定失敗。' }, 400);
+  const saved = await saveProfile(db, { userId: web.userId, expectedVersion: version, changes: validated.changes, source: 'member', actorUserId: web.userId, appId: WEB_APP_ID, requestId: c.get('requestId') }, now);
+  if (!saved.written) return c.json({ ok: false, message: '個人資料已在其他地方更新，請重新整理頁面。' }, 409);
+  const current = (await loadProfile(db, web.userId)) ?? before;
+  return c.json({ ok: true, version: current.row.version, visibility: effectiveVisibility(current.row, now) });
+});
 
 /**
  * POST /account/profile — one field per request from the profile page (field + value, or
@@ -529,6 +608,13 @@ accountApp.get('/verify-email', async (c) => {
     invalid: '確認連結無效。',
   };
   return c.html(page(c, '確認聯絡信箱', html`<h1>確認聯絡信箱</h1><div class="banner${result === 'verified' ? '' : ' danger'}">${text[result]}</div><p><a href="/account/profile">前往個人資料</a></p>`), result === 'verified' ? 200 : 400);
+});
+
+/** GET /account/nickname-suggestion — random positive nickname (adjective + animal, insect or flower); nothing is saved. */
+accountApp.get('/nickname-suggestion', (c) => {
+  const web = c.get('web');
+  if (!web) return c.json({ error: 'sign in' }, 401);
+  return c.json({ nickname: randomNickname(c.req.query('current') ?? null) });
 });
 
 /** GET /account/motto-suggestion — random motto for the profile page (02.05); nothing is saved. */
