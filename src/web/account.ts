@@ -4,6 +4,7 @@ import { html, raw } from 'hono/html';
 import { audiencesFor, getApp, type AppEntry } from '../apps/registry';
 import { getBalance, recentActivity } from '../battery/battery';
 import { listQuantum } from '../battery/quantum';
+import { exportMemberData } from '../identity/export';
 import { getNotices } from '../lib/notices';
 import { withEffectiveStatus } from '../apps/status';
 import type { Provider } from '../auth/provider-keys';
@@ -357,6 +358,7 @@ ${battery && batteryActivity
 </div>`
   : ''}
 ${role && hasRole(role, 'support') ? html`<p><a class="button" href="/admin">進入 Admin Lite</a></p>` : ''}
+${pending ? '' : html`<h2>下載我的資料</h2><p class="muted">取得 Starry 保存的您的個人資料、登入方式、同意紀錄、使用過的 App 與電池紀錄（JSON 檔，不含密碼或憑證）。</p><a href="/account/export">下載我的資料</a>`}
 ${pending ? '' : html`<h2>刪除帳號</h2><p class="muted">確認後立即永久刪除，無法復原。</p><a href="/account/delete">申請刪除帳號</a>`}`;
   return c.html(page(c, '我的帳號', body));
 });
@@ -946,6 +948,18 @@ accountApp.get('/motto-suggestion', (c) => {
   const web = c.get('web');
   if (!web) return c.json({ error: 'sign in' }, 401);
   return c.json({ motto: randomMotto(c.req.query('current') ?? null) });
+});
+
+/** GET /account/export — the member downloads a JSON copy of their own data. */
+accountApp.get('/export', async (c) => {
+  const web = c.get('web');
+  if (!web || web.status !== 'active') return c.redirect('/account', 303);
+  const now = Date.now();
+  const data = await exportMemberData(c.env, web.userId, now);
+  if (!data) return c.redirect('/account', 303);
+  return new Response(JSON.stringify(data, null, 2), {
+    headers: { 'content-type': 'application/json; charset=utf-8', 'content-disposition': 'attachment; filename="starry-my-data.json"', 'cache-control': 'no-store' },
+  });
 });
 
 accountApp.get('/delete', (c) => {

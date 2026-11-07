@@ -93,6 +93,19 @@ describe('web account center, support form and Admin Lite', () => {
     assert.doesNotMatch(await (await worker.call('/account', get(cookie))).text(), /請確認服務條款/);
   });
 
+  test('a member downloads their own data without secrets', async () => {
+    const cookie = await webSignIn('export-user');
+    assert.doesNotMatch((await worker.call('/account/export')).headers.get('content-disposition') ?? '', /attachment/);
+    const res = await worker.call('/account/export', get(cookie));
+    assert.equal(res.status, 200);
+    assert.match(res.headers.get('content-disposition') ?? '', /attachment/);
+    const text = await res.text();
+    const data = JSON.parse(text);
+    assert.equal(data.login_methods[0].email, 'export-user@example.com');
+    assert.ok(Array.isArray(data.battery_history));
+    assert.doesNotMatch(text, /avatar_key|subject|session_id|token/);
+  });
+
   test('cookie writes without a same-site Origin are refused', async () => {
     const cookie = await webSignIn('csrf-user');
     assert.equal((await worker.call('/account/consent', form({}, cookie, null))).status, 403);
