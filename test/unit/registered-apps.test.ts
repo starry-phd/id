@@ -1,7 +1,7 @@
 // Unit tests for Apps registered by the Owner in Admin Lite (registered_apps) and the handoff instruction.
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { clearDynamicAppCache, definitionFromForm, listRegisteredAppIds, refreshDynamicApps, saveRegisteredApp } from '../../src/apps/dynamic';
+import { clearDynamicAppCache, definitionFromForm, invalidRegisteredApps, listRegisteredAppIds, normalizeFingerprint, refreshDynamicApps, saveRegisteredApp } from '../../src/apps/dynamic';
 import { createHash } from 'node:crypto';
 import { buildHandoff, HANDOFF_UPDATED, HANDOFF_VERSION } from '../../src/apps/handoff';
 import { anyStoredKeys, appForStoredKey, enableAppBattery, hasAppBatteryKey } from '../../src/battery/battery';
@@ -84,6 +84,44 @@ describe('registering an App without a code change', () => {
     assert.equal(getApp('echo')?.app_id, 'echo', 'shipped Apps are untouched');
   });
 
+  test('a broken stored row keeps the last good definition of that App and is flagged; fixing it clears the flag', async () => {
+    const d = asD1(migratedDb());
+    await saveRegisteredApp(d, actor, build(clock), 'create', NOW);
+    clearDynamicAppCache();
+    await refreshDynamicApps(d, NOW + 10);
+    assert.deepEqual(invalidRegisteredApps(), []);
+    await d.prepare("UPDATE registered_apps SET definition = '{broken' WHERE app_id = 'clock'").run();
+    clearDynamicAppCache();
+    await refreshDynamicApps(d, NOW + 20);
+    assert.equal(getApp('clock')?.name, '繁星時鐘', 'the App does not disappear');
+    assert.deepEqual(invalidRegisteredApps(), ['clock']);
+    await saveRegisteredApp(d, actor, build({ ...clock, name: '新名稱' }), 'update', NOW + 30);
+    assert.equal(getApp('clock')?.name, '新名稱');
+    assert.deepEqual(invalidRegisteredApps(), []);
+  });
+
+  test('Android fingerprints: typed at creation, left empty, or added later; any common paste format is accepted; the Team ID is never stored per App', () => {
+    const FP = 'AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99';
+    assert.equal(normalizeFingerprint(FP), FP);
+    assert.equal(normalizeFingerprint(FP.toLowerCase()), FP);
+    assert.equal(normalizeFingerprint(FP.replaceAll(':', '')), FP);
+    assert.equal(normalizeFingerprint(`SHA256: ${FP}`), FP);
+    assert.equal(normalizeFingerprint('AA:BB'), null);
+    assert.equal(build(clock).android_cert_sha256.length, 0, 'empty is allowed');
+    const second = FP.replace(/^AA/, '11');
+    assert.deepEqual(build({ ...clock, android_cert_sha256: `${FP}\n${second.toLowerCase()}\n${FP}` }).android_cert_sha256, [FP, second], 'several, de-duplicated, upper-cased');
+    const bad = definitionFromForm({ ...clock, android_cert_sha256: 'not-a-fingerprint' });
+    assert.ok(!bad.ok && /Android 簽章指紋格式不正確/.test(bad.error));
+    assert.equal(build({ ...clock, android_cert_sha256: FP, ios_team_id: 'ZZZZZZZZZZ' } as Parameters<typeof definitionFromForm>[0]).ios_team_id, null, 'follows the central Team ID');
+  });
+
+  test('the handoff names the central Team ID and does not claim Android Passkeys work without a fingerprint', () => {
+    const text = buildHandoff(build(clock), 'https://id.starry.phd', { battery: false, teamId: '4W7QRTXN5Y' });
+    assert.ok(text.includes('全生態系共用') && text.includes('4W7QRTXN5Y'));
+    assert.ok(text.includes('業主尚未登記') && text.includes('不要對業主宣稱 Android Passkey 已可用'));
+    assert.ok(text.includes('Upload key'), 'explains which certificate to register');
+  });
+
   test('the handoff instruction carries the registered values and no secret', () => {
     const text = buildHandoff(build(clock), 'https://id.starry.phd');
     for (const expected of ['clock', 'phd.starry.clock', 'https://clock.starry.phd', 'clock://auth/google', 'https://id.starry.phd/v1/apps/clock/config', 'integration-guide.md', 'starry-phd']) {
@@ -123,7 +161,7 @@ describe('registering an App without a code change', () => {
     // When this fails you changed the handoff text: bump HANDOFF_VERSION and HANDOFF_UPDATED in src/apps/handoff.ts,
     // then paste the new hash here.
     const hash = createHash('sha256').update(text).digest('hex').slice(0, 16);
-    assert.equal(`${HANDOFF_VERSION}:${hash}`, '2026-11-07.8:35ce9fc079318e41');
+    assert.equal(`${HANDOFF_VERSION}:${hash}`, '2026-11-07.9:3c3099eab933a631');
   });
 
   test('the handoff mentions Battery only as set up or not yet set up, never with a key', () => {

@@ -369,6 +369,12 @@ describe('web account center, support form and Admin Lite', () => {
     assert.match(notified, /已送達 0 位（0 台裝置）/);
     assert.match(notified, /沒有這款 App 的裝置 1 位、非正常狀態 1 位/);
     assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.bulk_notify' AND app_id = 'echo'").first('n'), 1);
+    // Integration status overview and the Android reminder on the App cards (central Team ID is not set in this test Worker).
+    const overview = await (await worker.call('/admin/apps/status', { headers: { cookie: adminCookie } })).text();
+    assert.match(overview, /整合狀態總覽/);
+    assert.match(overview, /Android 正式簽章尚未設定，原生 Passkey 關聯尚待完成。/);
+    assert.match(overview, /Apple Team ID（全生態系共用）：<strong>尚未設定<\/strong>/);
+    assert.match(await (await worker.call('/admin/apps', { headers: { cookie: adminCookie } })).text(), /整合狀態總覽[\s\S]*Android 正式簽章尚未設定/);
     // App-wide broadcast (ADR 0009): Admin-only page, validated first; this test Worker has no queue, so a valid request is refused plainly.
     const page = await (await worker.call('/admin/broadcast', { headers: { cookie: adminCookie } })).text();
     assert.match(page, /全 App 推播/);

@@ -36,6 +36,26 @@ describe('Passkey support for Apps', () => {
     assert.deepEqual(passkeyExtraOrigins(parseApp(def({ android_package: null, android_cert_sha256: [FP] }))), ['https://clock.starry.phd'], 'no package, no Android origin');
   });
 
+  test('every App follows the central Team ID; one stored on the App wins; with neither the App is left out', async () => {
+    setDynamicApps(new Map([
+      ['clock', parseApp(def())],
+      ['notes', parseApp(def({ app_id: 'notes', ios_bundle_id: 'phd.starry.notes', android_package: 'phd.starry.notes', ios_team_id: 'ZZZZZ99999' }))],
+    ]));
+    try {
+      const ids = async (env: Record<string, string>) => {
+        const res = await app.fetch(new Request('https://id.starry.phd/.well-known/apple-app-site-association'), env as never);
+        return ((await res.json()) as { webcredentials: { apps: string[] } }).webcredentials.apps;
+      };
+      const central = await ids({ STARRY_APPLE_TEAM_ID: '4W7QRTXN5Y' });
+      assert.ok(central.includes('4W7QRTXN5Y.phd.starry.clock') && central.includes('4W7QRTXN5Y.phd.starry.echo') && central.includes('4W7QRTXN5Y.phd.starry.recordnote'));
+      assert.ok(central.includes('ZZZZZ99999.phd.starry.notes') && !central.includes('4W7QRTXN5Y.phd.starry.notes'));
+      assert.deepEqual((await ids({})).filter((x) => x.includes('phd.starry.clock')), [], 'no central value, no entry');
+      assert.deepEqual((await ids({ STARRY_APPLE_TEAM_ID: 'bad' })).filter((x) => x.includes('phd.starry.clock')), [], 'an invalid central value counts as unset');
+    } finally {
+      setDynamicApps(new Map());
+    }
+  });
+
   test('the files Apple, Google and browsers fetch are generated from the registry', async () => {
     setDynamicApps(new Map([['clock', parseApp(def({ ios_team_id: 'ABCDE12345', android_cert_sha256: [FP] }))]]));
     try {

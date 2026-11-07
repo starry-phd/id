@@ -242,10 +242,10 @@ Passkey 屬於 Starry ID：relying party ID 是 Starry ID 網址的主機名稱�
 - `GET /v1/me/passkeys`、`DELETE /v1/me/passkeys/{id}`。
 
 **平台設定（業主在 Admin Lite「編輯登記資料」填，Starry ID 自動產生驗證檔）**
-- iOS：填 Apple Team ID；App 的 `app.json` 加 `ios.associatedDomains: ["webcredentials:id.starry.phd"]`。驗證檔：`/.well-known/apple-app-site-association`。
+- iOS：Apple Team ID 由 Starry ID 中央設定（Worker 變數 `STARRY_APPLE_TEAM_ID`），所有 App 共用，App 端與業主都不必填；App 的 `app.json` 加 `ios.associatedDomains: ["webcredentials:id.starry.phd"]`。驗證檔：`/.well-known/apple-app-site-association`。
 - Android：填簽章憑證 SHA-256 指紋（上架後從 Play Console「應用程式簽署」複製；本機測試用 debug 憑證指紋）。驗證檔：`/.well-known/assetlinks.json`。
 - 網頁：App 的網頁來源已列在 `/.well-known/webauthn`（WebAuthn 相關來源），Chrome 128、Safari 18 以上可直接使用；先判斷 `window.PublicKeyCredential`，不支援時只顯示 Apple／Google 登入。
-- 沒填 Team ID／指紋之前，iOS／Android 的 Passkey 會失敗（網頁版不受影響）；請把這件事列入回報給業主的清單。
+- Android 指紋是每款 App 各自登記的（上架版用 Play Console「應用程式簽署」的 App signing key，不是 Upload key；EAS 內部測試或本機 APK 簽章不同，要另外登記一組）。指紋未登記之前 Android 的 Passkey 會失敗（Apple／Google 登入與網頁版不受影響）；請把這件事列入回報給業主的清單，不要宣稱 Android Passkey 已可用。
 
 **錯誤處理**：使用者取消不要顯示錯誤；`InvalidStateError` 表示這支裝置已經有這把 Passkey；找不到 Passkey 時引導改用 Apple 或 Google 登入。
 

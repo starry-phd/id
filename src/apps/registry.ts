@@ -174,6 +174,11 @@ export function setDynamicApps(apps: ReadonlyMap<string, AppEntry>): void {
   dynamicApps = apps;
 }
 
+/** The registered App as last loaded successfully (used to keep an App alive when its row turns out to be broken). */
+export function registeredApp(appId: string): AppEntry | undefined {
+  return dynamicApps.get(appId);
+}
+
 export function isStaticApp(appId: string): boolean {
   return staticApps.has(appId);
 }
