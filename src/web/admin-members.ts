@@ -14,6 +14,7 @@ import { deleteMemberNow } from '../identity/lifecycle';
 import { findMemberSummary, searchMembers } from '../identity/member-search';
 import { hasRole, listAppStaff, restoreMember, revokeAllSessions, setAppStaff, setStaffRole, suspendMember, type StaffActor } from '../identity/roles';
 import { auditStatement } from '../lib/audit';
+import { bulkPush } from '../notify/bulk';
 import { mailSettings, notifyStaffChange } from '../notify/email';
 import { CATEGORY_LABELS } from '../support/tickets';
 import { formatTime, readForm, type WebContext } from './layout';
@@ -166,10 +167,16 @@ ${result.members.map(
 )}
 </tbody></table>
 ${result.members.length > 0 && actor.role !== 'support'
-  ? html`<div class="card"><p><strong>批次操作</strong>（先勾選上面的會員，一次最多 ${MAX_BULK} 位；自己、Owner 與管理人員不會被處理）</p>
-<label for="bulk-action">動作</label><select id="bulk-action" name="action"><option value="battery">調整本月 Battery（要填顆數）</option><option value="suspend">停權</option><option value="signout">強制登出所有裝置</option></select>
+  ? html`<div class="card"><p><strong>批次操作</strong>（先勾選上面的會員，一次最多 ${MAX_BULK} 位；Battery、停權、登出不會處理自己、Owner 與管理人員）</p>
+<label for="bulk-action">動作</label><select id="bulk-action" name="action"><option value="battery">調整本月 Battery（要填顆數）</option><option value="suspend">停權</option><option value="signout">強制登出所有裝置</option><option value="notify">發送推播通知（下方填 App、標題、內容）</option></select>
 <label for="bulk-delta">顆數（正數增加、負數減少；只有調整 Battery 才需要）</label><input id="bulk-delta" name="delta" type="number" step="1">
-<label for="bulk-reason">原因（必填，最多 200 字）</label><input id="bulk-reason" name="reason" maxlength="200"><button type="submit">執行</button>
+<label for="bulk-reason">原因（必填，最多 200 字；發推播時不用填）</label><input id="bulk-reason" name="reason" maxlength="200">
+<details><summary>發送推播通知（選「發送推播通知」才需要）</summary>
+<label for="notify-app">App（只會送到會員在這款 App 的裝置）</label><select id="notify-app" name="notify_app"><option value="">請選擇</option>${[...appRegistry.values()].filter((a) => a.app_id !== WEB_APP_ID).map((a) => html`<option value="${a.app_id}">${a.name}</option>`)}</select>
+<label for="notify-title">標題（最多 100 字）</label><input id="notify-title" name="notify_title" maxlength="100">
+<label for="notify-body">內容（最多 300 字，不要放個資）</label><textarea id="notify-body" name="notify_body" maxlength="300" rows="3"></textarea>
+<p class="muted">只送給正常狀態、已開啟「公告」類別且有登入該 App 的會員；其他人會略過並在結果中列出人數。</p></details>
+<button type="submit">執行</button>
 <p class="muted">批次調整 Battery 不會寄通知信給會員。</p></div>`
   : ''}
 </form>
@@ -338,7 +345,20 @@ adminApp.post('/members/bulk', async (c) => {
   const back = (message: string) => c.html(adminPage(c, '批次操作結果', html`<h1>批次操作結果</h1><div class="banner">${message}</div><p><a href="/admin/members">回到會員清單</a></p>`));
   if (ids.length === 0) return back('請先勾選至少一位會員。');
   if (ids.length > MAX_BULK) return back(`一次最多 ${MAX_BULK} 位，請分批處理。`);
-  if (!['battery', 'suspend', 'signout'].includes(action)) return back('請選擇動作。');
+  if (!['battery', 'suspend', 'signout', 'notify'].includes(action)) return back('請選擇動作。');
+  if (action === 'notify') {
+    const appId = typeof body.notify_app === 'string' ? body.notify_app : '';
+    const title = typeof body.notify_title === 'string' ? body.notify_title.trim() : '';
+    const text = typeof body.notify_body === 'string' ? body.notify_body.trim() : '';
+    if (!getApp(appId) || appId === WEB_APP_ID) return back('請選擇要發送的 App。');
+    if (title.length < 1 || title.length > 100) return back('標題需為 1～100 字。');
+    if (text.length < 1 || text.length > 300) return back('內容需為 1～300 字。');
+    const summary = await bulkPush(c.env.DB_IDENTITY, (input, init) => fetch(input, init), ids, { appId, title, body: text }, { accessToken: c.env.EXPO_PUSH_ACCESS_TOKEN });
+    await auditStatement(c.env.DB_IDENTITY, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.bulk_notify', targetType: 'app', targetId: appId, appId, result: summary.failed > 0 && summary.reached === 0 ? 'error' : 'success', requestId: actor.requestId, retention: 'general' }, Date.now()).run();
+    const parts = [`已送達 ${summary.reached} 位（${summary.devices} 台裝置）`, `略過：已關閉公告 ${summary.optedOut} 位、沒有這款 App 的裝置 ${summary.noDevices} 位、非正常狀態 ${summary.inactive} 位`];
+    if (summary.failed > 0) parts.push(`發送失敗 ${summary.failed} 位（推播服務錯誤，可稍後重試）`);
+    return back(`${parts.join('；')}。`);
+  }
   if (action !== 'signout' && (reason.length < 1 || reason.length > 200)) return back('請填寫 1～200 字的原因。');
   if (action === 'battery' && (!Number.isInteger(delta) || delta === 0)) return back('請填寫非 0 的整數顆數。');
   const now = Date.now();
