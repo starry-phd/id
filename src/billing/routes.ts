@@ -4,7 +4,8 @@ import { getApp } from '../apps/registry';
 import { background, fail } from '../auth/routes';
 import { WEB_APP_ID } from '../identity/web-sessions';
 import { quantumHook } from '../battery/purchases';
-import { parseWebhook, perAppSecrets, processPendingEvents, recordEvent, webhookAuthorized } from './revenuecat';
+import { loadRevenueCatSecrets } from './app-secrets';
+import { parseWebhook, processPendingEvents, recordEvent, webhookAuthorized } from './revenuecat';
 
 export const billingRoutes = apiRouter();
 
@@ -28,7 +29,7 @@ const webhookRoute = createRoute({
 billingRoutes.openapi(webhookRoute, async (c) => {
   const { appId } = c.req.valid('param');
   if (appId === WEB_APP_ID || !getApp(appId)) return fail(c, 404, 'APP_NOT_FOUND', 'Unknown app');
-  const secret = perAppSecrets(c.env.REVENUECAT_WEBHOOK_AUTH)[appId];
+  const secret = (await loadRevenueCatSecrets(c.env)).webhook[appId];
   if (!secret) return fail(c, 503, 'SERVICE_UNAVAILABLE', 'Webhook not configured for this app');
   if (!webhookAuthorized(c.req.header('authorization'), secret)) return fail(c, 401, 'UNAUTHORIZED', 'Invalid webhook authorization');
   const parsed = parseWebhook(c.req.valid('json'));

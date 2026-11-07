@@ -4,6 +4,8 @@ import { definitionFromForm, listRegisteredAppIds, saveRegisteredApp, type AppFo
 import { cleanupBacklog } from '../identity/cleanup-jobs';
 import { getNotices, saveNotices } from '../lib/notices';
 import { readHeartbeats } from '../lib/heartbeat';
+import { randomToken } from '../lib/crypto';
+import { revenueCatStatus, saveRevenueCatSecret } from '../billing/app-secrets';
 import { buildHandoff } from '../apps/handoff';
 import { adjustQuantum, listQuantum, listQuantumProducts, removeQuantumProduct, saveQuantumProduct } from '../battery/quantum';
 import { appRegistry, getApp, type AppEntry, type AppStatus } from '../apps/registry';
@@ -740,6 +742,7 @@ ${serviceKey
   : html`<p class="muted">${hasKey ? '已開通；金鑰只在建立或重新產生時顯示一次。' : '尚未開通。'}</p><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${regenerate}</div>`}
 </div>
 <p><a href="/admin/apps/${app.app_id}/quantum">量子電池（內購加量包）設定</a></p>
+<p><a href="/admin/apps/${app.app_id}/revenuecat">RevenueCat 設定（Webhook 與 API 金鑰）</a></p>
 <p><a href="/admin/apps">回到 App 清單</a></p>`,
       html`<script nonce="${nonce}">
 document.querySelectorAll('[data-copy]').forEach(function (button) {
@@ -847,6 +850,82 @@ adminApp.post('/members/:id/quantum', async (c) => {
   if (!result.ok) return memberPage(c, actor, userId, result.reason === 'too_low' ? '調整後的量子電池不能低於 0。' : '請填寫非 0 的整數與 1～200 字的原因。');
   await auditStatement(c.env.DB_IDENTITY, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.quantum_adjusted', targetType: 'user', targetId: userId, appId, result: 'success', requestId: actor.requestId, retention: 'security' }, now).run();
   return memberPage(c, actor, userId, `已調整，${appId} 的量子電池現為 ${result.balance.balance} 顆。`);
+});
+
+const RC_STATE: Record<string, string> = { admin: '已在這裡設定', worker: '已由 Cloudflare Secret 設定', none: '尚未設定' };
+
+async function revenueCatPage(c: WebContext, actor: StaffActor, app: AppEntry, message?: string, shownSecret?: string): Promise<Response> {
+  const owner = actor.role === 'owner';
+  const status = await revenueCatStatus(c.env, app.app_id);
+  const url = `${new URL(c.req.url).origin}/v1/billing/revenuecat/${app.app_id}`;
+  return c.html(
+    adminPage(
+      c,
+      'RevenueCat 設定',
+      html`<h1>${app.name} 的 RevenueCat</h1>
+${message ? html`<div class="banner">${message}</div>` : ''}
+${shownSecret ? html`<div class="card"><p><strong>Webhook 驗證碼（只會顯示這一次）</strong></p><p>請複製後貼到 RevenueCat → Integrations → Webhooks 的「Authorization header value」，格式為：</p><input readonly value="Bearer ${shownSecret}" style="width:100%;font-family:monospace"></div>` : ''}
+<div class="card"><p><strong>Webhook 網址：</strong><br><code>${url}</code></p>
+<p>Webhook 驗證碼：${RC_STATE[status.webhook]} ｜ RevenueCat Secret API 金鑰：${RC_STATE[status.api]}</p></div>
+${owner
+  ? html`<div class="card"><form method="post" action="/admin/apps/${app.app_id}/revenuecat/webhook"><button type="submit">${status.webhook === 'none' ? '產生 Webhook 驗證碼' : '重新產生 Webhook 驗證碼（舊的立即失效）'}</button></form>
+<form method="post" action="/admin/apps/${app.app_id}/revenuecat/api-key"><label for="api">RevenueCat Secret API 金鑰（用於刪除帳號時清除 RevenueCat 資料與每日對帳；儲存後不會再顯示）</label><input id="api" name="api_key" type="password" autocomplete="off" maxlength="300" placeholder="sk_..."><button type="submit">儲存金鑰</button></form>
+<form method="post" action="/admin/apps/${app.app_id}/revenuecat/clear"><button type="submit" class="secondary">清除這裡設定的兩個值</button></form></div>`
+  : html`<p class="muted">只有 Owner 可以修改。</p>`}
+<p class="muted">金鑰以加密方式保存，不會出現在紀錄或匯出。請勿把金鑰貼給 AI 或任何人。</p>
+<p><a href="/admin/apps/${app.app_id}/handoff">回到串接指令</a></p>`,
+    ),
+  );
+}
+
+function rcApp(c: WebContext): AppEntry | null {
+  const app = getApp(c.req.param('id') ?? '');
+  return app && app.app_id !== WEB_APP_ID ? app : null;
+}
+
+adminApp.get('/apps/:id/revenuecat', async (c) => {
+  const actor = await staff(c, 'admin');
+  if (actor instanceof Response) return actor;
+  const app = rcApp(c);
+  return app ? revenueCatPage(c, actor, app) : appsPage(c, '找不到此 App。');
+});
+
+async function rcAudit(c: WebContext, actor: StaffActor, appId: string, action: string): Promise<void> {
+  await auditStatement(c.env.DB_IDENTITY, { actorType: 'admin', actorUserId: actor.userId, action, targetType: 'app', targetId: appId, appId, result: 'success', requestId: actor.requestId, retention: 'security' }, Date.now()).run();
+}
+
+adminApp.post('/apps/:id/revenuecat/webhook', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const app = rcApp(c);
+  if (!app) return appsPage(c, '找不到此 App。');
+  const secret = randomToken(32);
+  if (!(await saveRevenueCatSecret(c.env, { appId: app.app_id, kind: 'webhook', value: secret, actorUserId: actor.userId }, Date.now()))) return revenueCatPage(c, actor, app, '無法加密保存（缺少 DATA_ENCRYPTION_KEY），請先在 Cloudflare 設定。');
+  await rcAudit(c, actor, app.app_id, 'admin.revenuecat_webhook_set');
+  return revenueCatPage(c, actor, app, '已產生新的 Webhook 驗證碼。', secret);
+});
+
+adminApp.post('/apps/:id/revenuecat/api-key', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const app = rcApp(c);
+  if (!app) return appsPage(c, '找不到此 App。');
+  const value = ((await readForm(c)).api_key ?? '').trim();
+  if (value.length < 8 || value.length > 300) return revenueCatPage(c, actor, app, '請貼上完整的 RevenueCat Secret API 金鑰。');
+  if (!(await saveRevenueCatSecret(c.env, { appId: app.app_id, kind: 'api', value, actorUserId: actor.userId }, Date.now()))) return revenueCatPage(c, actor, app, '無法加密保存（缺少 DATA_ENCRYPTION_KEY），請先在 Cloudflare 設定。');
+  await rcAudit(c, actor, app.app_id, 'admin.revenuecat_api_key_set');
+  return revenueCatPage(c, actor, app, '已儲存 API 金鑰。');
+});
+
+adminApp.post('/apps/:id/revenuecat/clear', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const app = rcApp(c);
+  if (!app) return appsPage(c, '找不到此 App。');
+  await saveRevenueCatSecret(c.env, { appId: app.app_id, kind: 'webhook', value: null, actorUserId: actor.userId }, Date.now());
+  await saveRevenueCatSecret(c.env, { appId: app.app_id, kind: 'api', value: null, actorUserId: actor.userId }, Date.now());
+  await rcAudit(c, actor, app.app_id, 'admin.revenuecat_cleared');
+  return revenueCatPage(c, actor, app, '已清除。');
 });
 
 adminApp.post('/apps/:id/battery-key', async (c) => {

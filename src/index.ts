@@ -4,7 +4,8 @@ import { appRegistry } from './apps/registry';
 import { batteryRetention, forgetBatteryMembers, releaseExpired } from './battery/battery';
 import { reconcileWithRevenueCat } from './billing/reconcile';
 import { quantumHook } from './battery/purchases';
-import { forgetMembers, perAppSecrets, processPendingEvents, processRevenueCatDeletions } from './billing/revenuecat';
+import { loadRevenueCatSecrets } from './billing/app-secrets';
+import { forgetMembers, processPendingEvents, processRevenueCatDeletions } from './billing/revenuecat';
 import type { Env } from './env';
 import { reportError } from './lib/error-report';
 import { markFinished, markStarted, type JobName } from './lib/heartbeat';
@@ -60,7 +61,7 @@ async function minutely(env: Env, now: number): Promise<void> {
 /** Daily: deletion purge, revocations, retention (S-ID-06, S-PLT-06), billing repair and reconciliation (S-BIL-04). */
 async function daily(env: Env, now: number): Promise<void> {
   const fetcher = (url: string, init?: RequestInit) => fetch(url, init);
-  const apiKeys = perAppSecrets(env.REVENUECAT_API_KEYS);
+  const apiKeys = (await loadRevenueCatSecrets(env)).api;
   const report: Record<string, unknown> = {};
   await steps('daily', env, now, [
     ['apps', () => refreshDynamicApps(env.DB_IDENTITY, now)],
