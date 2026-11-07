@@ -6,6 +6,7 @@ import { fail, resolveApp } from '../auth/routes';
 import { perAppSecrets } from '../billing/revenuecat';
 import type { AppBindings } from '../env';
 import { errorBody } from '../lib/errors';
+import { getNotices } from '../lib/notices';
 import { getQuantum } from './quantum';
 import { anyStoredKeys, appForServiceKey, appForStoredKey, finish, getBalance, IDEMPOTENCY_KEY, recentActivity, reserve, type Balance, type Reservation } from './battery';
 
@@ -189,6 +190,7 @@ batteryRoutes.openapi(reserveRoute, async (c) => {
   if (app === 'unknown' || app === 'unavailable') return fail(c, 403, 'APP_UNAVAILABLE', 'This app is not available');
   const body = c.req.valid('json');
   if (!IDEMPOTENCY_KEY.test(body.idempotency_key)) return fail(c, 400, 'BAD_REQUEST', 'idempotency_key: 8-128 of A-Z a-z 0-9 . _ : -');
+  if ((await getNotices(c.env.DB_IDENTITY)).maintenance) return fail(c, 503, 'SERVICE_UNAVAILABLE', 'Starry is in maintenance; new Battery tasks are paused. Running tasks can still be committed or released.');
   const result = await reserve(c.env.DB_BATTERY, { userId: auth.userId, appId: caller, taskType: body.task_type, taskLabel: body.task_label ?? null, units: body.units, idempotencyKey: body.idempotency_key }, Date.now());
   if (result.ok && result.replayed) return c.json(reservationJson(result.reservation, true), 200);
   if (result.ok) return c.json(reservationJson(result.reservation), 201);

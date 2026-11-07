@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { html, raw } from 'hono/html';
 import { definitionFromForm, listRegisteredAppIds, saveRegisteredApp, type AppForm } from '../apps/dynamic';
 import { cleanupBacklog } from '../identity/cleanup-jobs';
+import { getNotices, saveNotices } from '../lib/notices';
 import { readHeartbeats } from '../lib/heartbeat';
 import { buildHandoff } from '../apps/handoff';
 import { adjustQuantum, listQuantum, listQuantumProducts, removeQuantumProduct, saveQuantumProduct } from '../battery/quantum';
@@ -84,7 +85,7 @@ adminApp.get('/', async (c) => {
     adminPage(
       c,
       'Admin Lite',
-      html`<h1>Admin Lite</h1><p class="muted">你的角色：${ROLE_LABELS[actor.role]}</p>
+      html`<h1>Admin Lite</h1><p class="muted">你的角色：${ROLE_LABELS[actor.role]} ｜ <a href="/admin/notices">公告與維護模式</a></p>
 ${problems > 0 ? html`<div class="banner danger">有 ${problems} 項系統狀況需要注意，請看下方「系統狀態」。</div>` : ''}
 <div class="card"><p>會員總數：<strong>${count(members)}</strong>（近 24 小時新增 <strong>${count(today)}</strong>）</p><p>未結客服單：<strong>${count(open)}</strong></p></div>
 <h2>近 24 小時各 App</h2>
@@ -418,6 +419,43 @@ adminApp.post('/battery/apps/:id/cap', async (c) => {
   if (!(await setAppCap(c.env.DB_BATTERY, appId, value === 0 ? null : value, actor.userId, now))) return batteryPage(c, actor, '上限請填 0（不限）或 1～1000000000 的整數。');
   await auditStatement(c.env.DB_IDENTITY, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.battery_app_cap_set', targetType: 'app', targetId: appId, appId, result: 'success', requestId: actor.requestId, retention: 'security' }, now).run();
   return batteryPage(c, actor, value === 0 ? '已取消上限。' : '已設定每月上限。');
+});
+
+async function noticesPage(c: WebContext, actor: StaffActor, message?: string): Promise<Response> {
+  const n = await getNotices(c.env.DB_IDENTITY);
+  const owner = actor.role === 'owner';
+  return c.html(
+    adminPage(
+      c,
+      '公告與維護模式',
+      html`<h1>公告與維護模式</h1>
+${message ? html`<div class="banner">${message}</div>` : ''}
+${n.maintenance ? html`<div class="banner danger">目前為維護模式：新的 Battery 任務會被暫停（進行中的任務仍可結算），登入與帳號功能不受影響。</div>` : ''}
+<div class="card">${owner
+  ? html`<form method="post" action="/admin/notices"><label for="a">公告（顯示在會員中心，最多 500 字，留空＝不顯示）</label><textarea id="a" name="announcement" maxlength="500" rows="3">${n.announcement}</textarea>
+<label><input type="checkbox" name="maintenance" value="1" ${n.maintenance ? 'checked' : ''}> 開啟維護模式（暫停新的 Battery 任務）</label>
+<label for="m">維護說明（最多 500 字）</label><textarea id="m" name="maintenance_message" maxlength="500" rows="3">${n.maintenanceMessage}</textarea><button type="submit">儲存</button></form>`
+  : html`<p>公告：${n.announcement || '（無）'}</p><p>維護模式：${n.maintenance ? '開啟' : '關閉'}</p><p class="muted">只有 Owner 可以修改。</p>`}</div>
+<p><a href="/admin">回到首頁</a></p>`,
+    ),
+  );
+}
+
+adminApp.get('/notices', async (c) => {
+  const actor = await staff(c, 'support');
+  if (actor instanceof Response) return actor;
+  return noticesPage(c, actor);
+});
+
+adminApp.post('/notices', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const form = await readForm(c);
+  const now = Date.now();
+  const ok = await saveNotices(c.env.DB_IDENTITY, { announcement: form.announcement ?? '', maintenance: form.maintenance === '1', maintenanceMessage: form.maintenance_message ?? '' }, actor.userId, now);
+  if (!ok) return noticesPage(c, actor, '公告與說明各最多 500 字。');
+  await auditStatement(c.env.DB_IDENTITY, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.notices_saved', targetType: 'system', targetId: 'notices', result: 'success', requestId: actor.requestId, retention: 'security' }, now).run();
+  return noticesPage(c, actor, '已儲存。');
 });
 
 adminApp.post('/battery/policy', async (c) => {

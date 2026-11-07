@@ -4,6 +4,7 @@ import { html, raw } from 'hono/html';
 import { audiencesFor, getApp, type AppEntry } from '../apps/registry';
 import { getBalance, recentActivity } from '../battery/battery';
 import { listQuantum } from '../battery/quantum';
+import { getNotices } from '../lib/notices';
 import { withEffectiveStatus } from '../apps/status';
 import type { Provider } from '../auth/provider-keys';
 import { background, readProviderRequest, verifyProviderRequest } from '../auth/routes';
@@ -295,7 +296,10 @@ accountApp.get('/', async (c) => {
   const [battery, batteryActivity, quantum] = pending
     ? [null, null, []]
     : await Promise.all([getBalance(c.env.DB_BATTERY, web.userId, now), recentActivity(c.env.DB_BATTERY, web.userId, now, { limit: 10 }), listQuantum(c.env.DB_BATTERY, web.userId)]);
+  const notices = await getNotices(db);
   const body = html`<h1>${p.display_name ?? '我的帳號'}</h1>
+${notices.maintenance ? html`<div class="banner danger">系統維護中：${notices.maintenanceMessage || 'AI 功能暫時停用，帳號功能可正常使用。'}</div>` : ''}
+${notices.announcement ? html`<div class="banner">${notices.announcement}</div>` : ''}
 ${notice ? html`<div class="banner">${notice}</div>` : ''}
 ${pending
   ? html`<div class="banner danger"><strong>帳號將於 ${formatTime((account.deletionRequestedAt ?? 0) + DELETION_GRACE_MS)} 永久刪除。</strong><br>在此之前可以撤回，撤回後帳號立即恢復。
