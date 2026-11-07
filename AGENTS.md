@@ -117,4 +117,4 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 - `src/web/sso-relay.ts`：`GET /auth/sso/adopt|check|logout`（頂層導向；回傳網址限該 App 登記的網頁版來源）。cookie `__Host-starry_sso`（HttpOnly、Secure、Lax、30 天）存裝置共用 token。check 回傳 `#sso_code=&sso_user=&state=` 或 `#sso_none=1`。
 - `src/auth/sso.ts`：`POST /v1/auth/sso/web-code`（把 sso token 密封 2 分鐘供 adopt 使用）、`POST /v1/auth/sso/web-exchange`（code 綁定 App 與 nonce 雜湊，nonce 單次使用）。共用 `signInFromSso`。
 - SDK：`shareWebSignIn`、`syncWebSignIn`、`completeWebSsoCheck`、`signOutWebEverywhere`。限制：只在同一瀏覽器的網頁版之間連動，下一次載入頁面才同步。
-- 串接指令版本 `2026-11-07.13`。
+- 串接指令版本 `2026-11-07.13`（.14 起固定 iOS Keychain 群組 $(AppIdentifierPrefix)phd.starry.shared，Android 共用改為選做）。

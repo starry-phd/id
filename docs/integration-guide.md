@@ -230,7 +230,7 @@ Passkey 屬於 Starry ID：relying party ID 是 Starry ID 網址的主機名稱�
 
 所有繁星 App 的登入狀態共用：任一款 App 登入，同一支手機上的其他繁星 App 自動登入；登出或切換會員，所有 App 跟著變。
 
-- 各 App 建立 `StarryClient` 時傳入 `sharedStorage`（所有繁星 App 共用的儲存：iOS 用同一個 Keychain Access Group，Android 用同簽章的共用 Account 或 ContentProvider）。App 啟動與回到前景呼叫 `syncDeviceSignIn()`（`restore()` 已包含）。登出鍵請寫「登出所有繁星 App」。
+- 各 App 建立 `StarryClient` 時傳入 `sharedStorage`（所有繁星 App 共用的儲存）。iPhone（必做）：所有繁星 App 用同一個 Keychain 群組 `$(AppIdentifierPrefix)phd.starry.shared`，鍵名 `starry.sso`；不需在 Apple 後台另設，同一個開發者帳號即可。Android 為選做，之後再決定。App 啟動與回到前景呼叫 `syncDeviceSignIn()`（`restore()` 已包含）。登出鍵請寫「登出所有繁星 App」。
 - 登入後 `POST /v1/auth/sso/start`（Bearer；可帶 `previous_sso_token`）→ `{sso_token}`，存進共用儲存。換了會員，舊會員在所有 App 的登入會立刻失效。
 - 其他 App：`POST /v1/auth/sso/exchange {app_id, sso_token}` → 與一般登入相同的回應（含 Refresh Token）。
 - `POST /v1/auth/sso/status {sso_token}` → `{active, user_id}`，用來發現在別的 App 登出或換人。
