@@ -38,7 +38,7 @@ export function sniffImage(bytes: Uint8Array): AvatarType | null {
 }
 
 // Folder is the internal member ID (UUID, never changes); older uploads may sit under a member number.
-const KEY = /^avatars\/([0-9a-f-]{36}|\d{1,4}-\d{7}|[A-Z]{2}\d{7})\/[0-9a-f-]{36}\.(webp|jpg|png)$/;
+const KEY = /^avatars\/([0-9a-f-]{36}|\d{1,4}-\d{7}|[A-Z]{2}\d{7,10})\/[0-9a-f-]{36}\.(webp|jpg|png)$/;
 
 export function isAvatarKey(key: string): boolean {
   return KEY.test(key);
@@ -144,20 +144,43 @@ export async function importProviderAvatar(
   input: { userId: string; url: string; appId: string | null; requestId: string | null; replace?: boolean },
   now: number,
 ): Promise<boolean> {
-  if (!isProviderPhotoUrl(input.url)) return false;
+  return (await importProviderAvatarDetailed(db, store, fetchFn, input, now)) === null;
+}
+
+/** Same as importProviderAvatar, but returns null on success or a short reason code (shown to the member and logged). */
+export async function importProviderAvatarDetailed(
+  db: D1Database,
+  store: ObjectStore,
+  fetchFn: FetchLike,
+  input: { userId: string; url: string; appId: string | null; requestId: string | null; replace?: boolean },
+  now: number,
+): Promise<string | null> {
+  const fail = (reason: string): string => {
+    console.error(JSON.stringify({ level: 'warn', event: 'avatar.import_failed', reason, request_id: input.requestId }));
+    return reason;
+  };
+  if (!isProviderPhotoUrl(input.url)) return fail('bad_url');
   try {
     const current = await db.prepare('SELECT avatar_key FROM profiles WHERE user_id = ?').bind(input.userId).first<{ avatar_key: string | null }>();
-    if (!current || (current.avatar_key && !input.replace)) return false;
+    if (!current) return fail('no_profile');
+    if (current.avatar_key && !input.replace) return fail('has_avatar');
     // Google's photo URLs end in a size option; ask for a 256-pixel square.
-    const url = input.url.replace(/=s\d+(-c)?$/, '') + '=s256-c';
-    const response = await fetchFn(url, { signal: AbortSignal.timeout(5000), redirect: 'error' });
-    if (!response.ok) return false;
+    let url = input.url.replace(/=s\d+(-c)?$/, '') + '=s256-c';
+    let response: Response | null = null;
+    for (let hop = 0; hop < 3; hop++) {
+      response = await fetchFn(url, { signal: AbortSignal.timeout(8000), redirect: 'manual', headers: { accept: 'image/jpeg,image/png,image/webp,image/*;q=0.8' } });
+      const next = response.status >= 300 && response.status < 400 ? response.headers.get('location') : null;
+      if (!next) break;
+      if (!isProviderPhotoUrl(next)) return fail('redirect_host');
+      url = next;
+    }
+    if (!response || !response.ok) return fail(`http_${response?.status ?? 0}`);
     const bytes = await readLimited(response);
-    if (!bytes) return false;
+    if (!bytes) return fail('empty_or_large');
     const result = await setAvatar(db, store, { userId: input.userId, bytes, appId: input.appId, requestId: input.requestId }, now);
-    return result.ok;
-  } catch {
-    return false;
+    return result.ok ? null : fail(`save_${result.reason}`);
+  } catch (error) {
+    return fail(`error_${error instanceof Error ? error.name : 'unknown'}`);
   }
 }
 

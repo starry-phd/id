@@ -30,16 +30,24 @@ export function normalizeCountry(country: string | null | undefined): string | n
   return /^[A-Z]{2}$/.test(code) && code in CALLING_CODES ? code : null;
 }
 
-export const MEMBER_NO = /^[A-Z]{2}\d{7}$/;
+export const MEMBER_NO = /^[A-Z]{2}\d{7,10}$/;
 
-/** Seven uniformly random digits (rejection sampling, no modulo bias). */
-export function randomSevenDigits(): string {
-  const limit = 4_290_000_000; // the largest multiple of 10^7 that fits in 32 bits
+/**
+ * Default random digits (owner decision 2026-11-08): a leading 0 plus (length - 1) uniformly random digits, so
+ * 7 digits by default ("0123456"). When a country's 7-digit space is too crowded, the draw grows to 8, 9, 10 digits.
+ */
+export const MIN_DIGITS = 7;
+export const MAX_DIGITS = 10;
+
+export function randomDigits(length: number): string {
+  const k = Math.max(1, Math.min(length, MAX_DIGITS) - 1);
+  const span = 10 ** k;
+  const limit = Math.floor(2 ** 32 / span) * span; // rejection sampling: no modulo bias
   const buffer = new Uint32Array(1);
   for (;;) {
     crypto.getRandomValues(buffer);
     const value = buffer[0] ?? limit;
-    if (value < limit) return String(value % 10_000_000).padStart(7, '0');
+    if (value < limit) return '0' + String(value % span).padStart(k, '0');
   }
 }
 
@@ -85,18 +93,32 @@ export function countryOptions(): CountryOption[] {
 export async function issueMemberNumber(db: D1Database, userId: string, country: string | null | undefined, now: number): Promise<string | null> {
   const iso = normalizeCountry(country);
   const prefix = iso ?? DEFAULT_COUNTRY;
-  for (let attempt = 0; attempt < 8; attempt++) {
-    const candidate = `${prefix}${randomSevenDigits()}`;
-    try {
-      const result = await db
-        .prepare('UPDATE users SET member_no = ?, registration_country = COALESCE(registration_country, ?), updated_at = ? WHERE user_id = ? AND member_no IS NULL')
-        .bind(candidate, iso, now, userId)
-        .run();
-      if (result.meta.changes === 1) return candidate;
-      const existing = await db.prepare('SELECT member_no FROM users WHERE user_id = ?').bind(userId).first<{ member_no: string | null }>();
-      if (existing?.member_no) return existing.member_no;
-    } catch {
-      // unique index collision with another member: draw again
+  for (let length = MIN_DIGITS; length <= MAX_DIGITS; length++) {
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const candidate = `${prefix}${randomDigits(length)}`;
+      try {
+        const result = await db
+          .prepare('UPDATE users SET member_no = ?, registration_country = COALESCE(registration_country, ?), updated_at = ? WHERE user_id = ? AND member_no IS NULL')
+          .bind(candidate, iso, now, userId)
+          .run();
+        if (result.meta.changes === 1) return candidate;
+        const existing = await db.prepare('SELECT member_no FROM users WHERE user_id = ?').bind(userId).first<{ member_no: string | null }>();
+        if (existing?.member_no) return existing.member_no;
+      } catch {
+        // unique index collision with another member: draw again, longer after enough misses
+      }
+    }
+  }
+  return null;
+}
+
+/** A free random number under this country: 7 digits starting with 0, growing longer when that space is crowded. */
+export async function drawFreeMemberNo(db: D1Database, iso: string, exceptUserId: string): Promise<string | null> {
+  if (!(iso in CALLING_CODES)) return null;
+  for (let length = MIN_DIGITS; length <= MAX_DIGITS; length++) {
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const candidate = `${iso}${randomDigits(length)}`;
+      if (await isMemberNoFree(db, candidate, exceptUserId)) return candidate;
     }
   }
   return null;

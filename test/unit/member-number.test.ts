@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { findOrCreateMember } from '../../src/identity/members';
 import { deleteMemberNow } from '../../src/identity/lifecycle';
-import { assignMissingMemberNumbers, callingCodeOf, changeMemberNo, countryOptions, issueMemberNumber, MEMBER_NO, MEMBER_NO_CHANGES_PER_DAY, normalizeCountry, normalizeMemberNo, randomSevenDigits } from '../../src/identity/member-number';
+import { assignMissingMemberNumbers, callingCodeOf, drawFreeMemberNo, changeMemberNo, countryOptions, issueMemberNumber, MEMBER_NO, MEMBER_NO_CHANGES_PER_DAY, normalizeCountry, normalizeMemberNo, randomDigits } from '../../src/identity/member-number';
 import { applyMigration, migratedDb } from '../support/sqlite-d1.mjs';
 
 const NOW = Date.UTC(2026, 10, 7, 12, 0, 0);
@@ -28,8 +28,12 @@ describe('format and country list', () => {
     const tail = list.slice(list.findIndex((x) => x.iso === 'FM') + 2);
     for (let i = 1; i < tail.length; i++) assert.ok(Number(tail[i - 1]?.callingCode) <= Number(tail[i]?.callingCode));
   });
-  test('random digits are always seven digits', () => {
-    for (let i = 0; i < 200; i++) assert.match(randomSevenDigits(), /^\d{7}$/);
+  test('random digits start with 0, are 7 long by default and grow when asked', () => {
+    for (let i = 0; i < 200; i++) assert.match(randomDigits(7), /^0\d{6}$/);
+    assert.match(randomDigits(8), /^0\d{7}$/);
+    assert.match(randomDigits(10), /^0\d{9}$/);
+    assert.equal(normalizeMemberNo('TW01234567'), 'TW01234567');
+    assert.equal(normalizeMemberNo('TW012345678901'), null);
   });
 });
 
@@ -39,9 +43,9 @@ describe('issuing numbers', () => {
     const jp = await findOrCreateMember(asD1(db), identity('a'), { appId: 'web', requestId: null, country: 'JP' }, NOW);
     const xx = await findOrCreateMember(asD1(db), identity('a2'), { appId: 'web', requestId: null, country: 'XX' }, NOW);
     const get = async (id: string) => (await asD1(db).prepare('SELECT member_no, registration_country FROM users WHERE user_id = ?').bind(id).first()) as { member_no: string; registration_country: string | null };
-    assert.match((await get(jp.member.user_id)).member_no, /^JP\d{7}$/);
+    assert.match((await get(jp.member.user_id)).member_no, /^JP0\d{6}$/);
     assert.equal((await get(jp.member.user_id)).registration_country, 'JP');
-    assert.match((await get(xx.member.user_id)).member_no, /^TW\d{7}$/);
+    assert.match((await get(xx.member.user_id)).member_no, /^TW0\d{6}$/);
   });
   test('an issued number is not replaced by a second draw', async () => {
     const db = migratedDb();
@@ -56,8 +60,20 @@ describe('issuing numbers', () => {
     await asD1(db).prepare('UPDATE users SET member_no = NULL, registration_country = NULL WHERE user_id = ?').bind(member.user_id).run();
     assert.equal(await assignMissingMemberNumbers(asD1(db), NOW), 1);
     const row = await asD1(db).prepare('SELECT member_no FROM users WHERE user_id = ?').bind(member.user_id).first<{ member_no: string }>();
-    assert.match(row?.member_no ?? '', /^TW\d{7}$/);
+    assert.match(row?.member_no ?? '', /^TW0\d{6}$/);
     assert.equal(await assignMissingMemberNumbers(asD1(db), NOW), 0);
+  });
+});
+
+describe('crowded countries get longer numbers', () => {
+  test('when every 7-digit number in a country is taken, the draw grows to 8 digits', async () => {
+    const db = migratedDb();
+    const { member } = await findOrCreateMember(asD1(db), identity('crowd'), { appId: 'web', requestId: null, country: 'TW' }, NOW);
+    const d = asD1(db);
+    // Fill the whole 0xxxxxx space cheaply: a view of all taken numbers is not needed, one SQL insert of 1,000,000 rows is.
+    await d.prepare("WITH RECURSIVE n(i) AS (SELECT 0 UNION ALL SELECT i + 1 FROM n WHERE i < 999999) INSERT INTO users (user_id, member_no, status, created_at, updated_at) SELECT 'f' || i, 'KR0' || substr('000000' || i, -6), 'active', 1, 1 FROM n").run();
+    const no = await drawFreeMemberNo(d, 'KR', member.user_id);
+    assert.match(no ?? '', /^KR0\d{7}$/);
   });
 });
 

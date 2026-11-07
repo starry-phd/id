@@ -3,7 +3,7 @@ import { background } from '../auth/routes';
 import { mailSettings } from '../notify/email';
 import { initialsOf } from '../identity/initials';
 import { avatarBubble } from './member-nav';
-import { googlePhotoOf, importProviderAvatar, MAX_AVATAR_BYTES, r2Store, removeAvatar, setAvatar } from '../identity/avatars';
+import { googlePhotoOf, importProviderAvatarDetailed, MAX_AVATAR_BYTES, r2Store, removeAvatar, setAvatar } from '../identity/avatars';
 import { type ProfileRow } from '../identity/members';
 import { confirmContactEmail, sendContactEmailVerification, type ConfirmResult } from '../identity/contact-email';
 import { randomMotto } from '../identity/mottos';
@@ -11,7 +11,7 @@ import { ageOn, derivedOf, EDITABLE_FIELDS, effectiveVisibility, GRID_LAYOUT, ha
 import { WEB_APP_ID } from '../identity/web-sessions';
 import { formatTime, page, readForm, type Html, type WebContext } from './layout';
 import { LOCALES, accountApp } from './account-lib';
-import { changeMemberNo, countryOptions, isMemberNoFree, MEMBER_NO_CHANGES_PER_DAY, normalizeMemberNo, randomSevenDigits } from '../identity/member-number';
+import { changeMemberNo, countryOptions, drawFreeMemberNo, isMemberNoFree, MEMBER_NO_CHANGES_PER_DAY, normalizeMemberNo } from '../identity/member-number';
 
 // ---- Personal profile (S-ID-08, original checklist 02.01-02.10) ----
 
@@ -165,8 +165,8 @@ ${memberNo ? html`<div class="card" id="mn-card" data-countries="${countries}" d
 <label for="mn-filter" style="font-weight:400">國家／地區（輸入國碼或國名可快速篩選，例如 886）</label>
 <input id="mn-filter" type="search" autocomplete="off" placeholder="輸入國碼，例如 886">
 <select id="mn-iso" size="6" aria-label="國家／地區"></select>
-<label for="mn-digits" style="font-weight:400">7 位數字</label>
-<input id="mn-digits" inputmode="numeric" autocomplete="off" maxlength="7" pattern="[0-9]{7}" value="${memberNo.slice(2)}">
+<label for="mn-digits" style="font-weight:400">數字（7～10 位）</label>
+<input id="mn-digits" inputmode="numeric" autocomplete="off" maxlength="10" pattern="[0-9]{7,10}" value="${memberNo.slice(2)}">
 <p style="margin:8px 0"><strong id="mn-preview">${memberNo}</strong> <span id="mn-state" class="muted" role="status" aria-live="polite"></span></p>
 <button type="submit" id="mn-save">儲存</button><button type="button" class="secondary" id="mn-random">🎲 隨機數字</button><button type="button" class="secondary" id="mn-cancel">取消</button>
 </form></div>` : ''}
@@ -197,7 +197,7 @@ document.documentElement.classList.add('js');
     sel.innerHTML = '';
     shown.forEach(function (x) {
       var o = document.createElement('option');
-      o.value = x.iso; o.textContent = x.iso + ' · ' + x.name + ' · +' + x.code;
+      o.value = x.iso; o.textContent = x.iso + ' · ' + x.name + ' · ' + x.code;
       if (x.iso === keep) o.selected = true;
       sel.appendChild(o);
     });
@@ -208,7 +208,7 @@ document.documentElement.classList.add('js');
     preview.textContent = number();
     window.clearTimeout(timer);
     var no = number();
-    if (!/^[A-Z]{2}[0-9]{7}$/.test(no)) { state.textContent = '請輸入 7 位數字'; save.disabled = true; return; }
+    if (!/^[A-Z]{2}[0-9]{7,10}$/.test(no)) { state.textContent = '請輸入 7～10 位數字'; save.disabled = true; return; }
     if (no === current) { state.textContent = '目前使用中'; save.disabled = true; return; }
     state.textContent = '檢查中…'; save.disabled = true;
     var mine = ++seq;
@@ -227,7 +227,7 @@ document.documentElement.classList.add('js');
   document.getElementById('mn-cancel').addEventListener('click', function () { form.hidden = true; });
   filter.addEventListener('input', function () { fill(sel.value); });
   sel.addEventListener('change', refresh);
-  digits.addEventListener('input', function () { digits.value = digits.value.replace(/[^0-9]/g, '').slice(0, 7); refresh(); });
+  digits.addEventListener('input', function () { digits.value = digits.value.replace(/[^0-9]/g, '').slice(0, 10); refresh(); });
   document.getElementById('mn-random').addEventListener('click', function () {
     fetch('/account/member-no/random?iso=' + encodeURIComponent(sel.value || ''), { headers: { accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (b) {
       if (b.digits) { digits.value = b.digits; refresh(); }
@@ -442,7 +442,7 @@ async function memberNoOf(db: D1Database, userId: string): Promise<string | null
 }
 
 const MEMBER_NO_MESSAGES: Record<string, string> = {
-  invalid: '編號格式不正確：需要 2 個英文字母的國家代碼加 7 位數字。',
+  invalid: '編號格式不正確：需要 2 個英文字母的國家代碼加 7～10 位數字。',
   taken: '這個編號已經有人使用，請換一個。',
   rate_limited: `24 小時內最多修改 ${MEMBER_NO_CHANGES_PER_DAY} 次，請稍後再試。`,
   not_found: '找不到會員，請重新登入。',
@@ -462,12 +462,8 @@ accountApp.get('/member-no/check', async (c) => {
 accountApp.get('/member-no/random', async (c) => {
   const web = c.get('web');
   if (!web || web.status !== 'active') return c.json({ ok: false }, 401);
-  const iso = (c.req.query('iso') ?? '').toUpperCase();
-  for (let attempt = 0; attempt < 6; attempt++) {
-    const digits = randomSevenDigits();
-    const no = normalizeMemberNo(`${iso}${digits}`);
-    if (no && (await isMemberNoFree(c.env.DB_IDENTITY, no, web.userId))) return c.json({ ok: true, digits });
-  }
+  const no = await drawFreeMemberNo(c.env.DB_IDENTITY, (c.req.query('iso') ?? '').toUpperCase(), web.userId);
+  if (no) return c.json({ ok: true, digits: no.slice(2) });
   return c.json({ ok: false }, 404);
 });
 
@@ -500,8 +496,8 @@ accountApp.post('/avatar/google', async (c) => {
   if (!c.env.AVATARS) return c.json({ ok: false, message: '頭像儲存尚未設定。' }, 503);
   const url = await googlePhotoOf(c.env.DB_IDENTITY, web.userId);
   if (!url) return c.json({ ok: false, message: '找不到 Google 頭像。請先綁定 Google 帳號，並重新用 Google 登入一次。' }, 404);
-  const done = await importProviderAvatar(c.env.DB_IDENTITY, r2Store(c.env.AVATARS), (u, init) => fetch(u, init), { userId: web.userId, url, appId: WEB_APP_ID, requestId: c.get('requestId'), replace: true }, Date.now());
-  return done ? c.json({ ok: true }) : c.json({ ok: false, message: '無法取得 Google 頭像，請稍後再試。' }, 502);
+  const reason = await importProviderAvatarDetailed(c.env.DB_IDENTITY, r2Store(c.env.AVATARS), (u, init) => fetch(u, init), { userId: web.userId, url, appId: WEB_APP_ID, requestId: c.get('requestId'), replace: true }, Date.now());
+  return reason === null ? c.json({ ok: true }) : c.json({ ok: false, message: `無法取得 Google 頭像，請稍後再試。（代碼：${reason}）` }, 502);
 });
 
 /** POST /account/avatar/remove */

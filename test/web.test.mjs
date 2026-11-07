@@ -592,7 +592,7 @@ describe('web account center, support form and Admin Lite', () => {
     const member = await webSignIn('codes-member');
     const memberId = await userIdOf('codes-member');
     const preview = await (await worker.call(`/account/redeem/${first}`, get(member))).text();
-    assert.match(preview, /3<\/strong> 顆電池/);
+    assert.match(preview, /3<\/strong> 顆🔋 電池/);
     assert.equal(await worker.battery.prepare('SELECT used FROM invite_codes WHERE code = ?').bind(first).first('used'), 0, 'viewing the link does not redeem');
     const done = await worker.call('/account/redeem', form({ code: first }, member));
     assert.equal(done.headers.get('location'), '/account?invite=ok_battery');
@@ -670,7 +670,7 @@ describe('web account center, support form and Admin Lite', () => {
     const memberCookie = await webSignIn('battery-member');
     const target = await userIdOf('battery-member');
     let account = await (await worker.call('/account', get(memberCookie))).text();
-    assert.match(account, /<b>10<\/b><span>電池/);
+    assert.match(account, /<b>10<\/b><span>🔋 電池/);
 
     const adminCookie = await webSignIn('battery-admin');
     await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(await userIdOf('battery-admin'), Date.now()).run();
@@ -684,7 +684,7 @@ describe('web account center, support form and Admin Lite', () => {
     const self = await worker.call(`/admin/members/${await userIdOf('battery-admin')}/battery`, form({ delta: '20', reason: '自己' }, adminCookie));
     assert.match(await self.text(), /不能調整自己的 Battery/);
     account = await (await worker.call('/account', get(memberCookie))).text();
-    assert.match(account, /<b>30<\/b><span>電池/);
+    assert.match(account, /<b>30<\/b><span>🔋 電池/);
     assert.match(account, /客服調整/);
     assert.doesNotMatch(account, /補償/, 'members never see the staff reason');
     assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.battery_adjusted' AND target_id = ?").bind(target).first('n'), 1);
@@ -694,7 +694,7 @@ describe('web account center, support form and Admin Lite', () => {
     const policy = await worker.call('/admin/battery/policy', form({ allowance: '150', timeout: '120' }, ownerCookie));
     assert.match(await policy.text(), /已更新每月額度/);
     assert.equal((await worker.call('/admin/battery/tasks', form({ app_id: 'echo' }, ownerCookie))).status, 404, 'per-task costs live in each App now');
-    assert.match(await (await worker.call('/account', get(memberCookie))).text(), /<b>170<\/b><span>電池/, 'a new monthly allowance applies this month too');
+    assert.match(await (await worker.call('/account', get(memberCookie))).text(), /<b>170<\/b><span>🔋 電池/, 'a new monthly allowance applies this month too');
     // The owner-claim test below needs a database without an owner.
     await worker.db.prepare('DELETE FROM user_roles WHERE user_id = ?').bind(await userIdOf('battery-owner')).run();
   });

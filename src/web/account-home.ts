@@ -1,4 +1,5 @@
 import { deleteCookie } from 'hono/cookie';
+import { BATTERY_ICON } from '../lib/battery-icons';
 import { html } from 'hono/html';
 import { getBalance, recentActivity } from '../battery/battery';
 import { codeInfo, normalizeCode, redeemInvite } from '../battery/invites';
@@ -47,7 +48,7 @@ accountApp.get('/', async (c) => {
   const passkeys = await listPasskeys(db, web.userId);
   const managedApps = await listAppStaffApps(db, web.userId);
   const supportApps = await listAppStaffApps(db, web.userId, 'support');
-  const inviteMsg = ({ ok: '兌換成功，已加入量子電池。', ok_battery: '兌換成功，已加入本月的電池額度。', invalid: '序號不正確、已停用或已過期。', already: '你已經兌換過這組序號。', used_up: '這組序號已被領完。', error: '暫時無法兌換，請稍後再試；序號沒有被用掉。' } as Record<string, string>)[c.req.query('invite') ?? ''] ?? '';
+  const inviteMsg = ({ ok: '兌換成功，已加入 ⚛️ 量子電池。', ok_battery: '兌換成功，已加入本月的 🔋 電池額度。', invalid: '序號不正確、已停用或已過期。', already: '你已經兌換過這組序號。', used_up: '這組序號已被領完。', error: '暫時無法兌換，請稍後再試；序號沒有被用掉。' } as Record<string, string>)[c.req.query('invite') ?? ''] ?? '';
   const subscriptions = await memberSubscriptions(c.env.DB_BILLING, web.userId, now).catch(() => []);
   const signedInApps = [...new Set(sessions.map((s) => s.appId))].filter((a) => a !== WEB_APP_ID);
   const [battery, batteryActivity, quantum] = await Promise.all([getBalance(c.env.DB_BATTERY, web.userId, now), recentActivity(c.env.DB_BATTERY, web.userId, now, { limit: 10 }), listQuantum(c.env.DB_BATTERY, web.userId)]);
@@ -66,13 +67,13 @@ ${needsConsent
   : ''}
 ${battery && batteryActivity
   ? html`<div class="statrow" id="battery">
-  <div class="statbox"><b>${battery.remaining}</b><span>電池（共 ${battery.allowance}）</span></div>
-  <div class="statbox"><b>${quantum.reduce((sum, q) => sum + q.available, 0)}</b><span>量子電池</span></div>
+  <div class="statbox"><b>${battery.remaining}</b><span>${BATTERY_ICON.normal} 電池（共 ${battery.allowance}）</span></div>
+  <div class="statbox"><b>${quantum.reduce((sum, q) => sum + q.available, 0)}</b><span>${BATTERY_ICON.quantum} 量子電池</span></div>
 </div>
 <div class="card">
   <form method="post" action="/account/redeem"><label for="invite-code">兌換序號</label><input id="invite-code" name="code" maxlength="40" autocomplete="off" required><button type="submit">兌換</button></form>
   ${inviteMsg ? html`<div class="banner">${inviteMsg}</div>` : ''}
-  ${quantum.length > 0 ? html`<table><tr><th>App</th><th>量子電池</th></tr>${quantum.map((q) => html`<tr><td>${appLabel(q.app_id)}</td><td>${q.available}</td></tr>`)}</table>` : ''}
+  ${quantum.length > 0 ? html`<table><tr><th>App</th><th>${BATTERY_ICON.quantum} 量子電池</th></tr>${quantum.map((q) => html`<tr><td>${appLabel(q.app_id)}</td><td>${q.available}</td></tr>`)}</table>` : ''}
   ${batteryActivity.entries.length > 0
     ? html`<details class="fold"><summary>用量紀錄</summary><table><tr><th>時間</th><th>項目</th><th>數量</th></tr>${batteryActivity.entries.map(
         (e) => html`<tr><td>${formatTime(e.created_at)}</td><td>${e.kind === 'usage' ? (e.task_label ?? appLabel(e.app_id ?? '')) : '客服調整'}</td><td>${e.kind === 'usage' ? `-${e.amount}` : e.amount > 0 ? `+${e.amount}` : `${e.amount}`}</td></tr>`,
@@ -316,7 +317,7 @@ accountApp.get('/redeem/:code', async (c) => {
       c,
       '兌換序號',
       html`<h1>兌換序號</h1>
-${info ? html`<div class="card"><p>這組序號可領取：<strong>${info.units}</strong> 顆${info.kind === 'battery' ? '電池（全部 App 共用，只加本月額度）' : info.appId ? html`量子電池（只能在「${getApp(info.appId)?.name ?? info.appId}」使用）` : '量子電池（請選一款 App，兌換後只能在那一款 App 使用，之後不能更改）'}</p>
+${info ? html`<div class="card"><p>這組序號可領取：<strong>${info.units}</strong> 顆${info.kind === 'battery' ? '🔋 電池（全部 App 共用，只加本月額度）' : info.appId ? html`⚛️ 量子電池（只能在「${getApp(info.appId)?.name ?? info.appId}」使用）` : '⚛️ 量子電池（請選一款 App，兌換後只能在那一款 App 使用，之後不能更改）'}</p>
 <form method="post" action="/account/redeem"><input type="hidden" name="code" value="${code}">${info.kind === 'quantum' && !info.appId ? html`<label for="app_id">要用在哪一款 App</label><select id="app_id" name="app_id" required><option value="">請選擇</option>${[...appRegistry.values()].filter((a) => a.app_id !== WEB_APP_ID).map((a) => html`<option value="${a.app_id}">${a.name}</option>`)}</select>` : ''}<button type="submit">兌換</button></form></div>` : html`<div class="banner danger">序號不正確、已停用、已過期或已被領完。</div>`}
 <p><a href="/account">回到帳號中心</a></p>`,
     ),

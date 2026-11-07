@@ -37,23 +37,44 @@ describe('referrals, the organization network and public profiles', () => {
     const c = await member('ref-c', '陳大文');
     assert.match(a.no, /^[A-Z]{2}\d{7}$/);
 
-    const anon = await worker.call(`/Invite${a.no}`, get());
+    const bind = (user, no) => worker.call('/account/referral/bind', { method: 'POST', headers: { cookie: user.cookie, origin: ORIGIN, 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ no }), redirect: 'manual' });
+    const anon = await worker.call(`/Invite/${a.no}`, get());
     assert.equal(anon.status, 200);
     const anonHtml = await anon.text();
     assert.match(anonHtml, /王小明 邀請你加入繁星/);
-    assert.ok(anonHtml.includes(`/account?next=/Invite${a.no}`));
-    assert.equal((await worker.call('/InviteTW9999999', get())).status, 404);
+    assert.ok(anonHtml.includes(`/account?next=/Invite/${a.no}`));
+    assert.ok(anonHtml.includes(a.no), 'the inviter number is shown');
+    assert.equal((await worker.call('/Invite/TW9999999', get())).status, 404);
+    const old = await worker.call(`/Invite${a.no}`, get());
+    assert.equal(old.status, 301);
+    assert.equal(old.headers.get('location'), `/Invite/${a.no}`);
 
-    const bound = await (await worker.call(`/Invite${a.no}`, get(b.cookie))).text();
+    // Opening the link only asks; nothing is bound until the member confirms.
+    const ask = await (await worker.call(`/Invite/${a.no}`, get(b.cookie))).text();
+    assert.match(ask, /確定要綁定 王小明 為你的推薦人嗎/);
+    assert.match(ask, /1000 顆普通電池/);
+    assert.match(ask, /10 顆量子電池/);
+    assert.ok(ask.includes('🔋') && ask.includes('⚛️'), 'battery icons are shown with batteries');
+    assert.equal((await worker.db.prepare('SELECT COUNT(*) AS n FROM referrals WHERE invitee_user_id = ?').bind(b.userId).first()).n, 0);
+    const bound = await (await bind(b, a.no)).text();
     assert.match(bound, /已綁定推薦人：<strong>王小明<\/strong>/);
-    const again = await (await worker.call(`/Invite${c.no}`, get(b.cookie))).text();
-    assert.match(again, /你的推薦人是 <strong>王小明<\/strong>/, 'one referrer, set once');
+    const again = await (await worker.call(`/Invite/${c.no}`, get(b.cookie))).text();
+    assert.match(again, /你已經有推薦人/);
+    assert.match(await (await bind(b, c.no)).text(), /沒有變更/);
     assert.equal((await worker.db.prepare('SELECT COUNT(*) AS n FROM referrals WHERE invitee_user_id = ?').bind(b.userId).first()).n, 1);
-    assert.match(await (await worker.call(`/Invite${a.no}`, get(a.cookie))).text(), /自己的邀請連結/);
+    assert.match(await (await worker.call(`/Invite/${a.no}`, get(a.cookie))).text(), /自己的邀請連結/);
+
+    // The typed code or pasted link finds the inviter too.
+    const lookup = await worker.call(`/account/referral/lookup?code=${encodeURIComponent(`https://id.starry.phd/Invite/${b.no}`)}`, get(c.cookie));
+    assert.equal(lookup.status, 303);
+    assert.equal(lookup.headers.get('location'), `/Invite/${b.no}`);
+    assert.equal((await worker.call(`/account/referral/lookup?code=${b.no.toLowerCase()}`, get(c.cookie))).headers.get('location'), `/Invite/${b.no}`);
+    assert.equal((await worker.call('/account/referral/lookup?code=oops', get(c.cookie))).headers.get('location'), '/account/referral?e=1');
 
     // C joins under B; A (above B) cannot be bound under C.
-    assert.match(await (await worker.call(`/Invite${b.no}`, get(c.cookie))).text(), /已綁定推薦人：<strong>John Smith<\/strong>/);
-    assert.match(await (await worker.call(`/Invite${c.no}`, get(a.cookie))).text(), /無法綁定/);
+    assert.match(await (await worker.call(`/Invite/${b.no}`, get(c.cookie))).text(), /John Smith/);
+    assert.match(await (await bind(c, b.no)).text(), /已綁定推薦人：<strong>John Smith<\/strong>/);
+    assert.match(await (await worker.call(`/Invite/${c.no}`, get(a.cookie))).text(), /無法綁定/);
     assert.equal((await worker.db.prepare('SELECT COUNT(*) AS n FROM referrals WHERE invitee_user_id = ?').bind(a.userId).first()).n, 0);
 
     const network = await (await worker.call('/account/network', get(a.cookie))).text();
@@ -61,12 +82,15 @@ describe('referrals, the organization network and public profiles', () => {
     assert.match(network, /<b>1<\/b><span>橫排/);
     assert.match(network, /<b>2<\/b><span>最深層數/);
     assert.ok(network.indexOf('John Smith') < network.indexOf('陳大文'), 'the tree shows the downline below its parent');
+    assert.ok(network.includes('otree') && network.includes('class="pn me"'), 'round chart with me on top');
+    assert.ok(!network.includes(b.no) && !network.includes(c.no), 'member numbers are not shown in the chart');
     assert.match(network, /第 2 層 1 人/);
 
     const referral = await (await worker.call('/account/referral', get(a.cookie))).text();
-    assert.ok(referral.includes(`https://api.test/Invite${a.no}`));
+    assert.ok(referral.includes(`https://api.test/Invite/${a.no}`));
+    assert.match(referral, /輸入別人的邀請碼/);
     assert.match(referral, /id="share"/);
-    assert.match(await (await worker.call('/account/referral', get(b.cookie))).text(), /我的推薦人：<strong>王小明<\/strong>/);
+    assert.match(await (await worker.call('/account/referral', get(b.cookie))).text(), /我的推薦人<\/strong>[\s\S]*王小明/);
     assert.equal((await worker.call('/account/network', get())).status, 303);
   });
 
@@ -108,9 +132,9 @@ describe('referrals, the organization network and public profiles', () => {
     assert.equal((await done.json()).member_no, 'JP0000042');
     assert.equal((await worker.call(`/${a.no}`, get())).status, 404, 'the old public page is gone');
     assert.equal((await worker.call('/JP0000042', get())).status, 200);
-    assert.equal((await worker.call(`/Invite${a.no}`, get())).status, 404, 'the old invite link stops working');
-    assert.match(await (await worker.call('/Invite' + 'JP0000042', get())).text(), /李小華 邀請你加入繁星/);
-    assert.match(await (await worker.call('/account/referral', get(a.cookie))).text(), /InviteJP0000042/);
+    assert.equal((await worker.call(`/Invite/${a.no}`, get())).status, 404, 'the old invite link stops working');
+    assert.match(await (await worker.call('/Invite/JP0000042', get())).text(), /李小華 邀請你加入繁星/);
+    assert.match(await (await worker.call('/account/referral', get(a.cookie))).text(), /Invite\/JP0000042/);
 
     // three changes a day, then the limit; another member can take the freed number.
     assert.equal((await post(a.cookie, 'JP0000043')).status, 200);

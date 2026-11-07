@@ -119,3 +119,27 @@ describe('importing the Google photo at sign-up', () => {
     assert.equal(objects.size, 1);
   });
 });
+
+describe('Google photo import reports why it failed', () => {
+  test('a reason code is returned and a redirect to Google is followed', async () => {
+    const { importProviderAvatarDetailed } = await import('../../src/identity/avatars');
+    const d = migratedDb() as unknown as D1Database;
+    const { member } = await (await import('../../src/identity/members')).findOrCreateMember(d, { provider: 'google', subject: 'rs', email: 'rs@example.com', isPrivateRelay: false }, { appId: 'web', requestId: null }, 1);
+    const { store } = memoryStore();
+    const input = { userId: member.user_id, url: 'https://lh3.googleusercontent.com/a/abc=s96-c', appId: null, requestId: null };
+    assert.equal(await importProviderAvatarDetailed(d, store, async () => new Response('x', { status: 403 }), input, 1), 'http_403');
+    assert.equal(await importProviderAvatarDetailed(d, store, async () => new Response(null, { status: 302, headers: { location: 'https://evil.example/x' } }), input, 1), 'redirect_host');
+    assert.equal(await importProviderAvatarDetailed(d, store, async () => { throw new TypeError('boom'); }, input, 1), 'error_TypeError');
+    assert.equal(await importProviderAvatarDetailed(d, store, async () => new Response('x'), { ...input, url: 'https://example.com/x' }, 1), 'bad_url');
+    let calls = 0;
+    const redirected = await importProviderAvatarDetailed(
+      d,
+      store,
+      async () => (++calls === 1 ? new Response(null, { status: 302, headers: { location: 'https://lh4.googleusercontent.com/a/def=s256-c' } }) : new Response(PNG)),
+      input,
+      1,
+    );
+    assert.equal(redirected, null);
+    assert.equal(calls, 2);
+  });
+});
