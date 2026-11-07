@@ -9,6 +9,7 @@
   "profile": {
     "display_name": "小星",
     "avatar_url": null,
+    "initials": "星",
     "birthday": "1990-02-28",
     "locale": "zh-TW",
     "contact_email": "me@example.com",
@@ -113,6 +114,7 @@
     "display_name": "小星",
     "nickname": "小星星",
     "avatar_url": null,
+    "initials": "星",
     "birthday_month_day": "02-28",
     "zodiac_name": null,
     "life_path_number": null,

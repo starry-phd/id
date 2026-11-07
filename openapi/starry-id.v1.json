@@ -188,6 +188,10 @@
               "string",
               "null"
             ]
+          },
+          "initials": {
+            "type": "string",
+            "description": "Show in a circle when avatar_url is null"
           }
         },
         "required": [
@@ -195,7 +199,8 @@
           "member_no",
           "nickname",
           "display_name",
-          "avatar_url"
+          "avatar_url",
+          "initials"
         ]
       },
       "PasskeyRequestOptions": {
@@ -590,6 +595,10 @@
             ],
             "description": "Signed path, valid for one hour"
           },
+          "initials": {
+            "type": "string",
+            "description": "Show this in a circle when avatar_url is null (first letter of family name and of given name)"
+          },
           "birthday": {
             "type": [
               "string",
@@ -762,6 +771,7 @@
         "required": [
           "display_name",
           "avatar_url",
+          "initials",
           "birthday",
           "locale",
           "contact_email",
@@ -1015,6 +1025,10 @@
             ],
             "description": "Always public"
           },
+          "initials": {
+            "type": "string",
+            "description": "Show this in a circle when avatar_url is null: first letter of family name and of given name"
+          },
           "birthday_month_day": {
             "type": [
               "string",
@@ -1168,6 +1182,7 @@
           "display_name",
           "nickname",
           "avatar_url",
+          "initials",
           "birthday_month_day",
           "zodiac_name",
           "life_path_number",

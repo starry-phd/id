@@ -519,7 +519,7 @@ describe('web account center, support form and Admin Lite', () => {
     for (const path of [`/admin/members/${echoUser}/suspend`, `/admin/members/${echoUser}/battery`, `/admin/members/${echoUser}/signout`, '/admin/members/bulk']) {
       assert.equal((await worker.call(path, form({ reason: 'x', delta: '5', ids: echoUser, action: 'suspend' }, agent))).status, 403, `${path} refuses`);
     }
-    assert.match(await (await worker.call('/account', get(agent))).text(), /我負責客服的 App/);
+    assert.match(await (await worker.call('/account', get(agent))).text(), /客服<\/strong>/);
     assert.equal((await worker.call('/admin/apps/echo/config', get(agent))).status, 403, 'support is not a config manager');
     await worker.call(`/admin/members/${agentId}/app-staff`, form({ app_id: 'echo', kind: 'support', grant: '0' }, owner));
     assert.equal((await worker.call('/admin/tickets', get(agent))).status, 403, 'revoked');
@@ -670,8 +670,7 @@ describe('web account center, support form and Admin Lite', () => {
     const memberCookie = await webSignIn('battery-member');
     const target = await userIdOf('battery-member');
     let account = await (await worker.call('/account', get(memberCookie))).text();
-    assert.match(account, /Starry Battery/);
-    assert.match(account, /本月剩餘 <strong>10<\/strong> 顆/);
+    assert.match(account, /<b>10<\/b><span>電池/);
 
     const adminCookie = await webSignIn('battery-admin');
     await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(await userIdOf('battery-admin'), Date.now()).run();
@@ -685,7 +684,7 @@ describe('web account center, support form and Admin Lite', () => {
     const self = await worker.call(`/admin/members/${await userIdOf('battery-admin')}/battery`, form({ delta: '20', reason: '自己' }, adminCookie));
     assert.match(await self.text(), /不能調整自己的 Battery/);
     account = await (await worker.call('/account', get(memberCookie))).text();
-    assert.match(account, /本月剩餘 <strong>30<\/strong>/);
+    assert.match(account, /<b>30<\/b><span>電池/);
     assert.match(account, /客服調整/);
     assert.doesNotMatch(account, /補償/, 'members never see the staff reason');
     assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.battery_adjusted' AND target_id = ?").bind(target).first('n'), 1);
@@ -695,7 +694,7 @@ describe('web account center, support form and Admin Lite', () => {
     const policy = await worker.call('/admin/battery/policy', form({ allowance: '150', timeout: '120' }, ownerCookie));
     assert.match(await policy.text(), /已更新每月額度/);
     assert.equal((await worker.call('/admin/battery/tasks', form({ app_id: 'echo' }, ownerCookie))).status, 404, 'per-task costs live in each App now');
-    assert.match(await (await worker.call('/account', get(memberCookie))).text(), /本月剩餘 <strong>170<\/strong>/, 'a new monthly allowance applies this month too');
+    assert.match(await (await worker.call('/account', get(memberCookie))).text(), /<b>170<\/b><span>電池/, 'a new monthly allowance applies this month too');
     // The owner-claim test below needs a database without an owner.
     await worker.db.prepare('DELETE FROM user_roles WHERE user_id = ?').bind(await userIdOf('battery-owner')).run();
   });
@@ -807,9 +806,9 @@ describe('web account center, support form and Admin Lite', () => {
     const cookie = await webSignIn('devices-user');
     const refreshToken = await appSignIn('devices-user', 'Pixel 9');
     let page = await (await worker.call('/account', get(cookie))).text();
-    assert.match(page, /登入中的裝置/);
+    assert.match(page, /<summary>登入紀錄<\/summary>/);
     assert.match(page, /Pixel 9/);
-    assert.match(page, /目前這個瀏覽器/);
+    assert.match(page, /此瀏覽器/);
     const appSession = /action="\/account\/sessions\/([0-9a-f-]+)\/revoke"/.exec(page)?.[1];
     assert.ok(appSession, 'other sessions have a sign-out button');
     assert.notEqual(appSession, sessionIdOf(cookie));

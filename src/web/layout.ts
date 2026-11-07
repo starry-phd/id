@@ -5,6 +5,7 @@ import type { HtmlEscapedString } from 'hono/utils/html';
 import type { AppBindings } from '../env';
 import { readWebSession } from '../identity/web-sessions';
 import { randomToken } from '../lib/crypto';
+import { memberNav } from './member-nav';
 
 export type WebContext = Context<AppBindings>;
 export type Html = HtmlEscapedString | Promise<HtmlEscapedString>;
@@ -70,6 +71,38 @@ table{width:100%;border-collapse:collapse;font-size:.92rem}th,td{text-align:left
 `;
 
 
+
+const MEMBER_STYLE = `
+:root{--bg:#07061a;--fg:#ecebff;--muted:#a8a5d0;--line:rgba(167,139,250,.28);--accent:#a78bfa;--danger:#ff8a80;--card:rgba(24,20,56,.72)}
+html{background:#07061a}
+body{background-color:#07061a;background-image:radial-gradient(1.2px 1.2px at 12% 18%,#fff,transparent),radial-gradient(1px 1px at 38% 62%,#cfc6ff,transparent),radial-gradient(1.4px 1.4px at 71% 24%,#fff,transparent),radial-gradient(1px 1px at 86% 78%,#fff,transparent),radial-gradient(1px 1px at 55% 90%,#b9a9ff,transparent),radial-gradient(900px 500px at 85% -10%,rgba(124,92,255,.28),transparent),radial-gradient(700px 500px at -10% 40%,rgba(56,189,248,.14),transparent);background-size:260px 260px,310px 310px,420px 420px,380px 380px,340px 340px,auto,auto;background-attachment:fixed;min-height:100vh}
+.card{backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 6px 30px rgba(10,6,40,.45)}
+button,.button{background:linear-gradient(135deg,#7c5cff,#a78bfa);border-color:transparent;color:#0b0720;font-weight:600}
+button.secondary,.button.secondary{background:transparent;border-color:var(--line);color:var(--fg)}
+input,select,textarea{background:rgba(9,7,30,.7)}
+main{max-width:760px}
+.starnav{position:sticky;top:0;z-index:30;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 6px;padding:8px 10px;background:rgba(9,7,30,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.starnav a{color:var(--fg);text-decoration:none;padding:6px 12px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;flex:0 0 auto}
+.starnav a:hover,.starnav a.on{background:rgba(167,139,250,.2)}
+.starnav .stat{border:1px solid var(--line)}.starnav .me{font-weight:600}
+@media (min-width:700px){.starnav{padding:10px 24px}}
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.82rem;border:1px solid var(--line);background:rgba(9,7,30,.5)}
+.chips{display:flex;flex-wrap:wrap;gap:6px 8px;margin:8px 0}.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}.actions>*{margin:0}
+.avatar{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;object-fit:cover;background:linear-gradient(135deg,#5b3fd6,#38bdf8);color:#fff;font-weight:700;flex:0 0 auto}
+.guest-brand{display:block;text-align:center;padding:14px;font-weight:700;color:var(--fg);text-decoration:none}
+details.fold>summary{cursor:pointer;list-style:none;font-weight:700;padding:4px 0}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::after{content:"＋";float:right;color:var(--accent)}
+details.fold[open]>summary::after{content:"－"}
+.hero{display:flex;align-items:center;gap:16px;margin:8px 0 16px}.hero h1{margin:0}
+.statrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:12px 0}
+.statbox{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-align:center}
+.statbox b{display:block;font-size:1.6rem}.statbox span{color:var(--muted);font-size:.9rem}
+.tree,.tree ul{list-style:none;margin:0;padding-left:18px;border-left:1px dashed var(--line)}.tree{padding-left:0;border:0}
+.tree li{margin:6px 0}.tree .node{display:inline-flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border:1px solid var(--line);border-radius:999px;background:var(--card)}
+.tree .lv{color:var(--muted);font-size:.8rem}
+`;
+
 const ADMIN_STYLE = `
 body.admin main{max-width:none;margin:0;padding:20px clamp(12px,3vw,40px) 64px}
 .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:8px 16px;flex-wrap:wrap;padding:10px clamp(12px,3vw,40px);background:var(--card);border-bottom:1px solid var(--line)}
@@ -126,12 +159,11 @@ export function page(c: WebContext, title: string, body: Html, options: { script
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>${title}｜Starry 帳號中心</title>
-<style>${raw(STYLE + (options.admin ? ADMIN_STYLE : ''))}</style>
+<style>${raw(STYLE + (options.admin ? ADMIN_STYLE : MEMBER_STYLE))}</style>
 </head>
 <body class="${options.admin ? 'admin' : ''}">
-${options.admin ? adminHeader(c, signedIn, options.menu) : ''}
+${options.admin ? adminHeader(c, signedIn, options.menu) : memberHeader(c)}
 <main>
-${options.admin ? '' : accountHeader(signedIn)}
 ${body}
 <p class="muted" style="margin-top:48px"><a href="/privacy">隱私權政策</a>&emsp;<a href="/terms">服務條款</a>&emsp;<a href="/support">客服與檢舉</a></p>
 </main>
@@ -142,11 +174,9 @@ ${options.scripts ?? ''}
 
 const logoutForm = html`<form class="inline" method="post" action="/account/logout"><button class="secondary" type="submit">登出</button></form>`;
 
-function accountHeader(signedIn: boolean): Html {
-  return html`<header>
-  <a href="/account">Starry 帳號中心</a>
-  <nav><a href="/support">客服</a>${signedIn ? logoutForm : ''}</nav>
-</header>`;
+async function memberHeader(c: WebContext): Promise<Html> {
+  const nav = await memberNav(c);
+  return c.get('web') ? nav : html`<a class="guest-brand" href="/account">✦ Starry</a>`;
 }
 
 function adminHeader(c: WebContext, signedIn: boolean, menu: AdminMenu | undefined): Html {

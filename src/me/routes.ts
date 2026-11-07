@@ -11,6 +11,7 @@ import { appleRedirectFor, background, fail, readProviderRequest, verifyProvider
 import { activeEntitlements } from '../billing/revenuecat';
 import type { AppBindings } from '../env';
 import { rememberAppleToken } from '../identity/apple';
+import { initialsOf } from '../identity/initials';
 import { importProviderAvatar, MAX_AVATAR_BYTES, r2Store, rememberProviderPhoto, removeAvatar, setAvatar, signedAvatarPath } from '../identity/avatars';
 import { cleanupAfterDeletion } from '../identity/erase';
 import { deleteMemberNow } from '../identity/lifecycle';
@@ -38,6 +39,7 @@ async function profileJson(env: { DATA_ENCRYPTION_KEY?: string }, p: ProfileRow,
   return {
     display_name: p.display_name,
     avatar_url: await avatarUrlOf(env, p, now),
+    initials: initialsOf(p.display_name ?? p.nickname),
     birthday: p.birthday,
     locale: p.locale,
     contact_email: p.contact_email,

@@ -133,6 +133,7 @@ export const PublicProfileSchema = z
     display_name: z.string().nullable(),
     nickname: z.string().nullable().openapi({ description: 'Always public' }),
     avatar_url: z.string().nullable().openapi({ description: 'Always public' }),
+    initials: z.string().openapi({ description: 'Show this in a circle when avatar_url is null: first letter of family name and of given name' }),
     birthday_month_day: z.string().nullable().openapi({ example: '02-28' }),
     zodiac_name: z.string().nullable(),
     life_path_number: z.number().int().nullable(),
@@ -157,6 +158,7 @@ export const ProfileSchema = z
   .object({
     display_name: z.string().nullable().openapi({ description: 'Name shown to others (姓名), 1-50 characters' }),
     avatar_url: z.string().nullable().openapi({ description: 'Signed path, valid for one hour' }),
+    initials: z.string().openapi({ description: 'Show this in a circle when avatar_url is null (first letter of family name and of given name)' }),
     birthday: z.string().nullable().openapi({ example: '1990-02-28' }),
     locale: z.string().openapi({ example: 'zh-TW' }),
     contact_email: z.string().nullable().openapi({ description: 'Main contact email typed by the member; system email uses it once verified' }),

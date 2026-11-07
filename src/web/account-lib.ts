@@ -53,7 +53,7 @@ export async function webApp(c: WebContext): Promise<AppEntry | null> {
 }
 
 function safeNext(value: string | undefined): string {
-  return value && /^\/(account|admin)(\/[A-Za-z0-9/_-]*)?$/.test(value) ? value : '/account';
+  return value && /^\/(account|admin|Invite\d{1,4}-\d{7})(\/[A-Za-z0-9/_-]*)?$/.test(value) ? value : '/account';
 }
 
 interface ProviderWidgetConfig {
@@ -225,14 +225,13 @@ export async function loginPage(c: WebContext, message?: string, tone: 'danger' 
   const nonce = await issueNonce(c.env.DB_IDENTITY, WEB_APP_ID, Date.now());
   const widgets = providerWidgets(c, { nonce, endpoint: '/account/session', next, google: googleClient ?? null, apple: appleClient ?? null }, '使用 Apple 登入');
   const body = html`<h1>登入 Starry</h1>
-<p>使用您在繁星 App 中使用的 Apple 或 Google 帳號登入。</p>
 ${message ? html`<div class="banner${tone === 'danger' ? ' danger' : ''}">${message}</div>` : ''}
 <div class="card">
   ${widgets.body}
   <button id="passkey-login" type="button" class="secondary">使用 Passkey 登入</button>
   <p id="passkey-error" class="danger" role="alert"></p>
 </div>
-<p class="muted">登入即表示您同意<a href="/terms">服務條款</a>與<a href="/privacy">隱私權政策</a>。</p>`;
+`;
   return c.html(page(c, '登入', body, { scripts: html`${widgets.scripts}${passkeyScript(c, 'login', next)}` }));
 }
 

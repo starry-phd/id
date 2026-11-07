@@ -118,3 +118,10 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 - `src/auth/sso.ts`：`POST /v1/auth/sso/web-code`（把 sso token 密封 2 分鐘供 adopt 使用）、`POST /v1/auth/sso/web-exchange`（code 綁定 App 與 nonce 雜湊，nonce 單次使用）。共用 `signInFromSso`。
 - SDK：`shareWebSignIn`、`syncWebSignIn`、`completeWebSsoCheck`、`signOutWebEverywhere`。限制：只在同一瀏覽器的網頁版之間連動，下一次載入頁面才同步。
 - 串接指令版本 `2026-11-07.13`（.14 起固定 iOS Keychain 群組 $(AppIdentifierPrefix)phd.starry.shared，Android 共用改為選做）。
+
+### 3c31 會員版帳號中心改版、推薦達人與組織網（2026-11-08）
+- 會員版樣式：星空深色主題（`MEMBER_STYLE`，`layout.ts`），移除說明小字；置頂主選單 `memberNav`（`member-nav.ts`）：電池與量子電池數量、頭像＋名字、關於我（`/account/profile`）、推薦達人（`/account/referral`）、組織網（`/account/network`），無漢堡選單。首頁的登入紀錄、登入方式、訂閱改為手動展開（`details.fold`）。
+- 頭像：Google 照片優先（既有）、沒有照片顯示 `initialsOf`（姓、名各取第一個字，`identity/initials.ts`）、可自訂並裁切（既有）。API 新增 `initials`（`GET /v1/me` 的 profile 與 public_profile、`/v1/directory/members`）。公開圖 `GET /a/<會員編號>`。
+- 公開基本資料頁：`GET /<會員編號>`（例 `/886-0112342`），只顯示會員設為公開的欄位（`publicProfile`）。
+- 推薦：migration 0030 `referrals`（每人至多一個推薦人，綁定後不可改；不可綁自己或下線，`bindReferrer` 防環）。邀請連結 `GET /Invite<會員編號>`：未登入顯示推薦人姓名與登入鈕（登入後回到此頁），已登入自動綁定並顯示推薦人姓名。`src/web/account-network.ts`：推薦達人頁（連結、邀請碼、`navigator.share` 原生分享、複製）、組織網（`orgNetwork` 遞迴查詢，最多 1500 人、深度 50；顯示總人數、第 1 層、層數、各層人數，樹狀全部展開）。
+- 串接指令版本 `2026-11-07.15`（補會員頭像與邀請連結）。

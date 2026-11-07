@@ -27,6 +27,8 @@ import { readJsonObject } from '../lib/validate';
 import { formatTime, page, readForm, SESSION_COOKIE, type Html, type WebContext } from './layout';
 import { LOCALES, NOTICES, PROVIDER_NAMES, accountApp, appLabel, appleRedirectUri, linkableProviders, loadAccount, loginPage, passkeyScript, providerWidgets, webApp } from './account-lib';
 import { countryName } from './account-profile';
+import { initialsOf } from '../identity/initials';
+import { avatarBubble } from './member-nav';
 
 accountApp.get('/', async (c) => {
   const web = c.get('web');
@@ -51,7 +53,9 @@ accountApp.get('/', async (c) => {
   const [battery, batteryActivity, quantum] = await Promise.all([getBalance(c.env.DB_BATTERY, web.userId, now), recentActivity(c.env.DB_BATTERY, web.userId, now, { limit: 10 }), listQuantum(c.env.DB_BATTERY, web.userId)]);
   const notices = await getNotices(db);
   const timed = await activeScopedNotices(db, now).catch(() => []);
-  const body = html`<h1>${p.display_name ?? '我的帳號'}</h1>
+  const memberNo = (await db.prepare('SELECT member_no FROM users WHERE user_id = ?').bind(web.userId).first<{ member_no: string | null }>())?.member_no ?? null;
+  const location = [countryName(p.country), p.region, p.city].filter((v) => v).join(' ');
+  const body = html`<div class="hero">${avatarBubble({ initials: initialsOf(p.display_name ?? p.nickname), photo: p.avatar_key ? '/account/avatar-image' : null, size: 72, label: p.display_name ?? '' })}<div><h1>${p.display_name ?? '我的帳號'}</h1>${memberNo ? html`<span class="badge">${memberNo}</span>` : ''}</div></div>
 ${notices.maintenance ? html`<div class="banner danger">系統維護中：${notices.maintenanceMessage || 'AI 功能暫時停用，帳號功能可正常使用。'}</div>` : ''}
 ${notices.announcement ? html`<div class="banner">${notices.announcement}</div>` : ''}
 ${timed.map((n) => html`<div class="banner">${n.message}</div>`)}
@@ -60,80 +64,63 @@ ${needsConsent
   ? html`<div class="banner"><strong>請確認服務條款與隱私權政策</strong><br>請閱讀<a href="/terms">服務條款</a>與<a href="/privacy">隱私權政策</a>（版本 ${c.env.TERMS_VERSION}／${c.env.PRIVACY_VERSION}）。
 <form method="post" action="/account/consent"><button type="submit">我已閱讀並同意</button></form></div>`
   : ''}
-<div class="card">
-  <p><strong>姓名：</strong>${p.display_name ?? '（未設定）'}<br>
-  <strong>聯絡 Email：</strong>${p.contact_email ? html`${p.contact_email}${p.contact_email_verified_at ? '' : html` <span class="muted">（待確認）</span>`}` : '（未設定）'}<br>
-  <strong>手機：</strong>${p.phone ?? '（未設定）'}<br>
-  <strong>地區：</strong>${[countryName(p.country), p.region, p.city].filter((v) => v).join(' ') || '（未設定）'}<br>
-  <strong>生日：</strong>${p.birthday ? html`${p.birthday}（${derivedOf(p.birthday)?.zodiac_name ?? ''}）` : '（未設定）'}<br>
-  <strong>座右銘：</strong>${p.motto ?? '（未設定）'}<br>
-  <strong>語系：</strong>${LOCALES[p.locale] ?? p.locale}<br>
-  <span class="muted">加入時間：${formatTime(account.createdAt)}</span></p>
-  ${html`<a class="button" href="/account/profile">編輯個人資料與公開設定</a>`}
+${battery && batteryActivity
+  ? html`<div class="statrow" id="battery">
+  <div class="statbox"><b>${battery.remaining}</b><span>電池（共 ${battery.allowance}）</span></div>
+  <div class="statbox"><b>${quantum.reduce((sum, q) => sum + q.available, 0)}</b><span>量子電池</span></div>
 </div>
-<h2>登入方式</h2>
 <div class="card">
+  <form method="post" action="/account/redeem"><label for="invite-code">兌換序號</label><input id="invite-code" name="code" maxlength="40" autocomplete="off" required><button type="submit">兌換</button></form>
+  ${inviteMsg ? html`<div class="banner">${inviteMsg}</div>` : ''}
+  ${quantum.length > 0 ? html`<table><tr><th>App</th><th>量子電池</th></tr>${quantum.map((q) => html`<tr><td>${appLabel(q.app_id)}</td><td>${q.available}</td></tr>`)}</table>` : ''}
+  ${batteryActivity.entries.length > 0
+    ? html`<details class="fold"><summary>用量紀錄</summary><table><tr><th>時間</th><th>項目</th><th>數量</th></tr>${batteryActivity.entries.map(
+        (e) => html`<tr><td>${formatTime(e.created_at)}</td><td>${e.kind === 'usage' ? (e.task_label ?? appLabel(e.app_id ?? '')) : '客服調整'}</td><td>${e.kind === 'usage' ? `-${e.amount}` : e.amount > 0 ? `+${e.amount}` : `${e.amount}`}</td></tr>`,
+      )}</table></details>`
+    : ''}
+</div>`
+  : ''}
+<div class="card">
+  <p><strong>聯絡 Email</strong> ${p.contact_email ?? '—'}${p.contact_email && !p.contact_email_verified_at ? ' （待確認）' : ''}<br>
+  <strong>手機</strong> ${p.phone ?? '—'}<br>
+  <strong>地區</strong> ${location || '—'}<br>
+  <strong>生日</strong> ${p.birthday ? html`${p.birthday}（${derivedOf(p.birthday)?.zodiac_name ?? ''}）` : '—'}<br>
+  <strong>座右銘</strong> ${p.motto ?? '—'}<br>
+  <strong>語系</strong> ${LOCALES[p.locale] ?? p.locale}<br>
+  <strong>加入時間</strong> ${formatTime(account.createdAt)}</p>
+  <a class="button" href="/account/profile">編輯關於我</a>
+</div>
+${supportApps.length > 0 ? html`<div class="card"><strong>客服</strong> ${supportApps.map((a) => appLabel(a)).join('、')}<div class="actions"><a class="button secondary" href="/admin/tickets">客服單</a><a class="button secondary" href="/admin/members">會員</a></div></div>` : ''}
+${managedApps.length > 0 ? html`<div class="card"><strong>我管理的 App</strong><ul>${managedApps.map((a) => html`<li>${appLabel(a)}：<a href="/admin/apps/${a}/config">遠端設定</a></li>`)}</ul></div>` : ''}
+${html`<details class="card fold"><summary>登入方式與安全</summary>
   <ul>${account.identities.map((i) => html`<li>${PROVIDER_NAMES[i.provider] ?? i.provider}${i.email ? html`：${i.email}` : ''}</li>`)}</ul>
-  <p class="muted">Email 由登入服務提供，只用於聯絡，無法在此修改。</p>
-  ${linkable.google || linkable.apple ? html`<a class="button" href="/account/link">加綁${linkable.apple && linkable.google ? '其他' : linkable.apple ? ' Apple ' : ' Google '}登入方式</a>` : ''}
-</div>
-${supportApps.length > 0 ? html`<h2>我負責客服的 App</h2><div class="card"><p>${supportApps.map((a) => appLabel(a)).join('、')}</p><p><a href="/admin/tickets">客服單</a>&emsp;<a href="/admin/members">會員</a></p></div>` : ''}
-${managedApps.length > 0 ? html`<h2>我管理的 App</h2><div class="card"><ul>${managedApps.map((a) => html`<li>${appLabel(a)}：<a href="/admin/apps/${a}/config">遠端設定</a></li>`)}</ul></div>` : ''}
-${html`<h2>Passkey</h2>
-<div class="card">
-  ${passkeys.length > 0
-    ? html`<ul>${passkeys.map((k) => html`<li>${k.name}（${formatTime(k.created_at)} 新增）<form class="inline" method="post" action="/account/passkey/${k.credential_id}/remove"><button class="secondary" type="submit">移除</button></form></li>`)}</ul>`
-    : html`<p class="muted">還沒有 Passkey。新增後可以用指紋、臉部或螢幕鎖直接登入，不必再透過 Apple 或 Google。</p>`}
+  ${linkable.google || linkable.apple ? html`<a class="button secondary" href="/account/link">加綁${linkable.apple && linkable.google ? '其他' : linkable.apple ? ' Apple ' : ' Google '}登入方式</a>` : ''}
+  <h3>Passkey</h3>
+  ${passkeys.length > 0 ? html`<ul>${passkeys.map((k) => html`<li>${k.name}（${formatTime(k.created_at)}）<form class="inline" method="post" action="/account/passkey/${k.credential_id}/remove"><button class="secondary" type="submit">移除</button></form></li>`)}</ul>` : ''}
   ${passkeys.length < MAX_PASSKEYS ? html`<button id="add-passkey" type="button">新增 Passkey</button><p id="passkey-error" class="danger" role="alert"></p>` : ''}
-</div>
-<h2>已登入的 App</h2>
-<div class="card">
-  ${signedInApps.length > 0
-    ? html`<ul>${signedInApps.map((a) => html`<li>${appLabel(a)}</li>`)}</ul><p class="muted">所有繁星 App 共用登入：在任一款 App 登入，同一支手機上的其他繁星 App 也會自動登入；登出或切換帳號，所有 App 都會跟著變。要全部登出，請用下方「登出所有裝置」。</p>`
-    : html`<p class="muted">目前沒有任何 App 在登入中。</p>`}
-</div>
-<h2>登入中的裝置</h2>
-<div class="card">
+</details>
+<details class="card fold"><summary>登入紀錄</summary>
+  ${signedInApps.length > 0 ? html`<div class="chips">${signedInApps.map((a) => html`<span class="badge">${appLabel(a)}</span>`)}</div>` : ''}
   <table>
     <tr><th>App</th><th>裝置</th><th>最後使用</th><th></th></tr>
     ${sessions.map(
       (s) => html`<tr><td>${appLabel(s.appId)}</td><td>${s.deviceLabel ?? '—'}</td><td>${formatTime(s.lastUsedAt)}</td><td>${s.sessionId === web.sessionId
-        ? html`<span class="muted">目前這個瀏覽器</span>`
+        ? html`<span class="badge">此瀏覽器</span>`
         : html`<form class="inline" method="post" action="/account/sessions/${s.sessionId}/revoke"><button class="secondary" type="submit">登出</button></form>`}</td></tr>`,
     )}
   </table>
   <form method="post" action="/account/logout-all"><button class="secondary" type="submit">登出所有裝置</button></form>
-  <p class="muted">「登出所有裝置」會讓所有繁星 App 與網頁立即登出，包括目前這個瀏覽器。手機遺失時請使用。</p>
-</div>`}
-<h2>我的訂閱與購買</h2>
-<div class="card">
-  ${subscriptions.length > 0
-    ? html`<table><tr><th>App</th><th>權益</th><th>到期</th><th>來源</th></tr>${subscriptions.map((x) => html`<tr><td>${appLabel(x.app_id)}</td><td>${x.entitlement}</td><td>${x.expires_at ? formatTime(x.expires_at) : '長期有效'}</td><td>${x.granted ? '客服補發' : x.store === 'APP_STORE' || x.store === 'MAC_APP_STORE' ? 'App Store' : x.store === 'PLAY_STORE' ? 'Google Play' : (x.store ?? '商店')}</td></tr>`)}</table>
-<p class="muted">要取消訂閱，請到 App Store 或 Google Play 的「訂閱」頁面；這裡只顯示目前生效中的項目。</p>`
-    : html`<p class="muted">目前沒有生效中的訂閱或購買。</p>`}
-</div>
-${battery && batteryActivity
-  ? html`<h2>Starry Battery</h2>
-<div class="card">
-  <p>本月剩餘 <strong>${battery.remaining}</strong> 顆 ／ 共 ${battery.allowance} 顆${battery.reserved > 0 ? html`（處理中 ${battery.reserved} 顆）` : ''}<br>
-  <span class="muted">每月 1 日恢復，下次：${formatTime(battery.resets_at)}。Battery 是免費的 AI 使用額度，所有繁星 App 共用，不能購買或轉讓。</span></p>
-  ${batteryActivity.entries.length > 0
-    ? html`<table><tr><th>時間</th><th>項目</th><th>數量</th></tr>${batteryActivity.entries.map(
-        (e) => html`<tr><td>${formatTime(e.created_at)}</td><td>${e.kind === 'usage' ? (e.task_label ?? appLabel(e.app_id ?? '')) : '客服調整'}</td><td>${e.kind === 'usage' ? `-${e.amount}` : e.amount > 0 ? `+${e.amount}` : `${e.amount}`}</td></tr>`,
-      )}</table><p class="muted">顯示最近 30 天內最新 10 筆。</p>`
-    : html`<p class="muted">最近 30 天沒有使用紀錄。</p>`}
-  <h3>邀請碼</h3>
-  ${inviteMsg ? html`<div class="banner">${inviteMsg}</div>` : ''}
-  <form method="post" action="/account/redeem"><label for="invite-code">輸入序號，領取免費電池或量子電池</label><input id="invite-code" name="code" maxlength="40" autocomplete="off" required><button type="submit">兌換</button></form>
-  ${quantum.length > 0
-    ? html`<h3>量子電池</h3><table><tr><th>App</th><th>剩餘</th></tr>${quantum.map((q) => html`<tr><td>${appLabel(q.app_id)}</td><td>${q.available}</td></tr>`)}</table><p class="muted">在該 App 內購買的加量包，只能在購買的那款 App 使用；每次先用免費 Battery，用完才使用量子電池，不會過期。</p>`
-    : ''}
-</div>`
+</details>`}
+${subscriptions.length > 0
+  ? html`<details class="card fold"><summary>我的訂閱與購買</summary><table><tr><th>App</th><th>權益</th><th>到期</th></tr>${subscriptions.map((x) => html`<tr><td>${appLabel(x.app_id)}</td><td>${x.entitlement}</td><td>${x.expires_at ? formatTime(x.expires_at) : '長期有效'}</td></tr>`)}</table></details>`
   : ''}
-<p><a href="/account/notifications">通知設定</a></p>
-${role && hasRole(role, 'support') ? html`<p><a class="button" href="/admin">進入 Admin Lite</a></p>` : ''}
-${html`<h2>下載我的資料</h2><p class="muted">取得 Starry 保存的您的個人資料、登入方式、同意紀錄、使用過的 App 與電池紀錄（JSON 檔，不含密碼或憑證）。</p><a href="/account/export">下載我的資料</a>`}
-${html`<h2>刪除帳號</h2><p class="muted">確認後立即永久刪除，無法復原。</p><a href="/account/delete">申請刪除帳號</a>`}`;
+<div class="actions">
+  <a class="button secondary" href="/account/notifications">通知設定</a>
+  <a class="button secondary" href="/account/export">下載我的資料</a>
+  ${role && hasRole(role, 'support') ? html`<a class="button" href="/admin">Admin Lite</a>` : ''}
+  <a class="button secondary" href="/account/delete">刪除帳號</a>
+</div>
+<form method="post" action="/account/logout"><button class="secondary" type="submit">登出</button></form>`;
   return c.html(page(c, '我的帳號', body, { scripts: passkeyScript(c, 'register') }));
 });
 
@@ -197,9 +184,7 @@ accountApp.get('/link', async (c) => {
   return c.html(
     linkPage(
       c,
-      html`<p>加綁後，可以用任一種方式登入同一個 Starry 帳號。請用要加綁的帳號完成登入。</p>
-<div class="card">${widgets.body}</div>
-<p class="muted">如果這個 Apple 或 Google 帳號之前單獨登入過、建立了另一個 Starry 帳號，完成登入後可以選擇把它合併到目前這個帳號。</p>`,
+      html`<div class="card">${widgets.body}</div>`,
       widgets.scripts,
     ),
   );
