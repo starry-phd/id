@@ -1,0 +1,304 @@
+// The App frontend client (sdk/starry-client.ts): token handling, relay and Passkey sign-in, start-up check.
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { describe, test } from 'node:test';
+import { base64urlDecode, base64urlEncode, compareVersions, memoryStorage, parseRelayResult, StarryClient, StarryError, type PasskeyAdapter, type StarryClientOptions } from '../../sdk/starry-client';
+
+const BASE = 'https://id.test';
+const NOW = Date.UTC(2026, 11, 1, 12, 0, 0);
+
+interface Call {
+  method: string;
+  path: string;
+  body: Record<string, unknown> | null;
+  auth: string | null;
+}
+
+/** A tiny fake Starry ID: handlers by "METHOD /path"; every call is recorded. */
+function server(handlers: Record<string, (call: Call) => Response | Promise<Response>>) {
+  const calls: Call[] = [];
+  const fetchFn: typeof fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const headers = new Headers(init?.headers);
+    const call: Call = { method: init?.method ?? 'GET', path: url.pathname, body: init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : null, auth: headers.get('authorization') };
+    calls.push(call);
+    const handler = handlers[`${call.method} ${call.path}`];
+    if (!handler) return Response.json({ error: { code: 'NOT_FOUND', message: 'no' } }, { status: 404 });
+    return handler(call);
+  };
+  return { calls, fetchFn };
+}
+
+const tokens = (n: number) => ({ token_type: 'Bearer', access_token: `access-${n}`, expires_in: 900, refresh_token: `refresh-${n}`, refresh_expires_in: 2592000 });
+const signIn = (n: number, consent = false) => Response.json({ ...tokens(n), user: { user_id: 'u1', status: 'active', is_new: false, deletion_purge_at: null }, consent_required: consent });
+const fail = (status: number, code: string) => Response.json({ error: { code, message: code, request_id: 'req-1' } }, { status });
+
+function make(handlers: Parameters<typeof server>[0], extra: Partial<StarryClientOptions> = {}) {
+  const s = server(handlers);
+  const storage = memoryStorage();
+  let clock = NOW;
+  const client = new StarryClient({ baseUrl: BASE, appId: 'clock', storage, fetch: s.fetchFn, now: () => clock, randomState: () => 'state-abc', ...extra });
+  return { client, storage, calls: s.calls, advance: (ms: number) => void (clock += ms) };
+}
+
+describe('helpers', () => {
+  test('versions compare numerically', () => {
+    assert.ok(compareVersions('1.10.0', '1.9.9') > 0);
+    assert.ok(compareVersions('1.4', '1.4.0') === 0);
+    assert.ok(compareVersions('1.4.0-beta.2', '1.4.0') === 0);
+    assert.ok(compareVersions('0.9.9', '1.0.0') < 0);
+  });
+  test('relay results are read after # (web) or ? (App scheme); other addresses are not results', () => {
+    assert.deepEqual(parseRelayResult('https://clock.starry.phd/auth/done#id_token=a.b.c&state=s1'), { idToken: 'a.b.c', code: null, state: 's1', error: null });
+    assert.deepEqual(parseRelayResult('clock://auth/apple?id_token=x&code=c1&state=s2'), { idToken: 'x', code: 'c1', state: 's2', error: null });
+    assert.equal(parseRelayResult('clock://auth/google?error=access_denied&state=s3')?.error, 'access_denied');
+    assert.equal(parseRelayResult('https://clock.starry.phd/page?x=1'), null);
+  });
+  test('base64url round-trips binary data', () => {
+    const bytes = new Uint8Array([0, 250, 251, 252, 253, 254, 255, 62, 63]);
+    assert.deepEqual([...base64urlDecode(base64urlEncode(bytes))], [...bytes]);
+    assert.ok(!/[+/=]/.test(base64urlEncode(bytes)));
+  });
+});
+
+describe('tokens', () => {
+  test('sign-in stores the Refresh Token, keeps the Access Token in memory, and announces it', async () => {
+    const { client, storage } = make({ 'POST /v1/auth/google': () => signIn(1) });
+    const events: string[] = [];
+    client.onAuthChange((e) => events.push(e));
+    const result = await client.signInWithIdToken('google', { idToken: 'idt', nonce: 'n'.repeat(20) });
+    assert.equal(result.user.user_id, 'u1');
+    assert.equal(await storage.get('starry.refresh.clock'), 'refresh-1');
+    assert.equal(await client.getAccessToken(), 'access-1');
+    assert.equal(client.signedIn, true);
+    assert.deepEqual(events, ['signed-in']);
+  });
+
+  test('concurrent requests with an expired Access Token share ONE refresh, and the new Refresh Token replaces the old', async () => {
+    let refreshes = 0;
+    const { client, storage, calls, advance } = make({
+      'POST /v1/auth/google': () => signIn(1),
+      'POST /v1/auth/refresh': async () => {
+        refreshes += 1;
+        await new Promise((r) => setTimeout(r, 10));
+        return Response.json(tokens(2));
+      },
+      'GET /v1/me': () => Response.json({ user_id: 'u1' }),
+    });
+    await client.signInWithIdToken('google', { idToken: 'idt', nonce: 'n'.repeat(20) });
+    advance(16 * 60 * 1000);
+    await Promise.all([client.request('GET', '/v1/me'), client.request('GET', '/v1/me'), client.request('GET', '/v1/me')]);
+    assert.equal(refreshes, 1);
+    assert.equal(await storage.get('starry.refresh.clock'), 'refresh-2');
+    assert.deepEqual(calls.filter((c) => c.path === '/v1/auth/refresh').map((c) => c.body), [{ refresh_token: 'refresh-1' }]);
+    assert.ok(calls.filter((c) => c.path === '/v1/me').every((c) => c.auth === 'Bearer access-2'));
+  });
+
+  test('a 401 triggers one refresh and one retry', async () => {
+    let me = 0;
+    const { client } = make({
+      'POST /v1/auth/google': () => signIn(1),
+      'POST /v1/auth/refresh': () => Response.json(tokens(2)),
+      'GET /v1/me': (call) => (me++ === 0 ? fail(401, 'UNAUTHORIZED') : Response.json({ user_id: 'u1', auth: call.auth })),
+    });
+    await client.signInWithIdToken('google', { idToken: 'idt', nonce: 'n'.repeat(20) });
+    assert.deepEqual(await client.request('GET', '/v1/me'), { user_id: 'u1', auth: 'Bearer access-2' });
+    assert.equal(me, 2);
+  });
+
+  test('a rejected or reused Refresh Token signs the member out; a network failure does not', async () => {
+    for (const code of ['INVALID_REFRESH', 'REFRESH_REUSED']) {
+      const { client, storage, advance } = make({ 'POST /v1/auth/google': () => signIn(1), 'POST /v1/auth/refresh': () => fail(401, code) });
+      await client.signInWithIdToken('google', { idToken: 'idt', nonce: 'n'.repeat(20) });
+      const events: string[] = [];
+      client.onAuthChange((e) => events.push(e));
+      advance(20 * 60 * 1000);
+      assert.equal(await client.getAccessToken(), null);
+      assert.equal(await storage.get('starry.refresh.clock'), null, code);
+      assert.deepEqual(events, ['signed-out']);
+    }
+    const offline = make({ 'POST /v1/auth/google': () => signIn(1) });
+    await offline.client.signInWithIdToken('google', { idToken: 'idt', nonce: 'n'.repeat(20) });
+    offline.advance(20 * 60 * 1000);
+    const broken = new StarryClient({ baseUrl: BASE, appId: 'clock', storage: offline.storage, fetch: async () => Promise.reject(new TypeError('offline')), now: () => NOW + 20 * 60 * 1000 });
+    await assert.rejects(broken.getAccessToken(), (e: unknown) => e instanceof StarryError && e.code === 'NETWORK');
+    assert.equal(await offline.storage.get('starry.refresh.clock'), 'refresh-1', 'the session survives being offline');
+    assert.equal(await broken.restore(), true, 'restore() keeps the member signed in while offline');
+  });
+
+  test('a suspended account is signed out; signOut never throws and always clears', async () => {
+    const suspended = make({ 'POST /v1/auth/google': () => signIn(1), 'GET /v1/me': () => fail(403, 'ACCOUNT_SUSPENDED') });
+    await suspended.client.signInWithIdToken('google', { idToken: 'idt', nonce: 'n'.repeat(20) });
+    await assert.rejects(suspended.client.me(), (e: unknown) => e instanceof StarryError && e.suspended);
+    assert.equal(suspended.client.signedIn, false);
+    assert.equal(await suspended.storage.get('starry.refresh.clock'), null);
+
+    const down = make({ 'POST /v1/auth/google': () => signIn(1), 'POST /v1/auth/logout': () => fail(500, 'INTERNAL'), 'DELETE /v1/me/push-tokens': () => fail(500, 'INTERNAL') });
+    await down.client.signInWithIdToken('google', { idToken: 'idt', nonce: 'n'.repeat(20) });
+    await down.client.signOut({ pushToken: 'ExponentPushToken[abc]' });
+    assert.equal(down.client.signedIn, false);
+    assert.equal(await down.storage.get('starry.refresh.clock'), null);
+    assert.deepEqual(down.calls.map((c) => `${c.method} ${c.path}`).slice(1), ['DELETE /v1/me/push-tokens', 'POST /v1/auth/logout'], 'push token first, then logout');
+  });
+
+  test('a request while signed out fails without calling the server', async () => {
+    const { client, calls } = make({});
+    await assert.rejects(client.me(), (e: unknown) => e instanceof StarryError && e.code === 'NOT_SIGNED_IN');
+    assert.equal(calls.length, 0);
+  });
+});
+
+describe('relay sign-in', () => {
+  const nonce = 'N'.repeat(24);
+  const hash = createHash('sha256').update(nonce).digest('hex');
+  const base = {
+    'POST /v1/auth/nonce': () => Response.json({ nonce, expires_in: 600 }),
+    'POST /v1/auth/google': () => signIn(1, true),
+    'POST /v1/auth/apple': () => signIn(1),
+  };
+  const sha256Hex = async (t: string) => createHash('sha256').update(t).digest('hex');
+
+  test('opens the relay with the SHA-256 of the nonce, checks state, then signs in with the original nonce', async () => {
+    let opened = '';
+    const { client, calls } = make(base, {
+      sha256Hex,
+      openAuthSession: async (url) => {
+        opened = url;
+        return 'clock://auth/google?id_token=tok123&state=state-abc';
+      },
+    });
+    const result = await client.signInWithRelay('google', { returnUrl: 'clock://auth/google' });
+    const u = new URL(opened);
+    assert.equal(u.origin + u.pathname, `${BASE}/auth/google/start`);
+    assert.deepEqual(Object.fromEntries(u.searchParams), { app_id: 'clock', nonce: hash, return: 'clock://auth/google', state: 'state-abc' });
+    assert.equal(result.consent_required, true);
+    assert.deepEqual(calls.at(-1)?.body, { app_id: 'clock', id_token: 'tok123', nonce });
+  });
+
+  test('Apple also sends the code and the relay redirect_uri', async () => {
+    const { client, calls } = make(base, { sha256Hex, openAuthSession: async () => 'clock://auth/apple?id_token=tok&code=c9&state=state-abc' });
+    await client.signInWithRelay('apple', { returnUrl: 'clock://auth/apple' });
+    assert.deepEqual(calls.at(-1)?.body, { app_id: 'clock', id_token: 'tok', nonce, authorization_code: 'c9', redirect_uri: `${BASE}/auth/apple/callback` });
+  });
+
+  test('a wrong state, a cancelled sheet, a provider error and a missing Apple code are all refused before sign-in', async () => {
+    const attempt = async (resultUrl: string | null, provider: 'google' | 'apple' = 'google') => {
+      const { client, calls } = make(base, { sha256Hex, openAuthSession: async () => resultUrl });
+      const error = await client.signInWithRelay(provider, { returnUrl: 'clock://auth' }).then(
+        () => null,
+        (e: unknown) => e as StarryError,
+      );
+      assert.equal(calls.some((c) => c.path === `/v1/auth/${provider}`), false, 'no sign-in call was made');
+      return error;
+    };
+    assert.equal((await attempt('clock://auth?id_token=t&state=OTHER'))?.code, 'RELAY_STATE_MISMATCH');
+    assert.equal((await attempt(null))?.cancelled, true);
+    assert.equal((await attempt('clock://auth?error=access_denied&state=state-abc'))?.cancelled, true);
+    assert.equal((await attempt('clock://auth?error=server_error&state=state-abc'))?.code, 'RELAY_FAILED');
+    assert.equal((await attempt('clock://auth?id_token=t&state=state-abc', 'apple'))?.code, 'RELAY_FAILED');
+  });
+
+  test('web: the redirect keeps nonce and state across the page change and the result is used once', async () => {
+    let navigated = '';
+    const { client, storage, calls } = make(base, { sha256Hex, navigate: (u) => void (navigated = u) });
+    await client.beginRelayRedirect('google', { returnUrl: 'https://clock.starry.phd/auth/done' });
+    assert.ok(navigated.startsWith(`${BASE}/auth/google/start?`));
+    assert.equal(new URL(navigated).searchParams.get('nonce'), hash);
+    assert.equal(await client.completeRelayRedirect('https://clock.starry.phd/home'), null, 'a page with no result is left alone');
+    const result = await client.completeRelayRedirect('https://clock.starry.phd/auth/done#id_token=tok&state=state-abc');
+    assert.equal(result?.user.user_id, 'u1');
+    assert.deepEqual(calls.at(-1)?.body, { app_id: 'clock', id_token: 'tok', nonce });
+    assert.equal(await storage.get('starry.relay.clock'), null);
+    await assert.rejects(client.completeRelayRedirect('https://clock.starry.phd/auth/done#id_token=tok&state=state-abc'), (e: unknown) => e instanceof StarryError && e.code === 'RELAY_STATE_MISMATCH');
+  });
+});
+
+describe('Passkey', () => {
+  const publicKey = { challenge: 'Y2hhbGxlbmdl', rpId: 'id.test', userVerification: 'required', timeout: 120000, allowCredentials: [] };
+  const handlers = {
+    'POST /v1/auth/passkey/options': () => Response.json({ publicKey, expires_in: 600 }),
+    'POST /v1/auth/passkey': () => signIn(1),
+    'POST /v1/me/passkeys/options': () => Response.json({ publicKey: { challenge: 'Y3I', user: { id: 'dQ' } }, expires_in: 600 }),
+    'POST /v1/me/passkeys': () => Response.json({ ok: true }, { status: 201 }),
+  };
+
+  test('sign-in sends the assertion the adapter produced, with the App id', async () => {
+    const seen: unknown[] = [];
+    const passkey: PasskeyAdapter = {
+      get: async (pk) => (seen.push(pk), { id: 'cred1', clientDataJSON: 'cd', authenticatorData: 'ad', signature: 'sig' }),
+      create: async () => ({ clientDataJSON: 'cd', attestationObject: 'ao' }),
+    };
+    const { client, calls } = make(handlers, { passkey, deviceLabel: 'Pixel' });
+    const result = await client.signInWithPasskey();
+    assert.equal(result.user.user_id, 'u1');
+    assert.deepEqual(seen, [publicKey]);
+    assert.deepEqual(calls.at(-1)?.body, { app_id: 'clock', id: 'cred1', clientDataJSON: 'cd', authenticatorData: 'ad', signature: 'sig', device_label: 'Pixel' });
+  });
+
+  test('a cancelled sheet is "cancelled", an existing Passkey is PASSKEY_EXISTS, and nothing is sent to the server', async () => {
+    for (const [name, expected] of [['NotAllowedError', 'PASSKEY_CANCELLED'], ['InvalidStateError', 'PASSKEY_EXISTS'], ['NotSupportedError', 'PASSKEY_UNSUPPORTED']] as const) {
+      const passkey: PasskeyAdapter = {
+        get: async () => Promise.reject(Object.assign(new Error('x'), { name })),
+        create: async () => Promise.reject(Object.assign(new Error('x'), { name })),
+      };
+      const { client, calls } = make(handlers, { passkey });
+      const error = await client.signInWithPasskey().then(() => null, (e: unknown) => e as StarryError);
+      assert.equal(error?.code, expected);
+      assert.equal(error?.cancelled, expected === 'PASSKEY_CANCELLED');
+      assert.equal(calls.some((c) => c.path === '/v1/auth/passkey'), false);
+    }
+  });
+
+  test('registering needs sign-in, then posts the attestation with the name', async () => {
+    const passkey: PasskeyAdapter = {
+      get: async () => ({ id: 'cred1', clientDataJSON: 'cd', authenticatorData: 'ad', signature: 'sig' }),
+      create: async () => ({ clientDataJSON: 'cd2', attestationObject: 'ao' }),
+    };
+    const { client, calls } = make(handlers, { passkey });
+    await assert.rejects(client.registerPasskey('我的手機'), (e: unknown) => e instanceof StarryError && e.code === 'NOT_SIGNED_IN');
+    assert.equal(calls.length, 0);
+    await client.signInWithPasskey();
+    await client.registerPasskey('我的手機');
+    assert.deepEqual(calls.at(-1)?.body, { clientDataJSON: 'cd2', attestationObject: 'ao', name: '我的手機' });
+    assert.equal(calls.at(-1)?.auth, 'Bearer access-1');
+  });
+});
+
+describe('start-up check', () => {
+  const config = (over: Record<string, unknown>) => () => Response.json({ app_id: 'clock', status: 'active', min_version: '1.2.0', config: { theme: 'dark' }, notices: [], ...over });
+
+  test('ok, maintenance, killed and update_required', async () => {
+    const run = async (over: Record<string, unknown>, version = '1.4.0') => (await make({ 'GET /v1/apps/clock/config': config(over) }).client.checkApp(version)).state;
+    assert.equal(await run({}), 'ok');
+    assert.equal(await run({ status: 'paused' }), 'maintenance');
+    assert.equal(await run({ status: 'killed' }), 'killed');
+    assert.equal(await run({}, '1.1.9'), 'update_required');
+    assert.equal(await run({ status: 'paused' }, '0.1.0'), 'maintenance', 'maintenance wins over update');
+  });
+
+  test('only announcements running right now are returned, with the remote config', async () => {
+    const { client } = make({
+      'GET /v1/apps/clock/config': config({
+        notices: [
+          { message: 'now', starts_at: NOW - 1000, ends_at: NOW + 1000 },
+          { message: 'later', starts_at: NOW + 1000, ends_at: NOW + 2000 },
+          { message: 'over', starts_at: NOW - 2000, ends_at: NOW - 1000 },
+        ],
+      }),
+    });
+    const gate = await client.checkApp('1.4.0');
+    assert.deepEqual(gate.notices.map((n) => n.message), ['now']);
+    assert.deepEqual(gate.config, { theme: 'dark' });
+    assert.equal(gate.minVersion, '1.2.0');
+  });
+
+  test('when Starry ID cannot be reached the state is "unreachable" (not an exception)', async () => {
+    const client = new StarryClient({ baseUrl: BASE, appId: 'clock', storage: memoryStorage(), fetch: async () => Promise.reject(new TypeError('offline')) });
+    assert.equal((await client.checkApp('1.0.0')).state, 'unreachable');
+  });
+
+  test('a server error is not hidden as "unreachable"', async () => {
+    const { client } = make({ 'GET /v1/apps/clock/config': () => fail(500, 'INTERNAL') });
+    await assert.rejects(client.checkApp('1.0.0'), (e: unknown) => e instanceof StarryError && e.status === 500);
+  });
+});

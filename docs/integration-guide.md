@@ -217,7 +217,7 @@ Google Client 由業主建立（步驟見 `docs/owner-setup.md` 第 11 步），
 
 1. **Battery 錯誤處理**：預留可能回 409 `BATTERY_APP_CAP`（這款 App 本月用量達上限）或 503 `SERVICE_UNAVAILABLE`（維護模式）；兩者都不得開始 AI 任務，並提示會員稍後再試（第 9 節）。
 2. **量子電池**：`GET /v1/me/battery` 多了 `quantum`；預留回應多了 `quantum_amount`、`quantum_charged`。先扣免費月額度，不足才扣這款 App 的量子電池，不過期、不跨 App。若這款 App 要販售，商品代碼與顆數由業主在後台設定，購買走 RevenueCat 一次性商品（`NON_RENEWING_PURCHASE`）（第 9 節）。
-3. **單檔 SDK**：App 後端可改用 `sdk/starry-sdk.ts` 取代自己寫的呼叫（附錄）。
+3. **單檔 SDK**：App 後端可改用 `sdk/starry-sdk.ts`、App 前端（手機與網頁）可改用 `sdk/starry-client.ts`，取代自己寫的呼叫（附錄）。
 4. **啟動與回到前景時讀取遠端設定**：`GET /v1/apps/{app_id}/config` 回傳 `status`、`min_version`、業主在後台設定的鍵值（內容公開，不放機密）與 `notices`（業主發布的公告，可指定這款 App 與時段，有內容時在 App 內顯示，只當純文字）。`status` 為 `paused` 可能是業主手動維護，也可能是用量暴增保護自動暫停（這款 App 每小時 Battery 預留次數超過上限），處理方式相同：顯示維護畫面，恢復由業主決定（第 1 節）。
 5. **驗證 Token 的金鑰**：App 後端要快取 `GET /.well-known/jwks.json`，遇到不認得的 `kid` 時重新抓取；金鑰輪替期間新舊兩把會同時有效。
 6. **刪除帳號**：立即永久刪除、沒有撤回期、不會自動取消商店訂閱（第 4 節）。App 內的說明文字要一致。
@@ -268,3 +268,23 @@ App 後端的 `wrangler.jsonc` 加一行綁定（正式環境的 Worker 名稱�
 ## 附錄：Starry SDK（App 後端用）
 
 單一檔案、無相依套件：[`sdk/starry-sdk.ts`](../sdk/starry-sdk.ts)，複製到 App 後端即可。包含 `me`、`battery`、`reserve`／`commit`／`release`、`withBattery`（預留→執行→成功扣款、失敗自動歸還）與 `directory`。服務金鑰只放在 App 後端的 Secret。
+
+## 附錄：Starry Client（App 前端用，手機與網頁）
+
+單一檔案、無相依套件：[`sdk/starry-client.ts`](../sdk/starry-client.ts)，複製到 App 前端即可（Expo／React Native 與網頁共用）。**不含任何金鑰**；Battery 服務金鑰只放 App 後端（`starry-sdk.ts`）。
+
+它包好的流程：
+
+| 需求 | 方法 |
+|---|---|
+| 啟動檢查 | `checkApp(版本)` → `ok`／`maintenance`／`killed`／`update_required`／`unreachable`，並回傳目前有效的公告與遠端設定（第 1 節） |
+| 還原登入 | `restore()`：有儲存的 Refresh Token 就換發；離線時保留登入 |
+| 登入（中繼） | 手機：`signInWithRelay('google' \| 'apple', { returnUrl })`；網頁：`beginRelayRedirect()` 後在回傳頁呼叫 `completeRelayRedirect()`（第 11.2、11.3 節；自動做 nonce 雜湊、核對 state、Apple 的 code 與 redirect_uri、清掉網址的結果） |
+| 登入（已有 ID Token） | `nonce()` 後 `signInWithIdToken()` |
+| Passkey | `signInWithPasskey()`、`registerPasskey()`、`listPasskeys()`、`removePasskey()`；網頁用內建 `webPasskeyAdapter()`，Expo 自己包 `react-native-passkey`（第 13 節）；取消會丟出 `cancelled` 為 true 的錯誤，不要顯示成錯誤 |
+| Token | Access Token 只放記憶體；Refresh Token 放你給的 `storage`（Expo：`expo-secure-store`；網頁：`sessionStorageAdapter()`）。換發同一時間只做一次，新 Refresh Token 立刻覆蓋舊的；401 自動換發並重試一次；被拒絕或重用就登出並通知 `onAuthChange` |
+| 帳號 | `me()`、`entitlements()`、`acceptConsent()`、`registerPushToken()`、`notificationPreferences()`、`signOut({ pushToken })`、`signOutEverywhere()`、`deleteAccount()`；其他 API 用 `request(method, path, body)` |
+
+Expo 需要自己提供的三樣：`storage`（SecureStore）、`sha256Hex`（`expo-crypto` 的 `digestStringAsync`）、`openAuthSession`（`expo-web-browser` 的 `openAuthSessionAsync`，成功時回傳最後的網址，取消回傳 `null`）。網頁版都有預設值。所有錯誤都是 `StarryError`（`status`、`code`、`requestId`，429 另有 `retryAfter`；`status` 為 0 表示連不上或流程在送出前就失敗）。
+
+套件的行為由 `test/unit/starry-client.test.ts` 保護（並發換發、重用判斷、中繼的 state 與 nonce、Passkey 取消、啟動檢查）。

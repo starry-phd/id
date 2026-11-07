@@ -7,8 +7,8 @@ const GUIDE_URL = 'https://raw.githubusercontent.com/starry-phd/id/main/docs/int
  * Version of the handoff text. Bump both whenever the text below changes (a unit test fails until you do),
  * so the Owner can tell at a glance whether the copy an App's AI received is the latest one.
  */
-export const HANDOFF_VERSION = '2026-11-07.7';
-export const HANDOFF_UPDATED = '2026-11-07 17:30（台灣時間）';
+export const HANDOFF_VERSION = '2026-11-07.8';
+export const HANDOFF_UPDATED = '2026-11-07 18:55（台灣時間）';
 
 function list(values: readonly string[]): string {
   return values.length === 0 ? '（無）' : values.join('、');
@@ -42,6 +42,7 @@ export function buildHandoff(app: AppEntry, origin: string, options: { battery: 
     '## 二、先讀這兩份文件',
     `- 串接說明：${GUIDE_URL}（登入第 2 節、網頁版與 Android 登入中繼第 11.2 與 11.3 節、API 與換發第 3 節、帳號功能第 4 節）`,
     `- API 契約（OpenAPI 3.1）：https://raw.githubusercontent.com/starry-phd/id/main/openapi/starry-id.v1.json（請用它產生型別，不要手寫）`,
+    '- App 前端單檔套件（手機與網頁都用）：https://raw.githubusercontent.com/starry-phd/id/main/sdk/starry-client.ts ，複製進 App 即可，沒有任何相依套件。登入中繼、Passkey、Token 儲存與換發（含並發鎖）、啟動檢查（維護／停用／需更新／公告）、帳號功能都已包好；不要自己重寫這些流程。用法在檔案開頭註解與串接說明附錄。',
     '',
     '## 三、要完成的事',
     `1. GitHub：在 starry-phd 組織建立 Repo「${id}」（已存在就沿用）。main 分支用 PR 合併、CI 全綠才可合併；不提交任何 token、金鑰、.env、Cloudflare 帳戶 ID。`,
@@ -92,7 +93,7 @@ export function buildHandoff(app: AppEntry, origin: string, options: { battery: 
     `以串接說明第 12 節為準（${GUIDE_URL}）。逐項檢查，已符合的略過，只補缺少或過時的：`,
     '1. Battery 預留的錯誤處理：409 BATTERY_APP_CAP（這款 App 本月用量達上限）與 503 SERVICE_UNAVAILABLE（維護模式）都不得開始 AI 任務，並提示會員稍後再試。',
     '2. 量子電池：GET /v1/me/battery 有 quantum 欄位；預留回應有 quantum_amount、quantum_charged；先扣免費月額度、不足才扣這款 App 的量子電池。要販售時商品與顆數由業主在後台設定，購買走 RevenueCat 一次性商品。',
-    '3. 改用單檔 SDK：https://raw.githubusercontent.com/starry-phd/id/main/sdk/starry-sdk.ts（取代自己寫的 Battery 與會員呼叫）。',
+    '3. 改用單檔 SDK：App 後端用 https://raw.githubusercontent.com/starry-phd/id/main/sdk/starry-sdk.ts（取代自己寫的 Battery 與會員呼叫）；App 前端（手機與網頁）用 https://raw.githubusercontent.com/starry-phd/id/main/sdk/starry-client.ts（取代自己寫的登入、Token 換發、啟動檢查與帳號呼叫）。',
     `4. 啟動時（以及每次回到前景）讀取 GET ${origin}/v1/apps/${id}/config：依 status 顯示維護或停用，低於 min_version 要求更新；其中的設定鍵值是公開內容，不放機密。status 變成 paused 有兩種原因：業主手動維護，或用量暴增保護自動暫停（這款 App 每小時 Battery 預留次數超過業主設定的上限），兩者處理方式相同：顯示維護畫面、不要自行重試轟炸，恢復由業主決定。`,
     '   - config 回應的 notices 是業主發布的公告（可指定這款 App 與時段，starts_at／ends_at 為毫秒時間戳）：有內容時在 App 內顯示（橫幅或可關閉的對話框），沒有就不顯示；公告文字只當純文字顯示，不要當 HTML 解析。',
     '5. 驗證 Token：快取 JWKS，遇到不認得的 kid 就重新抓取（金鑰輪替期間新舊並存）。',
