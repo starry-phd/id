@@ -12,6 +12,7 @@ import { background, readProviderRequest, verifyProviderRequest } from '../auth/
 import { rememberAppleToken } from '../identity/apple';
 import { listActiveSessions, logoutEverywhere, revokeAppSessions, revokeOwnSession } from '../identity/devices';
 import { importProviderAvatar, r2Store, rememberProviderPhoto } from '../identity/avatars';
+import { seedProfileFromGoogle } from '../identity/google-seed';
 import { linkIdentity, type LinkResult } from '../identity/link';
 import { completeMerge, findMergeCandidate, type MergeBlocker } from '../identity/merge';
 import { acceptConsents, consentRequired } from '../identity/members';
@@ -240,7 +241,10 @@ accountApp.post('/link', async (c) => {
     );
     if (pending) await pending;
   }
-  if (outcome === 'linked') await rememberProviderPhoto(db, identity.subject, identity.picture);
+  if (outcome === 'linked') {
+    await rememberProviderPhoto(db, identity.subject, identity.picture);
+    await seedProfileFromGoogle(db, identity.subject, identity, now);
+  }
   if (outcome === 'linked' && identity.picture && c.env.AVATARS) {
     // A member without an avatar (for example one who registered with Apple) gets the Google photo once Google is linked.
     const photo = background(c, importProviderAvatar(db, r2Store(c.env.AVATARS), (url, init) => fetch(url, init), { userId: web.userId, url: identity.picture, appId: WEB_APP_ID, requestId }, now));

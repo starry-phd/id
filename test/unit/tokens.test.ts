@@ -32,7 +32,13 @@ describe('verifyIdToken (S-ID-01)', () => {
     const { apple, google, env } = await setup();
     const g = await signJwt(google, idTokenClaims('google', { sub: 'g1', nonce: 'n'.repeat(32), email: 'a@example.com', now: NOW }));
     const id = await verifyIdToken(env, 'google', g, { audiences: [GOOGLE_AUDIENCE], nonce: 'n'.repeat(32), now: NOW });
-    assert.deepEqual(id, { provider: 'google', subject: 'g1', audience: GOOGLE_AUDIENCE, email: 'a@example.com', emailVerified: true, isPrivateRelay: false, picture: null });
+    assert.deepEqual(id, { provider: 'google', subject: 'g1', audience: GOOGLE_AUDIENCE, email: 'a@example.com', emailVerified: true, isPrivateRelay: false, picture: null, name: null, locale: null });
+    const named = await signJwt(google, idTokenClaims('google', { sub: 'g2', nonce: 'n'.repeat(32), email: 'b@example.com', name: '  王小明 ', locale: 'ja', now: NOW }));
+    const nid = await verifyIdToken(env, 'google', named, { audiences: [GOOGLE_AUDIENCE], nonce: 'n'.repeat(32), now: NOW });
+    assert.equal(nid?.name, '王小明');
+    assert.equal(nid?.locale, 'ja');
+    const split = await signJwt(google, idTokenClaims('google', { sub: 'g3', nonce: 'n'.repeat(32), family_name: '王', given_name: '小明', now: NOW }));
+    assert.equal((await verifyIdToken(env, 'google', split, { audiences: [GOOGLE_AUDIENCE], nonce: 'n'.repeat(32), now: NOW }))?.name, '王 小明');
     const a = await signJwt(apple, idTokenClaims('apple', { sub: 'a1', nonce: sha256Hex('m'.repeat(32)), email: 'x@privaterelay.appleid.com', is_private_email: 'true', now: NOW }));
     const aid = await verifyIdToken(env, 'apple', a, { audiences: ['phd.starry.echo'], nonce: 'm'.repeat(32), now: NOW });
     assert.equal(aid?.isPrivateRelay, true);

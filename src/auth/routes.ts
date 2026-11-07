@@ -7,6 +7,7 @@ import type { AppBindings } from '../env';
 import { rememberAppleToken } from '../identity/apple';
 import { logoutEverywhere } from '../identity/devices';
 import { importProviderAvatar, r2Store, rememberProviderPhoto } from '../identity/avatars';
+import { seedProfileFromGoogle } from '../identity/google-seed';
 import { consentRequired, findOrCreateMember } from '../identity/members';
 import { consumeNonce, issueNonce, NONCE_TTL_MS } from '../identity/nonces';
 import { WEB_APP_ID } from '../identity/web-sessions';
@@ -181,6 +182,7 @@ async function signIn(c: Ctx, provider: Provider, body: z.infer<typeof SignInReq
     auditStatement(db, { actorType: 'user', actorUserId: member.user_id, action: `auth.login.${provider}`, targetType: 'session', targetId: sessionId, appId: app.app_id, result: 'success', requestId, retention: 'security' }, now),
   ]);
   await rememberProviderPhoto(db, identity.subject, identity.picture);
+  await seedProfileFromGoogle(db, identity.subject, identity, now);
   if (isNew && identity.picture && c.env.AVATARS) {
     const photo = background(c, importProviderAvatar(db, r2Store(c.env.AVATARS), (url, init) => fetch(url, init), { userId: member.user_id, url: identity.picture, appId: app.app_id, requestId }, now));
     if (photo) await photo;

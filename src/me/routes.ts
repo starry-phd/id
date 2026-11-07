@@ -13,6 +13,7 @@ import type { AppBindings } from '../env';
 import { rememberAppleToken } from '../identity/apple';
 import { initialsOf } from '../identity/initials';
 import { importProviderAvatar, MAX_AVATAR_BYTES, r2Store, rememberProviderPhoto, removeAvatar, setAvatar, signedAvatarPath } from '../identity/avatars';
+import { seedProfileFromGoogle } from '../identity/google-seed';
 import { cleanupAfterDeletion } from '../identity/erase';
 import { deleteMemberNow } from '../identity/lifecycle';
 import { linkIdentity } from '../identity/link';
@@ -395,7 +396,10 @@ async function link(c: Context<AppBindings>, provider: Provider, body: z.infer<t
     );
     if (pending) await pending;
   }
-  if (outcome === 'linked' || outcome === 'merged') await rememberProviderPhoto(c.env.DB_IDENTITY, verified.identity.subject, verified.identity.picture);
+  if (outcome === 'linked' || outcome === 'merged') {
+    await rememberProviderPhoto(c.env.DB_IDENTITY, verified.identity.subject, verified.identity.picture);
+    await seedProfileFromGoogle(c.env.DB_IDENTITY, verified.identity.subject, verified.identity, now);
+  }
   if ((outcome === 'linked' || outcome === 'merged') && verified.identity.picture && c.env.AVATARS) {
     // A member without an avatar (for example one who registered with Apple) gets the Google photo once Google is linked.
     const photo = background(c, importProviderAvatar(c.env.DB_IDENTITY, r2Store(c.env.AVATARS), (url, init) => fetch(url, init), { userId, url: verified.identity.picture, appId, requestId }, now));
