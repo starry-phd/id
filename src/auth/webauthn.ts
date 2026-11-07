@@ -78,6 +78,8 @@ const FLAG_AT = 0x40;
 
 export interface ExpectedOrigin {
   origin: string;
+  /** Further accepted origins: an App's web pages (related origins) and Android apps (android:apk-key-hash:…). */
+  extraOrigins?: readonly string[];
   rpId: string;
 }
 
@@ -94,7 +96,8 @@ export interface ClientData {
 /** Reads clientDataJSON and checks type and origin; the caller consumes the challenge it returns. */
 export function readClientData(clientDataJSON: string, expectedType: 'webauthn.create' | 'webauthn.get', expected: ExpectedOrigin): ClientData | null {
   const data = parseBase64urlJson(clientDataJSON);
-  if (!data || data.type !== expectedType || typeof data.challenge !== 'string' || data.origin !== expected.origin) return null;
+  if (!data || data.type !== expectedType || typeof data.challenge !== 'string') return null;
+  if (data.origin !== expected.origin && !(typeof data.origin === 'string' && expected.extraOrigins?.includes(data.origin))) return null;
   if (data.crossOrigin === true) return null;
   return { type: expectedType, challenge: data.challenge };
 }

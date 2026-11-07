@@ -221,7 +221,30 @@ Google Client 由業主建立（步驟見 `docs/owner-setup.md` 第 11 步），
 5. **驗證 Token 的金鑰**：App 後端要快取 `GET /.well-known/jwks.json`，遇到不認得的 `kid` 時重新抓取；金鑰輪替期間新舊兩把會同時有效。
 6. **刪除帳號**：立即永久刪除、沒有撤回期、不會自動取消商店訂閱（第 4 節）。App 內的說明文字要一致。
 7. **隱私權政策與條款**：版本更新後，登入回應的 `consent_required` 為 true 時要顯示同意流程。
-8. **不需要 App 處理的新功能**：Passkey（只在網頁帳號中心）、邀請碼（會員在 `https://id.starry.phd/account` 輸入兌換，獲得這款 App 的免費量子電池）、公告與維護模式、資料匯出，App 不用實作；需要時導向網頁帳號中心即可。
+8. **Passkey（2026-11-07 起，每款 App 都要有）**：登入頁（iOS、Android、網頁）提供「使用 Passkey 登入」，設定頁能新增、列出、移除 Passkey，做法見第 13 節。
+9. **不需要 App 處理的新功能**：邀請碼（會員在 `https://id.starry.phd/account` 輸入兌換，獲得這款 App 的免費量子電池）、公告與維護模式（由後台設定，App 照 `status` 顯示即可）、資料匯出。
+
+## 13. Passkey（每款 App 的登入頁與設定頁）
+
+Passkey 屬於 Starry ID：relying party ID 是 Starry ID 網址的主機名稱（正式環境 `id.starry.phd`），所以會員在帳號中心或任何一款 App 建立的 Passkey，在所有 App 都能用（跨裝置同步由系統的 Google 密碼管理工具或 iCloud 鑰匙圈負責）。Passkey 只是額外的登入方式，不能取代 Apple／Google，也不會建立新會員。
+
+**登入（不需要先登入）**
+1. `POST /v1/auth/passkey/options`，body `{"app_id"}` → `publicKey`（`challenge`、`rpId`、`userVerification: required`、`allowCredentials: []`）。challenge 單次有效、10 分鐘、綁定這款 App。
+2. 交給系統的 Passkey 功能簽署（iOS：`ASAuthorizationPlatformPublicKeyCredentialProvider`；Android：Credential Manager；網頁：`navigator.credentials.get`；Expo 可用 `react-native-passkey`，需要 development build）。`rpId` 一律用回傳值，不是 App 自己的網域。
+3. `POST /v1/auth/passkey`，body `{app_id, id, clientDataJSON, authenticatorData, signature, device_label?}`（全部 base64url）→ 與 Apple／Google 登入相同的回應（`access_token`、`refresh_token`、`user`、`consent_required`）。停權回 403 `ACCOUNT_SUSPENDED`；簽章、挑戰或來源不對回 401。
+
+**新增、列出、移除（需要登入）**
+- `POST /v1/me/passkeys/options` → 建立選項。需要 10 分鐘內登入過，否則 403 `REAUTH_REQUIRED`，請會員重新登入再試。
+- `POST /v1/me/passkeys`，body `{clientDataJSON, attestationObject, name?}` → 201。每位會員最多 10 把（409）。
+- `GET /v1/me/passkeys`、`DELETE /v1/me/passkeys/{id}`。
+
+**平台設定（業主在 Admin Lite「編輯登記資料」填，Starry ID 自動產生驗證檔）**
+- iOS：填 Apple Team ID；App 的 `app.json` 加 `ios.associatedDomains: ["webcredentials:id.starry.phd"]`。驗證檔：`/.well-known/apple-app-site-association`。
+- Android：填簽章憑證 SHA-256 指紋（上架後從 Play Console「應用程式簽署」複製；本機測試用 debug 憑證指紋）。驗證檔：`/.well-known/assetlinks.json`。
+- 網頁：App 的網頁來源已列在 `/.well-known/webauthn`（WebAuthn 相關來源），Chrome 128、Safari 18 以上可直接使用；先判斷 `window.PublicKeyCredential`，不支援時只顯示 Apple／Google 登入。
+- 沒填 Team ID／指紋之前，iOS／Android 的 Passkey 會失敗（網頁版不受影響）；請把這件事列入回報給業主的清單。
+
+**錯誤處理**：使用者取消不要顯示錯誤；`InvalidStateError` 表示這支裝置已經有這把 Passkey；找不到 Passkey 時引導改用 Apple 或 Google 登入。
 
 ## 附錄：Starry SDK（App 後端用）
 

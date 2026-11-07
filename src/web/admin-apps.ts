@@ -48,7 +48,7 @@ ${appRegistry.values().filter((app) => app.app_id !== WEB_APP_ID).map((app) => {
 
 /** True when any advanced field already has a value, so the section opens by itself. */
 function advancedFilled(values: AppForm): boolean {
-  return [values.ios_bundle_id, values.android_package, values.web_origins, values.scheme, values.return_urls, values.min_version, values.extra_apple_audiences, values.extra_google_audiences].some((v) => (v ?? '').trim() !== '');
+  return [values.ios_bundle_id, values.android_package, values.web_origins, values.scheme, values.return_urls, values.min_version, values.ios_team_id, values.android_cert_sha256, values.extra_apple_audiences, values.extra_google_audiences].some((v) => (v ?? '').trim() !== '');
 }
 
 function appForm(c: WebContext, mode: 'create' | 'update', values: AppForm, message?: string): Response | Promise<Response> {
@@ -70,6 +70,8 @@ ${message ? html`<div class="banner danger">${message}</div>` : ''}
 <label for="scheme">App 深層連結 scheme（留空＝自動：app_id）</label><input id="scheme" name="scheme" value="${values.scheme ?? ''}">
 <label for="return_urls">額外的深層連結回傳網址（每行一個，留空＝自動）</label><textarea id="return_urls" name="return_urls" rows="2">${values.return_urls ?? ''}</textarea>
 <label for="min_version">最低版本（留空＝0.0.0）</label><input id="min_version" name="min_version" value="${values.min_version ?? ''}" pattern="\d+\.\d+\.\d+">
+<label for="ios_team_id">Apple Team ID（10 碼英數；讓 iOS 版 App 能使用 Starry Passkey，之後再填也可以）</label><input id="ios_team_id" name="ios_team_id" value="${values.ios_team_id ?? ''}" maxlength="10" pattern="[A-Za-z0-9]{10}">
+<label for="android_cert_sha256">Android 簽章憑證 SHA-256 指紋（每行一個，格式 AA:BB:…；讓 Android 版 App 能使用 Starry Passkey，上架後從 Play Console 的「應用程式簽署」複製）</label><textarea id="android_cert_sha256" name="android_cert_sha256" rows="2">${values.android_cert_sha256 ?? ''}</textarea>
 <label for="extra_apple_audiences">額外的 Apple 登入對象（每行一個，改用原生登入才需要）</label><textarea id="extra_apple_audiences" name="extra_apple_audiences" rows="2">${values.extra_apple_audiences ?? ''}</textarea>
 <label for="extra_google_audiences">額外的 Google 用戶端 ID（每行一個，改用原生登入才需要）</label><textarea id="extra_google_audiences" name="extra_google_audiences" rows="2">${values.extra_google_audiences ?? ''}</textarea>
 </details>
@@ -91,6 +93,8 @@ function formFromEntry(app: AppEntry): AppForm {
     web_origins: app.web_origins.join('\n'),
     return_urls: app.return_urls.join('\n'),
     min_version: app.min_version,
+    ios_team_id: app.ios_team_id ?? '',
+    android_cert_sha256: app.android_cert_sha256.join('\n'),
     extra_apple_audiences: app.auth.apple.filter((a) => !sharedApple.has(a)).join('\n'),
     extra_google_audiences: app.auth.google.filter((a) => !sharedGoogle.has(a)).join('\n'),
   };

@@ -19,12 +19,18 @@ export interface AppEntry {
   web_origins: readonly string[];
   /** App deep links the sign-in relay may return to (Android), e.g. echostarry://auth/apple. */
   return_urls: readonly string[];
+  /** Apple Developer Team ID; with ios_bundle_id it lets the iOS App use Starry Passkeys (apple-app-site-association). */
+  ios_team_id: string | null;
+  /** SHA-256 fingerprints of the Android signing certificates (AA:BB:…); with android_package they allow Passkeys (assetlinks.json). */
+  android_cert_sha256: readonly string[];
 }
 
 const APP_ID = /^[a-z][a-z0-9-]{1,31}$/;
 const SEMVER = /^\d+\.\d+\.\d+$/;
 const STATUSES: readonly AppStatus[] = ['active', 'paused', 'killed'];
 const SCOPE = /^[a-z]+:[a-z]+$/;
+const TEAM_ID = /^[A-Z0-9]{10}$/;
+const CERT_SHA256 = /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/;
 const AUDIENCE = /^[A-Za-z0-9._:-]{1,200}$/;
 const WEB_ORIGIN = /^https:\/\/[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+(:\d{1,5})?$/;
 // Custom-scheme deep links only, so the relay can never send tokens to a web page.
@@ -46,6 +52,12 @@ function patternList(value: unknown, pattern: RegExp, field: string, appId: stri
     throw new Error(`App registry: ${appId}.${field} has an invalid entry`);
   }
   return Object.freeze([...(value as string[])]);
+}
+
+function teamId(value: unknown, appId: string): string | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value === 'string' && TEAM_ID.test(value)) return value;
+  throw new Error(`App registry: ${appId}.ios_team_id must be the 10-character Apple Team ID`);
 }
 
 function audiences(value: unknown, field: string, appId: string): readonly string[] {
@@ -90,6 +102,8 @@ export function parseApp(item: unknown): AppEntry {
     }),
     web_origins: patternList(item.web_origins, WEB_ORIGIN, 'web_origins', id),
     return_urls: patternList(item.return_urls, RETURN_URL, 'return_urls', id),
+    ios_team_id: teamId(item.ios_team_id, id),
+    android_cert_sha256: patternList(item.android_cert_sha256, CERT_SHA256, 'android_cert_sha256', id),
   });
 }
 

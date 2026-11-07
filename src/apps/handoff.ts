@@ -6,8 +6,8 @@ const GUIDE_URL = 'https://raw.githubusercontent.com/starry-phd/id/main/docs/int
  * Version of the handoff text. Bump both whenever the text below changes (a unit test fails until you do),
  * so the Owner can tell at a glance whether the copy an App's AI received is the latest one.
  */
-export const HANDOFF_VERSION = '2026-11-07.3';
-export const HANDOFF_UPDATED = '2026-11-07 11:30（台灣時間）';
+export const HANDOFF_VERSION = '2026-11-07.4';
+export const HANDOFF_UPDATED = '2026-11-07 14:00（台灣時間）';
 
 function list(values: readonly string[]): string {
   return values.length === 0 ? '（無）' : values.join('、');
@@ -30,6 +30,8 @@ export function buildHandoff(app: AppEntry, origin: string, options: { battery: 
     `- 名稱：${app.name}`,
     `- iOS Bundle ID：${app.ios_bundle_id ?? '（無）'}`,
     `- Android package：${app.android_package ?? '（無）'}`,
+    `- Apple Team ID（Passkey 用，由業主在 Admin Lite 填寫）：${app.ios_team_id ?? '（業主尚未填寫）'}`,
+    `- Android 簽章憑證 SHA-256 指紋（Passkey 用，由業主在 Admin Lite 填寫）：${app.android_cert_sha256.length > 0 ? `已填 ${app.android_cert_sha256.length} 組` : '（業主尚未填寫）'}`,
     `- 網頁版來源（CORS 與登入回傳網址）：${list(app.web_origins)}`,
     `- App 深層連結回傳網址：${list(app.return_urls)}`,
     `- 最低版本：${app.min_version}`,
@@ -49,6 +51,13 @@ export function buildHandoff(app: AppEntry, origin: string, options: { battery: 
     '   - iOS 與 Android：用 expo-web-browser 的 openAuthSessionAsync 開啟中繼網址，回傳網址用上面登記的深層連結；App 的 app.json 要宣告對應的 scheme。',
     '   - 網頁版：整頁導向中繼網址，回傳網址用網頁版來源底下的網址。',
     '   - 回傳網址必須是上面登記的深層連結，或網頁來源底下的網址；沒登記過的網址會被拒絕。',
+    '   - Passkey（必做）：登入頁除了 Apple、Google，一定要再提供「使用 Passkey 登入」按鈕，iOS、Android（App Store、Google Play 的手機版）與網頁版都要有。Passkey 屬於 Starry ID：relying party ID 就是 Starry ID 網址的主機名稱（id.starry.phd），所以會員在任何一款 App 或帳號中心建立的 Passkey，在所有 App 都能用。',
+    `   - 登入：POST ${origin}/v1/auth/passkey/options {"app_id":"${id}"} 取得 publicKey（含 challenge、rpId），交給系統的 Passkey 功能簽署，再 POST ${origin}/v1/auth/passkey，body 為 {app_id, id, clientDataJSON, authenticatorData, signature, device_label}，回應與 Apple／Google 登入相同（Token、user、consent_required）。options 的 challenge 單次有效、綁定這款 App。`,
+    '   - iOS 與 Android 用同一個套件（建議 react-native-passkey，需要 Expo development build，不能用 Expo Go）：Passkey.get / Passkey.create 的 rpId 一律用 options 回傳的 rpId（id.starry.phd），不是這款 App 自己的網域。iOS 要在 app.json 的 ios.associatedDomains 加上 webcredentials:id.starry.phd。Android 不必改程式設定。',
+    '   - 網頁版：用 navigator.credentials.get / create，publicKey 直接用 options 回傳的內容（challenge 要從 base64url 轉成 ArrayBuffer，rpId 保持 id.starry.phd）；網頁來源已登記在 Starry ID 的 /.well-known/webauthn（相關來源），瀏覽器支援時可直接使用；先判斷 window.PublicKeyCredential 存在才顯示按鈕，不支援時只顯示 Apple／Google。',
+    `   - 業主要在 Admin Lite 的「編輯登記資料」填入 Apple Team ID 與 Android 簽章憑證 SHA-256 指紋（上架後從 Play Console 的「應用程式簽署」複製），Starry ID 會自動產生 Apple 與 Google 要求的網域驗證檔（${origin}/.well-known/apple-app-site-association、${origin}/.well-known/assetlinks.json）；沒填之前 iOS／Android 的 Passkey 不會成功，網頁版不受影響。請把這件事列入回報給業主的清單。`,
+    `   - 新增 Passkey（設定頁放「新增 Passkey」「我的 Passkey」）：POST ${origin}/v1/me/passkeys/options（帶 Access Token；需要 10 分鐘內登入過，否則回 403 REAUTH_REQUIRED，請會員重新登入）→ Passkey.create → POST ${origin}/v1/me/passkeys {clientDataJSON, attestationObject, name}。列出 GET /v1/me/passkeys，移除 DELETE /v1/me/passkeys/{id}。每位會員最多 10 把；Passkey 只是額外的登入方式，不能取代 Apple／Google，也不會建立新會員。`,
+    '   - 錯誤處理：使用者取消不要顯示錯誤；InvalidStateError（這支裝置已有這把 Passkey）請白話說明；找不到 Passkey 時引導改用 Apple 或 Google 登入。',
     '4. 會員身分只用 Starry 的 user_id（內部以 provider＋sub 辨識，不用 Email 或姓名合併）。App 後端用 GET /.well-known/jwks.json 驗證 Access Token。',
     '5. App 內必須提供串接說明第 4 節的帳號功能（登出、刪除帳號、同意條款等）。',
     '6. 需要販售（RevenueCat）時，才依串接說明第 5 節處理；需要業主設定的項目，請列成清單回報給業主。',
@@ -85,7 +94,7 @@ export function buildHandoff(app: AppEntry, origin: string, options: { battery: 
     '5. 驗證 Token：快取 JWKS，遇到不認得的 kid 就重新抓取（金鑰輪替期間新舊並存）。',
     '6. 刪除帳號：立即永久刪除、沒有撤回期、不會自動取消商店訂閱；App 內說明文字要一致。',
     '7. 條款與隱私權政策有新版本：consent_required 為 true 時顯示同意流程。',
-    '8. 不需要實作：Passkey（只在網頁帳號中心）、邀請碼（會員在 https://id.starry.phd/account 兌換，取得這款 App 的免費量子電池）、公告與維護模式、資料匯出。',
+    '8. Passkey：登入頁（iOS、Android、網頁）要有「使用 Passkey 登入」，設定頁要能新增、列出、移除 Passkey，做法見「三、3」。其餘不需要實作：邀請碼（會員在 https://id.starry.phd/account 兌換，取得這款 App 的免費量子電池）、公告與維護模式、資料匯出。',
     '9. 檢查完回報：每一項是「已符合」或「已補上（PR 連結）」，以及需要業主處理的事項。',
   ];
   return lines.filter((line, i) => !(line === '' && lines[i - 1] === '')).join('\n');

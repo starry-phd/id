@@ -56,6 +56,8 @@ export interface AppForm {
   extra_apple_audiences?: string;
   extra_google_audiences?: string;
   min_version?: string;
+  ios_team_id?: string;
+  android_cert_sha256?: string;
 }
 
 function lines(value: string | undefined): string[] {
@@ -102,6 +104,8 @@ export function definitionFromForm(form: AppForm, options: { defaults?: boolean 
     },
     web_origins: webOrigins,
     return_urls: unique(returnUrls),
+    ios_team_id: (form.ios_team_id ?? '').trim().toUpperCase() || null,
+    android_cert_sha256: unique(lines(form.android_cert_sha256).map((v) => v.toUpperCase())),
   };
   try {
     return { ok: true, app: parseApp(definition) };
@@ -123,6 +127,8 @@ function serialize(app: AppEntry): string {
     auth: { apple_audiences: app.auth.apple, google_audiences: app.auth.google },
     web_origins: app.web_origins,
     return_urls: app.return_urls,
+    ios_team_id: app.ios_team_id,
+    android_cert_sha256: app.android_cert_sha256,
   });
 }
 
