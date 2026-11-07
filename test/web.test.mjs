@@ -318,6 +318,12 @@ describe('web account center, support form and Admin Lite', () => {
     const revenue = await worker.call('/admin/revenue?days=90', get(adminCookie));
     assert.equal(revenue.status, 200);
     assert.match(await revenue.text(), /測試購買/);
+    const apps = await (await worker.call('/admin/apps', get(adminCookie))).text();
+    assert.match(apps, /一鍵暫停/);
+    assert.match(apps, /本月 Battery/);
+    const detail2 = await (await worker.call(`/admin/members/${target}`, get(adminCookie))).text();
+    assert.match(detail2, /id="apps">用過的 App/);
+    assert.match(detail2, /id="subs">訂閱與權益/);
     const grant = await worker.call(`/admin/members/${target}/grants`, form({ app_id: 'recordnote', entitlement: 'pro', expires: '2099-01-01', reason: '補償測試' }, adminCookie));
     assert.match(await grant.text(), /已補發權益/);
     assert.equal(await worker.billing.prepare('SELECT COUNT(*) AS n FROM entitlement_grants WHERE user_id = ?').bind(target).first('n'), 1);

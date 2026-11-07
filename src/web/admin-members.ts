@@ -174,8 +174,10 @@ export async function memberPage(c: WebContext, actor: StaffActor, userId: strin
   const canModerate = hasRole(actor.role, 'admin') && m.role !== 'owner' && m.user_id !== actor.userId;
   const canAdjust = hasRole(actor.role, 'admin') && m.user_id !== actor.userId;
   const appManaged = actor.role === 'owner' ? await listAppStaffApps(c.env.DB_IDENTITY, m.user_id) : [];
-  const [balance, grants, quantum, ledger, sessions, tickets] = await Promise.all([
+  const [balance, usedApps, subs, grants, quantum, ledger, sessions, tickets] = await Promise.all([
     getBalance(c.env.DB_BATTERY, m.user_id, now),
+    db.prepare('SELECT app_id, first_seen_at, last_seen_at FROM member_apps WHERE user_id = ? ORDER BY COALESCE(last_seen_at, first_seen_at) DESC').bind(m.user_id).all<{ app_id: string; first_seen_at: number; last_seen_at: number | null }>(),
+    c.env.DB_BILLING.prepare('SELECT app_id, entitlement, expires_at, store, environment FROM entitlements WHERE user_id = ? AND active = 1 AND (expires_at IS NULL OR expires_at > ?) ORDER BY app_id, entitlement').bind(m.user_id, now).all<{ app_id: string; entitlement: string; expires_at: number | null; store: string | null; environment: string | null }>(),
     listGrants(c.env.DB_BILLING, m.user_id, now),
     listQuantum(c.env.DB_BATTERY, m.user_id),
     staffLedger(c.env.DB_BATTERY, m.user_id, 10),
@@ -208,7 +210,15 @@ ${message ? html`<div class="banner">${message}</div>` : ''}
 <details><summary>內部 ID（UUID）</summary><p><code>${m.user_id}</code> ${copy(m.user_id, '複製')}</p></details>
 <p><a href="/admin/audit?member=${m.user_id}">查看此會員的稽核紀錄</a></p>
 </div>
-<p class="muted">快速跳到：<a href="#devices">登入裝置</a> ｜ <a href="#tickets">客服單</a> ｜ <a href="#battery">Battery</a> ｜ <a href="#quantum">量子電池</a> ｜ <a href="#actions">管理動作</a></p>
+<p class="muted">快速跳到：<a href="#apps">用過的 App</a> ｜ <a href="#subs">訂閱與權益</a> ｜ <a href="#devices">登入裝置</a> ｜ <a href="#tickets">客服單</a> ｜ <a href="#battery">Battery</a> ｜ <a href="#quantum">量子電池</a> ｜ <a href="#grants">補發權益</a> ｜ <a href="#actions">管理動作</a></p>
+<h2 id="apps">用過的 App</h2>
+<div class="card">${usedApps.results.length > 0
+  ? html`<table><thead><tr><th>App</th><th>第一次使用</th><th>最後使用</th></tr></thead><tbody>${usedApps.results.map((a) => html`<tr><td><code>${a.app_id}</code></td><td>${formatTime(a.first_seen_at)}</td><td>${a.last_seen_at ? formatTime(a.last_seen_at) : '—'}</td></tr>`)}</tbody></table>`
+  : html`<p class="muted">還沒有使用過任何 App。</p>`}</div>
+<h2 id="subs">訂閱與權益（商店購買）</h2>
+<div class="card">${subs.results.length > 0
+  ? html`<table><thead><tr><th>App</th><th>權益</th><th>到期</th><th>商店</th></tr></thead><tbody>${subs.results.map((s) => html`<tr><td><code>${s.app_id}</code></td><td><code>${s.entitlement}</code></td><td>${s.expires_at === null ? '買斷／無期限' : formatTime(s.expires_at)}</td><td>${s.store ?? '—'}${s.environment === 'SANDBOX' ? '（測試）' : ''}</td></tr>`)}</tbody></table>`
+  : html`<p class="muted">沒有有效的商店訂閱或買斷。客服補發的權益在下方「補發權益」。</p>`}</div>
 <h2 id="devices">登入中的裝置</h2>
 <div class="card">
 ${sessions.results.length > 0
