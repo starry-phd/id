@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 import { APPLE_AUDIENCE, authBindings, GOOGLE_AUDIENCE, idTokenClaims, signJwt } from './auth-fixtures.mjs';
 import { startWorker } from './helpers.mjs';
+import { softPasskey } from './passkey-fixtures.mjs';
 
 const ORIGIN = 'https://api.test';
 const WEB_APPLE_AUDIENCE = 'phd.starry.id.web';
@@ -104,6 +105,39 @@ describe('web account center, support form and Admin Lite', () => {
     assert.equal(data.login_methods[0].email, 'export-user@example.com');
     assert.ok(Array.isArray(data.battery_history));
     assert.doesNotMatch(text, /avatar_key|subject|session_id|token/);
+  });
+
+  test('a member adds a passkey and signs in with it; replays and unknown keys are refused', async () => {
+    const cookie = await webSignIn('passkey-user');
+    const json = (path, body, withCookie = true) => worker.call(path, { method: 'POST', headers: { 'content-type': 'application/json', origin: ORIGIN, ...(withCookie ? { cookie } : {}) }, body: JSON.stringify(body ?? {}) });
+    const key = await softPasskey(ORIGIN, 'api.test');
+
+    assert.equal((await json('/account/passkey/register-options', {}, false)).status, 401);
+    const options = (await (await json('/account/passkey/register-options')).json()).publicKey;
+    assert.equal(options.rp.id, 'api.test');
+    assert.equal(options.authenticatorSelection.userVerification, 'required');
+    const registered = await json('/account/passkey/register', { name: 'Test phone', ...key.register(options.challenge) });
+    assert.equal(registered.status, 200);
+    assert.equal((await json('/account/passkey/register', { ...key.register(options.challenge) })).status, 400, 'a challenge works once');
+    assert.match(await (await worker.call('/account', get(cookie))).text(), /Test phone/);
+
+    const login = async (signer = key, challengeOverride) => {
+      const o = (await (await json('/account/passkey/login-options', {}, false)).json()).publicKey;
+      return json('/account/passkey/login', await signer.sign(challengeOverride ?? o.challenge), false);
+    };
+    const ok = await login();
+    assert.equal(ok.status, 200);
+    const setCookie = ok.headers.get('set-cookie') ?? '';
+    assert.match(setCookie, /__Host-/);
+    const session = setCookie.split(';')[0];
+    assert.match(await (await worker.call('/account', get(session))).text(), /我的帳號/);
+
+    assert.equal((await login(await softPasskey(ORIGIN, 'api.test'))).status, 401, 'an unregistered passkey');
+    assert.equal((await login(key, Buffer.from('not-a-real-nonce').toString('base64url'))).status, 401, 'a made-up challenge');
+
+    const removed = await worker.call(`/account/passkey/${key.id}/remove`, form({}, cookie));
+    assert.equal(removed.status, 303);
+    assert.equal((await login()).status, 401, 'a removed passkey cannot sign in');
   });
 
   test('cookie writes without a same-site Origin are refused', async () => {
