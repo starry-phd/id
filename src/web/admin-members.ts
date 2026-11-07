@@ -64,7 +64,7 @@ adminApp.get('/', async (c) => {
     adminPage(
       c,
       'Admin Lite',
-      html`<h1>Admin Lite</h1><p class="muted">你的角色：${ROLE_LABELS[actor.role]} ｜ <a href="/admin/notices">公告與維護模式</a></p>
+      html`<h1>Admin Lite</h1><p class="muted">你的角色：${ROLE_LABELS[actor.role]} ｜ <a href="/admin/notices">公告與維護模式</a> ｜ <a href="/admin/broadcast">全 App 推播</a></p>
 <div class="card" style="display:flex;gap:16px;flex-wrap:wrap">${lights.map((l: Light) => html`<div style="min-width:130px"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:middle;background:${l.color === 'green' ? '#2e9e4f' : l.color === 'yellow' ? '#e0a800' : '#d32f2f'}"></span> <strong>${l.label}</strong><br><span class="muted">${l.text}</span></div>`)}</div>
 ${problems > 0 ? html`<div class="banner danger">有 ${problems} 項系統狀況需要注意，請看下方「系統狀態」。</div>` : ''}
 <div class="card"><p>會員總數：<strong>${count(members)}</strong>（近 24 小時新增 <strong>${count(today)}</strong>）</p><p>未結客服單：<strong>${count(open)}</strong></p></div>

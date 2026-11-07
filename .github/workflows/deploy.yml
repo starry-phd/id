@@ -52,7 +52,7 @@ jobs:
       - name: Ensure queues (staging)
         if: steps.gate.outputs.enabled == 'true'
         run: |
-          for q in starry-cleanup-staging starry-cleanup-dlq-staging; do
+          for q in starry-cleanup-staging starry-cleanup-dlq-staging starry-notify-staging starry-notify-dlq-staging; do
             npx wrangler queues create "$q" 2>&1 | tee queue.log || grep -qi "already exists" queue.log
           done
       - name: Deploy Worker (staging)
@@ -102,7 +102,7 @@ jobs:
           npx wrangler d1 migrations apply starry-battery --remote
       - name: Ensure queues (production)
         run: |
-          for q in starry-cleanup starry-cleanup-dlq; do
+          for q in starry-cleanup starry-cleanup-dlq starry-notify starry-notify-dlq; do
             npx wrangler queues create "$q" 2>&1 | tee queue.log || grep -qi "already exists" queue.log
           done
       - name: Deploy Worker (production)
