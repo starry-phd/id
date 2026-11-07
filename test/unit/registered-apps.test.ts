@@ -125,6 +125,13 @@ describe('registering an App without a code change', () => {
     assert.equal(build({ ...clock, android_cert_sha256: FP, ios_team_id: 'ZZZZZZZZZZ' } as Parameters<typeof definitionFromForm>[0]).ios_team_id, null, 'follows the central Team ID');
   });
 
+  test('handoff ignores a legacy per-App Team ID, even when it differs from the central setting', () => {
+    const legacy = { ...build(clock), ios_team_id: 'ABCDE12345' };
+    const text = buildHandoff(legacy, 'https://id.starry.phd', { battery: false, teamId: '4W7QRTXN5Y' });
+    assert.ok(text.includes('全生態系共用，由 Starry ID 中央設定，App 端不必也不可自己填）：4W7QRTXN5Y'));
+    assert.ok(!text.includes('ABCDE12345'));
+  });
+
   test('the handoff names the central Team ID and does not claim Android Passkeys work without a fingerprint', () => {
     const text = buildHandoff(build(clock), 'https://id.starry.phd', { battery: false, teamId: '4W7QRTXN5Y' });
     assert.ok(text.includes('全生態系共用') && text.includes('4W7QRTXN5Y'));
