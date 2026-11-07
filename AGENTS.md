@@ -143,3 +143,7 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 - 電池圖示規範（`src/lib/battery-icons.ts`）：普通電池 🔋、量子電池 ⚛️，凡提到電池都要帶圖示；格式「🔋 10 顆普通電池」「⚛️ 3 顆量子電池」。已寫進串接指令。
 - Google 頭像匯入失敗時回傳原因代碼（`importProviderAvatarDetailed`）：`http_<狀態>`、`redirect_host`、`empty_or_large`、`save_*`、`error_*`；同時寫入日誌 `avatar.import_failed`。
 - 串接指令版本 `2026-11-07.17`。
+
+### 3c34 基本資料預設從 Google 預填（2026-11-08）
+- Google 登入或綁定時（`seedProfileFromGoogle`，`identity/google-seed.ts`），只填「空白且會員從未改過」的欄位：姓名（`name`）、語言（`locale`，對應 zh-TW／en-US／ja-JP）、已驗證的 Email 當聯絡信箱（視為已驗證，Apple 私人轉寄不用）。會員自己填過或清空過（`profile_field_updates` 有紀錄）的欄位絕不覆蓋。稽核 `profile.seeded_from_google`。
+- 頭像仍優先用 Google 照片（既有）。生日、手機、地址等不在登入 token 內，要另外申請 Google 權限（People API），目前不抓。

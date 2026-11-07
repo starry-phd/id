@@ -8,6 +8,7 @@ import { background, readProviderRequest, verifyProviderRequest } from '../auth/
 import type { AppBindings } from '../env';
 import { rememberAppleToken } from '../identity/apple';
 import { importProviderAvatar, r2Store, rememberProviderPhoto } from '../identity/avatars';
+import { seedProfileFromGoogle } from '../identity/google-seed';
 import { findOrCreateMember, PROFILE_SQL, type ProfileRow } from '../identity/members';
 import { issueNonce } from '../identity/nonces';
 import { createWebSession, endWebSession, WEB_APP_ID, WEB_SESSION_ABSOLUTE_MS } from '../identity/web-sessions';
@@ -252,6 +253,7 @@ accountApp.post('/session', async (c) => {
   const { member, isNew } = await findOrCreateMember(db, verified.identity, { appId: WEB_APP_ID, requestId, country: c.req.header('cf-ipcountry') }, now);
   if (member.status === 'suspended') return c.json(errorBody('ACCOUNT_SUSPENDED', 'Account suspended', requestId), 403);
   await rememberProviderPhoto(db, verified.identity.subject, verified.identity.picture);
+  await seedProfileFromGoogle(db, verified.identity.subject, verified.identity, now);
   if (isNew && verified.identity.picture && c.env.AVATARS) {
     const photo = background(c, importProviderAvatar(db, r2Store(c.env.AVATARS), (url, init) => fetch(url, init), { userId: member.user_id, url: verified.identity.picture, appId: WEB_APP_ID, requestId }, now));
     if (photo) await photo;

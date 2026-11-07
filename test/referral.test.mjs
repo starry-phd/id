@@ -142,4 +142,16 @@ describe('referrals, the organization network and public profiles', () => {
     assert.equal((await post(a.cookie, 'JP0000045')).status, 429);
     assert.equal((await post(b.cookie, 'JP0000042')).status, 200, 'a released number can be taken');
   });
+  test('a first Google sign-in starts the basic profile from what Google sent', async () => {
+    const loginPage = await (await worker.call('/account')).text();
+    const nonce = /"nonce":"([A-Za-z0-9_-]+)"/.exec(loginPage)?.[1];
+    const idToken = await signJwt(keys.google, idTokenClaims('google', { sub: 'seed-g', nonce, email: 'seed-g@example.com', name: '張小星', locale: 'ja' }));
+    const res = await worker.call('/account/session', { method: 'POST', headers: { 'content-type': 'application/json', origin: ORIGIN }, body: JSON.stringify({ provider: 'google', id_token: idToken, nonce }) });
+    assert.equal(res.status, 200, await res.clone().text());
+    const row = await worker.db.prepare("SELECT p.display_name, p.locale, p.contact_email, p.contact_email_verified_at FROM profiles p JOIN auth_identities i ON i.user_id = p.user_id WHERE i.subject = 'seed-g'").first();
+    assert.equal(row.display_name, '張小星');
+    assert.equal(row.locale, 'ja-JP');
+    assert.equal(row.contact_email, 'seed-g@example.com');
+    assert.ok(row.contact_email_verified_at > 0);
+  });
 });

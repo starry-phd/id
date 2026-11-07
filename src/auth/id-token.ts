@@ -13,11 +13,20 @@ export interface ProviderIdentity {
   isPrivateRelay: boolean;
   /** Google profile photo URL (Apple never sends one); only googleusercontent.com HTTPS URLs are kept. */
   picture: string | null;
+  /** Google profile name and language (the ID token carries them with the profile scope); null for Apple. */
+  name: string | null;
+  locale: string | null;
 }
 
 const MAX_TOKEN_LENGTH = 8192;
 const CLOCK_SKEW_SEC = 60;
 const MAX_TOKEN_AGE_SEC = 60 * 60;
+
+function googleName(claims: Record<string, unknown>): string | null {
+  const text = (v: unknown) => (typeof v === 'string' ? Array.from(v).filter((ch) => ch.charCodeAt(0) > 31 && ch.charCodeAt(0) !== 127).join('').trim() : '');
+  const full = text(claims.name) || [text(claims.family_name), text(claims.given_name)].filter(Boolean).join(' ');
+  return full.length >= 1 && full.length <= 50 ? full : null;
+}
 
 function isTrue(value: unknown): boolean {
   return value === true || value === 'true';
@@ -96,6 +105,8 @@ export async function verifyIdToken(
     email,
     emailVerified: isTrue(claims.email_verified),
     isPrivateRelay: provider === 'apple' && isTrue(claims.is_private_email),
+    name: provider === 'google' ? googleName(claims) : null,
+    locale: provider === 'google' && typeof claims.locale === 'string' && claims.locale.length <= 20 ? claims.locale : null,
     picture: provider === 'google' && typeof claims.picture === 'string' && claims.picture.length <= 512 && isProviderPhotoUrl(claims.picture) ? claims.picture : null,
   };
 }
