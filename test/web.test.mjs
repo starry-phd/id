@@ -315,6 +315,9 @@ describe('web account center, support form and Admin Lite', () => {
     assert.equal((await worker.call(`/admin/members/${target}/role`, form({ role: 'admin' }, adminCookie))).status, 403, 'only the owner manages roles');
     assert.equal((await worker.call(`/admin/members/${target}/delete`, form({ confirm: 'DELETE' }, adminCookie))).status, 403, 'only the owner deletes members');
     assert.equal((await worker.call('/admin/audit', get(adminCookie))).status, 200);
+    const revenue = await worker.call('/admin/revenue?days=90', get(adminCookie));
+    assert.equal(revenue.status, 200);
+    assert.match(await revenue.text(), /測試購買/);
     assert.equal((await worker.call('/admin/tickets', get(adminCookie))).status, 200);
   });
 

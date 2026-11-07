@@ -48,7 +48,7 @@ export async function appAccess(c: WebContext, appId: string): Promise<StaffActo
   return c.html(page(c, '沒有權限', html`<h1>沒有權限</h1><p>此頁面需要 Admin 以上的角色，或被指派為這款 App 的管理員。</p>`, { admin: true }), 403);
 }
 
-const nav = html`<p><a href="/admin/members">會員</a>&emsp;<a href="/admin/tickets">客服單</a>&emsp;<a href="/admin/battery">Battery</a>&emsp;<a href="/admin/apps">App</a>&emsp;<a href="/admin/audit">稽核紀錄</a></p>`;
+const nav = html`<p><a href="/admin/members">會員</a>&emsp;<a href="/admin/tickets">客服單</a>&emsp;<a href="/admin/battery">Battery</a>&emsp;<a href="/admin/apps">App</a>&emsp;<a href="/admin/revenue">營收</a>&emsp;<a href="/admin/audit">稽核紀錄</a></p>`;
 
 export function adminPage(c: WebContext, title: string, body: Html, scripts?: Html): Html {
   return page(c, title, html`${nav}${body}`, { admin: true, ...(scripts ? { scripts } : {}) });

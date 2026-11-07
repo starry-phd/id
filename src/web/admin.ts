@@ -5,6 +5,7 @@ import './admin-tickets';
 import './admin-apps';
 import './admin-quantum';
 import './admin-integrations';
+import './admin-revenue';
 import './admin-audit';
 
 export { adminApp } from './admin-lib';
