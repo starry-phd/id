@@ -5,6 +5,13 @@ export interface CleanupMessage {
   jobId: string;
 }
 
+/** One chunk (at most 50 members) of a staff broadcast; the text lives in the notify_broadcasts row. */
+export interface NotifyMessage {
+  broadcastId: string;
+  chunk: number;
+  userIds: string[];
+}
+
 export type StarryEnvironment = 'development' | 'staging' | 'production';
 
 /** Cloudflare bindings available to the platform Worker. */
@@ -61,6 +68,8 @@ export interface Env {
   RL_APP?: RateLimiter;
   /** Queue for deletion clean-up retries (ADR 0009); optional, the minute schedule retries the same jobs without it. */
   CLEANUP_QUEUE?: Queue<CleanupMessage>;
+  /** Queue for App-wide staff broadcasts (ADR 0009); optional, without it the broadcast page says it is not available. */
+  NOTIFY_QUEUE?: Queue<NotifyMessage>;
   /** Development only: provider JWKS and audiences used by local tests instead of Apple/Google. */
   AUTH_TEST_JWKS?: string;
   AUTH_TEST_AUDIENCES?: string;

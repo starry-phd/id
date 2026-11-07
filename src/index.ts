@@ -8,7 +8,8 @@ import { reconcileWithRevenueCat } from './billing/reconcile';
 import { quantumHook } from './battery/purchases';
 import { loadRevenueCatSecrets } from './billing/app-secrets';
 import { processPendingEvents, processRevenueCatDeletions } from './billing/revenuecat';
-import type { CleanupMessage, Env } from './env';
+import type { CleanupMessage, Env, NotifyMessage } from './env';
+import { processBroadcastChunk } from './notify/broadcast';
 import { reportError } from './lib/error-report';
 import { markFinished, markStarted, type JobName } from './lib/heartbeat';
 import { executeCleanup, runCleanupJobById, runCleanupJobs } from './identity/cleanup-jobs';
@@ -115,8 +116,21 @@ async function scheduled(controller: ScheduledController, env: Env): Promise<voi
   }
 }
 
+/** Queue consumer for App-wide broadcasts (ADR 0009): one message is one chunk of members. */
+async function notifyQueue(batch: MessageBatch<NotifyMessage>, env: Env): Promise<void> {
+  for (const message of batch.messages) {
+    try {
+      await processBroadcastChunk(env.DB_IDENTITY, (input, init) => fetch(input, init), message.body, Date.now(), { accessToken: env.EXPO_PUSH_ACCESS_TOKEN });
+      message.ack();
+    } catch (error) {
+      console.error(JSON.stringify({ level: 'error', event: 'broadcast.queue', message: error instanceof Error ? error.message : 'failed' }));
+      message.retry({ delaySeconds: 30 });
+    }
+  }
+}
+
 /** Queue consumer for deletion clean-up jobs (ADR 0009). Every message is acknowledged or explicitly retried. */
-async function queue(batch: MessageBatch<CleanupMessage>, env: Env): Promise<void> {
+async function cleanupQueue(batch: MessageBatch<CleanupMessage>, env: Env): Promise<void> {
   for (const message of batch.messages) {
     const now = Date.now();
     try {
@@ -128,6 +142,12 @@ async function queue(batch: MessageBatch<CleanupMessage>, env: Env): Promise<voi
       message.retry({ delaySeconds: 60 });
     }
   }
+}
+
+/** Both queues share this Worker; the queue name (starry-notify[-staging] or starry-cleanup[-staging]) picks the consumer. */
+async function queue(batch: MessageBatch<CleanupMessage | NotifyMessage>, env: Env): Promise<void> {
+  if (batch.queue.startsWith('starry-notify')) await notifyQueue(batch as MessageBatch<NotifyMessage>, env);
+  else await cleanupQueue(batch as MessageBatch<CleanupMessage>, env);
 }
 
 export default { fetch: app.fetch, scheduled, queue };

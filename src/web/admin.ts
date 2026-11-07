@@ -8,6 +8,7 @@ import './admin-catalog';
 import './admin-integrations';
 import './admin-revenue';
 import './admin-audit';
+import './admin-broadcast';
 
 export { adminApp } from './admin-lib';
 export { setApiDocument } from './admin-audit';

@@ -369,6 +369,15 @@ describe('web account center, support form and Admin Lite', () => {
     assert.match(notified, /已送達 0 位（0 台裝置）/);
     assert.match(notified, /沒有這款 App 的裝置 1 位、非正常狀態 1 位/);
     assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.bulk_notify' AND app_id = 'echo'").first('n'), 1);
+    // App-wide broadcast (ADR 0009): Admin-only page, validated first; this test Worker has no queue, so a valid request is refused plainly.
+    const page = await (await worker.call('/admin/broadcast', { headers: { cookie: adminCookie } })).text();
+    assert.match(page, /全 App 推播/);
+    assert.match(page, /推播佇列尚未啟用/);
+    assert.match(await (await worker.call('/admin/broadcast', form({ app_id: 'nope', title: 't', body: 'b', confirm: '1' }, adminCookie))).text(), /請選擇要發送的 App/);
+    assert.match(await (await worker.call('/admin/broadcast', form({ app_id: 'echo', title: '', body: 'b', confirm: '1' }, adminCookie))).text(), /標題需為 1～100 字/);
+    assert.match(await (await worker.call('/admin/broadcast', form({ app_id: 'echo', title: 't', body: 'b' }, adminCookie))).text(), /請勾選確認/);
+    assert.match(await (await worker.call('/admin/broadcast', form({ app_id: 'echo', title: 't', body: 'b', confirm: '1' }, adminCookie))).text(), /推播佇列尚未啟用，無法發送/);
+    assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.broadcast_notify'").first('n'), 0);
     await worker.db.prepare('UPDATE users SET status = ? WHERE user_id = ?').bind('active', a).run();
 
     const save = await worker.call('/admin/apps/echo/config', form({ config: 'new_feature = true\nmin_version = 1.2.0' }, adminCookie));
