@@ -1,9 +1,10 @@
 import { html } from 'hono/html';
 import { appOverview } from '../apps/overview';
+import { editableFields, listOverriddenFields, revertBuiltinOverride, saveBuiltinOverride } from '../apps/builtin-overrides';
 import { definitionFromForm, listRegisteredAppIds, saveRegisteredApp, type AppForm } from '../apps/dynamic';
 import { listCatalog } from '../apps/catalog';
 import { buildHandoff, HANDOFF_UPDATED, HANDOFF_VERSION } from '../apps/handoff';
-import { appRegistry, getApp, type AppEntry } from '../apps/registry';
+import { appRegistry, baselineApp, getApp, isStaticApp, type AppEntry } from '../apps/registry';
 import { APP_STAGES, listAppStages, listAppStatusOverrides, STAGE_LABELS } from '../apps/status';
 import { enableAppBattery, hasAppBatteryKey } from '../battery/battery';
 import { WEB_APP_ID } from '../identity/web-sessions';
@@ -18,6 +19,7 @@ export async function appsPage(c: WebContext, message?: string): Promise<Respons
   const overrides = await listAppStatusOverrides(c.env.DB_IDENTITY);
   const stages = await listAppStages(c.env.DB_IDENTITY);
   const registered = await listRegisteredAppIds(c.env.DB_IDENTITY);
+  const overriddenFields = await listOverriddenFields(c.env.DB_IDENTITY).catch(() => new Map<string, string[]>());
   const stats = await appOverview({ identity: c.env.DB_IDENTITY, billing: c.env.DB_BILLING, battery: c.env.DB_BATTERY }, Date.now());
   // Revenue is an Admin-and-above figure (same rule as /admin/revenue); support staff never see it on the cards.
   const web = c.get('web');
@@ -29,7 +31,7 @@ export async function appsPage(c: WebContext, message?: string): Promise<Respons
       'App',
       html`<h1>App</h1>
 ${message ? html`<div class="banner">${message}</div>` : ''}
-<p><a class="button" href="/admin/apps/new">新增 App</a></p>
+<p><a class="button" href="/admin/apps/new">新增 App</a>${viewer === 'owner' ? html` <a href="/admin/apps/account/builtin">登入中樞設定</a>` : ''}</p>
 <p class="muted">新增的 App 存在資料庫，不必改程式碼，30 秒內生效。Repo 的 config/apps.json 是既有 App 的預設值；在這裡設定的狀態會覆蓋預設值。paused：App 顯示維護中；killed：停用此 App 的登入與服務，不影響其他 App。</p>
 ${appRegistry.values().filter((app) => app.app_id !== WEB_APP_ID).map((app) => {
   const o = overrides.get(app.app_id);
@@ -45,7 +47,7 @@ ${appRegistry.values().filter((app) => app.app_id !== WEB_APP_ID).map((app) => {
 <p>本月 Battery <strong>${st?.batteryUsed ?? 0}</strong>${st?.batteryCap != null ? ` ／ 上限 ${st.batteryCap}` : ''}｜近 24 小時用量 <strong>${st?.batteryUsed24h ?? 0}</strong>｜每小時暴增上限 ${st?.hourlyLimit != null ? html`<strong>${st.hourlyLimit}</strong>` : '未設定'}</p>
 <p>最低版本 <strong>${st?.minVersionOverride ?? app.min_version ?? '0.0.0'}</strong>${st?.minVersionOverride ? '（遠端設定）' : '（預設）'}｜未結客服單 <a href="/admin/tickets?app=${app.app_id}"><strong>${st?.openTickets ?? 0}</strong></a>&emsp;${quick}</p>
 ${revenue ? html`<p>近 30 天營收（估計，USD）<strong>${(revenue.get(app.app_id)?.revenueUsd ?? 0).toFixed(2)}</strong>｜退款 ${(revenue.get(app.app_id)?.refundedUsd ?? 0).toFixed(2)}｜新訂閱 ${revenue.get(app.app_id)?.newPurchases ?? 0}｜退訂 ${revenue.get(app.app_id)?.cancellations ?? 0}｜<a href="/admin/revenue">營收明細</a></p>` : ''}
-<p>${revenue ? html`<a href="/admin/apps/${app.app_id}/config">遠端設定</a>｜<a href="/admin/apps/${app.app_id}/products">商品目錄</a>｜<a href="/admin/apps/${app.app_id}/quantum">量子電池</a>｜<a href="/admin/apps/${app.app_id}/invites">邀請碼</a>｜` : ''}<a href="/admin/apps/${app.app_id}/handoff">給開發 AI 的串接指令</a>${viewer === 'owner' && (stages.get(app.app_id) ?? 'dev') !== 'live' ? html`&emsp;<a href="/admin/apps/${app.app_id}/reset">清除測試資料</a>` : ''}${own ? html`&emsp;<a href="/admin/apps/${app.app_id}/edit">編輯登記資料</a>` : ''}</p>
+<p>${revenue ? html`<a href="/admin/apps/${app.app_id}/config">遠端設定</a>｜<a href="/admin/apps/${app.app_id}/products">商品目錄</a>｜<a href="/admin/apps/${app.app_id}/quantum">量子電池</a>｜<a href="/admin/apps/${app.app_id}/invites">邀請碼</a>｜` : ''}<a href="/admin/apps/${app.app_id}/handoff">給開發 AI 的串接指令</a>${viewer === 'owner' && isStaticApp(app.app_id) ? html`｜<a href="/admin/apps/${app.app_id}/builtin">內建設定${(overriddenFields.get(app.app_id)?.length ?? 0) > 0 ? `（已覆寫 ${overriddenFields.get(app.app_id)?.length} 項）` : ''}</a>` : ''}${viewer === 'owner' && (stages.get(app.app_id) ?? 'dev') !== 'live' ? html`&emsp;<a href="/admin/apps/${app.app_id}/reset">清除測試資料</a>` : ''}${own ? html`&emsp;<a href="/admin/apps/${app.app_id}/edit">編輯登記資料</a>` : ''}</p>
 <p>階段：<strong>${STAGE_LABELS[stages.get(app.app_id) ?? 'dev']}</strong>
 <select name="stage_value" form="stage-${app.app_id}">${APP_STAGES.map((st) => html`<option value="${st}"${(stages.get(app.app_id) ?? 'dev') === st ? ' selected' : ''}>${STAGE_LABELS[st]}</option>`)}</select> <button type="submit" form="stage-${app.app_id}" class="secondary">改階段</button></p>
 <label>新狀態</label><select name="status"><option value="default">使用預設</option><option value="active">active</option><option value="paused">paused</option><option value="killed">killed</option></select>
@@ -137,7 +139,7 @@ adminApp.get('/apps/:id/edit', async (c) => {
   const actor = await staff(c, 'owner');
   if (actor instanceof Response) return actor;
   const app = getApp(c.req.param('id'));
-  if (!app || app.app_id === WEB_APP_ID || !(await listRegisteredAppIds(c.env.DB_IDENTITY)).has(app.app_id)) return appsPage(c, '只有在後台登記的 App 可以編輯；config/apps.json 的 App 請由 Claude 修改。');
+  if (!app || app.app_id === WEB_APP_ID || !(await listRegisteredAppIds(c.env.DB_IDENTITY)).has(app.app_id)) return appsPage(c, '只有在後台登記的 App 可以在這裡編輯；內建 App 請從 App 清單的「內建設定」進入。');
   return appForm(c, 'update', formFromEntry(app));
 });
 
@@ -150,6 +152,89 @@ adminApp.post('/apps/:id/edit', async (c) => {
   const result = await saveRegisteredApp(c.env.DB_IDENTITY, actor, built.app, 'update', Date.now());
   if (result !== 'updated') return appsPage(c, '找不到這個後台登記的 App。');
   return c.redirect(`/admin/apps/${built.app.app_id}/handoff?updated=1`, 303);
+});
+
+// Built-in Apps (config/apps.json): the file stays the baseline; the Owner's changes are stored as overrides.
+const BUILTIN_FIELDS: readonly { key: string; label: string; list?: boolean; nullable?: boolean; hint?: string }[] = [
+  { key: 'name', label: '名稱' },
+  { key: 'min_version', label: '最低版本（x.y.z）' },
+  { key: 'web_origins', label: '網頁版來源（每行一個）', list: true, hint: '寫錯會讓該 App 的網頁版無法呼叫登入服務' },
+  { key: 'return_urls', label: '深層連結回傳網址（每行一個）', list: true },
+  { key: 'ios_team_id', label: 'Apple Team ID（10 碼，留空＝無）', nullable: true },
+  { key: 'android_cert_sha256', label: 'Android 簽章憑證 SHA-256（每行一個）', list: true },
+];
+
+function fieldText(value: unknown): string {
+  return Array.isArray(value) ? value.join('\n') : value === null || value === undefined ? '' : String(value);
+}
+
+async function builtinPage(c: WebContext, appId: string, message?: string, danger = false): Promise<Response> {
+  const app = getApp(appId);
+  const base = baselineApp(appId);
+  if (!app || !base) return appsPage(c, '只有 config/apps.json 的內建 App 有這個頁面。');
+  const changed = new Set((await listOverriddenFields(c.env.DB_IDENTITY).catch(() => new Map<string, string[]>())).get(appId) ?? []);
+  const allowed = editableFields(appId);
+  const current = app as unknown as Record<string, unknown>;
+  const original = base as unknown as Record<string, unknown>;
+  return c.html(
+    adminPage(
+      c,
+      '內建 App 設定',
+      html`<h1>內建設定：${app.name}</h1>
+${message ? html`<div class="banner${danger ? ' danger' : ''}">${message}</div>` : ''}
+<p class="muted">這款 App 的預設值寫在 config/apps.json。這裡的修改存在資料庫並蓋過預設值；資料庫故障時會自動退回預設值。${appId === WEB_APP_ID ? '登入中樞只開放名稱與最低版本。' : ''}儲存與還原都需要 Passkey 二次確認。</p>
+<form method="post" action="/admin/apps/${appId}/builtin" class="card">
+${BUILTIN_FIELDS.filter((f) => allowed.includes(f.key)).map((f) => html`<label for="${f.key}">${f.label}${changed.has(f.key) ? '　【已覆寫】' : ''}</label>${f.list ? html`<textarea id="${f.key}" name="${f.key}" rows="2">${fieldText(current[f.key])}</textarea>` : html`<input id="${f.key}" name="${f.key}" value="${fieldText(current[f.key])}">`}
+<p class="muted">預設：${fieldText(original[f.key]).replace(/\n/g, '、') || '（空）'}${f.hint ? `｜${f.hint}` : ''}</p>`)}
+<button type="submit">儲存</button></form>
+${changed.size > 0 ? html`<form method="post" action="/admin/apps/${appId}/builtin/revert" class="card"><p>目前有 ${changed.size} 項與預設不同。</p><button type="submit" class="secondary">還原為檔案預設</button></form>` : ''}
+<p><a href="/admin/apps">回到 App 列表</a></p>`,
+    ),
+    danger ? 400 : 200,
+  );
+}
+
+function builtinPatch(appId: string, form: Record<string, string | undefined>): Record<string, unknown> {
+  const patch: Record<string, unknown> = {};
+  for (const f of BUILTIN_FIELDS) {
+    if (!editableFields(appId).includes(f.key)) continue;
+    const raw = (form[f.key] ?? '').trim();
+    if (f.list) {
+      const items = raw.split(/[\s,]+/).filter((v) => v.length > 0);
+      patch[f.key] = f.key === 'android_cert_sha256' ? items.map((v) => v.toUpperCase()) : items;
+    } else if (f.nullable) patch[f.key] = raw === '' ? null : raw.toUpperCase();
+    else patch[f.key] = raw;
+  }
+  return patch;
+}
+
+adminApp.get('/apps/:id/builtin', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  return builtinPage(c, c.req.param('id'));
+});
+
+adminApp.post('/apps/:id/builtin', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const stepUp = await requireStepUp(c, actor);
+  if (stepUp) return stepUp;
+  const appId = c.req.param('id');
+  if (!baselineApp(appId)) return appsPage(c, '只有 config/apps.json 的內建 App 有這個頁面。');
+  const saved = await saveBuiltinOverride(c.env.DB_IDENTITY, actor, appId, builtinPatch(appId, await readForm(c)), Date.now());
+  if (saved.result === 'invalid') return builtinPage(c, appId, saved.error ?? '欄位格式不正確。', true);
+  return builtinPage(c, appId, saved.result === 'reverted' ? '內容與檔案預設相同，已還原為預設。' : '已儲存，30 秒內生效。');
+});
+
+adminApp.post('/apps/:id/builtin/revert', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const stepUp = await requireStepUp(c, actor);
+  if (stepUp) return stepUp;
+  const appId = c.req.param('id');
+  if (!baselineApp(appId)) return appsPage(c, '只有 config/apps.json 的內建 App 有這個頁面。');
+  await revertBuiltinOverride(c.env.DB_IDENTITY, actor, appId, Date.now());
+  return builtinPage(c, appId, '已還原為 config/apps.json 的預設值。');
 });
 
 async function handoffPage(c: WebContext, role: Role, app: AppEntry, notice: string, serviceKey?: string): Promise<Response> {

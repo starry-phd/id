@@ -542,6 +542,42 @@ describe('web account center, support form and Admin Lite', () => {
     await worker.db.prepare("DELETE FROM user_roles WHERE role = 'owner'").run();
   });
 
+  test('the owner edits a built-in App on top of config/apps.json and can revert; account only gets its low-risk fields (item 1)', async () => {
+    const owner = await webSignIn('bi-owner');
+    await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'owner', ?)").bind(await userIdOf('bi-owner'), Date.now()).run();
+    const admin = await webSignIn('bi-admin');
+    await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(await userIdOf('bi-admin'), Date.now()).run();
+
+    assert.equal((await worker.call('/admin/apps/recordnote/builtin', get(admin))).status, 403, 'Admin is not enough');
+    assert.equal((await worker.call('/admin/apps/recordnote/builtin', form({ name: 'x' }, admin))).status, 403);
+    const page = await (await worker.call('/admin/apps/recordnote/builtin', get(owner))).text();
+    assert.match(page, /內建設定：/);
+    assert.match(page, /name="web_origins"/);
+    assert.match(await (await worker.call('/admin/apps', get(owner))).text(), /\/admin\/apps\/recordnote\/builtin/);
+
+    const bad = await worker.call('/admin/apps/recordnote/builtin', form({ name: '改名', min_version: 'abc', web_origins: '', return_urls: '', ios_team_id: '', android_cert_sha256: '' }, owner));
+    assert.equal(bad.status, 400);
+    assert.equal(await worker.db.prepare('SELECT COUNT(*) AS n FROM builtin_app_overrides').first('n'), 0);
+
+    const saved = await (await worker.call('/admin/apps/recordnote/builtin', form({ name: '改名後的記事', min_version: '1.2.0', web_origins: 'https://recordnote.starry.phd', return_urls: '', ios_team_id: '', android_cert_sha256: '' }, owner))).text();
+    assert.match(saved, /已儲存/);
+    const row = await worker.db.prepare("SELECT patch FROM builtin_app_overrides WHERE app_id = 'recordnote'").first('patch');
+    const patch = JSON.parse(row);
+    assert.equal(patch.name, '改名後的記事');
+    assert.equal(patch.min_version, '1.2.0');
+    assert.match(await (await worker.call('/admin/apps/recordnote/builtin', get(owner))).text(), /已覆寫/);
+
+    const accountSave = await worker.call('/admin/apps/account/builtin', form({ name: '帳號中心', min_version: '0.0.0', web_origins: 'https://evil.example' }, owner));
+    assert.equal(accountSave.status, 200, 'unlisted fields are ignored, only name and min_version are read for account');
+    assert.doesNotMatch(await worker.db.prepare("SELECT patch FROM builtin_app_overrides WHERE app_id = 'account'").first('patch') ?? '', /evil/);
+
+    assert.match(await (await worker.call('/admin/apps/recordnote/builtin/revert', form({}, owner))).text(), /已還原/);
+    assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM builtin_app_overrides WHERE app_id = 'recordnote'").first('n'), 0);
+    assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action IN ('admin.builtin_app_overridden','admin.builtin_app_reverted')").first('n') >= 2, true);
+    await worker.db.prepare("DELETE FROM builtin_app_overrides").run();
+    await worker.db.prepare("DELETE FROM user_roles WHERE role = 'owner'").run();
+  });
+
   test('Battery in Admin Lite: admins adjust a member, only the owner sets the monthly policy (S-BAT-02/05)', async () => {
     const memberCookie = await webSignIn('battery-member');
     const target = await userIdOf('battery-member');
