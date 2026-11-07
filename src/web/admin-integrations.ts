@@ -3,7 +3,7 @@ import { randomToken } from '../lib/crypto';
 import { revenueCatStatus, saveRevenueCatSecret } from '../billing/app-secrets';
 import { configToText, loadConfigOverrides, parseConfigText, saveConfigOverrides } from '../apps/status';
 import { appRegistry, getApp, type AppEntry, type AppStatus } from '../apps/registry';
-import { setAppStatusOverride } from '../apps/status';
+import { setAppStage, setAppStatusOverride, STAGE_LABELS, type AppStage } from '../apps/status';
 import { WEB_APP_ID } from '../identity/web-sessions';
 import { type StaffActor } from '../identity/roles';
 import { auditStatement } from '../lib/audit';
@@ -144,4 +144,16 @@ adminApp.post('/apps/:id/status', async (c) => {
   const reason = (form.reason ?? '').trim().slice(0, 200) || null;
   await setAppStatusOverride(c.env.DB_IDENTITY, actor, appId, status, reason, Date.now());
   return appsPage(c, `${appId} 已更新為 ${status ?? '預設值'}。`);
+});
+
+adminApp.post('/apps/:id/stage', async (c) => {
+  const actor = await staff(c, 'admin');
+  if (actor instanceof Response) return actor;
+  const appId = c.req.param('id');
+  if (!appRegistry.has(appId)) return appsPage(c, '找不到此 App。');
+  const form = await readForm(c);
+  const now = Date.now();
+  if (!(await setAppStage(c.env.DB_IDENTITY, appId, form.stage_value ?? '', actor.userId, now))) return appsPage(c, '請選擇階段。');
+  await auditStatement(c.env.DB_IDENTITY, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.app_stage_set', targetType: 'app', targetId: appId, appId, result: 'success', requestId: actor.requestId, retention: 'security' }, now).run();
+  return appsPage(c, `${appId} 的階段已改為「${STAGE_LABELS[form.stage_value as AppStage]}」。`);
 });

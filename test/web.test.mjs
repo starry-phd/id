@@ -344,6 +344,16 @@ describe('web account center, support form and Admin Lite', () => {
     assert.match(await (await worker.call('/admin/apps/echo/config', form({ config: 'Bad Name = 1' }, adminCookie))).text(), /只能用小寫英文/);
   });
 
+  test('Admin sets an App stage, which shows on the App list and the dashboard', async () => {
+    const adminCookie = await webSignIn('stage-admin');
+    await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(await userIdOf('stage-admin'), Date.now()).run();
+    assert.match(await (await worker.call('/admin/apps', get(adminCookie))).text(), /階段：<strong>開發中/);
+    assert.match(await (await worker.call('/admin/apps/echo/stage', form({ stage_value: 'live' }, adminCookie))).text(), /已改為「已上架」/);
+    assert.match(await (await worker.call('/admin/apps/echo/stage', form({ stage_value: 'nope' }, adminCookie))).text(), /請選擇階段/);
+    assert.equal((await worker.db.prepare("SELECT stage FROM app_stages WHERE app_id = 'echo'").first()).stage, 'live');
+    await worker.db.prepare("DELETE FROM app_stages WHERE app_id = 'echo'").run();
+  });
+
   test('an App manager edits only their own App\'s remote config', async () => {
     const owner = await webSignIn('am-owner');
     await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'owner', ?)").bind(await userIdOf('am-owner'), Date.now()).run();

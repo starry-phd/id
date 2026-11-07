@@ -139,3 +139,21 @@ export async function saveConfigOverrides(db: D1Database, actor: { userId: strin
   ]);
   clearAppStatusCache();
 }
+
+export const APP_STAGES = ['dev', 'test', 'live'] as const;
+export type AppStage = (typeof APP_STAGES)[number];
+export const STAGE_LABELS: Record<AppStage, string> = { dev: '開發中', test: '測試中', live: '已上架' };
+
+export async function listAppStages(db: D1Database): Promise<Map<string, AppStage>> {
+  const rows = await db.prepare('SELECT app_id, stage FROM app_stages').all<{ app_id: string; stage: AppStage }>();
+  return new Map(rows.results.map((r) => [r.app_id, r.stage]));
+}
+
+export async function setAppStage(db: D1Database, appId: string, stage: string, actorUserId: string, now: number): Promise<boolean> {
+  if (!(APP_STAGES as readonly string[]).includes(stage)) return false;
+  await db
+    .prepare('INSERT INTO app_stages (app_id, stage, updated_at, updated_by) VALUES (?, ?, ?, ?) ON CONFLICT (app_id) DO UPDATE SET stage = excluded.stage, updated_at = excluded.updated_at, updated_by = excluded.updated_by')
+    .bind(appId, stage, now, actorUserId)
+    .run();
+  return true;
+}
