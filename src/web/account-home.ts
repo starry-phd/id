@@ -44,6 +44,7 @@ accountApp.get('/', async (c) => {
   const sessions = await listActiveSessions(db, web.userId, now);
   const passkeys = await listPasskeys(db, web.userId);
   const managedApps = await listAppStaffApps(db, web.userId);
+  const supportApps = await listAppStaffApps(db, web.userId, 'support');
   const inviteMsg = ({ ok: '兌換成功，已加入量子電池。', invalid: '邀請碼不正確、已停用或已過期。', already: '你已經兌換過這組邀請碼。', used_up: '這組邀請碼已被領完。' } as Record<string, string>)[c.req.query('invite') ?? ''] ?? '';
   const subscriptions = await memberSubscriptions(c.env.DB_BILLING, web.userId, now).catch(() => []);
   const signedInApps = [...new Set(sessions.map((s) => s.appId))].filter((a) => a !== WEB_APP_ID);
@@ -76,6 +77,7 @@ ${needsConsent
   <p class="muted">Email 由登入服務提供，只用於聯絡，無法在此修改。</p>
   ${linkable.google || linkable.apple ? html`<a class="button" href="/account/link">加綁${linkable.apple && linkable.google ? '其他' : linkable.apple ? ' Apple ' : ' Google '}登入方式</a>` : ''}
 </div>
+${supportApps.length > 0 ? html`<h2>我負責客服的 App</h2><div class="card"><p>${supportApps.map((a) => appLabel(a)).join('、')}</p><p><a href="/admin/tickets">客服單</a>&emsp;<a href="/admin/members">會員</a></p></div>` : ''}
 ${managedApps.length > 0 ? html`<h2>我管理的 App</h2><div class="card"><ul>${managedApps.map((a) => html`<li>${appLabel(a)}：<a href="/admin/apps/${a}/config">遠端設定</a></li>`)}</ul></div>` : ''}
 ${html`<h2>Passkey</h2>
 <div class="card">

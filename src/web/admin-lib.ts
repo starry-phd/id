@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { html } from 'hono/html';
 import type { AppBindings } from '../env';
-import { hasRole, isAppStaff, roleOf, type Role, type StaffActor, type StatusChangeResult } from '../identity/roles';
+import { hasRole, isAppStaff, listAppStaffApps, roleOf, type Role, type StaffActor, type StatusChangeResult } from '../identity/roles';
 import { passkeyScript } from './account-lib';
 import { page, sameOrigin, webContext, type Html, type WebContext } from './layout';
 
@@ -48,10 +48,34 @@ export async function appAccess(c: WebContext, appId: string): Promise<StaffActo
   return c.html(page(c, '沒有權限', html`<h1>沒有權限</h1><p>此頁面需要 Admin 以上的角色，或被指派為這款 App 的管理員。</p>`, { admin: true }), 403);
 }
 
+/**
+ * Tickets and members only: global Support and above see everything; an App support person (Owner-assigned, kind
+ * 'support') gets the same pages limited to their Apps (actor.appScope). Every other admin route keeps using
+ * staff(), which never accepts a scoped person, so a new route is closed to them by default.
+ */
+export async function supportAccess(c: WebContext): Promise<StaffActor | Response> {
+  const web = c.get('web');
+  if (!web) return c.redirect(`/account?next=${encodeURIComponent(new URL(c.req.url).pathname)}`, 303);
+  if (web.status === 'active') {
+    const role = await roleOf(c.env.DB_IDENTITY, c.env.OWNER_USER_IDS, web.userId);
+    if (role && hasRole(role, 'support')) return { userId: web.userId, role, requestId: c.get('requestId') };
+    const apps = await listAppStaffApps(c.env.DB_IDENTITY, web.userId, 'support');
+    if (apps.length > 0) return { userId: web.userId, role: 'support', requestId: c.get('requestId'), appScope: apps };
+  }
+  return c.html(page(c, '沒有權限', html`<h1>沒有權限</h1><p>此頁面需要 Support 以上的角色，或被指派為某款 App 的客服。</p>`, { admin: true }), 403);
+}
+
+/** Global staff may touch any ticket; a scoped person only tickets that name one of their Apps. */
+export function scopeAllows(actor: StaffActor, appId: string | null): boolean {
+  return actor.appScope === undefined || (appId !== null && actor.appScope.includes(appId));
+}
+
 const nav = html`<p><a href="/admin/members">會員</a>&emsp;<a href="/admin/tickets">客服單</a>&emsp;<a href="/admin/battery">Battery</a>&emsp;<a href="/admin/apps">App</a>&emsp;<a href="/admin/revenue">營收</a>&emsp;<a href="/admin/audit">稽核紀錄</a></p>`;
 
-export function adminPage(c: WebContext, title: string, body: Html, scripts?: Html): Html {
-  return page(c, title, html`${nav}${body}`, { admin: true, ...(scripts ? { scripts } : {}) });
+const scopedNav = html`<p><a href="/admin/tickets">客服單</a>&emsp;<a href="/admin/members">會員</a>&emsp;<a href="/account">我的帳號</a></p>`;
+
+export function adminPage(c: WebContext, title: string, body: Html, scripts?: Html, actor?: StaffActor): Html {
+  return page(c, title, html`${actor?.appScope ? scopedNav : nav}${body}`, { admin: true, ...(scripts ? { scripts } : {}) });
 }
 
 /**

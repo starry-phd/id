@@ -86,14 +86,19 @@ const TICKET_COLUMNS = 'ticket_id, created_at, user_id, contact_email, category,
 /** Newest first, cursor = last ticket_id of the previous page. */
 export async function listTickets(
   db: D1Database,
-  options: { status: 'open' | 'closed'; cursor?: string | undefined; limit?: number | undefined; appId?: string | undefined },
+  options: { status: 'open' | 'closed'; cursor?: string | undefined; limit?: number | undefined; appId?: string | undefined; appIds?: readonly string[] | undefined },
 ): Promise<{ tickets: TicketRow[]; nextCursor: string | null }> {
   const limit = Math.min(Math.max(options.limit ?? 20, 1), 50);
   const cursor = options.cursor ?? 'ffffffff-ffff-ffff-ffff-ffffffffffff';
   // appId: undefined = every App, '-' = tickets that name no App, otherwise that App only.
-  const filter = options.appId === undefined ? '' : options.appId === '-' ? ' AND app_id IS NULL' : ' AND app_id = ?';
+  let filter = options.appId === undefined ? '' : options.appId === '-' ? ' AND app_id IS NULL' : ' AND app_id = ?';
   const binds: (string | number)[] = [options.status, cursor];
   if (options.appId !== undefined && options.appId !== '-') binds.push(options.appId);
+  // appIds: only tickets that name one of these Apps (App-scoped support); an empty list matches nothing.
+  if (options.appIds !== undefined) {
+    filter += options.appIds.length === 0 ? ' AND 0' : ` AND app_id IN (${options.appIds.map(() => '?').join(',')})`;
+    binds.push(...options.appIds);
+  }
   binds.push(limit + 1);
   const rows = await db
     .prepare(`SELECT ${TICKET_COLUMNS} FROM support_tickets WHERE status = ? AND ticket_id < ?${filter} ORDER BY ticket_id DESC LIMIT ?`)
