@@ -1,7 +1,9 @@
 import { html } from 'hono/html';
 import { appOverview } from '../apps/overview';
+import { appChecks, gatherStatus, pendingItems } from '../apps/integration-status';
+import { centralTeamId } from '../apps/team-id';
 import { editableFields, listOverriddenFields, revertBuiltinOverride, saveBuiltinOverride } from '../apps/builtin-overrides';
-import { definitionFromForm, listRegisteredAppIds, saveRegisteredApp, type AppForm } from '../apps/dynamic';
+import { definitionFromForm, invalidRegisteredApps, listRegisteredAppIds, saveRegisteredApp, type AppForm } from '../apps/dynamic';
 import { listCatalog } from '../apps/catalog';
 import { buildHandoff, HANDOFF_UPDATED, HANDOFF_VERSION } from '../apps/handoff';
 import { appRegistry, baselineApp, getApp, isStaticApp, type AppEntry } from '../apps/registry';
@@ -21,6 +23,8 @@ export async function appsPage(c: WebContext, message?: string): Promise<Respons
   const registered = await listRegisteredAppIds(c.env.DB_IDENTITY);
   const overriddenFields = await listOverriddenFields(c.env.DB_IDENTITY).catch(() => new Map<string, string[]>());
   const stats = await appOverview({ identity: c.env.DB_IDENTITY, billing: c.env.DB_BILLING, battery: c.env.DB_BATTERY }, Date.now());
+  const statusInputs = await gatherStatus(c.env, appRegistry.values());
+  const invalid = invalidRegisteredApps();
   // Revenue is an Admin-and-above figure (same rule as /admin/revenue); support staff never see it on the cards.
   const web = c.get('web');
   const viewer = web ? await roleOf(c.env.DB_IDENTITY, c.env.OWNER_USER_IDS, web.userId) : null;
@@ -31,7 +35,8 @@ export async function appsPage(c: WebContext, message?: string): Promise<Respons
       'App',
       html`<h1>App</h1>
 ${message ? html`<div class="banner">${message}</div>` : ''}
-<p><a class="button" href="/admin/apps/new">新增 App</a>${viewer === 'owner' ? html` <a href="/admin/apps/account/builtin">登入中樞設定</a>` : ''}</p>
+${invalid.length > 0 ? html`<div class="banner danger">這些 App 的登記資料目前無法通過檢查：${invalid.join('、')}。系統暫時沿用上一次正常的版本，請到「編輯登記資料」修正後儲存。</div>` : ''}
+<p><a class="button" href="/admin/apps/new">新增 App</a> <a href="/admin/apps/status">整合狀態總覽</a>${viewer === 'owner' ? html` <a href="/admin/apps/account/builtin">登入中樞設定</a>` : ''}</p>
 <p class="muted">新增的 App 存在資料庫，不必改程式碼，30 秒內生效。Repo 的 config/apps.json 是既有 App 的預設值；在這裡設定的狀態會覆蓋預設值。paused：App 顯示維護中；killed：停用此 App 的登入與服務，不影響其他 App。</p>
 ${appRegistry.values().filter((app) => app.app_id !== WEB_APP_ID).map((app) => {
   const o = overrides.get(app.app_id);
@@ -46,6 +51,11 @@ ${appRegistry.values().filter((app) => app.app_id !== WEB_APP_ID).map((app) => {
 <p>會員 <strong>${st?.members ?? 0}</strong>｜近 24 小時活躍 <strong>${st?.day ?? 0}</strong>｜7 天內 <strong>${st?.week ?? 0}</strong>｜30 天內 <strong>${st?.month ?? 0}</strong>｜有效權益 <strong>${st?.entitlements ?? 0}</strong></p>
 <p>本月 Battery <strong>${st?.batteryUsed ?? 0}</strong>${st?.batteryCap != null ? ` ／ 上限 ${st.batteryCap}` : ''}｜近 24 小時用量 <strong>${st?.batteryUsed24h ?? 0}</strong>｜每小時暴增上限 ${st?.hourlyLimit != null ? html`<strong>${st.hourlyLimit}</strong>` : '未設定'}</p>
 <p>最低版本 <strong>${st?.minVersionOverride ?? app.min_version ?? '0.0.0'}</strong>${st?.minVersionOverride ? '（遠端設定）' : '（預設）'}｜未結客服單 <a href="/admin/tickets?app=${app.app_id}"><strong>${st?.openTickets ?? 0}</strong></a>&emsp;${quick}</p>
+${(() => {
+  const inputs = statusInputs.get(app.app_id);
+  const pending = inputs ? pendingItems(appChecks(app, inputs, c.env)).filter((t) => /Passkey/.test(t)) : [];
+  return pending.length > 0 ? html`<p class="muted">⚠ ${pending.join(' ')}（<a href="/admin/apps/status">看全部</a>）</p>` : '';
+})()}
 ${revenue ? html`<p>近 30 天營收（估計，USD）<strong>${(revenue.get(app.app_id)?.revenueUsd ?? 0).toFixed(2)}</strong>｜退款 ${(revenue.get(app.app_id)?.refundedUsd ?? 0).toFixed(2)}｜新訂閱 ${revenue.get(app.app_id)?.newPurchases ?? 0}｜退訂 ${revenue.get(app.app_id)?.cancellations ?? 0}｜<a href="/admin/revenue">營收明細</a></p>` : ''}
 <p>${revenue ? html`<a href="/admin/apps/${app.app_id}/config">遠端設定</a>｜<a href="/admin/apps/${app.app_id}/products">商品目錄</a>｜<a href="/admin/apps/${app.app_id}/quantum">量子電池</a>｜<a href="/admin/apps/${app.app_id}/invites">邀請碼</a>｜` : ''}<a href="/admin/apps/${app.app_id}/handoff">給開發 AI 的串接指令</a>${viewer === 'owner' && isStaticApp(app.app_id) ? html`｜<a href="/admin/apps/${app.app_id}/builtin">內建設定${(overriddenFields.get(app.app_id)?.length ?? 0) > 0 ? `（已覆寫 ${overriddenFields.get(app.app_id)?.length} 項）` : ''}</a>` : ''}${viewer === 'owner' && (stages.get(app.app_id) ?? 'dev') !== 'live' ? html`&emsp;<a href="/admin/apps/${app.app_id}/reset">清除測試資料</a>` : ''}${own ? html`&emsp;<a href="/admin/apps/${app.app_id}/edit">編輯登記資料</a>` : ''}</p>
 <p>階段：<strong>${STAGE_LABELS[stages.get(app.app_id) ?? 'dev']}</strong>
@@ -60,7 +70,7 @@ ${revenue ? html`<p>近 30 天營收（估計，USD）<strong>${(revenue.get(app
 
 /** True when any advanced field already has a value, so the section opens by itself. */
 function advancedFilled(values: AppForm): boolean {
-  return [values.ios_bundle_id, values.android_package, values.web_origins, values.scheme, values.return_urls, values.min_version, values.ios_team_id, values.android_cert_sha256, values.extra_apple_audiences, values.extra_google_audiences].some((v) => (v ?? '').trim() !== '');
+  return [values.ios_bundle_id, values.android_package, values.web_origins, values.scheme, values.return_urls, values.min_version, values.extra_apple_audiences, values.extra_google_audiences].some((v) => (v ?? '').trim() !== '');
 }
 
 function appForm(c: WebContext, mode: 'create' | 'update', values: AppForm, message?: string): Response | Promise<Response> {
@@ -75,6 +85,9 @@ ${message ? html`<div class="banner danger">${message}</div>` : ''}
 <label for="app_id">app_id（小寫英文、數字、連字號，建立後不能改）</label><input id="app_id" name="app_id" value="${values.app_id ?? ''}" pattern="[a-z][a-z0-9-]{1,31}" placeholder="clock" required ${create ? '' : 'readonly'}>
 <label for="name">名稱</label><input id="name" name="name" value="${values.name ?? ''}" maxlength="80" placeholder="繁星時鐘 Clock" required>
 <p class="muted">iOS、Android、網頁三個平台，以及 Starry Battery 都會自動開通；Bundle ID、套件名稱、網頁網址都會依 app_id 自動產生。</p>
+<p class="muted">Apple Team ID：全生態系共用，由中央設定為 <code>${centralTeamId(c.env) ?? '（尚未設定）'}</code>，這裡不用填。</p>
+<label for="android_cert_sha256">Android 簽章憑證 SHA-256 指紋（選填，可以先留空，取得後到「編輯登記資料」補填；每行一組）</label><textarea id="android_cert_sha256" name="android_cert_sha256" rows="2" placeholder="AA:BB:CC:…（Play Console → 應用程式簽署 → App signing key certificate 的 SHA-256）">${values.android_cert_sha256 ?? ''}</textarea>
+<p class="muted">沒填也能建立 App 並完成串接，只是 Android 原生 Passkey 要等指紋登記後才會成功。上架版用 Play 的「App signing key」指紋（不是 Upload key）；內部測試 APK 的簽章不同，另行加一行。</p>
 <details${create && !advancedFilled(values) ? '' : ' open'}><summary>進階（通常不用填，需要才展開）</summary>
 <label for="ios_bundle_id">iOS Bundle ID（留空＝自動：phd.starry.&lt;app_id&gt;）</label><input id="ios_bundle_id" name="ios_bundle_id" value="${values.ios_bundle_id ?? ''}">
 <label for="android_package">Android package（留空＝自動：phd.starry.&lt;app_id&gt;）</label><input id="android_package" name="android_package" value="${values.android_package ?? ''}">
@@ -82,8 +95,6 @@ ${message ? html`<div class="banner danger">${message}</div>` : ''}
 <label for="scheme">App 深層連結 scheme（留空＝自動：app_id）</label><input id="scheme" name="scheme" value="${values.scheme ?? ''}">
 <label for="return_urls">額外的深層連結回傳網址（每行一個，留空＝自動）</label><textarea id="return_urls" name="return_urls" rows="2">${values.return_urls ?? ''}</textarea>
 <label for="min_version">最低版本（留空＝0.0.0）</label><input id="min_version" name="min_version" value="${values.min_version ?? ''}" pattern="\d+\.\d+\.\d+">
-<label for="ios_team_id">Apple Team ID（10 碼英數；讓 iOS 版 App 能使用 Starry Passkey，之後再填也可以）</label><input id="ios_team_id" name="ios_team_id" value="${values.ios_team_id ?? ''}" maxlength="10" pattern="[A-Za-z0-9]{10}">
-<label for="android_cert_sha256">Android 簽章憑證 SHA-256 指紋（每行一個，格式 AA:BB:…；讓 Android 版 App 能使用 Starry Passkey，上架後從 Play Console 的「應用程式簽署」複製）</label><textarea id="android_cert_sha256" name="android_cert_sha256" rows="2">${values.android_cert_sha256 ?? ''}</textarea>
 <label for="extra_apple_audiences">額外的 Apple 登入對象（每行一個，改用原生登入才需要）</label><textarea id="extra_apple_audiences" name="extra_apple_audiences" rows="2">${values.extra_apple_audiences ?? ''}</textarea>
 <label for="extra_google_audiences">額外的 Google 用戶端 ID（每行一個，改用原生登入才需要）</label><textarea id="extra_google_audiences" name="extra_google_audiences" rows="2">${values.extra_google_audiences ?? ''}</textarea>
 </details>
@@ -105,7 +116,6 @@ function formFromEntry(app: AppEntry): AppForm {
     web_origins: app.web_origins.join('\n'),
     return_urls: app.return_urls.join('\n'),
     min_version: app.min_version,
-    ios_team_id: app.ios_team_id ?? '',
     android_cert_sha256: app.android_cert_sha256.join('\n'),
     extra_apple_audiences: app.auth.apple.filter((a) => !sharedApple.has(a)).join('\n'),
     extra_google_audiences: app.auth.google.filter((a) => !sharedGoogle.has(a)).join('\n'),
@@ -239,7 +249,7 @@ adminApp.post('/apps/:id/builtin/revert', async (c) => {
 
 async function handoffPage(c: WebContext, role: Role, app: AppEntry, notice: string, serviceKey?: string): Promise<Response> {
   const hasKey = serviceKey !== undefined || (await hasAppBatteryKey(c.env.DB_BATTERY, app.app_id));
-  const text = buildHandoff(app, new URL(c.req.url).origin, { battery: hasKey, products: await listCatalog(c.env.DB_IDENTITY, app.app_id) });
+  const text = buildHandoff(app, new URL(c.req.url).origin, { battery: hasKey, products: await listCatalog(c.env.DB_IDENTITY, app.app_id), teamId: centralTeamId(c.env) });
   const regenerate =
     role === 'owner'
       ? html`<form method="post" action="/admin/apps/${app.app_id}/battery-key" class="inline"><button type="submit">${hasKey ? '重新產生 Battery 服務金鑰' : '開通 Battery'}</button></form>`

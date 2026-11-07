@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { AppBindings } from '../env';
 import { appRegistry } from './registry';
 import { WEB_APP_ID } from '../identity/web-sessions';
+import { effectiveTeamId } from './team-id';
 
 /**
  * Files Apple, Google and browsers fetch from Starry ID's own host to let Apps use Starry Passkeys:
@@ -20,7 +21,11 @@ wellKnown.use('*', async (c, next) => {
 });
 
 wellKnown.get('/apple-app-site-association', (c) => {
-  const ids = apps().flatMap((a) => (a.ios_team_id && a.ios_bundle_id ? [`${a.ios_team_id}.${a.ios_bundle_id}`] : []));
+  // Team ID: the central one (STARRY_APPLE_TEAM_ID) unless an older registration stored its own.
+  const ids = apps().flatMap((a) => {
+    const team = effectiveTeamId(a, c.env);
+    return team && a.ios_bundle_id ? [`${team}.${a.ios_bundle_id}`] : [];
+  });
   return c.json({ webcredentials: { apps: [...new Set(ids)] } });
 });
 

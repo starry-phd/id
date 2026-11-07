@@ -40,7 +40,7 @@
 
 Apple Developer → Keys → 建立啟用 Sign in with Apple 的 Key，下載 .p8。在 Cloudflare `starry-id`（staging 為 `starry-id-staging`）加入 Secrets：
 
-- `APPLE_TEAM_ID`：10 碼 Team ID
+- `APPLE_TEAM_ID`：10 碼 Team ID（Secret，Sign in with Apple 撤銷 Token 用；與 Passkey 用的公開變數 `STARRY_APPLE_TEAM_ID`（寫在 wrangler.jsonc）是同一個值，但名稱不同，兩者都要有）
 - `APPLE_KEY_ID`：Key ID
 - `APPLE_PRIVATE_KEY`：.p8 檔完整內容（含 BEGIN／END 行）
 

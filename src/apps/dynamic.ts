@@ -1,7 +1,7 @@
 import { WEB_APP_ID } from '../identity/web-sessions';
 import { auditStatement } from '../lib/audit';
 import { loadBuiltinOverrides } from './builtin-overrides';
-import { appDefinition, getApp, isStaticApp, parseApp, setDynamicApps, type AppEntry } from './registry';
+import { appDefinition, getApp, isStaticApp, parseApp, registeredApp, setDynamicApps, type AppEntry } from './registry';
 
 /**
  * Apps the Owner registers in Admin Lite. Stored as the same JSON an entry of config/apps.json uses,
@@ -15,6 +15,12 @@ let nextLoadAt = 0;
 
 export function clearDynamicAppCache(): void {
   nextLoadAt = 0;
+}
+
+/** Registered Apps whose stored definition failed validation at the last load (shown in Admin Lite). */
+let invalidIds: readonly string[] = [];
+export function invalidRegisteredApps(): readonly string[] {
+  return invalidIds;
 }
 
 interface Row {
@@ -31,14 +37,21 @@ export async function refreshDynamicApps(db: D1Database, now: number): Promise<v
   try {
     const rows = await db.prepare('SELECT app_id, definition FROM registered_apps ORDER BY app_id').all<Row>();
     const apps = new Map<string, AppEntry>();
+    const invalid: string[] = [];
     for (const row of rows.results) {
       try {
         const app = parseApp(JSON.parse(row.definition));
-        if (app.app_id === row.app_id && app.app_id !== WEB_APP_ID && !isStaticApp(app.app_id)) apps.set(app.app_id, app);
+        if (app.app_id !== row.app_id) throw new Error('app_id mismatch');
+        if (app.app_id !== WEB_APP_ID && !isStaticApp(app.app_id)) apps.set(app.app_id, app);
       } catch {
-        console.error(JSON.stringify({ level: 'error', event: 'registered_app.invalid', app_id: row.app_id }));
+        // A broken row must not take the App down: keep the definition that last loaded fine and flag it for the Owner.
+        invalid.push(row.app_id);
+        const previous = registeredApp(row.app_id);
+        if (previous) apps.set(row.app_id, previous);
+        console.error(JSON.stringify({ level: 'error', event: 'registered_app.invalid', app_id: row.app_id, kept_previous: previous !== undefined }));
       }
     }
+    invalidIds = invalid;
     setDynamicApps(apps);
   } catch (error) {
     nextLoadAt = now + RETRY_MS;
@@ -62,7 +75,6 @@ export interface AppForm {
   extra_apple_audiences?: string;
   extra_google_audiences?: string;
   min_version?: string;
-  ios_team_id?: string;
   android_cert_sha256?: string;
 }
 
@@ -71,6 +83,16 @@ function lines(value: string | undefined): string[] {
     .split(/[\s,]+/)
     .map((v) => v.trim())
     .filter((v) => v.length > 0);
+}
+
+/**
+ * Accepts a pasted Android certificate fingerprint the way Play Console, keytool or apksigner print it (upper or lower
+ * case, with or without colons, with an optional "SHA256:" prefix) and returns AA:BB:… or null when it is not 32 bytes.
+ */
+export function normalizeFingerprint(raw: string): string | null {
+  const hex = raw.trim().replace(/^sha-?256\s*[:=]?\s*/i, '').replace(/[:\s-]/g, '').toUpperCase();
+  if (!/^[0-9A-F]{64}$/.test(hex)) return null;
+  return hex.match(/../g)!.join(':');
 }
 
 function unique(values: readonly string[]): string[] {
@@ -93,6 +115,12 @@ export function definitionFromForm(form: AppForm, options: { defaults?: boolean 
   const scheme = (form.scheme ?? '').trim() || compact;
   const webOrigins = lines(form.web_origins);
   if (webOrigins.length === 0 && options.defaults) webOrigins.push(`https://${appId}.starry.phd`);
+  const fingerprints: string[] = [];
+  for (const raw of (form.android_cert_sha256 ?? '').split(/[\n,;]+/).map((v) => v.trim()).filter((v) => v.length > 0)) {
+    const normalized = normalizeFingerprint(raw);
+    if (!normalized) return { ok: false, error: `Android 簽章指紋格式不正確：「${raw.slice(0, 40)}」。需要 SHA-256（32 組兩位十六進位，例如 AA:BB:CC:…），請從 Play Console 的「應用程式簽署」整行複製。` };
+    fingerprints.push(normalized);
+  }
   const returnUrls = lines(form.return_urls);
   if (returnUrls.length === 0) returnUrls.push(`${scheme}://auth/apple`, `${scheme}://auth/google`);
   const definition = {
@@ -110,8 +138,9 @@ export function definitionFromForm(form: AppForm, options: { defaults?: boolean 
     },
     web_origins: webOrigins,
     return_urls: unique(returnUrls),
-    ios_team_id: (form.ios_team_id ?? '').trim().toUpperCase() || null,
-    android_cert_sha256: unique(lines(form.android_cert_sha256).map((v) => v.toUpperCase())),
+    // Apple Team ID is shared by the whole ecosystem (STARRY_APPLE_TEAM_ID), so an App never stores its own.
+    ios_team_id: null,
+    android_cert_sha256: unique(fingerprints),
   };
   try {
     return { ok: true, app: parseApp(definition) };
