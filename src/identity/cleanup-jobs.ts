@@ -13,16 +13,20 @@ import { WEB_APP_ID } from './web-sessions';
 export type CleanupKind = 'avatar' | 'billing' | 'battery';
 export const MAX_ATTEMPTS = 12;
 const MINUTE_MS = 60 * 1000;
+/** Slightly after the first retry is due, so the minute schedule normally gets there first and the queue message finds nothing left. */
+export const CLEANUP_FIRST_DELAY_SECONDS = 75;
 
 export function retryDelayMs(attempts: number): number {
   return Math.min(2 ** attempts, 60) * MINUTE_MS;
 }
 
-export async function enqueueCleanup(db: D1Database, kind: CleanupKind, userId: string, payload: string | null, now: number): Promise<void> {
+export async function enqueueCleanup(db: D1Database, kind: CleanupKind, userId: string, payload: string | null, now: number): Promise<string> {
+  const jobId = uuidv7(now);
   await db
     .prepare('INSERT INTO cleanup_jobs (job_id, kind, user_id, payload, attempts, next_attempt_at, created_at) VALUES (?, ?, ?, ?, 0, ?, ?)')
-    .bind(uuidv7(now), kind, userId, payload, now + retryDelayMs(0), now)
+    .bind(jobId, kind, userId, payload, now + retryDelayMs(0), now)
     .run();
+  return jobId;
 }
 
 /** Runs one clean-up step against the real bindings. Throws when the step fails. */
@@ -63,24 +67,57 @@ export async function runCleanupJobs(
     .all<JobRow>();
   const report: CleanupReport = { done: 0, retrying: 0, abandoned: 0 };
   for (const job of due.results) {
-    try {
-      await execute(job.kind, job.user_id, job.payload);
-      await db.prepare('DELETE FROM cleanup_jobs WHERE job_id = ?').bind(job.job_id).run();
-      report.done += 1;
-    } catch (error) {
-      const attempts = job.attempts + 1;
-      const message = error instanceof Error ? error.message : 'failed';
-      if (attempts >= MAX_ATTEMPTS) {
-        await db.prepare('UPDATE cleanup_jobs SET attempts = ?, abandoned_at = ? WHERE job_id = ?').bind(attempts, now, job.job_id).run();
-        report.abandoned += 1;
-        console.error(JSON.stringify({ level: 'error', event: 'deletion.cleanup_abandoned', kind: job.kind, message }));
-      } else {
-        await db.prepare('UPDATE cleanup_jobs SET attempts = ?, next_attempt_at = ? WHERE job_id = ?').bind(attempts, now + retryDelayMs(attempts), job.job_id).run();
-        report.retrying += 1;
-      }
-    }
+    const outcome = await attemptJob(db, job, now, execute);
+    if (outcome.status === 'done') report.done += 1;
+    else if (outcome.status === 'retry') report.retrying += 1;
+    else report.abandoned += 1;
   }
   return report;
+}
+
+export type AttemptOutcome = { status: 'done' } | { status: 'abandoned' } | { status: 'retry'; delayMs: number };
+
+/** One attempt at one job, shared by the minute schedule and the queue consumer. The D1 row stays the source of truth. */
+async function attemptJob(
+  db: D1Database,
+  job: JobRow,
+  now: number,
+  execute: (kind: CleanupKind, userId: string, payload: string | null) => Promise<void>,
+): Promise<AttemptOutcome> {
+  try {
+    await execute(job.kind, job.user_id, job.payload);
+    await db.prepare('DELETE FROM cleanup_jobs WHERE job_id = ?').bind(job.job_id).run();
+    return { status: 'done' };
+  } catch (error) {
+    const attempts = job.attempts + 1;
+    const message = error instanceof Error ? error.message : 'failed';
+    if (attempts >= MAX_ATTEMPTS) {
+      await db.prepare('UPDATE cleanup_jobs SET attempts = ?, abandoned_at = ? WHERE job_id = ?').bind(attempts, now, job.job_id).run();
+      console.error(JSON.stringify({ level: 'error', event: 'deletion.cleanup_abandoned', kind: job.kind, message }));
+      return { status: 'abandoned' };
+    }
+    const delayMs = retryDelayMs(attempts);
+    await db.prepare('UPDATE cleanup_jobs SET attempts = ?, next_attempt_at = ? WHERE job_id = ?').bind(attempts, now + delayMs, job.job_id).run();
+    return { status: 'retry', delayMs };
+  }
+}
+
+/**
+ * Queue consumer step (ADR 0009): runs one job by id right when its queue message arrives. A job that no longer
+ * exists (the minute schedule already finished it) or was abandoned is acknowledged without doing anything.
+ */
+export async function runCleanupJobById(
+  db: D1Database,
+  jobId: string,
+  now: number,
+  execute: (kind: CleanupKind, userId: string, payload: string | null) => Promise<void>,
+): Promise<AttemptOutcome | { status: 'missing' }> {
+  const job = await db
+    .prepare('SELECT job_id, kind, user_id, payload, attempts FROM cleanup_jobs WHERE job_id = ? AND abandoned_at IS NULL')
+    .bind(jobId)
+    .first<JobRow>();
+  if (!job) return { status: 'missing' };
+  return attemptJob(db, job, now, execute);
 }
 
 export async function cleanupBacklog(db: D1Database): Promise<{ waiting: number; abandoned: number }> {

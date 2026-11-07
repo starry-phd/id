@@ -246,6 +246,22 @@ Passkey 屬於 Starry ID：relying party ID 是 Starry ID 網址的主機名稱�
 
 **錯誤處理**：使用者取消不要顯示錯誤；`InvalidStateError` 表示這支裝置已經有這把 Passkey；找不到 Passkey 時引導改用 Apple 或 Google 登入。
 
+## 14. 同帳號的 App 後端：Service Binding（選用，2026-11-07）
+
+只適用於跑在**同一個 Cloudflare 帳號**的 Worker 型 App 後端。好處是不經公開網路、延遲較低；不用也完全可以，照第 9 節走公開網址即可。
+
+App 後端的 `wrangler.jsonc` 加一行綁定（正式環境的 Worker 名稱是 `starry-id`，staging 是 `starry-id-staging`）：
+
+```jsonc
+"services": [{ "binding": "STARRY_ID", "service": "starry-id" }]
+```
+
+程式裡把原本的 `fetch('https://id.starry.phd/v1/...')` 改成 `env.STARRY_ID.fetch('https://id.starry.phd/v1/...')`。網址、標頭（`Authorization`、`x-starry-app-key`）、回應都和公開網址一樣，驗證、限流、稽核規則也完全相同；差別只有：
+
+- 一律帶 `x-starry-app-key`（Battery、會員目錄本來就要），限流才會落在該 App 自己的桶（`RL_APP`）。沒有金鑰的請求在內部直連時沒有來源 IP，會共用同一個 IP 桶。
+- 網址主機名稱仍要寫 `id.starry.phd`（Passkey 的 RP ID 與來源檢查看這個）。
+- 這條路徑不經過網域層的 WAF；後端授權檢查仍在 Starry ID 內，沒有放寬。
+
 ## 附錄：Starry SDK（App 後端用）
 
 單一檔案、無相依套件：[`sdk/starry-sdk.ts`](../sdk/starry-sdk.ts)，複製到 App 後端即可。包含 `me`、`battery`、`reserve`／`commit`／`release`、`withBattery`（預留→執行→成功扣款、失敗自動歸還）與 `directory`。服務金鑰只放在 App 後端的 Secret。

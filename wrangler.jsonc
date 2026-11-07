@@ -22,6 +22,11 @@
   ],
   // Cloudflare Email Service sending (S-NTF-02). Sender domain starry.phd is onboarded and verified.
   "send_email": [{ "name": "EMAIL" }],
+  // Deletion clean-up retries (ADR 0009). The minute schedule keeps retrying the same D1 jobs, so the queue only makes retries faster.
+  "queues": {
+    "producers": [{ "binding": "CLEANUP_QUEUE", "queue": "starry-cleanup" }],
+    "consumers": [{ "queue": "starry-cleanup", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 5, "dead_letter_queue": "starry-cleanup-dlq" }]
+  },
   "r2_buckets": [
     { "binding": "AVATARS", "bucket_name": "starry-avatars" },
     { "binding": "SUPPORT_FILES", "bucket_name": "starry-support-files" }
@@ -58,6 +63,10 @@
         { "name": "RL_APP", "namespace_id": "2004", "simple": { "limit": 3000, "period": 60 } }
       ],
       "send_email": [{ "name": "EMAIL" }],
+      "queues": {
+        "producers": [{ "binding": "CLEANUP_QUEUE", "queue": "starry-cleanup-staging" }],
+        "consumers": [{ "queue": "starry-cleanup-staging", "max_batch_size": 10, "max_batch_timeout": 5, "max_retries": 5, "dead_letter_queue": "starry-cleanup-dlq-staging" }]
+      },
       "r2_buckets": [
         { "binding": "AVATARS", "bucket_name": "starry-avatars-staging" },
         { "binding": "SUPPORT_FILES", "bucket_name": "starry-support-files-staging" }
