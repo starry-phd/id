@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { passkeyScript } from '../../src/web/account';
 
-for (const mode of ['register', 'login'] as const) {
+for (const mode of ['register', 'login', 'stepup'] as const) {
   test(`the ${mode} passkey script is valid JavaScript and encodes base64url without regex escapes`, () => {
     const out = String(passkeyScript({ get: () => 'nonce' } as never, mode, '/account?x=<y>'));
     const code = /<script[^>]*>([\s\S]*)<\/script>/.exec(out)?.[1] ?? '';

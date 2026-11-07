@@ -6,7 +6,7 @@ import { WEB_APP_ID } from '../identity/web-sessions';
 import { type StaffActor } from '../identity/roles';
 import { auditStatement } from '../lib/audit';
 import { readForm, type WebContext } from './layout';
-import { adminApp, adminPage, appAccess, staff } from './admin-lib';
+import { adminApp, adminPage, appAccess, staff, requireStepUp } from './admin-lib';
 import { memberPage } from './admin-members';
 import { appsPage } from './admin-apps';
 
@@ -132,6 +132,8 @@ adminApp.post('/apps/:id/invites/toggle', async (c) => {
 adminApp.post('/members/:id/quantum', async (c) => {
   const actor = await staff(c, 'admin');
   if (actor instanceof Response) return actor;
+  const stepUp = await requireStepUp(c, actor);
+  if (stepUp) return stepUp;
   const userId = c.req.param('id');
   if (userId === actor.userId) return memberPage(c, actor, userId, '不能調整自己的量子電池。');
   const exists = await c.env.DB_IDENTITY.prepare('SELECT 1 AS ok FROM users WHERE user_id = ?').bind(userId).first();

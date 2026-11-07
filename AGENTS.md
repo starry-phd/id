@@ -75,6 +75,7 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 3c4. 程式結構：`src/web/admin.ts`、`account.ts` 只是入口，路由分散在 `admin-*.ts`、`account-*.ts`；路由註冊順序即入口檔的 import 順序，不可隨意調換。
 3c5. 各 App 使用概況：`member_apps.last_seen_at`（登入與換發 Token 時更新，每小時最多寫一次）；後台首頁顯示用過／7 天內／30 天內人數與有效權益數；網頁刪帳頁若有生效中的商店訂閱會提醒先取消。
 3c6. 客服回覆範本（`REPLY_TEMPLATES`，選了填入可再修改）；App 階段標記 dev/test/live（`app_stages`，只是給人看的標籤，不影響行為）。
+3c7. 高風險操作二次確認：有 Passkey 的員工執行刪會員、調整 Battery/量子電池、批次操作、改角色、重產 Battery 金鑰前，必須先用 Passkey 確認（`requireStepUp`，5 分鐘內有效，`staff_stepups`）；沒有 Passkey 的員工不受限（避免鎖死）。
 3c3. 邀請碼：Owner 在 `/admin/apps/<id>/invites` 建立，會員在帳號中心輸入後獲得該 App 的免費量子電池（`invite_codes`／`invite_redemptions`）；每人每組碼限一次、有次數與到期日上限；贈送不是購買，不影響每月免費 Battery。
 3c. 簽章金鑰輪替：Secret `ACCESS_TOKEN_PREVIOUS_JWKS` 放舊公鑰，輪替期間舊 Token 仍有效，步驟見 `docs/owner-setup.md`。
 3d. 刻意保留的設計（不是漏做）：echo／recordnote／account 留在 `config/apps.json`（資料庫故障時既有 App 仍可登入）；7 天刪除寬限期仍是現行對外行為（`deletion_purge_at` 欄位）；Email 登入依業主決定不做。
