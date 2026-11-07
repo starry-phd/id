@@ -25,7 +25,11 @@ import {
   ageOn, derivedOf, EDITABLE_FIELDS, effectiveVisibility, GRID_LAYOUT, hasChanges, loadProfile, saveProfile, validateProfileInput,
   type EditableField, type FieldUpdate, type Visibility, type VisibilityField,
 } from '../identity/profile';
-import { issueNonce } from '../identity/nonces';
+import { consumeNonce, issueNonce } from '../identity/nonces';
+import { base64urlDecode, base64urlEncode, fromUtf8, utf8 } from '../lib/encoding';
+import { readClientData, verifyAssertion, verifyRegistration } from '../auth/webauthn';
+import { addPasskey, findPasskey, listPasskeys, MAX_PASSKEYS, removePasskey, touchPasskey } from '../identity/passkeys';
+
 import { claimOwner, hasRole, isRecentLogin, roleOf } from '../identity/roles';
 import { createWebSession, endWebSession, WEB_APP_ID, WEB_SESSION_ABSOLUTE_MS } from '../identity/web-sessions';
 import { errorBody } from '../lib/errors';
@@ -169,6 +173,51 @@ function appleRedirectUri(c: WebContext): string {
   return `${new URL(c.req.url).origin}/account`;
 }
 
+/** Browser side of passkeys: talks to /account/passkey/* with navigator.credentials. */
+function passkeyScript(c: WebContext, mode: 'register' | 'login', next = '/account'): Html {
+  const cspNonce = c.get('cspNonce');
+  const target = mode === 'register' ? '#add-passkey' : '#passkey-login';
+  return html`<script nonce="${cspNonce}">
+(function () {
+  const button = document.querySelector('${raw(target)}');
+  if (!button) return;
+  if (!window.PublicKeyCredential || !navigator.credentials) { button.style.display = 'none'; return; }
+  const out = document.getElementById('passkey-error');
+  const say = (t) => { if (out) out.textContent = t; };
+  const b2u = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const u2b = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (ch) => ch.charCodeAt(0));
+  const post = (path, body) => fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}) });
+  button.addEventListener('click', async () => {
+    button.disabled = true; say('');
+    try {
+      ${mode === 'register'
+        ? raw(`const o = await post('/account/passkey/register-options');
+      if (o.status === 403) { say('為了安全，請重新登入後再新增 Passkey。'); return; }
+      if (!o.ok) { say('現在無法新增，請稍後再試。'); return; }
+      const opts = (await o.json()).publicKey;
+      opts.challenge = u2b(opts.challenge); opts.user.id = u2b(opts.user.id);
+      opts.excludeCredentials = opts.excludeCredentials.map((k) => ({ ...k, id: u2b(k.id) }));
+      const cred = await navigator.credentials.create({ publicKey: opts });
+      const r = await post('/account/passkey/register', { name: (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || 'Passkey', clientDataJSON: b2u(cred.response.clientDataJSON), attestationObject: b2u(cred.response.attestationObject) });
+      if (r.ok) { location.href = '/account?notice=passkey_added'; return; }
+      say(r.status === 409 ? '這個 Passkey 已經新增過，或已達數量上限。' : '新增失敗，請再試一次。');`)
+        : raw(`const o = await post('/account/passkey/login-options');
+      const opts = (await o.json()).publicKey;
+      opts.challenge = u2b(opts.challenge);
+      const cred = await navigator.credentials.get({ publicKey: opts });
+      const r = await post('/account/passkey/login', { id: cred.id, clientDataJSON: b2u(cred.response.clientDataJSON), authenticatorData: b2u(cred.response.authenticatorData), signature: b2u(cred.response.signature) });
+      if (r.ok) { location.href = ${JSON.stringify(next).replace(/</g, '\\u003c')}; return; }
+      say(r.status === 403 ? '此帳號已停權，請聯絡客服。' : '登入失敗。請確認這個裝置已新增過 Passkey，或改用 Apple／Google 登入。');`)}
+    } catch (e) {
+      if (!(e && e.name === 'NotAllowedError')) say('操作失敗，請再試一次。');
+    } finally {
+      button.disabled = false;
+    }
+  });
+})();
+</script>`;
+}
+
 async function loginPage(c: WebContext, message?: string, tone: 'danger' | 'info' = 'danger'): Promise<Response> {
   const app = await webApp(c);
   const googleClient = app ? audiencesFor(c.env, app, 'google')[0] : undefined;
@@ -184,9 +233,11 @@ async function loginPage(c: WebContext, message?: string, tone: 'danger' | 'info
 ${message ? html`<div class="banner${tone === 'danger' ? ' danger' : ''}">${message}</div>` : ''}
 <div class="card">
   ${widgets.body}
+  <button id="passkey-login" type="button" class="secondary">使用 Passkey 登入</button>
+  <p id="passkey-error" class="danger" role="alert"></p>
 </div>
 <p class="muted">登入即表示您同意<a href="/terms">服務條款</a>與<a href="/privacy">隱私權政策</a>。</p>`;
-  return c.html(page(c, '登入', body, { scripts: widgets.scripts }));
+  return c.html(page(c, '登入', body, { scripts: html`${widgets.scripts}${passkeyScript(c, 'login', next)}` }));
 }
 
 /** POST /account/session — the page's script sends the provider ID token here. */
@@ -242,6 +293,8 @@ function webDeviceLabel(c: WebContext): string {
 const NOTICES: Record<string, string> = {
   linked: '已加綁新的登入方式。',
   session_revoked: '已登出該裝置。',
+  passkey_added: 'Passkey 已新增，下次可以直接用它登入。',
+  passkey_removed: 'Passkey 已移除。',
   logged_out_everywhere: '已登出所有裝置與 App。',
   merged: '已合併帳號。現在用 Apple 或 Google 都會登入這個帳號。',
 };
@@ -294,6 +347,7 @@ accountApp.get('/', async (c) => {
   const app = await webApp(c);
   const linkable = app && !pending ? linkableProviders(c, app, account.identities.map((i) => i.provider)) : { google: null, apple: null };
   const sessions = pending ? [] : await listActiveSessions(db, web.userId, now);
+  const passkeys = pending ? [] : await listPasskeys(db, web.userId);
   const [battery, batteryActivity, quantum] = pending
     ? [null, null, []]
     : await Promise.all([getBalance(c.env.DB_BATTERY, web.userId, now), recentActivity(c.env.DB_BATTERY, web.userId, now, { limit: 10 }), listQuantum(c.env.DB_BATTERY, web.userId)]);
@@ -329,7 +383,14 @@ ${!pending && needsConsent
 </div>
 ${pending
   ? ''
-  : html`<h2>登入中的裝置</h2>
+  : html`<h2>Passkey</h2>
+<div class="card">
+  ${passkeys.length > 0
+    ? html`<ul>${passkeys.map((k) => html`<li>${k.name}（${formatTime(k.created_at)} 新增）<form class="inline" method="post" action="/account/passkey/${k.credential_id}/remove"><button class="secondary" type="submit">移除</button></form></li>`)}</ul>`
+    : html`<p class="muted">還沒有 Passkey。新增後可以用指紋、臉部或螢幕鎖直接登入，不必再透過 Apple 或 Google。</p>`}
+  ${passkeys.length < MAX_PASSKEYS ? html`<button id="add-passkey" type="button">新增 Passkey</button><p id="passkey-error" class="danger" role="alert"></p>` : ''}
+</div>
+<h2>登入中的裝置</h2>
 <div class="card">
   <table>
     <tr><th>App</th><th>裝置</th><th>最後使用</th><th></th></tr>
@@ -360,7 +421,7 @@ ${battery && batteryActivity
 ${role && hasRole(role, 'support') ? html`<p><a class="button" href="/admin">進入 Admin Lite</a></p>` : ''}
 ${pending ? '' : html`<h2>下載我的資料</h2><p class="muted">取得 Starry 保存的您的個人資料、登入方式、同意紀錄、使用過的 App 與電池紀錄（JSON 檔，不含密碼或憑證）。</p><a href="/account/export">下載我的資料</a>`}
 ${pending ? '' : html`<h2>刪除帳號</h2><p class="muted">確認後立即永久刪除，無法復原。</p><a href="/account/delete">申請刪除帳號</a>`}`;
-  return c.html(page(c, '我的帳號', body));
+  return c.html(page(c, '我的帳號', body, { scripts: pending ? html`` : passkeyScript(c, 'register') }));
 });
 
 /** POST /account/sessions/:id/revoke — ends one of the member's other sessions (S-ID-05). */
@@ -948,6 +1009,106 @@ accountApp.get('/motto-suggestion', (c) => {
   const web = c.get('web');
   if (!web) return c.json({ error: 'sign in' }, 401);
   return c.json({ motto: randomMotto(c.req.query('current') ?? null) });
+});
+
+// ---- Passkeys (WebAuthn) for the web account center ----
+
+function relyingParty(c: WebContext): { origin: string; rpId: string } {
+  const url = new URL(c.req.url);
+  return { origin: url.origin, rpId: url.hostname };
+}
+
+/** The challenge sent to the browser is the single-use server nonce; the browser returns it base64url-encoded. */
+async function consumeChallenge(c: WebContext, clientDataJSON: unknown, type: 'webauthn.create' | 'webauthn.get', now: number): Promise<boolean> {
+  if (typeof clientDataJSON !== 'string' || clientDataJSON.length > 4096) return false;
+  const data = readClientData(clientDataJSON, type, relyingParty(c));
+  if (!data) return false;
+  let nonce: string;
+  try {
+    nonce = fromUtf8(base64urlDecode(data.challenge));
+  } catch {
+    return false;
+  }
+  return consumeNonce(c.env.DB_IDENTITY, nonce, WEB_APP_ID, now);
+}
+
+const str = (value: unknown, max: number): string | null => (typeof value === 'string' && value.length > 0 && value.length <= max ? value : null);
+
+accountApp.post('/passkey/register-options', async (c) => {
+  const web = c.get('web');
+  const requestId = c.get('requestId');
+  if (!web || web.status !== 'active') return c.json(errorBody('UNAUTHORIZED', 'Sign in first', requestId), 401);
+  const now = Date.now();
+  if (!isRecentLogin(web.createdAt, now)) return c.json(errorBody('REAUTH_REQUIRED', 'Sign in again before adding a passkey', requestId), 403);
+  const db = c.env.DB_IDENTITY;
+  const [existing, account] = await Promise.all([listPasskeys(db, web.userId), loadAccount(db, web.userId)]);
+  const nonce = await issueNonce(db, WEB_APP_ID, now);
+  const label = account?.profile.display_name ?? '繁星會員';
+  return c.json({
+    publicKey: {
+      rp: { name: 'Starry', id: relyingParty(c).rpId },
+      user: { id: base64urlEncode(utf8(web.userId)), name: label, displayName: label },
+      challenge: base64urlEncode(utf8(nonce)),
+      pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
+      authenticatorSelection: { residentKey: 'required', requireResidentKey: true, userVerification: 'required' },
+      attestation: 'none',
+      timeout: 120000,
+      excludeCredentials: existing.map((p) => ({ type: 'public-key', id: p.credential_id })),
+    },
+  });
+});
+
+accountApp.post('/passkey/register', async (c) => {
+  const web = c.get('web');
+  const requestId = c.get('requestId');
+  if (!web || web.status !== 'active') return c.json(errorBody('UNAUTHORIZED', 'Sign in first', requestId), 401);
+  const now = Date.now();
+  if (!isRecentLogin(web.createdAt, now)) return c.json(errorBody('REAUTH_REQUIRED', 'Sign in again before adding a passkey', requestId), 403);
+  const body = await readJsonObject(c);
+  const attestation = str(body?.attestationObject, 8192);
+  if (!body || !attestation || !(await consumeChallenge(c, body.clientDataJSON, 'webauthn.create', now))) return c.json(errorBody('BAD_REQUEST', 'This passkey request is invalid or expired', requestId), 400);
+  const registered = await verifyRegistration(attestation, relyingParty(c));
+  if (!registered) return c.json(errorBody('BAD_REQUEST', 'This passkey cannot be used', requestId), 400);
+  const added = await addPasskey(c.env.DB_IDENTITY, { userId: web.userId, credentialId: registered.credentialId, key: registered.key, signCount: registered.signCount, name: typeof body.name === 'string' ? body.name : '', requestId }, now);
+  if (added === 'limit') return c.json(errorBody('CONFLICT', `At most ${MAX_PASSKEYS} passkeys`, requestId), 409);
+  if (added === 'duplicate') return c.json(errorBody('CONFLICT', 'This passkey is already registered', requestId), 409);
+  return c.json({ ok: true });
+});
+
+accountApp.post('/passkey/login-options', async (c) => {
+  const nonce = await issueNonce(c.env.DB_IDENTITY, WEB_APP_ID, Date.now());
+  return c.json({ publicKey: { challenge: base64urlEncode(utf8(nonce)), rpId: relyingParty(c).rpId, userVerification: 'required', timeout: 120000, allowCredentials: [] } });
+});
+
+accountApp.post('/passkey/login', async (c) => {
+  const requestId = c.get('requestId');
+  const body = await readJsonObject(c);
+  const id = str(body?.id, 1024);
+  const authenticatorData = str(body?.authenticatorData, 2048);
+  const signature = str(body?.signature, 1024);
+  const clientDataJSON = str(body?.clientDataJSON, 4096);
+  const refuse = () => c.json(errorBody('UNAUTHORIZED', 'Passkey sign-in failed', requestId), 401);
+  if (!body || !id || !authenticatorData || !signature || !clientDataJSON) return c.json(errorBody('BAD_REQUEST', 'id, clientDataJSON, authenticatorData and signature are required', requestId), 400);
+  const now = Date.now();
+  if (!(await consumeChallenge(c, clientDataJSON, 'webauthn.get', now))) return refuse();
+  const db = c.env.DB_IDENTITY;
+  const stored = await findPasskey(db, id);
+  if (!stored) return refuse();
+  const result = await verifyAssertion({ clientDataJSON, authenticatorData, signature }, stored.key, stored.sign_count, relyingParty(c));
+  if (!result.ok || !(await touchPasskey(db, id, stored.sign_count, result.signCount, now))) return refuse();
+  const member = await db.prepare('SELECT status, session_version FROM users WHERE user_id = ?').bind(stored.user_id).first<{ status: string; session_version: number }>();
+  if (!member) return refuse();
+  if (member.status === 'suspended') return c.json(errorBody('ACCOUNT_SUSPENDED', 'Account suspended', requestId), 403);
+  const session = await createWebSession(db, { userId: stored.user_id, sessionVersion: member.session_version, provider: 'passkey', deviceLabel: webDeviceLabel(c), requestId }, now);
+  setCookie(c, SESSION_COOKIE, session.cookieValue, { prefix: 'host', path: '/', secure: true, httpOnly: true, sameSite: 'Lax', maxAge: Math.floor(WEB_SESSION_ABSOLUTE_MS / 1000) });
+  return c.json({ ok: true });
+});
+
+accountApp.post('/passkey/:id/remove', async (c) => {
+  const web = c.get('web');
+  if (!web || web.status !== 'active') return c.redirect('/account', 303);
+  await removePasskey(c.env.DB_IDENTITY, web.userId, c.req.param('id'), c.get('requestId'), Date.now());
+  return c.redirect('/account?notice=passkey_removed', 303);
 });
 
 /** GET /account/export — the member downloads a JSON copy of their own data. */
