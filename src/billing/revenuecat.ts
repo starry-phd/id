@@ -314,3 +314,32 @@ export function perAppSecrets(value: string | undefined): Record<string, string>
     return {};
   }
 }
+
+export interface MemberSubscription extends ActiveEntitlement {
+  app_id: string;
+  /** True for an entitlement staff granted by hand (not a store purchase). */
+  granted: boolean;
+}
+
+/** Every active entitlement of one member in every App, for the account center. Test-environment purchases are left out. */
+export async function memberSubscriptions(db: D1Database, userId: string, now: number): Promise<MemberSubscription[]> {
+  const [bought, granted] = await db.batch([
+    db
+      .prepare(
+        `SELECT app_id, entitlement, expires_at, product_id, store, environment FROM entitlements
+         WHERE user_id = ? AND active = 1 AND (expires_at IS NULL OR expires_at > ?) AND (environment IS NULL OR environment != 'SANDBOX') ORDER BY app_id, entitlement`,
+      )
+      .bind(userId, now),
+    db
+      .prepare(
+        `SELECT app_id, entitlement, expires_at FROM entitlement_grants
+         WHERE user_id = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?) ORDER BY app_id, entitlement`,
+      )
+      .bind(userId, now),
+  ]);
+  const out: MemberSubscription[] = ((bought?.results ?? []) as unknown as Omit<MemberSubscription, 'granted'>[]).map((r) => ({ ...r, granted: false }));
+  for (const g of (granted?.results ?? []) as unknown as { app_id: string; entitlement: string; expires_at: number | null }[]) {
+    out.push({ app_id: g.app_id, entitlement: g.entitlement, expires_at: g.expires_at, product_id: null, store: 'STARRY_GRANT', environment: null, granted: true });
+  }
+  return out.sort((a, b) => a.app_id.localeCompare(b.app_id) || a.entitlement.localeCompare(b.entitlement));
+}

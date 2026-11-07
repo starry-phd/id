@@ -57,3 +57,16 @@ export async function logoutEverywhere(db: D1Database, actor: { userId: string; 
     auditStatement(db, { actorType: 'user', actorUserId: actor.userId, action: 'auth.logout_all', targetType: 'user', targetId: actor.userId, appId: actor.appId, result: 'success', requestId: actor.requestId, retention: 'security' }, now),
   ]);
 }
+
+/**
+ * Ends every session of the member in one App (not the web account center, so the member stays signed in here).
+ * Returns how many sessions were ended; 0 when the App had none.
+ */
+export async function revokeAppSessions(db: D1Database, actor: { userId: string; requestId: string | null }, appId: string, now: number): Promise<number> {
+  if (appId === WEB_APP_ID) return 0;
+  const [result] = await db.batch([
+    db.prepare("UPDATE sessions SET revoked_at = ?, revoke_reason = 'revoked_by_member' WHERE user_id = ? AND app_id = ? AND revoked_at IS NULL").bind(now, actor.userId, appId),
+    auditStatement(db, { actorType: 'user', actorUserId: actor.userId, action: 'account.app_sessions_revoked', targetType: 'app', targetId: appId, appId, result: 'success', requestId: actor.requestId, retention: 'security' }, now),
+  ]);
+  return result?.meta.changes ?? 0;
+}
