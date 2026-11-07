@@ -350,3 +350,49 @@ describe('device sign-on (shared storage)', () => {
     assert.equal(await offline.client.syncDeviceSignIn(), true);
   });
 });
+
+describe('web single sign-on', () => {
+  const jwt = (sub: string) => `h.${base64urlEncode(new TextEncoder().encode(JSON.stringify({ sub })))}.s`;
+  const session = (n: number, sub: string) => () => Response.json({ ...tokens(n), access_token: jwt(sub), user: { user_id: sub, status: 'active', is_new: false, deletion_purge_at: null }, consent_required: false });
+  const web = (handlers: Parameters<typeof server>[0]) => {
+    const went: string[] = [];
+    const c = make({ 'POST /v1/auth/nonce': () => Response.json({ nonce: 'n'.repeat(24) }), ...handlers }, { navigate: (url: string) => void went.push(url) });
+    return { ...c, went };
+  };
+  const back = (fragment: string) => `https://clock.starry.phd/app#${fragment}`;
+
+  test('check goes to id.starry.phd once per interval; the code signs this App in', async () => {
+    const c = web({ 'POST /v1/auth/sso/web-exchange': session(1, 'u1') });
+    assert.equal(await c.client.syncWebSignIn({ returnUrl: 'https://clock.starry.phd/app' }), true);
+    assert.match(c.went[0] ?? '', /^https:\/\/id\.test\/auth\/sso\/check\?app_id=clock&nonce=[a-f0-9]{64}&return=.+&state=state-abc$/);
+    assert.equal(await c.client.syncWebSignIn({ returnUrl: 'https://clock.starry.phd/app' }), false, 'throttled');
+    assert.equal(await c.client.completeWebSsoCheck(back('sso_code=code1&sso_user=u1&state=state-abc')), true);
+    assert.equal(c.calls.find((x) => x.path === '/v1/auth/sso/web-exchange')?.body?.code, 'code1');
+    assert.equal(c.client.signedIn, true);
+    assert.equal(await c.client.completeWebSsoCheck('https://clock.starry.phd/app'), null);
+  });
+
+  test('a wrong state is ignored; the same member keeps their session; another member switches', async () => {
+    const c = web({ 'POST /v1/auth/sso/web-exchange': session(2, 'u2'), 'POST /v1/auth/google': session(1, 'u1'), 'POST /v1/auth/refresh': () => Response.json({ ...tokens(5), access_token: jwt('u1') }) });
+    await c.client.signInWithIdToken('google', { idToken: 'idt', nonce: 'n'.repeat(20) });
+    await c.client.syncWebSignIn({ returnUrl: 'https://clock.starry.phd/app', everyMs: 0 });
+    assert.equal(await c.client.completeWebSsoCheck(back('sso_code=c&sso_user=u2&state=wrong')), true);
+    assert.equal(c.calls.filter((x) => x.path === '/v1/auth/sso/web-exchange').length, 0);
+    await c.client.syncWebSignIn({ returnUrl: 'https://clock.starry.phd/app', everyMs: 0 });
+    assert.equal(await c.client.completeWebSsoCheck(back('sso_code=c&sso_user=u1&state=state-abc')), true);
+    assert.equal(c.calls.filter((x) => x.path === '/v1/auth/sso/web-exchange').length, 0, 'same member: nothing to do');
+    await c.client.syncWebSignIn({ returnUrl: 'https://clock.starry.phd/app', everyMs: 0 });
+    assert.equal(await c.client.completeWebSsoCheck(back('sso_code=c&sso_user=u2&state=state-abc')), true);
+    assert.equal(c.calls.filter((x) => x.path === '/v1/auth/sso/web-exchange').length, 1);
+  });
+
+  test('signed out elsewhere signs out only an App that shared its sign-in', async () => {
+    const c = web({ 'POST /v1/auth/google': session(1, 'u1'), 'POST /v1/auth/sso/start': () => Response.json({ sso_token: 't' }), 'POST /v1/auth/sso/web-code': () => Response.json({ code: 'c1' }) });
+    await c.client.signInWithIdToken('google', { idToken: 'idt', nonce: 'n'.repeat(20) });
+    assert.equal(await c.client.completeWebSsoCheck(back('sso_none=1&state=')), true, 'never shared: keeps the session');
+    await c.client.shareWebSignIn({ returnUrl: 'https://clock.starry.phd/app' });
+    assert.match(c.went.at(-1) ?? '', /\/auth\/sso\/adopt\?app_id=clock&c=c1&return=/);
+    assert.equal(await c.client.completeWebSsoCheck(back('sso_none=1&state=')), false);
+    assert.equal(c.client.signedIn, false);
+  });
+});

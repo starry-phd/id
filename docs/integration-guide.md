@@ -238,6 +238,12 @@ Passkey 屬於 Starry ID：relying party ID 是 Starry ID 網址的主機名稱�
 - 會員「登出所有裝置」或帳號被停權，共用 token 一併失效。共用 token 30 天無使用就過期。
 - 沒有傳 `sharedStorage` 的 App 維持舊行為（各自登入）。
 
+**網頁版（同一個瀏覽器內連動）**：瀏覽器不能共用儲存，改由 id.starry.phd 以 cookie（`__Host-starry_sso`，HttpOnly）記住這個瀏覽器的共用登入，網頁版用整頁導向詢問：
+- 登入後 `starry.shareWebSignIn({returnUrl})`：`POST /v1/auth/sso/start` → `POST /v1/auth/sso/web-code {sso_token}` → 導向 `/auth/sso/adopt?c=<code>&app_id&return=`，由 id.starry.phd 設定 cookie 後回到 returnUrl（`#sso_adopted=1`）。
+- 載入頁面 `starry.syncWebSignIn({returnUrl})`（5 分鐘節流）→ 導向 `/auth/sso/check?app_id&nonce=<SHA-256 hex>&return=&state=` → 回到 returnUrl 的 `#sso_code=&sso_user=&state=`（或 `#sso_none=1`）→ `starry.completeWebSsoCheck()` 呼叫 `POST /v1/auth/sso/web-exchange {app_id, code, nonce}`（code 2 分鐘、綁定 App 與 nonce、只能用一次）。
+- 登出 `starry.signOutWebEverywhere({returnUrl})` → `/auth/sso/logout` 清 cookie 並結束所有共用 session。
+- returnUrl 必須是 App 已登記的網頁版來源底下的頁面，不能帶 `#`。網頁版與手機 App 之間不連動；網頁版在下一次載入頁面時才會跟上登出或換人。
+
 ## 14. 同帳號的 App 後端：Service Binding（選用，2026-11-07）
 
 只適用於跑在**同一個 Cloudflare 帳號**的 Worker 型 App 後端。好處是不經公開網路、延遲較低；不用也完全可以，照第 9 節走公開網址即可。
