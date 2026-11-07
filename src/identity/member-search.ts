@@ -14,6 +14,8 @@ export interface MemberFilters {
   from?: number | undefined;
   to?: number | undefined;
   staffOnly?: boolean | undefined;
+  /** Only members who have used one of these Apps (App-scoped support); an empty list matches nobody. */
+  appIds?: readonly string[] | undefined;
   /** Battery remaining this month, inclusive. */
   batteryMin?: number | undefined;
   batteryMax?: number | undefined;
@@ -77,6 +79,13 @@ function whereOf(filters: MemberFilters, cursor: string): { sql: string; binds: 
     binds.push(filters.to);
   }
   if (filters.staffOnly) conditions.push('u.user_id IN (SELECT user_id FROM user_roles)');
+  if (filters.appIds !== undefined) {
+    if (filters.appIds.length === 0) conditions.push('0');
+    else {
+      conditions.push(`u.user_id IN (SELECT user_id FROM member_apps WHERE app_id IN (${filters.appIds.map(() => '?').join(',')}))`);
+      binds.push(...filters.appIds);
+    }
+  }
   return { sql: conditions.join(' AND '), binds };
 }
 

@@ -8,15 +8,17 @@ import { ATTACHMENT_EXTENSIONS, getAttachment, listAttachments } from '../suppor
 import { listReplies, replyRecipient, replyToTicket } from '../support/replies';
 import { CATEGORY_LABELS, getTicket, listTickets, setTicketStatus } from '../support/tickets';
 import { formatTime, readForm, type WebContext } from './layout';
-import { adminApp, adminPage, staff } from './admin-lib';
+import { adminApp, adminPage, scopeAllows, supportAccess } from './admin-lib';
 
 adminApp.get('/tickets', async (c) => {
-  const actor = await staff(c, 'support');
+  const actor = await supportAccess(c);
   if (actor instanceof Response) return actor;
   const status = c.req.query('status') === 'closed' ? 'closed' : 'open';
   const appFilter = c.req.query('app') ?? '';
-  const appId = appFilter === '' ? undefined : appFilter === '-' || appRegistry.has(appFilter) ? appFilter : undefined;
-  const result = await listTickets(c.env.DB_IDENTITY, { status, cursor: c.req.query('cursor'), appId });
+  const scope = actor.appScope;
+  // A scoped person can only narrow within their own Apps; anything else falls back to all of their Apps.
+  const appId = scope ? (scope.includes(appFilter) ? appFilter : undefined) : appFilter === '' ? undefined : appFilter === '-' || appRegistry.has(appFilter) ? appFilter : undefined;
+  const result = await listTickets(c.env.DB_IDENTITY, { status, cursor: c.req.query('cursor'), appId, appIds: scope });
   const appQuery = appId === undefined ? '' : `&app=${encodeURIComponent(appId)}`;
   return c.html(
     adminPage(
@@ -24,7 +26,7 @@ adminApp.get('/tickets', async (c) => {
       '客服單',
       html`<h1>客服單</h1>
 <p>${status === 'open' ? html`<strong>未結</strong>&emsp;<a href="/admin/tickets?status=closed${appQuery}">已結</a>` : html`<a href="/admin/tickets?status=open${appQuery}">未結</a>&emsp;<strong>已結</strong>`}</p>
-<form method="get" action="/admin/tickets" class="inline"><input type="hidden" name="status" value="${status}"><label for="app" class="muted">依 App 篩選</label> <select id="app" name="app"><option value="">全部</option><option value="-"${appId === '-' ? ' selected' : ''}>未指定 App（Starry 帳號）</option>${[...appRegistry.values()].filter((a) => a.app_id !== WEB_APP_ID).map((a) => html`<option value="${a.app_id}"${appId === a.app_id ? ' selected' : ''}>${a.name}</option>`)}</select> <button type="submit" class="secondary">篩選</button></form>
+<form method="get" action="/admin/tickets" class="inline"><input type="hidden" name="status" value="${status}"><label for="app" class="muted">依 App 篩選</label> <select id="app" name="app"><option value="">全部</option>${scope ? '' : html`<option value="-"${appId === '-' ? ' selected' : ''}>未指定 App（Starry 帳號）</option>`}${[...appRegistry.values()].filter((a) => a.app_id !== WEB_APP_ID && (!scope || scope.includes(a.app_id))).map((a) => html`<option value="${a.app_id}"${appId === a.app_id ? ' selected' : ''}>${a.name}</option>`)}</select> <button type="submit" class="secondary">篩選</button></form>
 <table><thead><tr><th>時間</th><th>類別</th><th>內容</th></tr></thead><tbody>
 ${result.tickets.map(
   (t) => html`<tr><td><a href="/admin/tickets/${t.ticket_id}">${formatTime(t.created_at)}</a></td><td>${CATEGORY_LABELS[t.category]}${t.app_id ? html`<br><span class="muted">${t.app_id}</span>` : ''}</td><td>${t.message.length > 80 ? `${t.message.slice(0, 80)}…` : t.message}</td></tr>`,
@@ -32,6 +34,8 @@ ${result.tickets.map(
 </tbody></table>
 ${result.tickets.length === 0 ? html`<p class="muted">沒有客服單。</p>` : ''}
 ${result.nextCursor ? html`<p class="pager"><a href="/admin/tickets?status=${status}${appQuery}&cursor=${result.nextCursor}">下一頁</a></p>` : ''}`,
+      undefined,
+      actor,
     ),
   );
 });
@@ -48,7 +52,8 @@ export const REPLY_TEMPLATES: readonly { label: string; text: string }[] = [
 async function ticketPage(c: WebContext, actor: StaffActor, ticketId: string, message?: string): Promise<Response> {
   const db = c.env.DB_IDENTITY;
   const t = await getTicket(db, ticketId);
-  if (!t) return c.html(adminPage(c, '找不到客服單', html`<h1>找不到客服單</h1>`), 404);
+  // A ticket outside the person's Apps looks exactly like a missing one.
+  if (!t || !scopeAllows(actor, t.app_id)) return c.html(adminPage(c, '找不到客服單', html`<h1>找不到客服單</h1>`, undefined, actor), 404);
   await auditStatement(db, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.ticket_viewed', targetType: 'ticket', targetId: t.ticket_id, result: 'success', requestId: actor.requestId, retention: 'general' }, Date.now()).run();
   const attachments = await listAttachments(db, t.ticket_id);
   const replies = await listReplies(db, t.ticket_id);
@@ -103,23 +108,25 @@ if (tpl) tpl.addEventListener('change', function () {
   if (tpl.value !== '' && area) area.value = TEMPLATES[Number(tpl.value)];
 });
 </script>`,
+      actor,
     ),
   );
 }
 
 adminApp.get('/tickets/:id', async (c) => {
-  const actor = await staff(c, 'support');
+  const actor = await supportAccess(c);
   if (actor instanceof Response) return actor;
   return ticketPage(c, actor, c.req.param('id'));
 });
 
 /** Streams a ticket attachment as a download; never rendered inline (S-WEB-02). */
 adminApp.get('/tickets/:id/attachments/:attachmentId', async (c) => {
-  const actor = await staff(c, 'support');
+  const actor = await supportAccess(c);
   if (actor instanceof Response) return actor;
   const db = c.env.DB_IDENTITY;
   const attachment = await getAttachment(db, c.req.param('id'), c.req.param('attachmentId'));
-  const object = attachment ? await c.env.SUPPORT_FILES?.get(attachment.object_key) : null;
+  const owner = attachment ? await getTicket(db, attachment.ticket_id) : null;
+  const object = attachment && owner && scopeAllows(actor, owner.app_id) ? await c.env.SUPPORT_FILES?.get(attachment.object_key) : null;
   if (!attachment || !object) return c.html(adminPage(c, '找不到附件', html`<h1>找不到附件</h1>`), 404);
   await auditStatement(db, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.ticket_attachment_viewed', targetType: 'ticket', targetId: attachment.ticket_id, result: 'success', requestId: actor.requestId, retention: 'general' }, Date.now()).run();
   const filename = `ticket-${attachment.ticket_id.slice(-8)}.${ATTACHMENT_EXTENSIONS[attachment.content_type]}`;
@@ -136,12 +143,12 @@ adminApp.get('/tickets/:id/attachments/:attachmentId', async (c) => {
 
 /** POST /admin/tickets/:id/reply — emails the reply to the sender and keeps it with the ticket (S-NTF-02). */
 adminApp.post('/tickets/:id/reply', async (c) => {
-  const actor = await staff(c, 'support');
+  const actor = await supportAccess(c);
   if (actor instanceof Response) return actor;
   const db = c.env.DB_IDENTITY;
   const ticketId = c.req.param('id');
   const ticket = await getTicket(db, ticketId);
-  if (!ticket) return ticketPage(c, actor, ticketId, '找不到客服單。');
+  if (!ticket || !scopeAllows(actor, ticket.app_id)) return ticketPage(c, actor, ticketId, '找不到客服單。');
   const mail = mailSettings(c.env, new URL(c.req.url).origin);
   if (!mail) return ticketPage(c, actor, ticketId, '系統 Email 尚未啟用。');
   const form = await readForm(c);
@@ -154,11 +161,13 @@ adminApp.post('/tickets/:id/reply', async (c) => {
 });
 
 adminApp.post('/tickets/:id/status', async (c) => {
-  const actor = await staff(c, 'support');
+  const actor = await supportAccess(c);
   if (actor instanceof Response) return actor;
   const form = await readForm(c);
   const status = form.status === 'closed' ? 'closed' : 'open';
   const note = (form.note ?? '').trim().slice(0, 1000) || null;
+  const existing = await getTicket(c.env.DB_IDENTITY, c.req.param('id'));
+  if (!existing || !scopeAllows(actor, existing.app_id)) return ticketPage(c, actor, c.req.param('id'), '找不到客服單。');
   const ok = await setTicketStatus(c.env.DB_IDENTITY, actor, c.req.param('id'), status, note, Date.now());
   return ticketPage(c, actor, c.req.param('id'), ok ? (status === 'closed' ? '已結案。' : '已重新開啟。') : '找不到客服單。');
 });

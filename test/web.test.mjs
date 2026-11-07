@@ -435,6 +435,61 @@ describe('web account center, support form and Admin Lite', () => {
     await worker.db.prepare("DELETE FROM user_roles WHERE role = 'owner'").run(); // the owner-claim test needs a database without an owner
   });
 
+  test('an App support person sees only their own App\'s tickets and members, read-only (item 9)', async () => {
+    const owner = await webSignIn('sp-owner');
+    await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'owner', ?)").bind(await userIdOf('sp-owner'), Date.now()).run();
+    const agent = await webSignIn('sp-agent');
+    const agentId = await userIdOf('sp-agent');
+    await webSignIn('sp-echo-user');
+    await webSignIn('sp-other-user');
+    const echoUser = await userIdOf('sp-echo-user');
+    const otherUser = await userIdOf('sp-other-user');
+    const now = Date.now();
+    for (const [id, user, app] of [['01900000-0000-7000-8000-0000000000a1', echoUser, 'echo'], ['01900000-0000-7000-8000-0000000000a2', otherUser, 'recordnote']]) {
+      await worker.db.prepare('INSERT INTO member_apps (user_id, app_id, first_seen_at, last_seen_at) VALUES (?, ?, ?, ?)').bind(user, app, now, now).run();
+      await worker.db
+        .prepare("INSERT INTO support_tickets (ticket_id, created_at, user_id, contact_email, category, app_id, message, updated_at) VALUES (?, ?, ?, NULL, 'question', ?, ?, ?)")
+        .bind(id, now, user, app, `ticket-for-${app}`, now)
+        .run();
+    }
+    const echoTicket = (await worker.db.prepare("SELECT ticket_id FROM support_tickets WHERE app_id = 'echo' AND message = 'ticket-for-echo'").first()).ticket_id;
+    const otherTicket = (await worker.db.prepare("SELECT ticket_id FROM support_tickets WHERE app_id = 'recordnote' AND message = 'ticket-for-recordnote'").first()).ticket_id;
+
+    assert.equal((await worker.call('/admin/tickets', get(agent))).status, 403, 'not assigned yet');
+    const assign = await worker.call(`/admin/members/${agentId}/app-staff`, form({ app_id: 'echo', kind: 'support', grant: '1' }, owner));
+    assert.match(await assign.text(), /已更新 App 客服/);
+
+    const list = await (await worker.call('/admin/tickets', get(agent))).text();
+    assert.ok(list.includes('ticket-for-echo') || list.includes(echoTicket), 'sees the App\'s ticket');
+    assert.ok(!list.includes(otherTicket) && !list.includes('ticket-for-recordnote'), 'does not see another App\'s ticket');
+    assert.ok(!(await (await worker.call('/admin/tickets?app=recordnote', get(agent))).text()).includes(otherTicket), 'cannot filter outside the scope');
+    assert.equal((await worker.call(`/admin/tickets/${echoTicket}`, get(agent))).status, 200);
+    assert.equal((await worker.call(`/admin/tickets/${otherTicket}`, get(agent))).status, 404, 'looks missing');
+    assert.equal((await worker.call(`/admin/tickets/${otherTicket}/status`, form({ status: 'closed' }, agent))).status, 404, 'cannot close it');
+    assert.equal(await worker.db.prepare('SELECT status FROM support_tickets WHERE ticket_id = ?').bind(otherTicket).first('status'), 'open');
+    assert.match(await (await worker.call(`/admin/tickets/${echoTicket}/status`, form({ status: 'closed', note: 'ok' }, agent))).text(), /已結案/);
+
+    const members = await (await worker.call('/admin/members', get(agent))).text();
+    assert.ok(members.includes(echoUser), 'sees a member of the App');
+    assert.ok(!members.includes(otherUser), 'does not see a member of another App');
+    assert.equal((await worker.call(`/admin/members/${echoUser}`, get(agent))).status, 200);
+    assert.equal((await worker.call(`/admin/members/${otherUser}`, get(agent))).status, 404);
+    const detail = await (await worker.call(`/admin/members/${echoUser}`, get(agent))).text();
+    assert.ok(!detail.includes('Starry Battery') && !detail.includes('強制登出'), 'no Battery and no actions');
+
+    for (const path of ['/admin', '/admin/battery', '/admin/apps', '/admin/audit', '/admin/revenue', '/admin/apps/echo/config']) {
+      assert.equal((await worker.call(path, get(agent))).status, 403, `${path} stays closed`);
+    }
+    for (const path of [`/admin/members/${echoUser}/suspend`, `/admin/members/${echoUser}/battery`, `/admin/members/${echoUser}/signout`, '/admin/members/bulk']) {
+      assert.equal((await worker.call(path, form({ reason: 'x', delta: '5', ids: echoUser, action: 'suspend' }, agent))).status, 403, `${path} refuses`);
+    }
+    assert.match(await (await worker.call('/account', get(agent))).text(), /我負責客服的 App/);
+    assert.equal((await worker.call('/admin/apps/echo/config', get(agent))).status, 403, 'support is not a config manager');
+    await worker.call(`/admin/members/${agentId}/app-staff`, form({ app_id: 'echo', kind: 'support', grant: '0' }, owner));
+    assert.equal((await worker.call('/admin/tickets', get(agent))).status, 403, 'revoked');
+    await worker.db.prepare("DELETE FROM user_roles WHERE role = 'owner'").run();
+  });
+
   test('Battery in Admin Lite: admins adjust a member, only the owner sets the monthly policy (S-BAT-02/05)', async () => {
     const memberCookie = await webSignIn('battery-member');
     const target = await userIdOf('battery-member');

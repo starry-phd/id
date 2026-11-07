@@ -41,6 +41,11 @@ export interface StaffActor {
   userId: string;
   role: Role;
   requestId: string | null;
+  /**
+   * Set only for an App-scoped support person: the Apps whose tickets and members they may see.
+   * Undefined for global staff (Support, Admin, Owner), who see every App.
+   */
+  appScope?: readonly string[];
 }
 
 export type StatusChangeResult = 'ok' | 'not_found' | 'not_allowed' | 'wrong_status';
@@ -171,24 +176,35 @@ export async function claimOwner(db: D1Database, claimCode: string | undefined, 
   return 'claimed';
 }
 
-/** App managers: scoped to specific Apps (remote config, read-only views). They have no global staff role. */
-export async function listAppStaffApps(db: D1Database, userId: string): Promise<string[]> {
-  return (await db.prepare('SELECT app_id FROM app_staff WHERE user_id = ? ORDER BY app_id').bind(userId).all<{ app_id: string }>()).results.map((r) => r.app_id);
+/** App staff: members the Owner trusts with specific Apps only. 'manager' edits remote config; 'support' answers tickets. */
+export type AppStaffKind = 'manager' | 'support';
+
+export async function listAppStaffApps(db: D1Database, userId: string, kind: AppStaffKind = 'manager'): Promise<string[]> {
+  return (await db.prepare('SELECT app_id FROM app_staff WHERE user_id = ? AND kind = ? ORDER BY app_id').bind(userId, kind).all<{ app_id: string }>()).results.map((r) => r.app_id);
 }
 
+export async function listAppStaff(db: D1Database, userId: string): Promise<{ app_id: string; kind: AppStaffKind }[]> {
+  return (await db.prepare('SELECT app_id, kind FROM app_staff WHERE user_id = ? ORDER BY app_id').bind(userId).all<{ app_id: string; kind: AppStaffKind }>()).results;
+}
+
+/** True only for an App manager (remote config); an App support person does not count. */
 export async function isAppStaff(db: D1Database, userId: string, appId: string): Promise<boolean> {
-  return (await db.prepare('SELECT 1 AS ok FROM app_staff WHERE user_id = ? AND app_id = ?').bind(userId, appId).first()) !== null;
+  return (await db.prepare("SELECT 1 AS ok FROM app_staff WHERE user_id = ? AND app_id = ? AND kind = 'manager'").bind(userId, appId).first()) !== null;
 }
 
-export async function setAppStaff(db: D1Database, actor: StaffActor, userId: string, appId: string, grant: boolean, now: number): Promise<boolean> {
-  if (actor.role !== 'owner') return false;
+/** One row per member and App: granting a kind replaces the other kind; revoking removes only the named kind. */
+export async function setAppStaff(db: D1Database, actor: StaffActor, userId: string, appId: string, grant: boolean, now: number, kind: AppStaffKind = 'manager'): Promise<boolean> {
+  if (actor.role !== 'owner' || actor.appScope !== undefined) return false;
   const user = await db.prepare('SELECT 1 AS ok FROM users WHERE user_id = ?').bind(userId).first();
   if (!user) return false;
+  const noun = kind === 'manager' ? 'app_staff' : 'app_support';
   await db.batch([
     grant
-      ? db.prepare('INSERT OR IGNORE INTO app_staff (user_id, app_id, granted_at, granted_by) VALUES (?, ?, ?, ?)').bind(userId, appId, now, actor.userId)
-      : db.prepare('DELETE FROM app_staff WHERE user_id = ? AND app_id = ?').bind(userId, appId),
-    auditStatement(db, { actorType: 'admin', actorUserId: actor.userId, action: grant ? 'admin.app_staff_granted' : 'admin.app_staff_revoked', targetType: 'user', targetId: userId, appId, result: 'success', requestId: actor.requestId, retention: 'security' }, now),
+      ? db
+          .prepare('INSERT INTO app_staff (user_id, app_id, granted_at, granted_by, kind) VALUES (?, ?, ?, ?, ?) ON CONFLICT (user_id, app_id) DO UPDATE SET kind = excluded.kind, granted_at = excluded.granted_at, granted_by = excluded.granted_by')
+          .bind(userId, appId, now, actor.userId, kind)
+      : db.prepare('DELETE FROM app_staff WHERE user_id = ? AND app_id = ? AND kind = ?').bind(userId, appId, kind),
+    auditStatement(db, { actorType: 'admin', actorUserId: actor.userId, action: `admin.${noun}_${grant ? 'granted' : 'revoked'}`, targetType: 'user', targetId: userId, appId, result: 'success', requestId: actor.requestId, retention: 'security' }, now),
   ]);
   return true;
 }

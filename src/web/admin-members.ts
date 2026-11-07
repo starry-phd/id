@@ -12,12 +12,13 @@ import { WEB_APP_ID } from '../identity/web-sessions';
 import { cleanupAfterDeletion } from '../identity/erase';
 import { deleteMemberNow } from '../identity/lifecycle';
 import { findMemberSummary, searchMembers } from '../identity/member-search';
-import { hasRole, listAppStaffApps, restoreMember, revokeAllSessions, setAppStaff, setStaffRole, suspendMember, type StaffActor } from '../identity/roles';
+import { hasRole, listAppStaff, restoreMember, revokeAllSessions, setAppStaff, setStaffRole, suspendMember, type StaffActor } from '../identity/roles';
 import { auditStatement } from '../lib/audit';
 import { mailSettings, notifyStaffChange } from '../notify/email';
 import { CATEGORY_LABELS } from '../support/tickets';
 import { formatTime, readForm, type WebContext } from './layout';
-import { RESULT_TEXT, ROLE_LABELS, STATUS_LABELS, adminApp, adminPage, staff, requireStepUp } from './admin-lib';
+import { RESULT_TEXT, ROLE_LABELS, STATUS_LABELS, adminApp, adminPage, staff, requireStepUp, supportAccess } from './admin-lib';
+import { scopedMemberPage, scopedMembersPage } from './admin-scoped';
 
 adminApp.get('/', async (c) => {
   const actor = await staff(c, 'support');
@@ -107,8 +108,9 @@ const PROVIDER_LABELS: Record<string, string> = { apple: 'Apple', google: 'Googl
 const COUNTRY_CODE = /^[A-Za-z]{2}$/;
 
 adminApp.get('/members', async (c) => {
-  const actor = await staff(c, 'support');
+  const actor = await supportAccess(c);
   if (actor instanceof Response) return actor;
+  if (actor.appScope) return scopedMembersPage(c, actor);
   const q = c.req.query('q') ?? '';
   const status = c.req.query('status') ?? '';
   const provider = c.req.query('provider') ?? '';
@@ -186,7 +188,7 @@ export async function memberPage(c: WebContext, actor: StaffActor, userId: strin
   await auditStatement(db, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.member_viewed', targetType: 'user', targetId: m.user_id, result: 'success', requestId: actor.requestId, retention: 'general' }, now).run();
   const canModerate = hasRole(actor.role, 'admin') && m.role !== 'owner' && m.user_id !== actor.userId;
   const canAdjust = hasRole(actor.role, 'admin') && m.user_id !== actor.userId;
-  const appManaged = actor.role === 'owner' ? await listAppStaffApps(c.env.DB_IDENTITY, m.user_id) : [];
+  const appManaged = actor.role === 'owner' ? await listAppStaff(c.env.DB_IDENTITY, m.user_id) : [];
   const [balance, usedApps, subs, grants, quantum, ledger, sessions, tickets] = await Promise.all([
     getBalance(c.env.DB_BATTERY, m.user_id, now),
     db.prepare('SELECT app_id, first_seen_at, last_seen_at FROM member_apps WHERE user_id = ? ORDER BY COALESCE(last_seen_at, first_seen_at) DESC').bind(m.user_id).all<{ app_id: string; first_seen_at: number; last_seen_at: number | null }>(),
@@ -298,9 +300,11 @@ ${actor.role === 'owner' && m.role !== 'owner' && m.user_id !== actor.userId
 <label for="confirm">請輸入大寫英文 DELETE 以確認</label><input id="confirm" name="confirm" autocomplete="off" required><button class="danger" type="submit">永久刪除</button></form>`
   : ''}
 ${actor.role === 'owner' && m.user_id !== actor.userId
-  ? html`<h2 id="staff-apps">App 管理員</h2><div class="card"><p class="muted">被指派的人只能管理指定 App 的遠端設定，並檢視量子電池商品與 RevenueCat 狀態；看不到其他會員資料。</p>
-${appManaged.length > 0 ? html`<ul>${appManaged.map((a) => html`<li><code>${a}</code> <form class="inline" method="post" action="/admin/members/${m.user_id}/app-staff"><input type="hidden" name="app_id" value="${a}"><input type="hidden" name="grant" value="0"><button class="secondary" type="submit">取消</button></form></li>`)}</ul>` : html`<p class="muted">沒有指派任何 App。</p>`}
-<form method="post" action="/admin/members/${m.user_id}/app-staff"><label for="as-app">App 代碼</label><input id="as-app" name="app_id" maxlength="64" required><input type="hidden" name="grant" value="1"><button type="submit">指派為此 App 的管理員</button></form></div>`
+  ? html`<h2 id="staff-apps">App 管理員與客服</h2><div class="card"><p class="muted">管理員：只能管理指定 App 的遠端設定，並檢視量子電池商品與 RevenueCat 狀態。客服：只能看指定 App 的客服單與用過該 App 的會員（唯讀），可回覆與結案。兩者都看不到其他 App 與全站資料。</p>
+${appManaged.length > 0 ? html`<ul>${appManaged.map((a) => html`<li><code>${a.app_id}</code>（${a.kind === 'support' ? '客服' : '管理員'}） <form class="inline" method="post" action="/admin/members/${m.user_id}/app-staff"><input type="hidden" name="app_id" value="${a.app_id}"><input type="hidden" name="kind" value="${a.kind}"><input type="hidden" name="grant" value="0"><button class="secondary" type="submit">取消</button></form></li>`)}</ul>` : html`<p class="muted">沒有指派任何 App。</p>`}
+<form method="post" action="/admin/members/${m.user_id}/app-staff"><label for="as-app">App 代碼</label><input id="as-app" name="app_id" maxlength="64" required>
+<label for="as-kind">身分</label><select id="as-kind" name="kind"><option value="manager">App 管理員（遠端設定）</option><option value="support">App 客服（客服單與會員，唯讀）</option></select>
+<input type="hidden" name="grant" value="1"><button type="submit">指派</button></form></div>`
   : ''}
 ${actor.role === 'owner' && m.role !== 'owner' && m.user_id !== actor.userId
   ? html`<h2>管理角色</h2><form method="post" action="/admin/members/${m.user_id}/role" class="card"><label for="role">角色</label>
@@ -312,8 +316,9 @@ ${actor.role === 'owner' && m.role !== 'owner' && m.user_id !== actor.userId
 }
 
 adminApp.get('/members/:id', async (c) => {
-  const actor = await staff(c, 'support');
+  const actor = await supportAccess(c);
   if (actor instanceof Response) return actor;
+  if (actor.appScope) return scopedMemberPage(c, actor, c.req.param('id'));
   return memberPage(c, actor, c.req.param('id'));
 });
 
@@ -407,8 +412,9 @@ adminApp.post('/members/:id/app-staff', async (c) => {
   const form = await readForm(c);
   const appId = (form.app_id ?? '').trim();
   if (userId === actor.userId || !getApp(appId) || appId === WEB_APP_ID) return memberPage(c, actor, userId, '請填寫有效的 App 代碼。');
-  const ok = await setAppStaff(c.env.DB_IDENTITY, actor, userId, appId, form.grant === '1', Date.now());
-  return memberPage(c, actor, userId, ok ? '已更新 App 管理員。' : '找不到此會員。');
+  const kind = form.kind === 'support' ? 'support' : 'manager';
+  const ok = await setAppStaff(c.env.DB_IDENTITY, actor, userId, appId, form.grant === '1', Date.now(), kind);
+  return memberPage(c, actor, userId, ok ? (kind === 'support' ? '已更新 App 客服。' : '已更新 App 管理員。') : '找不到此會員。');
 });
 
 adminApp.post('/members/:id/role', async (c) => {
