@@ -115,39 +115,16 @@ Battery 是 Starry 會員共用的免費 AI 用量月額度（規格 S-BAT），
 2. iOS、Android、網頁三個平台預設都走 Starry 登入中繼（瀏覽器登入）：帳號中心的 Apple Services ID 與 Google 網頁用戶端會自動加進這款 App，不必到 Apple、Google 後台為它做任何設定。
 3. 建立後頁面會產生一段「給開發 AI 的串接指令」（之後也能從 App 清單的「給開發 AI 的串接指令」再取得），整段貼給負責開發這款 App 的 AI。內容只有公開資料，沒有秘密。
 4. 後台登記 30 秒內生效，可用 `GET /v1/apps/<app_id>/config` 確認。paused／killed 狀態、Battery 金鑰、稽核紀錄都和既有 App 相同。
-5. 後台只能編輯後台登記的 App；`config/apps.json` 的 App 與 `account` 不能被後台覆蓋。
+5. 後台「編輯登記資料」可修改所有登記過的 App（含繁星回聲與答錄機；儲存需要 Passkey 二次確認）。只有登入中樞 `account` 是固定在 `config/apps.json` 的內部服務，不能在後台修改。
 6. 只有日後改用原生登入時，業主才需要到後台設定：iOS 原生 Apple 登入要把該 App ID 的 Sign in with Apple 設為群組，主 App ID 選 `phd.starry.app`（G-02）；Android 原生 Google 登入要建 Android 用戶端；iOS 原生 Google 登入的 iOS 用戶端 ID 要填在「額外的 Google 用戶端 ID」。
 7. RevenueCat（要販售時）：為這款 App 建立獨立專案（S-BIL-01），Webhook URL `https://id.starry.phd/v1/billing/revenuecat/<app_id>`，再依 `docs/owner-setup.md` 第 6 步設定 Secrets。
 8. Battery（要用 AI 時）：見第 9 節。
-
-**用設定檔登記（既有 App，需要 PR）**
-
-把以下內容加入 `config/apps.json`（都不是秘密）。設定檔有格式檢查，填錯 CI 會失敗、不會部署。欄位與後台表單相同。
-
-```json
-{
-  "app_id": "echo",
-  "name": "繁星回聲 Echo",
-  "ios_bundle_id": "phd.starry.echo",
-  "android_package": "phd.starry.echo",
-  "status": "active",
-  "scopes": ["profile:read", "profile:write"],
-  "min_version": "1.0.0",
-  "config": {},
-  "auth": {
-    "apple_audiences": ["phd.starry.echo", "phd.starry.id.web"],
-    "google_audiences": ["<iOS Client ID>", "<Web Client ID>"]
-  }
-}
-```
-
-`apple_audiences`：iOS Bundle ID（原生登入）與 Services ID（Android 網頁流程）；`google_audiences`：iOS Client ID 與 Android 用的 Web Client ID。
 
 ## 11. 繁星回聲對接回覆（2026-11-03）
 
 回覆繁星回聲開發 AI 的「繁星回聲 App ↔ Starry ID 串接對接單」，編號對應對接單第二節。第三節「App 端實作」核對無誤。
 
-### 11.1 App 登記（`config/apps.json` 的 `echo`，已部署）
+### 11.1 App 登記（`echo`，登記在資料庫，後台「編輯登記資料」可改）
 
 | 欄位 | 值 |
 |---|---|
@@ -171,7 +148,7 @@ Google Client 由業主建立（步驟見 `docs/owner-setup.md` 第 11 步），
   2. 整頁導向 `https://id.starry.phd/auth/{google|apple}/start?app_id=echo&nonce=<SHA-256(nonce) 十六進位小寫>&return=<回傳網址>&state=<隨機字串>`。回傳網址必須在 `web_origins` 之內，例如 `https://echo.starry.phd/auth/done`（路徑由 App 自訂）。
   3. 登入完成後回到 `<回傳網址>#id_token=…&state=…`（Apple 另有 `code`；失敗為 `#error=…&state=…`）。結果放在 `#` 之後，不會送到任何伺服器。讀取後請立刻用 `history.replaceState` 清掉網址中的 `#`。
   4. 核對 `state`，呼叫 `POST /v1/auth/{google|apple}`：`{"app_id":"echo","id_token":…,"nonce":<原值>}`；Apple 另附 `"authorization_code":<code>,"redirect_uri":"https://id.starry.phd/auth/apple/callback"`。
-  - 網頁版換網域（例如上線到 `echo.starry.phd`）或新增其他 App 網頁版時，只需由 Claude 修改 `config/apps.json` 的 `web_origins`，業主不必再到 Apple、Google 後台設定。
+  - 網頁版換網域（例如上線到 `echo.starry.phd`）或新增其他 App 網頁版時，只需在 Admin Lite 的「編輯登記資料」修改網頁版來源，業主不必再到 Apple、Google 後台設定，也不需要改程式碼或重新部署。
 - (b) 已開放 CORS（production 與 staging）：Origin `https://echo.starry.phd`；允許標頭 `authorization`、`content-type`、`if-match`；方法 GET／POST／PUT／PATCH／DELETE／OPTIONS（預檢回 204）；公開標頭 `etag`、`x-request-id`、`retry-after`；不使用 Cookie（不要設 `credentials: 'include'`）。頭像 `avatar_url` 是相對路徑，加上 API 網址即可用 `<img>` 跨網域顯示。
 - (c) 建議 Access Token 只放記憶體；Refresh Token 放 `sessionStorage`（關閉分頁即清除，重新整理不必重登），不要放 `localStorage`。Starry 的 Refresh Token 每次使用都會換新，舊的被重用會撤銷整個 Session，可降低外洩風險。網頁版請設定嚴格 CSP，不載入不必要的第三方腳本。
 

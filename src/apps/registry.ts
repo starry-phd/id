@@ -146,27 +146,8 @@ export function appDefinition(app: AppEntry): Record<string, unknown> {
 }
 
 /**
- * Admin changes to the built-in Apps (table builtin_app_overrides), already merged over the file baseline and
- * validated. Empty until the first successful load; when the database cannot be read the last good map stays.
- */
-let builtinOverrides: ReadonlyMap<string, AppEntry> = new Map();
-
-export function setBuiltinOverrides(apps: ReadonlyMap<string, AppEntry>): void {
-  builtinOverrides = apps;
-}
-
-/** The App exactly as config/apps.json defines it, ignoring any admin override. */
-export function baselineApp(appId: string): AppEntry | undefined {
-  return staticApps.get(appId);
-}
-
-export function builtinAppIds(): string[] {
-  return [...staticApps.keys()];
-}
-
-/**
- * Apps the Owner registered in Admin Lite (table registered_apps). The Worker refreshes this
- * map at most every 30 seconds (see dynamic.ts); config/apps.json wins on an app_id clash.
+ * Every App except the account center, registered by the Owner in Admin Lite (table registered_apps). The Worker
+ * refreshes this map at most every 30 seconds (see dynamic.ts). config/apps.json holds only the account center.
  */
 let dynamicApps: ReadonlyMap<string, AppEntry> = new Map();
 
@@ -179,19 +160,17 @@ export function registeredApp(appId: string): AppEntry | undefined {
   return dynamicApps.get(appId);
 }
 
+/** True for the App defined in config/apps.json (only the account center); every other App is registered in Admin Lite. */
 export function isStaticApp(appId: string): boolean {
   return staticApps.has(appId);
 }
 
-/** Read-only view over config/apps.json plus the Apps registered in Admin Lite. */
+/** Read-only view over the account center (config/apps.json) plus every App registered in Admin Lite. */
 export const appRegistry = {
   has: (appId: string): boolean => staticApps.has(appId) || dynamicApps.has(appId),
-  get: (appId: string): AppEntry | undefined => builtinOverrides.get(appId) ?? staticApps.get(appId) ?? dynamicApps.get(appId),
+  get: (appId: string): AppEntry | undefined => staticApps.get(appId) ?? dynamicApps.get(appId),
   keys: (): string[] => [...staticApps.keys(), ...[...dynamicApps.keys()].filter((id) => !staticApps.has(id))],
-  values: (): AppEntry[] => [
-    ...[...staticApps.values()].map((a) => builtinOverrides.get(a.app_id) ?? a),
-    ...[...dynamicApps.values()].filter((a) => !staticApps.has(a.app_id)),
-  ],
+  values: (): AppEntry[] => [...staticApps.values(), ...[...dynamicApps.values()].filter((a) => !staticApps.has(a.app_id))],
 };
 
 export function getApp(appId: string): AppEntry | undefined {

@@ -32,7 +32,7 @@ adminApp.get('/apps/status', async (c) => {
 ${invalid.length > 0 ? html`<div class="banner danger">登記資料無法通過檢查：${invalid.join('、')}。系統暫時沿用上一次正常的版本，請到「編輯登記資料」修正後儲存。</div>` : ''}
 ${rows.map(({ app, checks, pending }) => html`<div class="card"><p><strong>${app.name}</strong> <code>${app.app_id}</code> ${pending.length === 0 ? '✅ 沒有待處理項目' : html`⚠️ 待處理 ${pending.length} 項`}</p>
 <table><tbody>${checks.map((k) => html`<tr><td>${MARK[k.state]}</td><td>${k.label}</td><td>${k.text}</td></tr>`)}</tbody></table>
-<p><a href="/admin/apps/${app.app_id}/handoff">串接指令</a>｜<a href="/admin/apps/${app.app_id}/config">遠端設定</a>｜<a href="/admin/apps/${app.app_id}/edit">編輯登記資料</a>｜<a href="/admin/apps/${app.app_id}/builtin">內建設定</a></p></div>`)}
+<p><a href="/admin/apps/${app.app_id}/handoff">串接指令</a>｜<a href="/admin/apps/${app.app_id}/config">遠端設定</a>｜<a href="/admin/apps/${app.app_id}/edit">編輯登記資料</a></p></div>`)}
 <p class="muted">✅ 已完成｜⚠️ 需要你處理｜— 這款 App 不需要。Android 指紋不會假裝：沒登記就是未完成，原生 Passkey 要實機測試後才算通過。</p>
 <p><a href="/admin/apps">回到 App 清單</a></p>`,
     ),

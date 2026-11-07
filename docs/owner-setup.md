@@ -26,7 +26,7 @@
 
 ## 4. 登入用的 Client ID（上架前）
 
-提供給 Claude 寫入 `config/apps.json`（不是秘密）：
+提供給 Claude，由 Claude 登記到 Admin Lite（不是秘密；要在後台自己填也可以）：
 
 | 項目 | 在哪裡 | 用途 |
 |---|---|---|

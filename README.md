@@ -65,7 +65,7 @@ Starry ID 會員與登入、App Registry、購買權益投影與每日對帳、S
 | `TURNSTILE_SECRET_KEY`；`TURNSTILE_SITE_KEY`（變數，寫在 wrangler.jsonc） | Workers | 已由 `Ops` 工作流程（setup-turnstile）建立 |
 | `send_email` 綁定 `EMAIL`；`EMAIL_FROM`、`SUPPORT_EMAIL`（變數） | wrangler.jsonc | Claude（已於 2026-11-03 加入；Email Sending 網域 starry.phd 已啟用） |
 
-各 App 的 Apple／Google client ID 寫在 `config/apps.json` 的 `auth`（不是秘密）；清單為空時該登入方式回 503。
+各 App 的 Apple／Google client ID 存在該 App 的登記資料（Admin Lite → 編輯登記資料）的登入對象欄位（不是秘密）；清單為空時該登入方式回 503。
 
 ## 結構
 
@@ -77,7 +77,7 @@ src/battery/    Starry Battery：月配額、預留／確認／釋放、帳本
 src/notify/     推播 Token、Expo Push、系統 Email
 src/support/    客服單、附件、Email 回覆
 src/web/        帳號中心、客服表單、Admin Lite、條款（伺服器端產生 HTML）
-config/apps.json App Registry
+config/apps.json 登入中樞 account 的固定設定（其他 App 都登記在資料庫，由 Admin Lite 管理）
 migrations/     D1 migration：identity、billing、battery
 test/           整合測試（打包後在本機 workerd＋D1 執行）
 test/unit/      領域邏輯單元測試（SQLite 版 D1 替身，tsx 執行）

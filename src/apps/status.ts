@@ -2,7 +2,7 @@ import { auditStatement } from '../lib/audit';
 import type { AppEntry, AppStatus } from './registry';
 
 /**
- * Spec S-PLT-01: config/apps.json is the default; an Owner or Admin can pause or kill
+ * Spec S-PLT-01: the registered definition is the default; an Owner or Admin can pause or kill
  * a single App at runtime through Admin Lite. Overrides are cached per isolate for
  * 30 seconds, so a kill switch reaches every location within half a minute.
  */

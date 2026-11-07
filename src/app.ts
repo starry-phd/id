@@ -34,7 +34,7 @@ app.use('*', async (c, next) => {
   c.res.headers.set('x-request-id', requestId);
   if (!c.res.headers.has('cache-control')) c.res.headers.set('cache-control', 'no-store');
 });
-// Apps registered in Admin Lite join config/apps.json (cached per isolate for 30 seconds).
+// Every App except the account center is registered in Admin Lite and loaded from the database (cached per isolate for 30 seconds; a cold isolate waits for its first read).
 app.use('*', async (c, next) => {
   await refreshDynamicApps(c.env.DB_IDENTITY, Date.now());
   await next();

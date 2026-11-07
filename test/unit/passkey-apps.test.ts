@@ -3,6 +3,9 @@ import { describe, test } from 'node:test';
 import { passkeyExtraOrigins } from '../../src/apps/passkey-origins';
 import { parseApp, setDynamicApps } from '../../src/apps/registry';
 import { app } from '../../src/app';
+import { SHIPPED_APPS } from '../support/shipped-apps';
+
+const withShipped = (...extra: [string, ReturnType<typeof parseApp>][]) => new Map([...SHIPPED_APPS.map((a): [string, ReturnType<typeof parseApp>] => [a.app_id, a]), ...extra]);
 
 const FP = 'AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99';
 const def = (extra: Record<string, unknown> = {}) => ({
@@ -37,10 +40,10 @@ describe('Passkey support for Apps', () => {
   });
 
   test('every App follows the central Team ID; one stored on the App wins; with neither the App is left out', async () => {
-    setDynamicApps(new Map([
+    setDynamicApps(withShipped(
       ['clock', parseApp(def())],
       ['notes', parseApp(def({ app_id: 'notes', ios_bundle_id: 'phd.starry.notes', android_package: 'phd.starry.notes', ios_team_id: 'ZZZZZ99999' }))],
-    ]));
+    ));
     try {
       const ids = async (env: Record<string, string>) => {
         const res = await app.fetch(new Request('https://id.starry.phd/.well-known/apple-app-site-association'), env as never);
@@ -52,12 +55,12 @@ describe('Passkey support for Apps', () => {
       assert.deepEqual((await ids({})).filter((x) => x.includes('phd.starry.clock')), [], 'no central value, no entry');
       assert.deepEqual((await ids({ STARRY_APPLE_TEAM_ID: 'bad' })).filter((x) => x.includes('phd.starry.clock')), [], 'an invalid central value counts as unset');
     } finally {
-      setDynamicApps(new Map());
+      setDynamicApps(withShipped());
     }
   });
 
   test('the files Apple, Google and browsers fetch are generated from the registry', async () => {
-    setDynamicApps(new Map([['clock', parseApp(def({ ios_team_id: 'ABCDE12345', android_cert_sha256: [FP] }))]]));
+    setDynamicApps(withShipped(['clock', parseApp(def({ ios_team_id: 'ABCDE12345', android_cert_sha256: [FP] }))]));
     try {
       const get = async (path: string) => app.fetch(new Request(`https://id.starry.phd${path}`), {} as never);
       const aasa = await get('/.well-known/apple-app-site-association');
@@ -72,7 +75,7 @@ describe('Passkey support for Apps', () => {
       assert.ok(ror.origins.includes('https://clock.starry.phd'));
       assert.ok(ror.origins.includes('https://echo.starry.phd'));
     } finally {
-      setDynamicApps(new Map());
+      setDynamicApps(withShipped());
     }
   });
 });

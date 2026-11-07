@@ -1,10 +1,9 @@
 import { WEB_APP_ID } from '../identity/web-sessions';
 import { auditStatement } from '../lib/audit';
-import { loadBuiltinOverrides } from './builtin-overrides';
 import { appDefinition, getApp, isStaticApp, parseApp, registeredApp, setDynamicApps, type AppEntry } from './registry';
 
 /**
- * Apps the Owner registers in Admin Lite. Stored as the same JSON an entry of config/apps.json uses,
+ * Every App except the account center is registered in Admin Lite. Stored as the same JSON shape config/apps.json uses,
  * validated by parseApp on every write and every read, and cached per isolate for 30 seconds
  * (the same window as the App status kill switch).
  */
@@ -12,9 +11,13 @@ const CACHE_MS = 30 * 1000;
 /** After a failed read the database is left alone this long, so an outage does not add a failing query to every request. */
 const RETRY_MS = 10 * 1000;
 let nextLoadAt = 0;
+/** True once this isolate has read the registry successfully. Until then requests wait for the first read instead of seeing no Apps. */
+let loaded = false;
+let inflight: Promise<void> | null = null;
 
 export function clearDynamicAppCache(): void {
   nextLoadAt = 0;
+  loaded = false;
 }
 
 /** Registered Apps whose stored definition failed validation at the last load (shown in Admin Lite). */
@@ -28,12 +31,26 @@ interface Row {
   definition: string;
 }
 
-/** Loads registered Apps into the registry. A broken row or table never blocks the Apps in config/apps.json. */
+/**
+ * Loads registered Apps into the registry. After the first successful read a refresh only blocks the one request
+ * that triggers it (the others use the cached Apps); before it, every request waits for that first read, so a cold
+ * isolate never answers "unknown App".
+ */
 export async function refreshDynamicApps(db: D1Database, now: number): Promise<void> {
-  if (now < nextLoadAt) return;
-  // Set before reading: concurrent requests in this isolate share one read, and a failure backs off.
+  if (now < nextLoadAt) {
+    if (!loaded && inflight) await inflight;
+    return;
+  }
+  // Set before reading: a failure backs off, and requests that arrive meanwhile share this read.
   nextLoadAt = now + CACHE_MS;
-  await loadBuiltinOverrides(db);
+  const run = readRegistry(db, now).finally(() => {
+    if (inflight === run) inflight = null;
+  });
+  inflight = run;
+  await run;
+}
+
+async function readRegistry(db: D1Database, now: number): Promise<void> {
   try {
     const rows = await db.prepare('SELECT app_id, definition FROM registered_apps ORDER BY app_id').all<Row>();
     const apps = new Map<string, AppEntry>();
@@ -53,6 +70,7 @@ export async function refreshDynamicApps(db: D1Database, now: number): Promise<v
     }
     invalidIds = invalid;
     setDynamicApps(apps);
+    loaded = true;
   } catch (error) {
     nextLoadAt = now + RETRY_MS;
     console.error(JSON.stringify({ level: 'error', event: 'registered_app.load_failed', message: error instanceof Error ? error.message : 'failed' }));
