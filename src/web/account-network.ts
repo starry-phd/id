@@ -1,7 +1,6 @@
 import { html, raw } from 'hono/html';
-import { initialsOf } from '../identity/initials';
 import { MEMBER_NO, normalizeMemberNo } from '../identity/member-number';
-import { bindReferrer, directCount, memberByNo, orgNetwork, referrerOf, selfNode, wouldLoop, type OrgNode, type Referrer } from '../identity/referrals';
+import { bindReferrer, directCount, isAbove, memberByNo, orgNetwork, referrerOf, selfNode, wouldLoop, type OrgNode, type Referrer } from '../identity/referrals';
 import { referrerChangeCostText } from '../lib/battery-icons';
 import { avatarBubble, avatarPath } from './member-nav';
 import { page, readForm, type Html, type WebContext } from './layout';
@@ -84,15 +83,16 @@ function levelLabel(i: number): string {
   return `第 ${i + 1} 層`;
 }
 
-/** One person in the chart: a round picture (photo, or the first letters of the name) with the name under it. */
-function chartNode(n: { name: string; initials: string; has_avatar: boolean; member_no: string | null }, me = false): Html {
-  return html`<span class="pn${me ? ' me' : ''}">${avatarBubble({ initials: n.initials, photo: n.has_avatar && n.member_no ? avatarPath(n.member_no) : null, size: me ? 64 : 52, label: n.name })}<span class="pname">${n.name}</span></span>`;
+/** One person in the chart: a round picture (photo, or the first letters of the name) with the name under it. Tapping the picture opens that member's public profile in a pop-up. */
+function chartNode(n: { name: string; initials: string; has_avatar: boolean; member_no: string | null }, userId: string, me = false): Html {
+  const bubble = avatarBubble({ initials: n.initials, photo: n.has_avatar && n.member_no ? avatarPath(n.member_no) : null, size: me ? 64 : 52, label: n.name });
+  return html`<span class="pn${me ? ' me' : ''}"><button type="button" class="pbtn" data-id="${userId}" aria-label="查看 ${n.name} 的基本資料">${bubble}</button><span class="pname">${n.name}</span></span>`;
 }
 
 function renderTree(nodes: OrgNode[], parent: string): Html {
   const kids = nodes.filter((n) => n.parent_id === parent);
   if (kids.length === 0) return html``;
-  return html`<ul>${kids.map((n) => html`<li>${chartNode(n)}${renderTree(nodes, n.user_id)}</li>`)}</ul>`;
+  return html`<ul>${kids.map((n) => html`<li>${chartNode(n, n.user_id)}${renderTree(nodes, n.user_id)}</li>`)}</ul>`;
 }
 
 const CHART_STYLE = `
@@ -109,6 +109,10 @@ const CHART_STYLE = `
 .pn{display:inline-flex;flex-direction:column;align-items:center;gap:4px;max-width:88px}
 .pn .avatar{border-radius:50%;object-fit:cover}.pn .pname{font-size:.78rem;line-height:1.2;max-width:88px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pn.me .pname{font-weight:700}
+.pbtn{all:unset;display:inline-block;border-radius:50%;cursor:pointer}.pbtn:focus-visible{outline:2px solid var(--accent,#8b7cf6);outline-offset:2px}
+#pcard{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px;background:rgba(5,5,25,.55)}#pcard[hidden]{display:none}
+#pcard .box{position:relative;width:min(420px,100%);max-height:86vh;overflow:auto;padding:22px 18px 18px;border-radius:20px;background:#1d1d52;border:1px solid var(--line);box-shadow:0 12px 50px rgba(0,0,0,.6);text-align:left}
+#pcard .x{position:absolute;top:8px;right:8px;margin:0;padding:4px 10px;font-size:1.1rem;line-height:1}
 `;
 
 /** GET /account/network — 組織網: everyone below me as a chart of round pictures, fully expanded, with counts. */
@@ -118,6 +122,7 @@ accountApp.get('/network', async (c) => {
   if (web.status !== 'active') return c.redirect('/account', 303);
   const [{ nodes, stats }, me] = await Promise.all([orgNetwork(c.env.DB_IDENTITY, web.userId), selfNode(c.env.DB_IDENTITY, web.userId)]);
   const top = nodes.filter((n) => n.depth === 1);
+  const nonce = c.get('cspNonce');
   return c.html(
     page(
       c,
@@ -133,9 +138,29 @@ accountApp.get('/network', async (c) => {
 ${stats.perLevel.length > 0 ? html`<div class="chips">${stats.perLevel.map((n, i) => html`<span class="badge">${levelLabel(i)} ${n} 人</span>`)}</div>` : ''}
 ${stats.truncated ? html`<div class="banner">人數很多，只顯示前 1500 位。</div>` : ''}
 ${top.length > 0 && me
-  ? html`<div class="card otree"><div class="chart"><ul class="root"><li>${chartNode(me, true)}${renderTree(nodes, web.userId)}</li></ul></div></div>`
+  ? html`<div class="card otree"><div class="chart"><ul class="root"><li>${chartNode(me, web.userId, true)}${renderTree(nodes, web.userId)}</li></ul></div></div>`
   : html`<div class="card">還沒有人使用你的邀請。到「推薦達人」分享你的邀請連結。</div>`}
-<p><a class="button" href="/account/referral">推薦達人</a></p>`,
+<p><a class="button" href="/account/referral">推薦達人</a></p>
+<div id="pcard" hidden role="dialog" aria-modal="true" aria-label="會員基本資料"><div class="box"><button type="button" class="secondary x" aria-label="關閉">✕</button><div id="pcard-body"></div></div></div>`,
+      {
+        scripts: html`<script nonce="${nonce}">
+(function(){
+  var layer=document.getElementById('pcard'),body=document.getElementById('pcard-body'),seq=0;
+  function close(){layer.hidden=true;body.textContent='';seq++;}
+  document.addEventListener('click',function(e){
+    if(!layer.hidden){if(!(e.target.closest&&e.target.closest('#pcard a'))){close();}return;}
+    var btn=e.target.closest&&e.target.closest('.pbtn');if(!btn)return;
+    var mine=++seq;body.textContent='載入中…';layer.hidden=false;
+    fetch('/account/network/card/'+encodeURIComponent(btn.getAttribute('data-id')),{headers:{accept:'text/html'}}).then(function(r){return r.ok?r.text():null;}).then(function(t){
+      if(mine!==seq)return;
+      if(t===null){body.textContent='目前無法顯示這位會員的資料。';return;}
+      body.innerHTML=t;
+    }).catch(function(){if(mine===seq)body.textContent='目前無法顯示這位會員的資料。';});
+  });
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!layer.hidden)close();});
+})();
+</script>`,
+      },
     ),
   );
 });
@@ -154,15 +179,14 @@ publicPages.get(`/a/:no{${PUBLIC_NO}}`, async (c) => {
   return new Response(object.body, { headers: { 'content-type': object.httpMetadata?.contentType ?? 'image/jpeg', 'cache-control': 'public, max-age=60' } });
 });
 
-/** GET /<member number> — the member's public profile; only what they chose to make public. */
-publicPages.get(`/:no{${PUBLIC_NO}}`, webContext, async (c) => {
-  const no = c.req.param('no');
+/** What the public profile page shows for one member: null when there is no such active member. */
+async function publicProfileView(c: WebContext, no: string, withNumber: boolean): Promise<{ name: string; content: Html } | null> {
   const db = c.env.DB_IDENTITY;
   const row = await db.prepare("SELECT user_id FROM users WHERE member_no = ? AND status = 'active'").bind(no).first<{ user_id: string }>();
   const loaded = row ? await loadProfile(db, row.user_id) : null;
-  if (!row || !loaded) return c.html(page(c, '找不到會員', html`<h1>找不到這位會員</h1>`), 404);
+  if (!row || !loaded) return null;
   const p = publicProfile(loaded.row, loaded.row.avatar_key ? avatarPath(no) : null, Date.now());
-  const name = p.nickname || p.display_name || no;
+  const name = p.shown_name || (withNumber ? no : '星友');
   const fields: [string, string | null][] = [
     ['姓名', p.display_name],
     ['座右銘', p.motto],
@@ -180,14 +204,28 @@ publicPages.get(`/:no{${PUBLIC_NO}}`, webContext, async (c) => {
     ['手機', p.phone],
   ];
   const shown = fields.filter(([, v]) => v !== null && v !== '');
-  return c.html(
-    page(
-      c,
-      name,
-      html`<div class="hero">${avatarBubble({ initials: initialsOf(p.display_name ?? p.nickname), photo: p.avatar_url, size: 88, label: name })}<div><h1>${name}</h1><span class="badge">${no}</span></div></div>
-${shown.length > 0 ? html`<div class="card">${shown.map(([k, v]) => html`<p><strong>${k}</strong> ${k === '個人網站' && v && /^https?:\/\//i.test(v) ? html`<a href="${v}" rel="nofollow noopener noreferrer">${v}</a>` : v}</p>`)}</div>` : ''}`,
-    ),
-  );
+  const content = html`<div class="hero">${avatarBubble({ initials: p.initials, photo: p.avatar_url, size: 88, label: name })}<div><h1>${name}</h1>${withNumber ? html`<span class="badge">${no}</span>` : ''}</div></div>
+${shown.length > 0 ? html`<div class="card">${shown.map(([k, v]) => html`<p><strong>${k}</strong> ${k === '個人網站' && v && /^https?:\/\//i.test(v) ? html`<a href="${v}" rel="nofollow noopener noreferrer">${v}</a>` : v}</p>`)}</div>` : ''}`;
+  return { name, content };
+}
+
+/** GET /<member number> — the member's public profile; only what they chose to make public. */
+publicPages.get(`/:no{${PUBLIC_NO}}`, webContext, async (c) => {
+  const view = await publicProfileView(c, c.req.param('no'), true);
+  if (!view) return c.html(page(c, '找不到會員', html`<h1>找不到這位會員</h1>`), 404);
+  return c.html(page(c, view.name, view.content));
+});
+
+/** GET /account/network/card/<user id> — the same public profile as a fragment for the pop-up on the network page (no member number shown). Only for me and the members below me. */
+accountApp.get('/network/card/:id{[0-9a-fA-F-]{36}}', async (c) => {
+  const web = c.get('web');
+  if (!web || web.status !== 'active') return c.body(null, 401);
+  const id = c.req.param('id').toLowerCase();
+  if (id !== web.userId && !(await isAbove(c.env.DB_IDENTITY, web.userId, id))) return c.body(null, 404);
+  const row = await c.env.DB_IDENTITY.prepare('SELECT member_no FROM users WHERE user_id = ?').bind(id).first<{ member_no: string | null }>();
+  const view = row?.member_no ? await publicProfileView(c, row.member_no, false) : null;
+  if (!view) return c.body(null, 404);
+  return c.html(view.content);
 });
 
 /** GET /account/referral/lookup?code= — a typed or pasted invite code or link opens the confirmation page. */

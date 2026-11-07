@@ -154,3 +154,8 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 - 基本資料頁：最上方「全部公開／全部隱藏」（`POST /account/profile/visibility-all`；頭像一律公開，未滿 18 歲的生日與推算維持不公開）。單一欄位的公開／隱藏改為原地更新（不重新載入、不跳回頁首），並顯示大提示窗（1 秒或點任意處消失，寫明欄位名稱與公開／隱藏）。
 - 頭像同步：網頁的頭像圖片網址帶上每次上傳都不同的檔名參數，換頭像後立即更新（先前導覽列因同一網址被瀏覽器快取 5 分鐘而不更新）；公開頭像快取縮為 60 秒。App 端：串接指令要求用 avatar_url 問號前的路徑當快取 key，回到前景重讀 `/v1/me`。
 - 串接指令版本 `2026-11-07.19`。
+
+### 3c36 主要顯示名稱與組織網頭像彈窗（2026-11-08）
+- migration 0032：`profiles.primary_name`（`nickname`｜`display_name`，預設 `nickname`，既有會員行為不變）。基本資料頁暱稱與姓名欄位旁各一顆「👑 主要顯示名稱」按鈕，二選一（`POST /account/profile/primary-name`、`setPrimaryName`）：選的那個必須有值；選姓名會同時把姓名設為公開（主要顯示名稱就是別人看到的名字）；稽核 `profile.primary_name`。
+- `shownName(nickname, displayName, primary)` 與 `DISPLAY_SQL` 依選擇決定名稱，選的那個是空的就用另一個；對他人顯示時姓名若被設為隱藏，仍退回暱稱。`shown_name` 的語意變成「會員指定的主要顯示名稱」；串接指令版本 `2026-11-08.1`。
+- 組織網：節點名稱用 `DISPLAY_SQL`，完全沒有名稱時顯示「星友」，不再退回會員編號；頁面原始碼不含任何會員編號。點圓形頭像在原地開啟小視窗（`GET /account/network/card/<user_id>`，內容與公開基本資料頁相同但不顯示編號；只能看自己與自己的下線，其他回 404），點任意處、右上角 ✕ 或按 Esc 關閉。

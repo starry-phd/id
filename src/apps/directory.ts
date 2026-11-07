@@ -19,7 +19,7 @@ const DirectoryMemberSchema = z
   .object({
     user_id: z.string(),
     member_no: z.string().nullable().openapi({ example: 'TW0112342' }),
-    shown_name: z.string().nullable().openapi({ description: 'THE name to show for this member in every Starry App: the nickname first, the real name only when there is no nickname (null when neither exists; then show initials)', example: '陽光海豚' }),
+    shown_name: z.string().nullable().openapi({ description: 'THE name to show for this member in every Starry App: the primary display name the member chose (nickname or real name, exactly one; default nickname; null when neither exists, then show initials)', example: '陽光海豚' }),
     nickname: z.string().nullable(),
     display_name: z.string().nullable().openapi({ description: 'null when the member chose to hide their name' }),
     avatar_url: z.string().nullable(),

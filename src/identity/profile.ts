@@ -69,12 +69,17 @@ export interface ProfileRow {
   grad_school: string | null;
   grad_dept: string | null;
   visibility: string;
+  /** Which of nickname / display_name is the member's chosen primary display name. */
+  primary_name: PrimaryName;
   version: number;
   updated_at: number;
 }
 
+export type PrimaryName = 'nickname' | 'display_name';
+export const isPrimaryName = (v: unknown): v is PrimaryName => v === 'nickname' || v === 'display_name';
+
 export const PROFILE_SQL =
-  'SELECT display_name, avatar_key, birthday, locale, contact_email, contact_email_verified_at, phone, country, region, city, motto, nickname, occupation, organization, website, bio, languages, interests, skills, university, university_dept, grad_school, grad_dept, visibility, version, updated_at FROM profiles WHERE user_id = ?';
+  'SELECT display_name, avatar_key, birthday, locale, contact_email, contact_email_verified_at, phone, country, region, city, motto, nickname, occupation, organization, website, bio, languages, interests, skills, university, university_dept, grad_school, grad_dept, visibility, primary_name, version, updated_at FROM profiles WHERE user_id = ?';
 
 export interface FieldUpdate {
   updated_at: number;
@@ -357,12 +362,15 @@ export function effectiveVisibility(row: Pick<ProfileRow, 'visibility' | 'birthd
   return v;
 }
 
-/** The name every Starry App shows: the nickname first, the real name only when there is no nickname. */
-export function shownName(nickname: string | null | undefined, displayName: string | null | undefined): string | null {
-  const nick = nickname?.trim();
-  if (nick) return nick;
-  const name = displayName?.trim();
-  return name ? name : null;
+/**
+ * The name every Starry App shows: the member's chosen primary name (nickname or real name, default nickname).
+ * If the chosen one is empty the other is used, so a member is never shown without a name when one exists.
+ * Callers that show this to other people pass a real name only when it is public.
+ */
+export function shownName(nickname: string | null | undefined, displayName: string | null | undefined, primary: PrimaryName = 'nickname'): string | null {
+  const nick = nickname?.trim() || null;
+  const name = displayName?.trim() || null;
+  return (primary === 'display_name' ? (name ?? nick) : (nick ?? name)) || null;
 }
 
 export interface PublicProfile {
@@ -399,7 +407,7 @@ export function publicProfile(row: ProfileRow, avatarUrl: string | null, now: nu
   const hasLocation = row.country !== null || row.region !== null || row.city !== null;
   const hasEducation = row.university !== null || row.university_dept !== null || row.grad_school !== null || row.grad_dept !== null;
   return {
-    shown_name: shownName(row.nickname, v.display_name === 'public' ? row.display_name : null),
+    shown_name: shownName(row.nickname, v.display_name === 'public' ? row.display_name : null, row.primary_name),
     display_name: v.display_name === 'public' ? row.display_name : null,
     nickname: row.nickname,
     avatar_url: avatarUrl,
@@ -510,4 +518,51 @@ export function avatarChangedStatement(db: D1Database, userId: string, now: numb
        ON CONFLICT (user_id, field) DO UPDATE SET updated_at = excluded.updated_at, source = excluded.source`,
     )
     .bind(userId, now);
+}
+
+export type PrimaryNameResult = 'saved' | 'unchanged' | 'conflict' | 'missing_name';
+
+/**
+ * Chooses which of nickname / real name is the primary display name (exactly one). The chosen one must
+ * exist. Choosing the real name also makes it public, because the primary name is what other members see.
+ */
+export async function setPrimaryName(
+  db: D1Database,
+  input: { userId: string; expectedVersion: number; choice: PrimaryName; actorUserId: string; appId: string | null; requestId: string | null },
+  now: number,
+): Promise<PrimaryNameResult> {
+  const before = await db.prepare(PROFILE_SQL).bind(input.userId).first<ProfileRow>();
+  if (!before) return 'conflict';
+  const chosen = (input.choice === 'nickname' ? before.nickname : before.display_name)?.trim();
+  if (!chosen) return 'missing_name';
+  if (before.version !== input.expectedVersion) return 'conflict';
+  const makePublic = input.choice === 'display_name' && storedVisibility(before.visibility).display_name !== 'public';
+  if (before.primary_name === input.choice && !makePublic) return 'unchanged';
+  const update = await db
+    .prepare(
+      `UPDATE profiles SET primary_name = ?, visibility = json_patch(visibility, ?), version = version + 1, updated_at = ?
+       WHERE user_id = ? AND version = ?`,
+    )
+    .bind(input.choice, JSON.stringify(makePublic ? { display_name: 'public' } : {}), now, input.userId, input.expectedVersion)
+    .run();
+  const written = update.meta.changes === 1;
+  const audit = auditStatement(
+    db,
+    { actorType: 'user', actorUserId: input.actorUserId, action: 'profile.primary_name', targetType: 'user', targetId: input.userId, appId: input.appId, result: written ? 'success' : 'denied', requestId: input.requestId, retention: 'general' },
+    now,
+  );
+  if (!written) {
+    await audit.run();
+    return 'conflict';
+  }
+  await db.batch([
+    db
+      .prepare(
+        `INSERT INTO profile_field_updates (user_id, field, updated_at, source) VALUES (?, 'primary_name', ?, 'member')
+         ON CONFLICT (user_id, field) DO UPDATE SET updated_at = excluded.updated_at, source = excluded.source`,
+      )
+      .bind(input.userId, now),
+    audit,
+  ]);
+  return 'saved';
 }
