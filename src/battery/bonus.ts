@@ -1,4 +1,4 @@
-import { bonusX10, type ProfileRow } from '../identity/profile';
+import { bonusX10, type BonusRow } from '../identity/profile';
 import { setBonus } from './battery';
 
 /**
@@ -6,7 +6,7 @@ import { setBonus } from './battery';
  * Called after every profile save and whenever a member page loads, so the multiplier never drifts for long.
  * A failure is logged and ignored: the next call repairs it, and a profile save must not fail because of Battery.
  */
-export async function syncBonus(db: D1Database, userId: string, row: Pick<ProfileRow, 'visibility' | 'birthday'>, now: number): Promise<number> {
+export async function syncBonus(db: D1Database, userId: string, row: BonusRow, now: number): Promise<number> {
   const wanted = bonusX10(row, now);
   try {
     return (await setBonus(db, userId, wanted, now)).multiplierX10;

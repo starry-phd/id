@@ -47,7 +47,7 @@ export const DEFAULT_VISIBILITY: Readonly<Record<VisibilityField, Visibility>> =
 /**
  * Fields that earn a Battery bonus when the member makes them public: every field group that starts hidden
  * (name and motto are public from the start, the picture is always public, so none of those count).
- * Each public one adds 0.1x to the Battery a member earns; none public = 1.0x, ten public = 2.0x.
+ * Each public one that also has content adds 0.1x to the Battery a member earns; none = 1.0x, ten = 2.0x.
  */
 export const BONUS_FIELDS: readonly VisibilityField[] = VISIBILITY_FIELDS.filter((f) => f !== 'avatar' && DEFAULT_VISIBILITY[f] === 'private');
 
@@ -369,10 +369,62 @@ export function effectiveVisibility(row: Pick<ProfileRow, 'visibility' | 'birthd
   return v;
 }
 
-/** The member's Battery bonus multiplier times ten (10 = 1.0x), from what is public right now. */
-export function bonusX10(row: Pick<ProfileRow, 'visibility' | 'birthday'>, now: number): number {
+/** What the bonus needs from a profile: what is public, and what is filled in. */
+export type BonusRow = Pick<
+  ProfileRow,
+  'visibility' | 'birthday' | 'country' | 'region' | 'city' | 'phone' | 'contact_email' | 'contact_email_verified_at' | 'occupation' | 'organization' | 'website' | 'bio' | 'languages' | 'interests' | 'skills' | 'university' | 'university_dept' | 'grad_school' | 'grad_dept'
+>;
+
+const filled = (...values: (string | null)[]): boolean => values.some((v) => v !== null && v.trim() !== '');
+
+/**
+ * Whether a field group has something to show. A public field with nothing in it shows nothing, so it earns no bonus;
+ * a contact email that is not confirmed yet is not shown to others either.
+ */
+export function groupContent(group: VisibilityField, row: BonusRow): 'ok' | 'empty' | 'unverified' {
+  switch (group) {
+    case 'birthday':
+    case 'derived':
+      return filled(row.birthday) ? 'ok' : 'empty';
+    case 'location':
+      return filled(row.country, row.region, row.city) ? 'ok' : 'empty';
+    case 'phone':
+      return filled(row.phone) ? 'ok' : 'empty';
+    case 'contact_email':
+      return !filled(row.contact_email) ? 'empty' : row.contact_email_verified_at === null ? 'unverified' : 'ok';
+    case 'occupation':
+      return filled(row.occupation, row.organization) ? 'ok' : 'empty';
+    case 'website':
+      return filled(row.website) ? 'ok' : 'empty';
+    case 'bio':
+      return filled(row.bio) ? 'ok' : 'empty';
+    case 'languages':
+      return filled(row.languages) ? 'ok' : 'empty';
+    case 'interests':
+      return filled(row.interests) ? 'ok' : 'empty';
+    case 'skills':
+      return filled(row.skills) ? 'ok' : 'empty';
+    case 'education':
+      return filled(row.university, row.university_dept, row.grad_school, row.grad_dept) ? 'ok' : 'empty';
+    default:
+      return 'ok';
+  }
+}
+
+export const NO_BONUS_EMPTY = '空白內容不會顯示，無電池加成福利';
+export const NO_BONUS_UNVERIFIED = '聯絡 Email 尚未確認，不會顯示，無電池加成福利';
+
+/** The message for a field group that was just made public but earns nothing; null when it earns the bonus (or is not a bonus field). */
+export function noBonusNote(group: VisibilityField, row: BonusRow): string | null {
+  if (!BONUS_FIELDS.includes(group)) return null;
+  const content = groupContent(group, row);
+  return content === 'empty' ? NO_BONUS_EMPTY : content === 'unverified' ? NO_BONUS_UNVERIFIED : null;
+}
+
+/** The member's Battery bonus multiplier times ten (10 = 1.0x): +1 for every bonus field that is public AND has content. */
+export function bonusX10(row: BonusRow, now: number): number {
   const v = effectiveVisibility(row, now);
-  return 10 + BONUS_FIELDS.filter((f) => v[f] === 'public').length;
+  return 10 + BONUS_FIELDS.filter((f) => v[f] === 'public' && groupContent(f, row) === 'ok').length;
 }
 export const formatBonus = (x10: number): string => (x10 / 10).toFixed(1);
 

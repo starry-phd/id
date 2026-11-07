@@ -4,7 +4,7 @@ import { getBalance } from '../battery/battery';
 import { syncBonus } from '../battery/bonus';
 import { listQuantum } from '../battery/quantum';
 import { initialsOf } from '../identity/initials';
-import { shownName, type PrimaryName } from '../identity/profile';
+import { PROFILE_SQL, shownName, type ProfileRow } from '../identity/profile';
 import type { Html, WebContext } from './layout';
 
 /** The little round picture: the member's photo, or the first letters of family and given name. */
@@ -28,10 +28,7 @@ export async function memberNav(c: WebContext): Promise<Html> {
   if (!web || web.status !== 'active') return html``;
   const db = c.env.DB_IDENTITY;
   const now = Date.now();
-  const profileQuery = db
-    .prepare('SELECT display_name, nickname, primary_name, avatar_key, visibility, birthday FROM profiles WHERE user_id = ?')
-    .bind(web.userId)
-    .first<{ display_name: string | null; nickname: string | null; primary_name: PrimaryName; avatar_key: string | null; visibility: string; birthday: string | null }>();
+  const profileQuery = db.prepare(PROFILE_SQL).bind(web.userId).first<ProfileRow>();
   // The bonus multiplier is brought in line with the profile before the balance is read, so the count shown is current.
   const batteryQuery = profileQuery.then(async (p) => {
     if (p) await syncBonus(c.env.DB_BATTERY, web.userId, p, now);

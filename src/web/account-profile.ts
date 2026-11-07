@@ -10,7 +10,7 @@ import { randomMotto } from '../identity/mottos';
 import { randomNickname } from '../identity/nicknames';
 import { syncBonus } from '../battery/bonus';
 import { BATTERY_ICON } from '../lib/battery-icons';
-import { bonusX10, formatBonus, isPrimaryName, setPrimaryName, ageOn, derivedOf, EDITABLE_FIELDS, effectiveVisibility, GRID_LAYOUT, hasChanges, loadProfile, saveProfile, validateProfileInput, VISIBILITY_FIELDS, type EditableField, type FieldUpdate, type Visibility, type VisibilityField } from '../identity/profile';
+import { bonusX10, formatBonus, noBonusNote, NO_BONUS_EMPTY, NO_BONUS_UNVERIFIED, BONUS_FIELDS, groupContent, isPrimaryName, setPrimaryName, ageOn, derivedOf, EDITABLE_FIELDS, effectiveVisibility, GRID_LAYOUT, hasChanges, loadProfile, saveProfile, validateProfileInput, VISIBILITY_FIELDS, type EditableField, type FieldUpdate, type Visibility, type VisibilityField } from '../identity/profile';
 import { WEB_APP_ID } from '../identity/web-sessions';
 import { formatTime, page, readForm, type Html, type WebContext } from './layout';
 import { LOCALES, accountApp } from './account-lib';
@@ -357,7 +357,7 @@ document.querySelectorAll('form.eye').forEach((form) => {
       setVersion(body.version);
       document.querySelectorAll('form.eye[data-group="' + group + '"]').forEach((f) => applyEye(f, want === 'public'));
       showBonus(body.bonus_x10);
-      toast((want === 'public' ? '👁 「' + label + '」已公開' : '🙈 「' + label + '」已隱藏'));
+      toast(body.bonus_note ? body.bonus_note : (want === 'public' ? '👁 「' + label + '」已公開' : '🙈 「' + label + '」已隱藏'));
     } else {
       toast(res && res.status === 409 ? '資料已在其他地方更新，請重新整理頁面' : '設定失敗，請再試一次');
     }
@@ -378,7 +378,7 @@ async function setAll(value) {
     setVersion(body.version);
     document.querySelectorAll('form.eye').forEach((f) => { const v = body.visibility[f.getAttribute('data-group')]; if (v) applyEye(f, v === 'public'); });
     showBonus(body.bonus_x10);
-    toast(value === 'public' ? '👁 全部欄位已公開' : '🙈 全部欄位已隱藏');
+    toast(value === 'public' ? (body.bonus_note ? '👁 全部欄位已公開。' + body.bonus_note : '👁 全部欄位已公開') : '🙈 全部欄位已隱藏');
   } else {
     toast(res && res.status === 409 ? '資料已在其他地方更新，請重新整理頁面' : '設定失敗，請再試一次');
   }
@@ -397,6 +397,7 @@ async function save(form) {
   const body = res ? await res.json().catch(() => ({})) : {};
   if (res && res.ok && body.ok) {
     setVersion(body.version);
+    showBonus(body.bonus_x10);
     field.querySelector('.value').textContent = body.display || '（未設定）';
     if (body.updated) field.querySelector('.updated').textContent = body.updated;
     status.textContent = STATUS.saved;
@@ -496,7 +497,9 @@ accountApp.post('/profile/visibility-all', async (c) => {
   if (!saved.written) return c.json({ ok: false, message: '個人資料已在其他地方更新，請重新整理頁面。' }, 409);
   const current = (await loadProfile(db, web.userId)) ?? before;
   const bonus = await syncBonus(c.env.DB_BATTERY, web.userId, current.row, now);
-  return c.json({ ok: true, version: current.row.version, visibility: effectiveVisibility(current.row, now), bonus_x10: bonus });
+  const contents = BONUS_FIELDS.map((g) => groupContent(g, current.row));
+  const note = value === 'public' ? (contents.includes('empty') ? NO_BONUS_EMPTY : contents.includes('unverified') ? NO_BONUS_UNVERIFIED : null) : null;
+  return c.json({ ok: true, version: current.row.version, visibility: effectiveVisibility(current.row, now), bonus_x10: bonus, bonus_note: note });
 });
 
 /**
@@ -530,6 +533,7 @@ accountApp.post('/profile', async (c) => {
           message: ok ? undefined : message.text,
           version: current.row.version,
           bonus_x10: bonus,
+          bonus_note: ok && (form.field ?? '').startsWith('visibility.') && form.value === 'public' ? noBonusNote((form.field ?? '').slice('visibility.'.length) as VisibilityField, current.row) : null,
           display: (EDITABLE_FIELDS as readonly string[]).includes(field) ? displayValue(current.row, field) : undefined,
           updated: updatedText(current.fieldUpdates, field),
           reload: field === 'birthday' || field === 'contact_email' || (form.field ?? '').startsWith('visibility.'),
