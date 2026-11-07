@@ -2,7 +2,7 @@ import { createRoute, z } from '@hono/zod-openapi';
 import { apiRouter, errorResponses, json } from '../api/openapi';
 import { fail } from '../auth/routes';
 import { getApp } from './registry';
-import { withEffectiveStatus } from './status';
+import { withConfigOverrides, withEffectiveStatus } from './status';
 
 export const appRoutes = apiRouter();
 
@@ -33,6 +33,7 @@ const configRoute = createRoute({
 appRoutes.openapi(configRoute, async (c) => {
   const configured = getApp(c.req.valid('param').appId);
   if (!configured) return fail(c, 404, 'APP_NOT_FOUND', 'Unknown app');
-  const app = await withEffectiveStatus(c.env.DB_IDENTITY, configured, Date.now());
+  const now = Date.now();
+  const app = await withConfigOverrides(c.env.DB_IDENTITY, await withEffectiveStatus(c.env.DB_IDENTITY, configured, now), now);
   return c.json({ app_id: app.app_id, status: app.status, min_version: app.min_version, config: { ...app.config } }, 200);
 });

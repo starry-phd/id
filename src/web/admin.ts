@@ -6,6 +6,7 @@ import { getNotices, saveNotices } from '../lib/notices';
 import { readHeartbeats } from '../lib/heartbeat';
 import { randomToken } from '../lib/crypto';
 import { revenueCatStatus, saveRevenueCatSecret } from '../billing/app-secrets';
+import { configToText, loadConfigOverrides, parseConfigText, saveConfigOverrides } from '../apps/status';
 import { buildHandoff } from '../apps/handoff';
 import { adjustQuantum, listQuantum, listQuantumProducts, removeQuantumProduct, saveQuantumProduct } from '../battery/quantum';
 import { appRegistry, getApp, type AppEntry, type AppStatus } from '../apps/registry';
@@ -173,15 +174,24 @@ adminApp.get('/members', async (c) => {
 <label><input type="checkbox" name="staff" value="1"${staffOnly ? raw(' checked') : ''}> 只看管理人員</label>
 <button type="submit">查詢</button>&emsp;<a href="/admin/members">清除條件</a>
 </form>
-<table><thead><tr><th>會員</th><th>Email／登入</th><th>狀態</th><th>Battery 剩餘</th><th>加入／最近登入</th></tr></thead><tbody>
+<form method="post" action="/admin/members/bulk">
+<table><thead><tr><th></th><th>會員</th><th>Email／登入</th><th>狀態</th><th>Battery 剩餘</th><th>加入／最近登入</th></tr></thead><tbody>
 ${result.members.map(
-  (m) => html`<tr><td><a href="/admin/members/${m.user_id}">${m.display_name ?? '（未命名）'}</a><br><code>${m.member_no ?? '（發放中）'}</code>${m.role ? html`<br>${ROLE_LABELS[m.role]}` : ''}</td>
+  (m) => html`<tr><td>${actor.role === 'support' ? '' : html`<input type="checkbox" name="ids" value="${m.user_id}" aria-label="選取 ${m.display_name ?? m.member_no ?? ''}">`}</td><td><a href="/admin/members/${m.user_id}">${m.display_name ?? '（未命名）'}</a><br><code>${m.member_no ?? '（發放中）'}</code>${m.role ? html`<br>${ROLE_LABELS[m.role]}` : ''}</td>
 <td>${m.contact_email ?? m.emails.find((e) => e !== null) ?? '（無 Email）'}<br><span class="muted">${m.providers.map((p) => PROVIDER_LABELS[p] ?? p).join('、')}${m.country ? html`｜${m.country}` : ''}</span></td>
 <td>${STATUS_LABELS[m.status] ?? m.status}</td>
 <td>${m.battery ? html`<strong>${m.battery.remaining}</strong> / ${m.battery.allowance}` : '—'}</td>
 <td>${formatTime(m.created_at)}<br><span class="muted">${m.last_login_at ? formatTime(m.last_login_at) : '—'}</span></td></tr>`,
 )}
 </tbody></table>
+${result.members.length > 0 && actor.role !== 'support'
+  ? html`<div class="card"><p><strong>批次操作</strong>（先勾選上面的會員，一次最多 ${MAX_BULK} 位；自己、Owner 與管理人員不會被處理）</p>
+<label for="bulk-action">動作</label><select id="bulk-action" name="action"><option value="battery">調整本月 Battery（要填顆數）</option><option value="suspend">停權</option><option value="signout">強制登出所有裝置</option></select>
+<label for="bulk-delta">顆數（正數增加、負數減少；只有調整 Battery 才需要）</label><input id="bulk-delta" name="delta" type="number" step="1">
+<label for="bulk-reason">原因（必填，最多 200 字）</label><input id="bulk-reason" name="reason" maxlength="200"><button type="submit">執行</button>
+<p class="muted">批次調整 Battery 不會寄通知信給會員。</p></div>`
+  : ''}
+</form>
 ${result.members.length === 0 ? html`<p class="muted">沒有符合的會員。</p>` : ''}
 ${next ? html`<p class="pager"><a href="${next}">下一頁</a></p>` : ''}`,
     ),
@@ -296,6 +306,47 @@ adminApp.get('/members/:id', async (c) => {
   const actor = await staff(c, 'support');
   if (actor instanceof Response) return actor;
   return memberPage(c, actor, c.req.param('id'));
+});
+
+const MAX_BULK = 50;
+
+adminApp.post('/members/bulk', async (c) => {
+  const actor = await staff(c, 'admin');
+  if (actor instanceof Response) return actor;
+  const body = await c.req.parseBody({ all: true });
+  const raw = body.ids;
+  const ids = [...new Set((Array.isArray(raw) ? raw : raw ? [raw] : []).filter((v): v is string => typeof v === 'string' && /^[0-9a-f-]{36}$/.test(v)))];
+  const action = typeof body.action === 'string' ? body.action : '';
+  const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
+  const delta = Number(typeof body.delta === 'string' ? body.delta : '');
+  const back = (message: string) => c.html(adminPage(c, '批次操作結果', html`<h1>批次操作結果</h1><div class="banner">${message}</div><p><a href="/admin/members">回到會員清單</a></p>`));
+  if (ids.length === 0) return back('請先勾選至少一位會員。');
+  if (ids.length > MAX_BULK) return back(`一次最多 ${MAX_BULK} 位，請分批處理。`);
+  if (!['battery', 'suspend', 'signout'].includes(action)) return back('請選擇動作。');
+  if (action !== 'signout' && (reason.length < 1 || reason.length > 200)) return back('請填寫 1～200 字的原因。');
+  if (action === 'battery' && (!Number.isInteger(delta) || delta === 0)) return back('請填寫非 0 的整數顆數。');
+  const now = Date.now();
+  let done = 0;
+  let skipped = 0;
+  for (const id of ids) {
+    if (id === actor.userId) {
+      skipped++;
+      continue;
+    }
+    let ok = false;
+    if (action === 'suspend') ok = (await suspendMember(c.env.DB_IDENTITY, c.env.OWNER_USER_IDS, actor, id, reason, now)) === 'ok';
+    else if (action === 'signout') ok = (await revokeAllSessions(c.env.DB_IDENTITY, c.env.OWNER_USER_IDS, actor, id, now)) === 'ok';
+    else {
+      const target = await findMemberSummary(c.env.DB_IDENTITY, null, c.env.OWNER_USER_IDS, id, now);
+      if (target && !target.role) {
+        ok = (await adjustAllowance(c.env.DB_BATTERY, { userId: id, delta, reason, actorUserId: actor.userId }, now)).ok;
+        if (ok) await auditStatement(c.env.DB_IDENTITY, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.battery_adjusted', targetType: 'user', targetId: id, result: 'success', requestId: actor.requestId, retention: 'security' }, now).run();
+      }
+    }
+    if (ok) done++;
+    else skipped++;
+  }
+  return back(`已處理 ${done} 位，略過 ${skipped} 位（自己、管理人員、停權不適用或額度不允許的會員會被略過）。`);
 });
 
 adminApp.post('/members/:id/suspend', async (c) => {
@@ -742,6 +793,7 @@ ${serviceKey
   : html`<p class="muted">${hasKey ? '已開通；金鑰只在建立或重新產生時顯示一次。' : '尚未開通。'}</p><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${regenerate}</div>`}
 </div>
 <p><a href="/admin/apps/${app.app_id}/quantum">量子電池（內購加量包）設定</a></p>
+<p><a href="/admin/apps/${app.app_id}/config">遠端設定（App 啟動時讀取）</a></p>
 <p><a href="/admin/apps/${app.app_id}/revenuecat">RevenueCat 設定（Webhook 與 API 金鑰）</a></p>
 <p><a href="/admin/apps">回到 App 清單</a></p>`,
       html`<script nonce="${nonce}">
@@ -926,6 +978,46 @@ adminApp.post('/apps/:id/revenuecat/clear', async (c) => {
   await saveRevenueCatSecret(c.env, { appId: app.app_id, kind: 'api', value: null, actorUserId: actor.userId }, Date.now());
   await rcAudit(c, actor, app.app_id, 'admin.revenuecat_cleared');
   return revenueCatPage(c, actor, app, '已清除。');
+});
+
+async function configPage(c: WebContext, actor: StaffActor, app: AppEntry, message?: string, text?: string): Promise<Response> {
+  const canEdit = actor.role === 'owner' || actor.role === 'admin';
+  const current = await loadConfigOverrides(c.env.DB_IDENTITY, app.app_id);
+  return c.html(
+    adminPage(
+      c,
+      '遠端設定',
+      html`<h1>${app.name} 的遠端設定</h1>
+${message ? html`<div class="banner">${message}</div>` : ''}
+<p class="muted">App 每次啟動會讀取這些值（<code>GET /v1/apps/${app.app_id}/config</code>），例如功能開關、公告文字、最低版本。這裡的內容是公開的，<strong>不要放任何金鑰或密碼</strong>。約 30 秒內生效。</p>
+<div class="card"><p><strong>預設值（來自程式設定）：</strong> 最低版本 <code>${app.min_version}</code>${Object.keys(app.config).length > 0 ? html`，${Object.entries(app.config).map(([k, v]) => html`<code>${k} = ${JSON.stringify(v)}</code> `)}` : ''}</p></div>
+${canEdit
+  ? html`<form method="post" action="/admin/apps/${app.app_id}/config" class="card"><label for="cfg">覆寫設定（每行一個，寫成「名稱 = 值」；名稱用小寫英文、數字、底線；<code>min_version</code> 可覆寫最低版本；整個清空＝全部還原預設）</label>
+<textarea id="cfg" name="config" rows="10" maxlength="6000" style="font-family:monospace">${text ?? configToText(current)}</textarea>
+<p class="muted">範例：<br><code>new_feature = true</code><br><code>max_upload_mb = 20</code><br><code>notice = "週末維護"</code><br><code>min_version = 1.2.0</code></p><button type="submit">儲存</button></form>`
+  : html`<div class="card"><pre>${configToText(current) || '（沒有覆寫）'}</pre></div><p class="muted">只有 Owner 與 Admin 可以修改。</p>`}
+<p><a href="/admin/apps/${app.app_id}/handoff">回到串接指令</a></p>`,
+    ),
+  );
+}
+
+adminApp.get('/apps/:id/config', async (c) => {
+  const actor = await staff(c, 'support');
+  if (actor instanceof Response) return actor;
+  const app = rcApp(c);
+  return app ? configPage(c, actor, app) : appsPage(c, '找不到此 App。');
+});
+
+adminApp.post('/apps/:id/config', async (c) => {
+  const actor = await staff(c, 'admin');
+  if (actor instanceof Response) return actor;
+  const app = rcApp(c);
+  if (!app) return appsPage(c, '找不到此 App。');
+  const text = (await readForm(c)).config ?? '';
+  const parsed = parseConfigText(text);
+  if (!parsed.ok) return configPage(c, actor, app, parsed.error, text);
+  await saveConfigOverrides(c.env.DB_IDENTITY, actor, app.app_id, parsed.values, Date.now());
+  return configPage(c, actor, app, '已儲存，約 30 秒內生效。');
 });
 
 adminApp.post('/apps/:id/battery-key', async (c) => {
