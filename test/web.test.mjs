@@ -557,39 +557,46 @@ describe('web account center, support form and Admin Lite', () => {
     await worker.db.prepare("DELETE FROM user_roles WHERE role = 'owner'").run();
   });
 
-  test('the owner edits a built-in App on top of config/apps.json and can revert; account only gets its low-risk fields (item 1)', async () => {
+  test('Apps that used to be built in are edited like any registered App; the account center is fixed (item 1)', async () => {
     const owner = await webSignIn('bi-owner');
     await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'owner', ?)").bind(await userIdOf('bi-owner'), Date.now()).run();
     const admin = await webSignIn('bi-admin');
     await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(await userIdOf('bi-admin'), Date.now()).run();
 
-    assert.equal((await worker.call('/admin/apps/recordnote/builtin', get(admin))).status, 403, 'Admin is not enough');
-    assert.equal((await worker.call('/admin/apps/recordnote/builtin', form({ name: 'x' }, admin))).status, 403);
-    const page = await (await worker.call('/admin/apps/recordnote/builtin', get(owner))).text();
-    assert.match(page, /內建設定：/);
+    assert.equal((await worker.call('/admin/apps/recordnote/edit', get(admin))).status, 403, 'Admin is not enough');
+    assert.equal((await worker.call('/admin/apps/recordnote/edit', form({ name: 'x' }, admin))).status, 403);
+    const page = await (await worker.call('/admin/apps/recordnote/edit', get(owner))).text();
     assert.match(page, /name="web_origins"/);
-    assert.match(await (await worker.call('/admin/apps', get(owner))).text(), /\/admin\/apps\/recordnote\/builtin/);
+    assert.match(page, /name="android_cert_sha256"/);
+    assert.doesNotMatch(page, /name="ios_team_id"/, 'the Team ID is central');
+    assert.match(page, /recordnote:\/\/auth\/google/, 'the stored return URLs are pre-filled');
+    const cards = await (await worker.call('/admin/apps', get(owner))).text();
+    assert.match(cards, /\/admin\/apps\/recordnote\/edit/);
+    assert.doesNotMatch(cards, /\/builtin/, 'no separate built-in settings page any more');
+    assert.equal((await worker.call('/admin/apps/recordnote/builtin', get(owner))).status, 404);
+    assert.match(await (await worker.call('/admin/apps/account/edit', get(owner))).text(), /只有在後台登記的 App/);
 
-    const bad = await worker.call('/admin/apps/recordnote/builtin', form({ name: '改名', min_version: 'abc', web_origins: '', return_urls: '', ios_team_id: '', android_cert_sha256: '' }, owner));
+    const original = { name: '繁星答錄機 RecordNote', ios_bundle_id: 'phd.starry.recordnote', android_package: 'phd.starry.recordnote', web_origins: 'https://recordnote-web-preview.starry-phd.workers.dev\nhttps://recordnote.starry.phd', return_urls: 'recordnote://auth/google\nrecordnote://auth/apple', min_version: '0.0.0', android_cert_sha256: '' };
+    const bad = await worker.call('/admin/apps/recordnote/edit', form({ ...original, name: '改名', min_version: 'abc' }, owner));
     assert.equal(bad.status, 400);
-    assert.equal(await worker.db.prepare('SELECT COUNT(*) AS n FROM builtin_app_overrides').first('n'), 0);
+    const badFp = await worker.call('/admin/apps/recordnote/edit', form({ ...original, android_cert_sha256: 'nope' }, owner));
+    assert.equal(badFp.status, 400);
+    assert.match(await badFp.text(), /Android 簽章指紋格式不正確/);
 
-    const saved = await (await worker.call('/admin/apps/recordnote/builtin', form({ name: '改名後的記事', min_version: '1.2.0', web_origins: 'https://recordnote.starry.phd', return_urls: '', ios_team_id: '', android_cert_sha256: '' }, owner))).text();
-    assert.match(saved, /已儲存/);
-    const row = await worker.db.prepare("SELECT patch FROM builtin_app_overrides WHERE app_id = 'recordnote'").first('patch');
-    const patch = JSON.parse(row);
-    assert.equal(patch.name, '改名後的記事');
-    assert.equal(patch.min_version, '1.2.0');
-    assert.match(await (await worker.call('/admin/apps/recordnote/builtin', get(owner))).text(), /已覆寫/);
+    const FP = 'aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99';
+    const saved = await worker.call('/admin/apps/recordnote/edit', form({ ...original, name: '改名後的記事', min_version: '1.2.0', android_cert_sha256: FP }, owner));
+    assert.equal(saved.status, 303);
+    const stored = JSON.parse(await worker.db.prepare("SELECT definition FROM registered_apps WHERE app_id = 'recordnote'").first('definition'));
+    assert.equal(stored.name, '改名後的記事');
+    assert.equal(stored.min_version, '1.2.0');
+    assert.deepEqual(stored.android_cert_sha256, [FP.toUpperCase()]);
+    assert.equal(stored.ios_team_id, null);
+    assert.deepEqual(stored.return_urls, ['recordnote://auth/google', 'recordnote://auth/apple'], 'untouched values survive an edit');
+    const links = await (await worker.call('/.well-known/assetlinks.json')).json();
+    assert.deepEqual(links.find((l) => l.target.package_name === 'phd.starry.recordnote')?.target.sha256_cert_fingerprints, [FP.toUpperCase()]);
+    assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.app_updated' AND target_id = 'recordnote'").first('n') >= 1, true);
 
-    const accountSave = await worker.call('/admin/apps/account/builtin', form({ name: '帳號中心', min_version: '0.0.0', web_origins: 'https://evil.example' }, owner));
-    assert.equal(accountSave.status, 200, 'unlisted fields are ignored, only name and min_version are read for account');
-    assert.doesNotMatch(await worker.db.prepare("SELECT patch FROM builtin_app_overrides WHERE app_id = 'account'").first('patch') ?? '', /evil/);
-
-    assert.match(await (await worker.call('/admin/apps/recordnote/builtin/revert', form({}, owner))).text(), /已還原/);
-    assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM builtin_app_overrides WHERE app_id = 'recordnote'").first('n'), 0);
-    assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action IN ('admin.builtin_app_overridden','admin.builtin_app_reverted')").first('n') >= 2, true);
-    await worker.db.prepare("DELETE FROM builtin_app_overrides").run();
+    assert.equal((await worker.call('/admin/apps/recordnote/edit', form(original, owner))).status, 303, 'put the original values back for the other tests');
     await worker.db.prepare("DELETE FROM user_roles WHERE role = 'owner'").run();
   });
 
@@ -699,7 +706,7 @@ describe('web account center, support form and Admin Lite', () => {
     await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(await userIdOf('app-staff'), Date.now()).run();
     assert.equal((await worker.call('/admin/apps/new', form({ ...fields, app_id: 'clock-2' }, staffCookie))).status, 403, 'only the Owner registers Apps');
     await worker.battery.prepare('DELETE FROM battery_app_keys').run();
-    await worker.db.prepare('DELETE FROM registered_apps').run();
+    await worker.db.prepare("DELETE FROM registered_apps WHERE app_id NOT IN ('echo', 'recordnote')").run();
     await worker.db.prepare('DELETE FROM user_roles WHERE user_id = ?').bind(ownerId).run();
   });
 

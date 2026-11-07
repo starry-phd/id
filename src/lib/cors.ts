@@ -4,7 +4,7 @@ import type { AppBindings } from '../env';
 
 /**
  * CORS for the web versions of Starry Apps (spec security: CORS allowlist). Only origins listed
- * in an App's "web_origins" (config/apps.json or registered in Admin Lite) may call /v1 from a browser. Tokens travel in the
+ * in an App's "web_origins" (registered in Admin Lite) may call /v1 from a browser. Tokens travel in the
  * Authorization header, never in cookies, so credentials are not allowed.
  */
 

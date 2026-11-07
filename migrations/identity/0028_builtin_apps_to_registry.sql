@@ -1,0 +1,11 @@
+-- The two Apps that used to live in config/apps.json (echo, recordnote) are now registered like every other App, in
+-- registered_apps, and edited from Admin Lite ("編輯登記資料"). config/apps.json keeps only the account center, which is
+-- the sign-in hub itself. The values are the ones the file defined; the Apple Team ID is the central one
+-- (STARRY_APPLE_TEAM_ID), so the definitions store none. INSERT OR IGNORE: an existing row is never overwritten.
+-- Old code ignores these rows while it still has the Apps in its file, so applying this before the new code deploys
+-- leaves no gap. The admin override table is gone with the override feature (it only held test edits).
+INSERT OR IGNORE INTO registered_apps (app_id, definition, created_at, updated_at)
+VALUES ('echo', '{"app_id":"echo","name":"繁星回聲 Echo","ios_bundle_id":"phd.starry.echo","android_package":"phd.starry.echo","status":"active","scopes":["profile:read","profile:write"],"min_version":"0.0.0","config":{},"auth":{"apple_audiences":["phd.starry.echo","phd.starry.id.web"],"google_audiences":["529568041037-j9gd4baq8k239qv7an2f53rh3srbgtnm.apps.googleusercontent.com","529568041037-1apv0udmqj4djdkep6ofcs4vv2nm6js1.apps.googleusercontent.com"]},"web_origins":["https://echo.starry.phd","https://echo-api-staging.starry-phd.workers.dev"],"return_urls":["echostarry://auth/apple"],"ios_team_id":null,"android_cert_sha256":[]}', CAST(strftime('%s', 'now') AS INTEGER) * 1000, CAST(strftime('%s', 'now') AS INTEGER) * 1000);
+INSERT OR IGNORE INTO registered_apps (app_id, definition, created_at, updated_at)
+VALUES ('recordnote', '{"app_id":"recordnote","name":"繁星答錄機 RecordNote","ios_bundle_id":"phd.starry.recordnote","android_package":"phd.starry.recordnote","status":"active","scopes":["profile:read","profile:write"],"min_version":"0.0.0","config":{},"auth":{"apple_audiences":["phd.starry.recordnote","phd.starry.id.web"],"google_audiences":["529568041037-j9gd4baq8k239qv7an2f53rh3srbgtnm.apps.googleusercontent.com"]},"web_origins":["https://recordnote-web-preview.starry-phd.workers.dev","https://recordnote.starry.phd"],"return_urls":["recordnote://auth/google","recordnote://auth/apple"],"ios_team_id":null,"android_cert_sha256":[]}', CAST(strftime('%s', 'now') AS INTEGER) * 1000, CAST(strftime('%s', 'now') AS INTEGER) * 1000);
+DROP TABLE IF EXISTS builtin_app_overrides;

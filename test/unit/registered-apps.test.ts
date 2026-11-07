@@ -53,7 +53,7 @@ describe('registering an App without a code change', () => {
     }
   });
 
-  test('saving makes the App available to the registry; duplicates and shipped app_ids are refused', async () => {
+  test('saving makes the App available to the registry; duplicates and the account center are refused', async () => {
     const d = asD1(migratedDb());
     clearDynamicAppCache();
     setDynamicApps(new Map());
@@ -62,12 +62,12 @@ describe('registering an App without a code change', () => {
     assert.ok(appRegistry.keys().includes('clock'));
     assert.ok(appRegistry.values().some((a) => a.web_origins.includes('https://clock.starry.phd')));
     assert.equal(await saveRegisteredApp(d, actor, build(clock), 'create', NOW + 1), 'exists');
-    assert.equal(await saveRegisteredApp(d, actor, build({ ...clock, app_id: 'echo' }), 'create', NOW + 1), 'reserved');
+    assert.equal(await saveRegisteredApp(d, actor, build({ ...clock, app_id: 'echo' }), 'create', NOW + 1), 'exists', 'echo is registered like any other App');
     assert.equal(await saveRegisteredApp(d, actor, build({ ...clock, app_id: 'account' }), 'create', NOW + 1), 'reserved');
     assert.equal(await saveRegisteredApp(d, actor, build({ ...clock, app_id: 'other' }), 'update', NOW + 1), 'not_found');
     assert.equal(await saveRegisteredApp(d, actor, build({ ...clock, name: '繁星時鐘 2' }), 'update', NOW + 2), 'updated');
     assert.equal(getApp('clock')?.name, '繁星時鐘 2');
-    assert.deepEqual([...(await listRegisteredAppIds(d))], ['clock']);
+    assert.deepEqual([...(await listRegisteredAppIds(d))].sort(), ['clock', 'echo', 'recordnote']);
     const audit = await d.prepare("SELECT action FROM audit_log WHERE target_id = 'clock' ORDER BY occurred_at, audit_id").all<{ action: string }>();
     assert.deepEqual(audit.results.map((r) => r.action), ['admin.app_registered', 'admin.app_updated']);
   });
@@ -81,7 +81,7 @@ describe('registering an App without a code change', () => {
     await refreshDynamicApps(d, NOW + 10);
     assert.equal(getApp('clock')?.app_id, 'clock');
     assert.equal(getApp('broken'), undefined);
-    assert.equal(getApp('echo')?.app_id, 'echo', 'shipped Apps are untouched');
+    assert.equal(getApp('echo')?.app_id, 'echo', 'the Apps from migration 0028 load from the database');
   });
 
   test('a broken stored row keeps the last good definition of that App and is flagged; fixing it clears the flag', async () => {
