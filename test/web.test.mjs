@@ -373,7 +373,7 @@ describe('web account center, support form and Admin Lite', () => {
     const overview = await (await worker.call('/admin/apps/status', { headers: { cookie: adminCookie } })).text();
     assert.match(overview, /整合狀態總覽/);
     assert.match(overview, /Android 正式簽章尚未設定，原生 Passkey 關聯尚待完成。/);
-    assert.match(overview, /Apple Team ID（全生態系共用）：<strong>尚未設定<\/strong>/);
+    assert.match(overview, /Apple Team ID（全生態系共用，儲存於中央 D1）：<strong>4W7QRTXN5Y<\/strong>/);
     assert.match(await (await worker.call('/admin/apps', { headers: { cookie: adminCookie } })).text(), /整合狀態總覽[\s\S]*Android 正式簽章尚未設定/);
     // App-wide broadcast (ADR 0009): Admin-only page, validated first; this test Worker has no queue, so a valid request is refused plainly.
     const page = await (await worker.call('/admin/broadcast', { headers: { cookie: adminCookie } })).text();
@@ -392,6 +392,29 @@ describe('web account center, support form and Admin Lite', () => {
     assert.equal(config.min_version, '1.2.0');
     assert.equal(config.config.new_feature, true);
     assert.match(await (await worker.call('/admin/apps/echo/config', form({ config: 'Bad Name = 1' }, adminCookie))).text(), /只能用小寫英文/);
+  });
+
+  test('Owner controls the one D1 Team ID and AASA; Admin cannot change it', async () => {
+    const adminCookie = await webSignIn('team-id-admin');
+    await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(await userIdOf('team-id-admin'), Date.now()).run();
+    assert.equal((await worker.call('/admin/apps/team-id', form({ apple_team_id: '0A1B2C3D4E' }, adminCookie))).status, 403);
+
+    const ownerCookie = await webSignIn('team-id-owner');
+    await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'owner', ?)").bind(await userIdOf('team-id-owner'), Date.now()).run();
+    const ownerPage = await (await worker.call('/admin/apps/status', get(ownerCookie))).text();
+    assert.match(ownerPage, /name="apple_team_id"/);
+    assert.equal((await worker.call('/admin/apps/team-id', form({ apple_team_id: 'invalid' }, ownerCookie))).status, 400);
+    assert.equal(await worker.db.prepare("SELECT value FROM platform_settings WHERE key = 'apple_team_id'").first('value'), '4W7QRTXN5Y');
+    const saved = await worker.call('/admin/apps/team-id', form({ apple_team_id: '0A1B2C3D4E' }, ownerCookie));
+    assert.equal(saved.status, 303);
+    assert.equal(await worker.db.prepare("SELECT value FROM platform_settings WHERE key = 'apple_team_id'").first('value'), '0A1B2C3D4E');
+    const aasa = await (await worker.call('/.well-known/apple-app-site-association')).json();
+    assert.ok(aasa.webcredentials.apps.includes('0A1B2C3D4E.phd.starry.echo'));
+    assert.ok(aasa.webcredentials.apps.includes('0A1B2C3D4E.phd.starry.recordnote'));
+    assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.apple_team_id_updated'").first('n'), 1);
+
+    assert.equal((await worker.call('/admin/apps/team-id', form({ apple_team_id: '4W7QRTXN5Y' }, ownerCookie))).status, 303);
+    await worker.db.prepare("DELETE FROM user_roles WHERE role = 'owner'").run();
   });
 
   test('a staff member with a passkey must confirm high-risk actions with it first', async () => {
