@@ -8,7 +8,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.sdk.json",
     "lint": "eslint . --max-warnings 0",
     "build": "wrangler deploy --dry-run --outdir dist --env staging",
     "test": "npm run build && node --test --test-force-exit --test-timeout=60000 \"test/*.test.mjs\" && npm run test:unit",
