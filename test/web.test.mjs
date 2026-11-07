@@ -330,6 +330,7 @@ describe('web account center, support form and Admin Lite', () => {
     assert.match(apps, /一鍵暫停/);
     assert.match(apps, /本月 Battery/);
     assert.match(apps, /<body class="admin">/, 'Admin pages use the fluid layout, not the narrow member column');
+    assert.match(apps, /\.grid>form:not\(\.card\)\{display:none\}/, 'CSS child combinators must not be HTML-escaped (the hidden helper forms would take grid cells)');
     assert.match(apps, /class="burger"/, 'the burger menu is there for phones');
     assert.match(apps, /<summary>更多 ▾<\/summary>[\s\S]*\/admin\/broadcast[\s\S]*\/admin\/audit/, 'rarely used pages live under 更多');
     assert.ok(apps.indexOf('<form id="pause-echo"') > -1 && apps.indexOf('<form id="pause-echo"') < apps.indexOf('action="/admin/apps/echo/status" class="card"'), 'the one-click pause form is a sibling of the card form (forms cannot nest)');
