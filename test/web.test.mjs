@@ -563,6 +563,51 @@ describe('web account center, support form and Admin Lite', () => {
     await worker.db.prepare("DELETE FROM user_roles WHERE role = 'owner'").run();
   });
 
+  test('the owner generates redeem codes with links; a member redeems by link or by typing (battery and quantum)', async () => {
+    const owner = await webSignIn('codes-owner');
+    await worker.db.prepare("INSERT OR REPLACE INTO user_roles (user_id, role, granted_at) VALUES (?, 'owner', ?)").bind(await userIdOf('codes-owner'), Date.now()).run();
+    const battery = await worker.call('/admin/battery', get(owner));
+    assert.match(await battery.text(), /\/admin\/battery\/codes[\s\S]*序號產生器|序號產生器[\s\S]*\/admin\/battery\/codes/, 'the generator is the first thing on the 電池艙 page');
+    assert.match(await (await worker.call('/admin/battery/codes', get(owner))).text(), /序號產生器/);
+    assert.match(await (await worker.call('/admin/battery/codes', form({ kind: 'quantum', app_id: '', units: '5', count: '1', max_uses: '1' }, owner))).text(), /要先選一款 App/);
+    const made = await (await worker.call('/admin/battery/codes', form({ kind: 'battery', app_id: '', units: '3', count: '2', max_uses: '1', note: '測試批次' }, owner))).text();
+    assert.match(made, /已產生 2 組序號/);
+    const urls = [...made.matchAll(/https:\/\/[^<"\s]*\/account\/redeem\/([A-Z0-9]{10})/g)].map((m) => m[1]);
+    assert.ok(urls.length >= 2, 'every code comes with a redeem link');
+    const [first, second] = [...new Set(urls)];
+    const quantum = await (await worker.call('/admin/battery/codes', form({ kind: 'quantum', app_id: 'recordnote', units: '4', count: '1', max_uses: '2' }, owner))).text();
+    const qcode = /\/account\/redeem\/([A-Z0-9]{10})/.exec(quantum)?.[1];
+    assert.ok(qcode);
+    assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.redeem_codes_created'").first('n'), 2);
+
+    // The link signs the member in first, then shows what the code gives; opening it never redeems.
+    const unauth = await worker.call(`/account/redeem/${first}`, get());
+    assert.equal(unauth.status, 303);
+    assert.match(unauth.headers.get('location'), /^\/account\?next=%2Faccount%2Fredeem%2F/);
+    const member = await webSignIn('codes-member');
+    const memberId = await userIdOf('codes-member');
+    const preview = await (await worker.call(`/account/redeem/${first}`, get(member))).text();
+    assert.match(preview, /3<\/strong> 顆電池/);
+    assert.equal(await worker.battery.prepare('SELECT used FROM invite_codes WHERE code = ?').bind(first).first('used'), 0, 'viewing the link does not redeem');
+    const done = await worker.call('/account/redeem', form({ code: first }, member));
+    assert.equal(done.headers.get('location'), '/account?invite=ok_battery');
+    assert.equal(await worker.battery.prepare('SELECT allowance FROM battery_accounts WHERE user_id = ?').bind(memberId).first('allowance'), 13, 'the standard 10 plus the 3 from the code');
+    assert.equal((await worker.call('/account/redeem', form({ code: first }, member))).headers.get('location'), '/account?invite=used_up', 'a one-use code is spent');
+    assert.match(await (await worker.call(`/account/redeem/${first}`, get(member))).text(), /已被領完/);
+    assert.equal((await worker.call('/account/redeem', form({ code: qcode.toLowerCase() }, member))).headers.get('location'), '/account?invite=ok', 'typing works too, in any case');
+    assert.equal(await worker.battery.prepare("SELECT balance FROM quantum_accounts WHERE user_id = ? AND app_id = 'recordnote'").bind(memberId).first('balance'), 4);
+    assert.equal(await worker.battery.prepare("SELECT COUNT(*) AS n FROM quantum_accounts WHERE user_id = ? AND app_id <> 'recordnote'").bind(memberId).first('n'), 0, 'quantum stays in its own App');
+
+    // A batch can be switched off as a whole.
+    const batchId = /\/admin\/battery\/codes\/([0-9a-f-]{36})\/disable/.exec(made)?.[1];
+    assert.ok(batchId);
+    assert.match(await (await worker.call(`/admin/battery/codes/${batchId}/disable`, form({}, owner))).text(), /已停用/);
+    assert.equal((await worker.call('/account/redeem', form({ code: second }, member))).headers.get('location'), '/account?invite=invalid');
+    // Staff below the owner cannot reach the generator.
+    assert.equal((await worker.call('/admin/battery/codes', get(member))).status, 403);
+    await worker.db.prepare("DELETE FROM user_roles WHERE role = 'owner'").run();
+  });
+
   test('Apps that used to be built in are edited like any registered App; the account center is fixed (item 1)', async () => {
     const owner = await webSignIn('bi-owner');
     await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'owner', ?)").bind(await userIdOf('bi-owner'), Date.now()).run();

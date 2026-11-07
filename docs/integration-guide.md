@@ -202,7 +202,7 @@ Google Client 由業主建立（步驟見 `docs/owner-setup.md` 第 11 步），
 8. **Passkey（2026-11-07 起，每款 App 都要有）**：登入頁（iOS、Android、網頁）提供「使用 Passkey 登入」，設定頁能新增、列出、移除 Passkey，做法見第 13 節。
 9. **客服入口**：設定頁放「聯絡客服」，用系統瀏覽器開啟 `https://id.starry.phd/support?app_id=<app_id>&app_version=<版本>&device=<裝置型號>`（值先做網址編碼）；客服單會帶上 App、版本與裝置，登入過網頁帳號中心的會員另帶會員編號。只放版本與裝置，不放其他個資或 Token。
 10. **選用：Service Binding**：後端跑在同一個 Cloudflare 帳號的 Worker 時，可改用內部直連（第 14 節）。
-11. **不需要 App 處理的新功能**：邀請碼（會員在 `https://id.starry.phd/account` 輸入兌換，獲得這款 App 的免費量子電池）、公告與維護的設定（由後台操作，App 照 `status` 與 `notices` 顯示即可）、資料匯出、通知類別開關（會員在帳號中心設定）。
+11. **不需要 App 處理的新功能**：序號與邀請碼（業主在後台「電池艙」產生；會員只在網頁 `https://id.starry.phd/account` 或點兌換網址兌換，獲得免費電池或這款 App 的免費量子電池。App 內不要放序號輸入畫面或兌換連結，序號不可販售——App Store 3.1.1 與 Google Play 付款政策）、公告與維護的設定（由後台操作，App 照 `status` 與 `notices` 顯示即可）、資料匯出、通知類別開關（會員在帳號中心設定）。
 
 ## 13. Passkey（每款 App 的登入頁與設定頁）
 

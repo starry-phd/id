@@ -22,9 +22,10 @@ async function batteryPage(c: WebContext, actor: StaffActor, message?: string): 
   return c.html(
     adminPage(
       c,
-      'Battery',
-      html`<h1>Starry Battery</h1>
+      '電池艙',
+      html`<h1>電池艙</h1>
 ${message ? html`<div class="banner">${message}</div>` : ''}
+${owner ? html`<div class="card" style="border-color:var(--accent)"><h2 style="margin-top:0">序號產生器</h2><p>一次產生一批電池或量子電池序號，每組都附兌換網址，傳給對方點開就能兌換。</p><div class="actions"><a class="button" href="/admin/battery/codes">產生序號與兌換網址</a><a class="button secondary" href="/admin/battery/codes#recent">已產生的批次</a></div></div>` : ''}
 <p class="muted">Starry 會員共用的免費 AI 用量月額度，每月 1 日（台灣時間）恢復，不累積、不能購買或轉讓。App 後端預留額度、成功才扣除，失敗或逾時自動歸還。</p>
 <h2>每月額度</h2>
 <div class="card">

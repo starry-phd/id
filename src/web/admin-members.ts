@@ -92,7 +92,7 @@ ${beats.map((b) => html`<tr><td>${b.job === 'minutely' ? '每分鐘' : '每日'}
   );
 });
 
-const COPY_SCRIPT = (nonce: string) => html`<script nonce="${nonce}">
+export const COPY_SCRIPT = (nonce: string) => html`<script nonce="${nonce}">
 document.querySelectorAll('[data-copy-text]').forEach(function (button) {
   button.addEventListener('click', function () {
     var text = button.getAttribute('data-copy-text');
