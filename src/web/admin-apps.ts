@@ -34,34 +34,44 @@ export async function appsPage(c: WebContext, message?: string): Promise<Respons
       html`<h1>App</h1>
 ${message ? html`<div class="banner">${message}</div>` : ''}
 ${invalid.length > 0 ? html`<div class="banner danger">這些 App 的登記資料目前無法通過檢查：${invalid.join('、')}。系統暫時沿用上一次正常的版本，請到「編輯登記資料」修正後儲存。</div>` : ''}
-<p><a class="button" href="/admin/apps/new">新增 App</a> <a href="/admin/apps/status">整合狀態總覽</a></p>
-<p class="muted">新增的 App 存在資料庫，不必改程式碼，30 秒內生效。Repo 的 config/apps.json 是既有 App 的預設值；在這裡設定的狀態會覆蓋預設值。paused：App 顯示維護中；killed：停用此 App 的登入與服務，不影響其他 App。</p>
-${appRegistry.values().filter((app) => app.app_id !== WEB_APP_ID).map((app) => {
+<div class="actions"><a class="button" href="/admin/apps/new">新增 App</a><a class="button secondary" href="/admin/apps/status">整合狀態總覽</a></div>
+<p class="muted">所有 App 都登記在資料庫，不必改程式碼，30 秒內生效。paused：App 顯示維護中；killed：停用此 App 的登入與服務，不影響其他 App。</p>
+<div class="grid">${appRegistry.values().filter((app) => app.app_id !== WEB_APP_ID).map((app) => {
   const o = overrides.get(app.app_id);
   const own = registered.has(app.app_id);
   const st = stats.get(app.app_id);
   const current = o?.status ?? app.status;
+  // The hidden one-click form must be a sibling of the card form (forms cannot nest); the button joins it through its form="" attribute.
+  const quickForm = current === 'active'
+    ? html`<form id="pause-${app.app_id}" method="post" action="/admin/apps/${app.app_id}/status"><input type="hidden" name="status" value="paused"><input type="hidden" name="reason" value="後台一鍵暫停"></form>`
+    : html`<form id="pause-${app.app_id}" method="post" action="/admin/apps/${app.app_id}/status"><input type="hidden" name="status" value="default"></form>`;
   const quick = current === 'active'
-    ? html`<form id="pause-${app.app_id}" method="post" action="/admin/apps/${app.app_id}/status"><input type="hidden" name="status" value="paused"><input type="hidden" name="reason" value="後台一鍵暫停"></form><button type="submit" form="pause-${app.app_id}" class="danger">一鍵暫停</button>`
-    : html`<form id="pause-${app.app_id}" method="post" action="/admin/apps/${app.app_id}/status"><input type="hidden" name="status" value="default"></form><button type="submit" form="pause-${app.app_id}">恢復為預設狀態</button>`;
-  return html`<form id="stage-${app.app_id}" method="post" action="/admin/apps/${app.app_id}/stage"></form><form method="post" action="/admin/apps/${app.app_id}/status" class="card">
-<p><strong>${app.name}</strong> <code>${app.app_id}</code>（${own ? '後台登記' : 'config/apps.json'}）<br>預設：${app.status}｜目前：<strong>${o?.status ?? app.status}</strong>${o?.reason ? html`（${o.reason}）` : ''}</p>
-<p>會員 <strong>${st?.members ?? 0}</strong>｜近 24 小時活躍 <strong>${st?.day ?? 0}</strong>｜7 天內 <strong>${st?.week ?? 0}</strong>｜30 天內 <strong>${st?.month ?? 0}</strong>｜有效權益 <strong>${st?.entitlements ?? 0}</strong></p>
-<p>本月 Battery <strong>${st?.batteryUsed ?? 0}</strong>${st?.batteryCap != null ? ` ／ 上限 ${st.batteryCap}` : ''}｜近 24 小時用量 <strong>${st?.batteryUsed24h ?? 0}</strong>｜每小時暴增上限 ${st?.hourlyLimit != null ? html`<strong>${st.hourlyLimit}</strong>` : '未設定'}</p>
-<p>最低版本 <strong>${st?.minVersionOverride ?? app.min_version ?? '0.0.0'}</strong>${st?.minVersionOverride ? '（遠端設定）' : '（預設）'}｜未結客服單 <a href="/admin/tickets?app=${app.app_id}"><strong>${st?.openTickets ?? 0}</strong></a>&emsp;${quick}</p>
-${(() => {
+    ? html`<button type="submit" form="pause-${app.app_id}" class="danger">一鍵暫停</button>`
+    : html`<button type="submit" form="pause-${app.app_id}">恢復為預設狀態</button>`;
+  const stage = stages.get(app.app_id) ?? 'dev';
   const inputs = statusInputs.get(app.app_id);
   const pending = inputs ? pendingItems(appChecks(app, inputs, c.env)).filter((t) => /Passkey/.test(t)) : [];
-  return pending.length > 0 ? html`<p class="muted">⚠ ${pending.join(' ')}（<a href="/admin/apps/status">看全部</a>）</p>` : '';
-})()}
+  const badge = current === 'active' ? 'ok' : current === 'paused' ? 'warn' : 'bad';
+  return html`<form id="stage-${app.app_id}" method="post" action="/admin/apps/${app.app_id}/stage"></form>${quickForm}<form method="post" action="/admin/apps/${app.app_id}/status" class="card">
+<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:flex-start">
+<div><strong style="font-size:1.1rem">${app.name}</strong><br><code>${app.app_id}</code> <span class="muted">${own ? '後台登記' : '固定在程式設定檔'}</span></div>
+<div><span class="badge ${badge}">${current}</span> <span class="badge">${STAGE_LABELS[stage]}</span></div>
+</div>
+${o?.reason ? html`<p class="muted">狀態原因：${o.reason}（預設 ${app.status}）</p>` : ''}
+<div class="chips"><span>會員 <strong>${st?.members ?? 0}</strong></span><span>近 24 小時活躍 <strong>${st?.day ?? 0}</strong></span><span>7 天內 <strong>${st?.week ?? 0}</strong></span><span>30 天內 <strong>${st?.month ?? 0}</strong></span><span>有效權益 <strong>${st?.entitlements ?? 0}</strong></span></div>
+<div class="chips"><span>本月 Battery <strong>${st?.batteryUsed ?? 0}</strong>${st?.batteryCap != null ? ` ／ 上限 ${st.batteryCap}` : ''}</span><span>近 24 小時用量 <strong>${st?.batteryUsed24h ?? 0}</strong></span><span>每小時暴增上限 ${st?.hourlyLimit != null ? html`<strong>${st.hourlyLimit}</strong>` : '未設定'}</span></div>
+<div class="chips"><span>最低版本 <strong>${st?.minVersionOverride ?? app.min_version ?? '0.0.0'}</strong>${st?.minVersionOverride ? '（遠端設定）' : '（預設）'}</span><span>未結客服單 <a href="/admin/tickets?app=${app.app_id}"><strong>${st?.openTickets ?? 0}</strong></a></span></div>
+${pending.length > 0 ? html`<p class="muted">⚠ ${pending.join(' ')}（<a href="/admin/apps/status">看全部</a>）</p>` : ''}
+<div class="actions"><a class="button" href="/admin/apps/${app.app_id}/handoff">給開發 AI 的串接指令</a>${own ? html`<a class="button secondary" href="/admin/apps/${app.app_id}/edit">編輯登記資料</a>` : ''}${quick}</div>
+<details><summary>更多設定與操作</summary>
+<div class="links">${revenue ? html`<a href="/admin/apps/${app.app_id}/config">遠端設定</a><a href="/admin/apps/${app.app_id}/products">商品目錄</a><a href="/admin/apps/${app.app_id}/quantum">量子電池</a><a href="/admin/apps/${app.app_id}/invites">邀請碼</a>` : ''}${viewer === 'owner' && stage !== 'live' ? html`<a href="/admin/apps/${app.app_id}/reset">清除測試資料</a>` : ''}</div>
 ${revenue ? html`<p>近 30 天營收（估計，USD）<strong>${(revenue.get(app.app_id)?.revenueUsd ?? 0).toFixed(2)}</strong>｜退款 ${(revenue.get(app.app_id)?.refundedUsd ?? 0).toFixed(2)}｜新訂閱 ${revenue.get(app.app_id)?.newPurchases ?? 0}｜退訂 ${revenue.get(app.app_id)?.cancellations ?? 0}｜<a href="/admin/revenue">營收明細</a></p>` : ''}
-<p>${revenue ? html`<a href="/admin/apps/${app.app_id}/config">遠端設定</a>｜<a href="/admin/apps/${app.app_id}/products">商品目錄</a>｜<a href="/admin/apps/${app.app_id}/quantum">量子電池</a>｜<a href="/admin/apps/${app.app_id}/invites">邀請碼</a>｜` : ''}<a href="/admin/apps/${app.app_id}/handoff">給開發 AI 的串接指令</a>${viewer === 'owner' && (stages.get(app.app_id) ?? 'dev') !== 'live' ? html`&emsp;<a href="/admin/apps/${app.app_id}/reset">清除測試資料</a>` : ''}${own ? html`&emsp;<a href="/admin/apps/${app.app_id}/edit">編輯登記資料</a>` : ''}</p>
-<p>階段：<strong>${STAGE_LABELS[stages.get(app.app_id) ?? 'dev']}</strong>
-<select name="stage_value" form="stage-${app.app_id}">${APP_STAGES.map((st) => html`<option value="${st}"${(stages.get(app.app_id) ?? 'dev') === st ? ' selected' : ''}>${STAGE_LABELS[st]}</option>`)}</select> <button type="submit" form="stage-${app.app_id}" class="secondary">改階段</button></p>
+<p>階段：<strong>${STAGE_LABELS[stage]}</strong>
+<select name="stage_value" form="stage-${app.app_id}">${APP_STAGES.map((st2) => html`<option value="${st2}"${stage === st2 ? ' selected' : ''}>${STAGE_LABELS[st2]}</option>`)}</select> <button type="submit" form="stage-${app.app_id}" class="secondary">改階段</button></p>
 <label>新狀態</label><select name="status"><option value="default">使用預設</option><option value="active">active</option><option value="paused">paused</option><option value="killed">killed</option></select>
 <label>原因（最多 200 字）</label><input name="reason" maxlength="200">
-<button type="submit">更新</button></form>`;
-})}`,
+<button type="submit">更新</button></details></form>`;
+})}</div>`,
     ),
   );
 }

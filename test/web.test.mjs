@@ -329,6 +329,11 @@ describe('web account center, support form and Admin Lite', () => {
     const apps = await (await worker.call('/admin/apps', get(adminCookie))).text();
     assert.match(apps, /一鍵暫停/);
     assert.match(apps, /本月 Battery/);
+    assert.match(apps, /<body class="admin">/, 'Admin pages use the fluid layout, not the narrow member column');
+    assert.match(apps, /class="burger"/, 'the burger menu is there for phones');
+    assert.match(apps, /<summary>更多 ▾<\/summary>[\s\S]*\/admin\/broadcast[\s\S]*\/admin\/audit/, 'rarely used pages live under 更多');
+    assert.ok(apps.indexOf('<form id="pause-echo"') > -1 && apps.indexOf('<form id="pause-echo"') < apps.indexOf('action="/admin/apps/echo/status" class="card"'), 'the one-click pause form is a sibling of the card form (forms cannot nest)');
+    assert.doesNotMatch(await (await worker.call('/account', get(adminCookie))).text(), /class="topbar"/, 'the member account center keeps its own header');
     const detail2 = await (await worker.call(`/admin/members/${target}`, get(adminCookie))).text();
     assert.match(detail2, /id="apps">用過的 App/);
     assert.match(detail2, /id="subs">訂閱與權益/);
