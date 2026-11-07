@@ -87,7 +87,7 @@ describe('billing and battery migrations', () => {
     (await db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'").all()).results.map((r) => r.name).sort();
 
   test('create every billing and battery table', async () => {
-    assert.deepEqual(await tables(worker.billing), ['app_revenuecat', 'entitlements', 'rc_events', 'reconcile_state', 'revenuecat_deletions']);
+    assert.deepEqual(await tables(worker.billing), ['app_revenuecat', 'entitlement_grants', 'entitlements', 'rc_events', 'reconcile_state', 'revenuecat_deletions']);
     assert.deepEqual(await tables(worker.battery), ['battery_accounts', 'battery_app_keys', 'battery_app_limits', 'battery_ledger', 'battery_policy', 'battery_reservations', 'invite_codes', 'invite_redemptions', 'quantum_accounts', 'quantum_ledger', 'quantum_products']);
   });
 

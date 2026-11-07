@@ -77,6 +77,7 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 3c6. 客服回覆範本（`REPLY_TEMPLATES`，選了填入可再修改）；App 階段標記 dev/test/live（`app_stages`，只是給人看的標籤，不影響行為）。
 3c7. 高風險操作二次確認：有 Passkey 的員工執行刪會員、調整 Battery/量子電池、批次操作、改角色、重產 Battery 金鑰前，必須先用 Passkey 確認（`requireStepUp`，5 分鐘內有效，`staff_stepups`）；沒有 Passkey 的員工不受限（避免鎖死）。
 3c8. 串接指令有版本號（`HANDOFF_VERSION`、`HANDOFF_UPDATED`，顯示在後台串接指令頁，也寫在指令第一行；AI 回報時要附上）。改動 `src/apps/handoff.ts` 的文字就必須更新版本與日期時間，否則單元測試會失敗。
+3c9. 補發權益：客服（Admin 以上，需 Passkey 二次確認）可在會員頁替會員補發 App 權益（名稱、選填到期日、必填原因）。存在 `entitlement_grants`（不會被 RevenueCat 事件或每日對帳覆蓋），`activeEntitlements` 會合併顯示（`store` 為 `STARRY_GRANT`；同名權益取較長者）；刪除會員一併清除；有補發權益的重複帳號不可自動合併。每個會員最多 10 筆有效補發。營收頁 `/admin/revenue`（Admin 以上）讀 `rc_events`，正式與測試購買分開。
 3c3. 邀請碼：Owner 在 `/admin/apps/<id>/invites` 建立，會員在帳號中心輸入後獲得該 App 的免費量子電池（`invite_codes`／`invite_redemptions`）；每人每組碼限一次、有次數與到期日上限；贈送不是購買，不影響每月免費 Battery。
 3c. 簽章金鑰輪替：Secret `ACCESS_TOKEN_PREVIOUS_JWKS` 放舊公鑰，輪替期間舊 Token 仍有效，步驟見 `docs/owner-setup.md`。
 3d. 刻意保留的設計（不是漏做）：echo／recordnote／account 留在 `config/apps.json`（資料庫故障時既有 App 仍可登入）；刪除帳號一律立即永久刪除（2026-11-07 起沒有 7 天寬限期，舊的待刪除程式已移除）。為了舊版 App 相容，`deletion_requested_at`／`deletion_purge_at` 欄位仍存在但永遠是 null，`DELETE /v1/me/deletion` 永遠回 409；Email 登入依業主決定不做。
