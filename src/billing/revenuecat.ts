@@ -1,4 +1,5 @@
 import { constantTimeEqual, uuidv7 } from '../lib/crypto';
+import { GRANT_STORE } from './grants';
 
 /**
  * RevenueCat webhook projection (spec S-BIL-01..06). Each Starry App has its own RevenueCat
@@ -220,7 +221,22 @@ export async function activeEntitlements(db: D1Database, userId: string, appId: 
     )
     .bind(userId, appId, now)
     .all<ActiveEntitlement>();
-  return rows.results;
+  const grants = await db
+    .prepare(
+      `SELECT entitlement, expires_at FROM entitlement_grants
+       WHERE user_id = ? AND app_id = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?)`,
+    )
+    .bind(userId, appId, now)
+    .all<{ entitlement: string; expires_at: number | null }>();
+  if (grants.results.length === 0) return rows.results;
+  // A staff grant and a purchase for the same entitlement count once: the one that lasts longer (no end date = longest) wins.
+  const merged = new Map<string, ActiveEntitlement>(rows.results.map((r) => [r.entitlement, r]));
+  for (const g of grants.results) {
+    const have = merged.get(g.entitlement);
+    const longer = !have || (have.expires_at !== null && (g.expires_at === null || g.expires_at > have.expires_at));
+    if (longer) merged.set(g.entitlement, { entitlement: g.entitlement, expires_at: g.expires_at, product_id: null, store: GRANT_STORE, environment: null });
+  }
+  return [...merged.values()].sort((a, b) => a.entitlement.localeCompare(b.entitlement));
 }
 
 /**
@@ -231,6 +247,7 @@ export async function forgetMembers(db: D1Database, userIds: string[], appIds: s
   for (const userId of userIds) {
     await db.batch([
       db.prepare('DELETE FROM entitlements WHERE user_id = ?').bind(userId),
+      db.prepare('DELETE FROM entitlement_grants WHERE user_id = ?').bind(userId),
       db.prepare("UPDATE rc_events SET app_user_id = 'deleted', payload = '{}' WHERE app_user_id = ?").bind(userId),
       db.prepare('DELETE FROM reconcile_state WHERE user_id = ?').bind(userId),
       ...appIds.map((appId) =>

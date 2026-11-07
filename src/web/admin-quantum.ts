@@ -1,5 +1,6 @@
 import { html } from 'hono/html';
 import { createInvite, listInvites, setInviteActive } from '../battery/invites';
+import { grantEntitlement, revokeGrant } from '../billing/grants';
 import { adjustQuantum, listQuantumProducts, removeQuantumProduct, saveQuantumProduct } from '../battery/quantum';
 import { getApp, type AppEntry } from '../apps/registry';
 import { WEB_APP_ID } from '../identity/web-sessions';
@@ -146,6 +147,51 @@ adminApp.post('/members/:id/quantum', async (c) => {
   if (!result.ok) return memberPage(c, actor, userId, result.reason === 'too_low' ? '調整後的量子電池不能低於 0。' : '請填寫非 0 的整數與 1～200 字的原因。');
   await auditStatement(c.env.DB_IDENTITY, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.quantum_adjusted', targetType: 'user', targetId: userId, appId, result: 'success', requestId: actor.requestId, retention: 'security' }, now).run();
   return memberPage(c, actor, userId, `已調整，${appId} 的量子電池現為 ${result.balance.balance} 顆。`);
+});
+
+const GRANT_ERRORS: Record<string, string> = {
+  bad_entitlement: '權益名稱只能用英數字、底線、點與連字號，最長 60 字。',
+  bad_reason: '請填寫 1～200 字的原因。',
+  bad_expiry: '到期日必須是今天之後的日期。',
+  too_many: '這位會員同時有效的補發權益已達 10 筆上限。',
+};
+
+adminApp.post('/members/:id/grants', async (c) => {
+  const actor = await staff(c, 'admin');
+  if (actor instanceof Response) return actor;
+  const stepUp = await requireStepUp(c, actor);
+  if (stepUp) return stepUp;
+  const userId = c.req.param('id');
+  if (userId === actor.userId) return memberPage(c, actor, userId, '不能替自己補發權益。');
+  const exists = await c.env.DB_IDENTITY.prepare('SELECT 1 AS ok FROM users WHERE user_id = ?').bind(userId).first();
+  if (!exists) return memberPage(c, actor, userId);
+  const form = await readForm(c);
+  const appId = form.app_id ?? '';
+  if (!getApp(appId) || appId === WEB_APP_ID) return memberPage(c, actor, userId, '請選擇有效的 App。');
+  let expiresAt: number | null = null;
+  if (form.expires) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.expires)) return memberPage(c, actor, userId, GRANT_ERRORS.bad_expiry);
+    expiresAt = Date.parse(`${form.expires}T23:59:59+08:00`);
+    if (Number.isNaN(expiresAt)) return memberPage(c, actor, userId, GRANT_ERRORS.bad_expiry);
+  }
+  const now = Date.now();
+  const result = await grantEntitlement(c.env.DB_BILLING, { userId, appId, entitlement: form.entitlement ?? '', expiresAt, reason: form.reason ?? '', actorUserId: actor.userId }, now);
+  if (!result.ok) return memberPage(c, actor, userId, GRANT_ERRORS[result.reason]);
+  await auditStatement(c.env.DB_IDENTITY, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.entitlement_granted', targetType: 'user', targetId: userId, appId, result: 'success', requestId: actor.requestId, retention: 'security' }, now).run();
+  return memberPage(c, actor, userId, '已補發權益。');
+});
+
+adminApp.post('/members/:id/grants/:gid/revoke', async (c) => {
+  const actor = await staff(c, 'admin');
+  if (actor instanceof Response) return actor;
+  const stepUp = await requireStepUp(c, actor);
+  if (stepUp) return stepUp;
+  const userId = c.req.param('id');
+  const now = Date.now();
+  const ended = await revokeGrant(c.env.DB_BILLING, userId, c.req.param('gid'), now);
+  if (!ended) return memberPage(c, actor, userId, '找不到這筆補發權益，或已經結束。');
+  await auditStatement(c.env.DB_IDENTITY, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.entitlement_revoked', targetType: 'user', targetId: userId, appId: ended.appId, result: 'success', requestId: actor.requestId, retention: 'security' }, now).run();
+  return memberPage(c, actor, userId, '已收回補發的權益。');
 });
 
 export const RC_STATE: Record<string, string> = { admin: '已在這裡設定', worker: '已由 Cloudflare Secret 設定', none: '尚未設定' };

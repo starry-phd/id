@@ -2,6 +2,7 @@ import { html, raw } from 'hono/html';
 import { cleanupBacklog } from '../identity/cleanup-jobs';
 import { readHeartbeats } from '../lib/heartbeat';
 import { listQuantum } from '../battery/quantum';
+import { listGrants } from '../billing/grants';
 import { getApp } from '../apps/registry';
 import { listAppStages, STAGE_LABELS } from '../apps/status';
 import { background } from '../auth/routes';
@@ -173,8 +174,9 @@ export async function memberPage(c: WebContext, actor: StaffActor, userId: strin
   const canModerate = hasRole(actor.role, 'admin') && m.role !== 'owner' && m.user_id !== actor.userId;
   const canAdjust = hasRole(actor.role, 'admin') && m.user_id !== actor.userId;
   const appManaged = actor.role === 'owner' ? await listAppStaffApps(c.env.DB_IDENTITY, m.user_id) : [];
-  const [balance, quantum, ledger, sessions, tickets] = await Promise.all([
+  const [balance, grants, quantum, ledger, sessions, tickets] = await Promise.all([
     getBalance(c.env.DB_BATTERY, m.user_id, now),
+    listGrants(c.env.DB_BILLING, m.user_id, now),
     listQuantum(c.env.DB_BATTERY, m.user_id),
     staffLedger(c.env.DB_BATTERY, m.user_id, 10),
     db
@@ -248,6 +250,18 @@ ${canAdjust
   ? html`<form method="post" action="/admin/members/${m.user_id}/quantum"><label for="q-app">App 代碼</label><input id="q-app" name="app_id" maxlength="64" required>
 <label for="q-delta">調整顆數（正數增加、負數減少，不能低於 0）</label><input id="q-delta" name="delta" type="number" step="1" required>
 <label for="q-reason">原因（必填，最多 200 字，會員看不到）</label><input id="q-reason" name="reason" maxlength="200" required><button type="submit">調整量子電池</button></form>`
+  : ''}
+</div>
+<h2 id="grants">補發權益（客服）</h2>
+<div class="card">
+${grants.length > 0
+  ? html`<table><thead><tr><th>App</th><th>權益</th><th>到期</th><th>原因</th><th></th></tr></thead><tbody>${grants.map((g) => html`<tr><td><code>${g.app_id}</code></td><td><code>${g.entitlement}</code></td><td>${g.expires_at === null ? '無期限' : formatTime(g.expires_at)}</td><td>${g.reason}</td><td>${canAdjust ? html`<form class="inline" method="post" action="/admin/members/${m.user_id}/grants/${g.grant_id}/revoke"><button class="secondary" type="submit">收回</button></form>` : ''}</td></tr>`)}</tbody></table>`
+  : html`<p class="muted">沒有補發的權益。商店購買的權益由 RevenueCat 管理，不顯示在這裡。</p>`}
+${canAdjust
+  ? html`<form method="post" action="/admin/members/${m.user_id}/grants"><label for="g-app">App 代碼</label><input id="g-app" name="app_id" maxlength="64" required>
+<label for="g-ent">權益名稱（要和 App 內的名稱完全一樣，例如 pro）</label><input id="g-ent" name="entitlement" maxlength="60" required>
+<label for="g-exp">到期日（台灣時間，留空＝沒有期限）</label><input id="g-exp" name="expires" type="date">
+<label for="g-reason">原因（必填，最多 200 字，會員看不到）</label><input id="g-reason" name="reason" maxlength="200" required><button type="submit">補發權益</button></form>`
   : ''}
 </div>
 ${canModerate && m.status === 'active'

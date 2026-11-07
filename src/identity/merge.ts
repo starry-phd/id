@@ -49,8 +49,8 @@ export async function findMergeCandidate(
       .first<{ n: number }>(),
     db.prepare('SELECT 1 AS present FROM user_roles WHERE user_id = ?').bind(holder.user_id).first(),
     billing
-      .prepare('SELECT (SELECT COUNT(*) FROM entitlements WHERE user_id = ?) + (SELECT COUNT(*) FROM rc_events WHERE app_user_id = ?) AS n')
-      .bind(holder.user_id, holder.user_id)
+      .prepare('SELECT (SELECT COUNT(*) FROM entitlements WHERE user_id = ?) + (SELECT COUNT(*) FROM entitlement_grants WHERE user_id = ?) + (SELECT COUNT(*) FROM rc_events WHERE app_user_id = ?) AS n')
+      .bind(holder.user_id, holder.user_id, holder.user_id)
       .first<{ n: number }>(),
   ]);
   let blocker: MergeBlocker | null = null;
