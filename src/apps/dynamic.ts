@@ -84,6 +84,7 @@ export async function listRegisteredAppIds(db: D1Database): Promise<Set<string>>
 
 export interface AppForm {
   app_id?: string;
+  confirm_platform_change?: string;
   name?: string;
   ios_bundle_id?: string;
   android_package?: string;
@@ -122,7 +123,7 @@ function unique(values: readonly string[]): string[] {
  * the Apple Services ID and Google Web client of the account center are accepted for every new App, so
  * nothing has to be added in the Apple or Google consoles for a web or Android version.
  */
-export function definitionFromForm(form: AppForm, options: { defaults?: boolean } = {}): { ok: true; app: AppEntry } | { ok: false; error: string } {
+export function definitionFromForm(form: AppForm, options: { defaults?: boolean; existing?: AppEntry } = {}): { ok: true; app: AppEntry } | { ok: false; error: string } {
   const appId = (form.app_id ?? '').trim();
   const shared = getApp(WEB_APP_ID);
   if (!shared) return { ok: false, error: '帳號中心的登入設定遺失，無法建立 App。' };
@@ -146,10 +147,10 @@ export function definitionFromForm(form: AppForm, options: { defaults?: boolean 
     name: (form.name ?? '').trim(),
     ios_bundle_id: ios,
     android_package: android,
-    status: 'active',
-    scopes: ['profile:read', 'profile:write'],
+    status: options.existing?.status ?? 'active',
+    scopes: options.existing?.scopes ?? ['profile:read', 'profile:write'],
     min_version: (form.min_version ?? '').trim() || '0.0.0',
-    config: {},
+    config: options.existing?.config ?? {},
     auth: {
       apple_audiences: unique([...(ios ? [ios] : []), ...shared.auth.apple, ...lines(form.extra_apple_audiences)]),
       google_audiences: unique([...shared.auth.google, ...lines(form.extra_google_audiences)]),

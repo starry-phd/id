@@ -2,10 +2,11 @@ import { html } from 'hono/html';
 import { appChecks, gatherStatus, pendingItems } from '../apps/integration-status';
 import { invalidRegisteredApps } from '../apps/dynamic';
 import { appRegistry } from '../apps/registry';
-import { centralTeamId } from '../apps/team-id';
+import { centralTeamId, saveCentralTeamId } from '../apps/team-id';
+import { readForm } from './layout';
 import { HANDOFF_UPDATED, HANDOFF_VERSION } from '../apps/handoff';
 import { WEB_APP_ID } from '../identity/web-sessions';
-import { adminApp, adminPage, staff } from './admin-lib';
+import { adminApp, adminPage, requireStepUp, staff } from './admin-lib';
 
 const MARK = { ok: '✅', todo: '⚠️', na: '—' } as const;
 
@@ -27,7 +28,9 @@ adminApp.get('/apps/status', async (c) => {
       c,
       '整合狀態總覽',
       html`<h1>整合狀態總覽</h1>
-<div class="card"><p>Apple Team ID（全生態系共用）：${team ? html`<strong>${team}</strong> ✅` : html`<strong>尚未設定</strong> ⚠️（在 wrangler.jsonc 的 STARRY_APPLE_TEAM_ID 設定）`}</p>
+<div class="card"><p>Apple Team ID（全生態系共用，儲存於中央 D1）：${team ? html`<strong>${team}</strong> ✅` : html`<strong>尚未設定</strong> ⚠️`}</p>
+${actor.role === 'owner' ? html`<form method="post" action="/admin/apps/team-id"><label for="apple_team_id">中央 Apple Team ID（10 位英數；所有 App 自動繼承）</label><input id="apple_team_id" name="apple_team_id" value="${team ?? ''}" maxlength="10" minlength="10" pattern="[A-Za-z0-9]{10}" required><button type="submit">更新中央 Team ID（需 Passkey 二次確認）</button></form><p class="muted">修改後 AASA 最多有 5 分鐘的公開快取，iOS 裝置可能還需要重新驗證關聯。這不是各 App 的登入 Client ID。</p>` : ''}
+${c.req.query('team_updated') ? html`<p>中央 Team ID 已儲存並寫入稽核。</p>` : ''}
 <p>目前串接指令版本 <strong>${HANDOFF_VERSION}</strong>（${HANDOFF_UPDATED}）｜待處理共 <strong>${total}</strong> 項</p></div>
 ${invalid.length > 0 ? html`<div class="banner danger">登記資料無法通過檢查：${invalid.join('、')}。系統暫時沿用上一次正常的版本，請到「編輯登記資料」修正後儲存。</div>` : ''}
 ${rows.map(({ app, checks, pending }) => html`<div class="card"><p><strong>${app.name}</strong> <code>${app.app_id}</code> ${pending.length === 0 ? '✅ 沒有待處理項目' : html`⚠️ 待處理 ${pending.length} 項`}</p>
@@ -37,4 +40,16 @@ ${rows.map(({ app, checks, pending }) => html`<div class="card"><p><strong>${app
 <p><a href="/admin/apps">回到 App 清單</a></p>`,
     ),
   );
+});
+
+/** Only the Owner can change the single central D1 setting; App staff cannot. */
+adminApp.post('/apps/team-id', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const stepUp = await requireStepUp(c, actor);
+  if (stepUp) return stepUp;
+  const form = await readForm(c);
+  const result = await saveCentralTeamId(c.env.DB_IDENTITY, actor, form.apple_team_id ?? '', Date.now());
+  if (result === 'invalid') return c.text('Apple Team ID 必須是 10 位英數字元。', 400);
+  return c.redirect('/admin/apps/status?team_updated=1', 303);
 });

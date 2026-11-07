@@ -21,7 +21,7 @@ wellKnown.use('*', async (c, next) => {
 });
 
 wellKnown.get('/apple-app-site-association', (c) => {
-  // Team ID: the central one (STARRY_APPLE_TEAM_ID) unless an older registration stored its own.
+  // Team ID: the one central D1 setting for every App (the Worker variable is only an emergency fallback).
   const ids = apps().flatMap((a) => {
     const team = effectiveTeamId(a, c.env);
     return team && a.ios_bundle_id ? [`${team}.${a.ios_bundle_id}`] : [];

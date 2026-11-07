@@ -31,7 +31,7 @@ export function buildHandoff(app: AppEntry, origin: string, options: { battery: 
     `- 名稱：${app.name}`,
     `- iOS Bundle ID：${app.ios_bundle_id ?? '（無）'}`,
     `- Android package：${app.android_package ?? '（無）'}`,
-    `- Apple Team ID（全生態系共用，由 Starry ID 中央設定，App 端不必也不可自己填）：${app.ios_team_id ?? options.teamId ?? '（業主尚未設定）'}`,
+    `- Apple Team ID（全生態系共用，由 Starry ID 中央設定，App 端不必也不可自己填）：${options.teamId ?? '（業主尚未設定）'}`,
     `- Android 簽章憑證 SHA-256 指紋（Passkey 用，每款 App 各自登記，由業主在 Admin Lite 填寫）：${app.android_cert_sha256.length > 0 ? `已登記 ${app.android_cert_sha256.length} 組` : '（業主尚未登記；在登記之前 Android 原生 Passkey 不會成功，這不影響 Apple／Google 登入與網頁版）'}`,
     `- 網頁版來源（CORS 與登入回傳網址）：${list(app.web_origins)}`,
     `- App 深層連結回傳網址：${list(app.return_urls)}`,

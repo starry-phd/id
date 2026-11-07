@@ -8,6 +8,7 @@ import { DOCUMENT_CONFIG, errorResponses, json } from './api/openapi';
 import { avatarRoutes } from './apps/avatar-route';
 import { directoryRoutes } from './apps/directory';
 import { refreshDynamicApps } from './apps/dynamic';
+import { refreshCentralTeamId } from './apps/team-id';
 import { appRoutes } from './apps/routes';
 import { loadSigningKey } from './auth/access-token';
 import { authRoutes } from './auth/routes';
@@ -36,7 +37,11 @@ app.use('*', async (c, next) => {
 });
 // Every App except the account center is registered in Admin Lite and loaded from the database (cached per isolate for 30 seconds; a cold isolate waits for its first read).
 app.use('*', async (c, next) => {
-  await refreshDynamicApps(c.env.DB_IDENTITY, Date.now());
+  const now = Date.now();
+  await Promise.all([
+    refreshDynamicApps(c.env.DB_IDENTITY, now),
+    c.env.DB_IDENTITY ? refreshCentralTeamId(c.env.DB_IDENTITY, now, c.env.STARRY_APPLE_TEAM_ID) : Promise.resolve(),
+  ]);
   await next();
 });
 // Avatars are images shown by App web versions on other origins; everything else stays same-origin.

@@ -100,6 +100,16 @@ describe('registering an App without a code change', () => {
     assert.deepEqual(invalidRegisteredApps(), []);
   });
 
+  test('editing a registered App preserves its status, scopes and config instead of resetting them', () => {
+    const old = build(clock);
+    const existing = { ...old, status: 'paused' as const, scopes: ['profile:read'], config: { feature_enabled: true } };
+    const edited = build({ ...clock, name: '新名稱' }, { existing });
+    assert.equal(edited.name, '新名稱');
+    assert.equal(edited.status, 'paused');
+    assert.deepEqual(edited.scopes, ['profile:read']);
+    assert.deepEqual(edited.config, { feature_enabled: true });
+  });
+
   test('Android fingerprints: typed at creation, left empty, or added later; any common paste format is accepted; the Team ID is never stored per App', () => {
     const FP = 'AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99';
     assert.equal(normalizeFingerprint(FP), FP);
@@ -113,6 +123,13 @@ describe('registering an App without a code change', () => {
     const bad = definitionFromForm({ ...clock, android_cert_sha256: 'not-a-fingerprint' });
     assert.ok(!bad.ok && /Android 簽章指紋格式不正確/.test(bad.error));
     assert.equal(build({ ...clock, android_cert_sha256: FP, ios_team_id: 'ZZZZZZZZZZ' } as Parameters<typeof definitionFromForm>[0]).ios_team_id, null, 'follows the central Team ID');
+  });
+
+  test('handoff ignores a legacy per-App Team ID, even when it differs from the central setting', () => {
+    const legacy = { ...build(clock), ios_team_id: 'ABCDE12345' };
+    const text = buildHandoff(legacy, 'https://id.starry.phd', { battery: false, teamId: '4W7QRTXN5Y' });
+    assert.ok(text.includes('全生態系共用，由 Starry ID 中央設定，App 端不必也不可自己填）：4W7QRTXN5Y'));
+    assert.ok(!text.includes('ABCDE12345'));
   });
 
   test('the handoff names the central Team ID and does not claim Android Passkeys work without a fingerprint', () => {

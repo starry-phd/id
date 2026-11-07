@@ -39,7 +39,7 @@ describe('Passkey support for Apps', () => {
     assert.deepEqual(passkeyExtraOrigins(parseApp(def({ android_package: null, android_cert_sha256: [FP] }))), ['https://clock.starry.phd'], 'no package, no Android origin');
   });
 
-  test('every App follows the central Team ID; one stored on the App wins; with neither the App is left out', async () => {
+  test('every App follows the central Team ID, ignoring legacy per-App values; with neither the App is left out', async () => {
     setDynamicApps(withShipped(
       ['clock', parseApp(def())],
       ['notes', parseApp(def({ app_id: 'notes', ios_bundle_id: 'phd.starry.notes', android_package: 'phd.starry.notes', ios_team_id: 'ZZZZZ99999' }))],
@@ -51,7 +51,7 @@ describe('Passkey support for Apps', () => {
       };
       const central = await ids({ STARRY_APPLE_TEAM_ID: '4W7QRTXN5Y' });
       assert.ok(central.includes('4W7QRTXN5Y.phd.starry.clock') && central.includes('4W7QRTXN5Y.phd.starry.echo') && central.includes('4W7QRTXN5Y.phd.starry.recordnote'));
-      assert.ok(central.includes('ZZZZZ99999.phd.starry.notes') && !central.includes('4W7QRTXN5Y.phd.starry.notes'));
+      assert.ok(central.includes('4W7QRTXN5Y.phd.starry.notes') && !central.includes('ZZZZZ99999.phd.starry.notes'));
       assert.deepEqual((await ids({})).filter((x) => x.includes('phd.starry.clock')), [], 'no central value, no entry');
       assert.deepEqual((await ids({ STARRY_APPLE_TEAM_ID: 'bad' })).filter((x) => x.includes('phd.starry.clock')), [], 'an invalid central value counts as unset');
     } finally {
@@ -62,11 +62,11 @@ describe('Passkey support for Apps', () => {
   test('the files Apple, Google and browsers fetch are generated from the registry', async () => {
     setDynamicApps(withShipped(['clock', parseApp(def({ ios_team_id: 'ABCDE12345', android_cert_sha256: [FP] }))]));
     try {
-      const get = async (path: string) => app.fetch(new Request(`https://id.starry.phd${path}`), {} as never);
+      const get = async (path: string) => app.fetch(new Request(`https://id.starry.phd${path}`), { STARRY_APPLE_TEAM_ID: '4W7QRTXN5Y' } as never);
       const aasa = await get('/.well-known/apple-app-site-association');
       assert.equal(aasa.status, 200);
       assert.match(aasa.headers.get('content-type') ?? '', /application\/json/);
-      assert.ok(((await aasa.json()) as { webcredentials: { apps: string[] } }).webcredentials.apps.includes('ABCDE12345.phd.starry.clock'));
+      assert.ok(((await aasa.json()) as { webcredentials: { apps: string[] } }).webcredentials.apps.includes('4W7QRTXN5Y.phd.starry.clock'));
       const links = (await (await get('/.well-known/assetlinks.json')).json()) as { relation: string[]; target: { package_name: string; sha256_cert_fingerprints: string[] } }[];
       const mine = links.find((l) => l.target.package_name === 'phd.starry.clock');
       assert.deepEqual(mine?.relation, ['delegate_permission/common.get_login_creds']);
