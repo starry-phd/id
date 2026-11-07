@@ -297,7 +297,7 @@ describe('web account center, support form and Admin Lite', () => {
     assert.equal((await worker.call('/admin', get(adminCookie))).status, 200);
     const list = await (await worker.call('/admin/members', get(adminCookie))).text();
     assert.match(list, /plain-member@example.com/, 'emails are shown in full');
-    assert.match(list, /\d+-\d{7}/, 'member numbers are listed');
+    assert.match(list, /[A-Z]{2}\d{7}/, 'member numbers are listed');
     const filtered = await (await worker.call('/admin/members?q=plain-member&status=active&battery_max=1000', get(adminCookie))).text();
     assert.match(filtered, /plain-member@example.com/);
     assert.doesNotMatch(filtered, /staff-admin@example.com/);

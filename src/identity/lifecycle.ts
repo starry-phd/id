@@ -11,7 +11,7 @@ export type DeleteNowResult = { ok: true; avatarKey: string | null; memberNo: st
 /**
  * Deletes a member for good, right now (owner decision 2026-11-07: no waiting period). Identities, sessions,
  * profile, consents, roles and tickets go with the user row (ON DELETE CASCADE); Apple tokens move to the
- * revocation queue; the member number is retired so it is never issued again; the audit row keeps only the
+ * revocation queue; the member number is released for reuse; the audit row keeps only the
  * random member ID. The caller then removes the avatar object and the billing / Battery rows (cleanupAfterDeletion).
  * `staffId` is set when an Owner deletes the member from Admin Lite.
  */
@@ -28,9 +28,6 @@ export async function deleteMemberNow(db: D1Database, actor: Actor & { staffId?:
          SELECT lower(hex(randomblob(16))), client_id, refresh_token_enc, ?, ? FROM apple_tokens WHERE user_id = ?`,
       )
       .bind(now, now, actor.userId),
-    db
-      .prepare('INSERT OR IGNORE INTO retired_member_numbers (member_no, retired_at) SELECT member_no, ? FROM users WHERE user_id = ? AND member_no IS NOT NULL')
-      .bind(now, actor.userId),
     db.prepare('DELETE FROM users WHERE user_id = ?').bind(actor.userId),
     auditStatement(
       db,
@@ -41,6 +38,6 @@ export async function deleteMemberNow(db: D1Database, actor: Actor & { staffId?:
     ),
   ]);
   // D1 counts cascaded rows in meta.changes, so confirm by looking the member up instead.
-  if (results.length < 4 || (await db.prepare('SELECT 1 AS present FROM users WHERE user_id = ?').bind(actor.userId).first())) return { ok: false, reason: 'not_found' };
+  if (results.length < 3 || (await db.prepare('SELECT 1 AS present FROM users WHERE user_id = ?').bind(actor.userId).first())) return { ok: false, reason: 'not_found' };
   return { ok: true, avatarKey: row.avatar_key, memberNo: row.member_no };
 }

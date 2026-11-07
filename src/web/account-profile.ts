@@ -11,6 +11,7 @@ import { ageOn, derivedOf, EDITABLE_FIELDS, effectiveVisibility, GRID_LAYOUT, ha
 import { WEB_APP_ID } from '../identity/web-sessions';
 import { formatTime, page, readForm, type Html, type WebContext } from './layout';
 import { LOCALES, accountApp } from './account-lib';
+import { changeMemberNo, countryOptions, isMemberNoFree, MEMBER_NO_CHANGES_PER_DAY, normalizeMemberNo, randomSevenDigits } from '../identity/member-number';
 
 // ---- Personal profile (S-ID-08, original checklist 02.01-02.10) ----
 
@@ -116,8 +117,9 @@ function derivedCard(p: ProfileRow, visibility: Record<VisibilityField, Visibili
 </div>`;
 }
 
-function profilePage(c: WebContext, loaded: { row: ProfileRow; fieldUpdates: Record<string, FieldUpdate> }, message?: { text: string; danger: boolean }): Html {
+function profilePage(c: WebContext, loaded: { row: ProfileRow; fieldUpdates: Record<string, FieldUpdate> }, memberNo: string | null, message?: { text: string; danger: boolean }): Html {
   const p = loaded.row;
+  const countries = countryOptions().map((x) => `${x.iso}:${x.callingCode}`).join(',');
   const now = Date.now();
   const visibility = effectiveVisibility(p, now);
   const minor = p.birthday !== null && ageOn(p.birthday, now) < 18;
@@ -157,6 +159,17 @@ ${p.avatar_key ? html`<img id="avatar-now" src="/account/avatar-image?v=${p.vers
 <label for="avatar-zoom" style="font-weight:400">縮放</label><input id="avatar-zoom" type="range" min="1" max="4" step="0.01" value="1" style="width:256px;max-width:100%">
 <div><button type="button" id="avatar-save">儲存頭像</button><button type="button" class="secondary" id="avatar-cancel">取消</button></div></div>
 </div>
+${memberNo ? html`<div class="card" id="mn-card" data-countries="${countries}" data-no="${memberNo}"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>會員編號</strong><button type="button" class="secondary pencil" id="mn-edit">修改</button></div>
+<p class="value" id="mn-now" style="font-size:1.4em;letter-spacing:.06em">${memberNo}</p>
+<form id="mn-form" hidden>
+<label for="mn-filter" style="font-weight:400">國家／地區（輸入國碼或國名可快速篩選，例如 886）</label>
+<input id="mn-filter" type="search" autocomplete="off" placeholder="輸入國碼，例如 886">
+<select id="mn-iso" size="6" aria-label="國家／地區"></select>
+<label for="mn-digits" style="font-weight:400">7 位數字</label>
+<input id="mn-digits" inputmode="numeric" autocomplete="off" maxlength="7" pattern="[0-9]{7}" value="${memberNo.slice(2)}">
+<p style="margin:8px 0"><strong id="mn-preview">${memberNo}</strong> <span id="mn-state" class="muted" role="status" aria-live="polite"></span></p>
+<button type="submit" id="mn-save">儲存</button><button type="button" class="secondary" id="mn-random">🎲 隨機數字</button><button type="button" class="secondary" id="mn-cancel">取消</button>
+</form></div>` : ''}
 ${rows}
 <h2>生日資訊</h2>
 ${derivedCard(p, visibility, p.version, minor)}
@@ -164,6 +177,71 @@ ${derivedCard(p, visibility, p.version, minor)}
     {
       scripts: html`<script nonce="${nonce}">
 document.documentElement.classList.add('js');
+
+(function () {
+  var card = document.getElementById('mn-card');
+  if (!card) return;
+  var form = document.getElementById('mn-form'), edit = document.getElementById('mn-edit'), filter = document.getElementById('mn-filter');
+  var sel = document.getElementById('mn-iso'), digits = document.getElementById('mn-digits'), preview = document.getElementById('mn-preview');
+  var state = document.getElementById('mn-state'), save = document.getElementById('mn-save');
+  var current = card.getAttribute('data-no') || '';
+  var list = (card.getAttribute('data-countries') || '').split(',').map(function (x) { var p = x.split(':'); return { iso: p[0], code: p[1] }; });
+  var names = null;
+  try { names = new Intl.DisplayNames(['zh-TW'], { type: 'region' }); } catch (e) { names = null; }
+  list.forEach(function (x) { x.name = names ? (names.of(x.iso) || x.iso) : x.iso; });
+  var timer = 0, seq = 0;
+  function number() { return (sel.value || '') + digits.value.replace(/[^0-9]/g, ''); }
+  function fill(keep) {
+    var q = filter.value.trim().toLowerCase().replace(/^\\+/, '');
+    var shown = list.filter(function (x) { return !q || x.code.indexOf(q) === 0 || x.iso.toLowerCase().indexOf(q) === 0 || x.name.toLowerCase().indexOf(q) >= 0; });
+    sel.innerHTML = '';
+    shown.forEach(function (x) {
+      var o = document.createElement('option');
+      o.value = x.iso; o.textContent = x.iso + ' · ' + x.name + ' · +' + x.code;
+      if (x.iso === keep) o.selected = true;
+      sel.appendChild(o);
+    });
+    if (!sel.value && sel.options.length) sel.selectedIndex = 0;
+    refresh();
+  }
+  function refresh() {
+    preview.textContent = number();
+    window.clearTimeout(timer);
+    var no = number();
+    if (!/^[A-Z]{2}[0-9]{7}$/.test(no)) { state.textContent = '請輸入 7 位數字'; save.disabled = true; return; }
+    if (no === current) { state.textContent = '目前使用中'; save.disabled = true; return; }
+    state.textContent = '檢查中…'; save.disabled = true;
+    var mine = ++seq;
+    timer = window.setTimeout(function () {
+      fetch('/account/member-no/check?no=' + encodeURIComponent(no), { headers: { accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (b) {
+        if (mine !== seq) return;
+        state.textContent = b.message || '';
+        save.disabled = !b.available;
+      }).catch(function () { if (mine === seq) state.textContent = '暫時無法檢查'; });
+    }, 300);
+  }
+  edit.addEventListener('click', function () {
+    form.hidden = !form.hidden;
+    if (!form.hidden) { filter.value = ''; digits.value = current.slice(2); fill(current.slice(0, 2)); }
+  });
+  document.getElementById('mn-cancel').addEventListener('click', function () { form.hidden = true; });
+  filter.addEventListener('input', function () { fill(sel.value); });
+  sel.addEventListener('change', refresh);
+  digits.addEventListener('input', function () { digits.value = digits.value.replace(/[^0-9]/g, '').slice(0, 7); refresh(); });
+  document.getElementById('mn-random').addEventListener('click', function () {
+    fetch('/account/member-no/random?iso=' + encodeURIComponent(sel.value || ''), { headers: { accept: 'application/json' } }).then(function (r) { return r.json(); }).then(function (b) {
+      if (b.digits) { digits.value = b.digits; refresh(); }
+    });
+  });
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    save.disabled = true; state.textContent = '儲存中…';
+    fetch('/account/member-no', { method: 'POST', headers: { accept: 'application/json' }, body: new URLSearchParams({ no: number() }) }).then(function (r) { return r.json(); }).then(function (b) {
+      if (b.ok) { location.reload(); return; }
+      state.textContent = b.message || '儲存失敗';
+    }).catch(function () { state.textContent = '儲存失敗，請再試一次'; });
+  });
+})();
 
 (function () {
   var fileInput = document.getElementById('avatar-file');
@@ -291,7 +369,7 @@ accountApp.get('/profile', async (c) => {
   const loaded = await loadProfile(c.env.DB_IDENTITY, web.userId);
   if (!loaded) return c.redirect('/account', 303);
   const notice = PROFILE_NOTICES[c.req.query('notice') ?? ''];
-  return c.html(profilePage(c, loaded, notice));
+  return c.html(profilePage(c, loaded, await memberNoOf(c.env.DB_IDENTITY, web.userId), notice));
 });
 
 const PROFILE_NOTICES: Record<string, { text: string; danger: boolean }> = {
@@ -336,7 +414,7 @@ accountApp.post('/profile', async (c) => {
         status,
       );
     }
-    return c.html(profilePage(c, current, message), status);
+    return c.html(profilePage(c, current, await memberNoOf(db, web.userId), message), status);
   };
   if (!validated.ok) return respond(400, { text: `資料格式不正確：${validated.message}。`, danger: true });
   if (!Number.isInteger(version) || !hasChanges(validated.changes)) return respond(400, { text: '沒有要儲存的變更。', danger: true });
@@ -357,6 +435,50 @@ accountApp.get('/avatar-image', async (c) => {
   const object = row?.avatar_key ? await c.env.AVATARS.get(row.avatar_key) : null;
   if (!object) return c.body(null, 404);
   return new Response(object.body, { headers: { 'content-type': object.httpMetadata?.contentType ?? 'image/jpeg', 'cache-control': 'private, max-age=300' } });
+});
+
+async function memberNoOf(db: D1Database, userId: string): Promise<string | null> {
+  return (await db.prepare('SELECT member_no FROM users WHERE user_id = ?').bind(userId).first<{ member_no: string | null }>())?.member_no ?? null;
+}
+
+const MEMBER_NO_MESSAGES: Record<string, string> = {
+  invalid: '編號格式不正確：需要 2 個英文字母的國家代碼加 7 位數字。',
+  taken: '這個編號已經有人使用，請換一個。',
+  rate_limited: `24 小時內最多修改 ${MEMBER_NO_CHANGES_PER_DAY} 次，請稍後再試。`,
+  not_found: '找不到會員，請重新登入。',
+};
+
+/** GET /account/member-no/check?no= — is this number free for me? (live hint while typing) */
+accountApp.get('/member-no/check', async (c) => {
+  const web = c.get('web');
+  if (!web || web.status !== 'active') return c.json({ available: false, message: '請重新登入。' }, 401);
+  const no = normalizeMemberNo(c.req.query('no') ?? '');
+  if (!no) return c.json({ available: false, message: MEMBER_NO_MESSAGES.invalid });
+  const free = await isMemberNoFree(c.env.DB_IDENTITY, no, web.userId);
+  return c.json({ available: free, message: free ? '✅ 可以使用' : MEMBER_NO_MESSAGES.taken });
+});
+
+/** GET /account/member-no/random?iso= — seven random digits that are free under that country. */
+accountApp.get('/member-no/random', async (c) => {
+  const web = c.get('web');
+  if (!web || web.status !== 'active') return c.json({ ok: false }, 401);
+  const iso = (c.req.query('iso') ?? '').toUpperCase();
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const digits = randomSevenDigits();
+    const no = normalizeMemberNo(`${iso}${digits}`);
+    if (no && (await isMemberNoFree(c.env.DB_IDENTITY, no, web.userId))) return c.json({ ok: true, digits });
+  }
+  return c.json({ ok: false }, 404);
+});
+
+/** POST /account/member-no — the member picks country and digits. The share link follows the number. */
+accountApp.post('/member-no', async (c) => {
+  const web = c.get('web');
+  if (!web || web.status !== 'active') return c.json({ ok: false, message: '請重新登入。' }, 401);
+  const form = await readForm(c);
+  const result = await changeMemberNo(c.env.DB_IDENTITY, { userId: web.userId, requested: form.no ?? '', requestId: c.get('requestId'), appId: WEB_APP_ID }, Date.now());
+  if (!result.ok) return c.json({ ok: false, message: MEMBER_NO_MESSAGES[result.reason] ?? '儲存失敗。' }, result.reason === 'rate_limited' ? 429 : result.reason === 'taken' ? 409 : 400);
+  return c.json({ ok: true, member_no: result.memberNo });
 });
 
 /** POST /account/avatar — the page crops to a square and sends the image bytes. */

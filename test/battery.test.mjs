@@ -41,7 +41,7 @@ describe('Starry Battery API (S-BAT-03/04/06)', () => {
 
   test('an App backend reads the public name, avatar and member number of its own members only', async () => {
     const me = await (await worker.call('/v1/me', { headers: member() })).json();
-    assert.match(me.member_no, /^\d{1,4}-\d{7}$/, '/v1/me shows the member number');
+    assert.match(me.member_no, /^[A-Z]{2}\d{7}$/, '/v1/me shows the member number');
     await worker.db.prepare('UPDATE profiles SET display_name = ? WHERE user_id = ?').bind('排行榜小星', me.user_id).run();
     const ask = (key, ids) => worker.call('/v1/directory/members', json({ user_ids: ids }, key ? { 'x-starry-app-key': key } : {}));
     assert.equal((await ask(null, [me.user_id])).status, 401);

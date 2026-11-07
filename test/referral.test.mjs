@@ -35,14 +35,14 @@ describe('referrals, the organization network and public profiles', () => {
     const a = await member('ref-a', '王小明');
     const b = await member('ref-b', 'John Smith');
     const c = await member('ref-c', '陳大文');
-    assert.match(a.no, /^\d{1,4}-\d{7}$/);
+    assert.match(a.no, /^[A-Z]{2}\d{7}$/);
 
     const anon = await worker.call(`/Invite${a.no}`, get());
     assert.equal(anon.status, 200);
     const anonHtml = await anon.text();
     assert.match(anonHtml, /王小明 邀請你加入繁星/);
     assert.ok(anonHtml.includes(`/account?next=/Invite${a.no}`));
-    assert.equal((await worker.call('/Invite886-9999999', get())).status, 404);
+    assert.equal((await worker.call('/InviteTW9999999', get())).status, 404);
 
     const bound = await (await worker.call(`/Invite${a.no}`, get(b.cookie))).text();
     assert.match(bound, /已綁定推薦人：<strong>王小明<\/strong>/);
@@ -79,11 +79,43 @@ describe('referrals, the organization network and public profiles', () => {
     assert.ok(!page.includes('pub-d@example.com'));
     await worker.db.prepare("UPDATE profiles SET visibility = json_set(visibility, '$.phone', 'public') WHERE user_id = ?").bind(d.userId).run();
     assert.ok((await (await worker.call(`/${d.no}`, get())).text()).includes('912000111'));
-    assert.equal((await worker.call('/886-0000000', get())).status, 404);
+    assert.equal((await worker.call('/TW0000000', get())).status, 404);
     assert.equal((await worker.call(`/a/${d.no}`, get())).status, 404, 'no picture yet: the page shows the initials');
     assert.match(page, /role="img"[^>]*>林小<\/span>/);
     const home = await (await worker.call('/account', get(d.cookie))).text();
     for (const label of ['關於我', '推薦達人', '組織網', 'class="starnav"']) assert.ok(home.includes(label), label);
     assert.ok(!home.includes('burger'), 'no hamburger menu');
+  });
+  test('a member can change the member number; links follow, the old one stops working, taken and bad ones are refused', async () => {
+    const a = await member('no-a', '李小華');
+    const b = await member('no-b', '周大同');
+    const post = (cookie, no) => worker.call('/account/member-no', { method: 'POST', headers: { cookie, origin: ORIGIN, accept: 'application/json', 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ no }) });
+    const page = await (await worker.call('/account/profile', get(a.cookie))).text();
+    assert.ok(page.includes('id="mn-card"') && page.includes(a.no), 'the profile page has the member number card');
+    assert.ok(page.includes('TW:886,HK:852'), 'countries start with Taiwan and its neighbours');
+
+    const check = async (cookie, no) => (await worker.call(`/account/member-no/check?no=${no}`, get(cookie))).json();
+    assert.equal((await check(a.cookie, b.no)).available, false);
+    assert.equal((await check(a.cookie, 'JP0000042')).available, true);
+    assert.equal((await check(a.cookie, '886-1234567')).available, false);
+    const random = await (await worker.call('/account/member-no/random?iso=KR', get(a.cookie))).json();
+    assert.match(random.digits, /^\d{7}$/);
+
+    assert.equal((await post(a.cookie, b.no)).status, 409);
+    assert.equal((await post(a.cookie, '886-1234567')).status, 400);
+    const done = await post(a.cookie, 'jp0000042');
+    assert.equal(done.status, 200);
+    assert.equal((await done.json()).member_no, 'JP0000042');
+    assert.equal((await worker.call(`/${a.no}`, get())).status, 404, 'the old public page is gone');
+    assert.equal((await worker.call('/JP0000042', get())).status, 200);
+    assert.equal((await worker.call(`/Invite${a.no}`, get())).status, 404, 'the old invite link stops working');
+    assert.match(await (await worker.call('/Invite' + 'JP0000042', get())).text(), /李小華 邀請你加入繁星/);
+    assert.match(await (await worker.call('/account/referral', get(a.cookie))).text(), /InviteJP0000042/);
+
+    // three changes a day, then the limit; another member can take the freed number.
+    assert.equal((await post(a.cookie, 'JP0000043')).status, 200);
+    assert.equal((await post(a.cookie, 'JP0000044')).status, 200);
+    assert.equal((await post(a.cookie, 'JP0000045')).status, 429);
+    assert.equal((await post(b.cookie, 'JP0000042')).status, 200, 'a released number can be taken');
   });
 });
