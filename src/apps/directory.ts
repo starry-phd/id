@@ -22,6 +22,7 @@ const DirectoryMemberSchema = z
     nickname: z.string().nullable(),
     display_name: z.string().nullable().openapi({ description: 'null when the member chose to hide their name' }),
     avatar_url: z.string().nullable(),
+    initials: z.string().openapi({ description: 'Show in a circle when avatar_url is null' }),
   })
   .openapi('DirectoryMember');
 
@@ -62,7 +63,7 @@ directoryRoutes.openapi(membersRoute, async (c) => {
     const key = c.env.DATA_ENCRYPTION_KEY;
     const avatar = profile.avatar_key && key ? await signedAvatarPath(key, profile.avatar_key, now) : null;
     const shown = publicProfile(profile, avatar, now);
-    members.push({ user_id: row.user_id, member_no: row.member_no, nickname: shown.nickname, display_name: shown.display_name, avatar_url: shown.avatar_url });
+    members.push({ user_id: row.user_id, member_no: row.member_no, nickname: shown.nickname, display_name: shown.display_name, avatar_url: shown.avatar_url, initials: shown.initials });
   }
   return c.json({ members }, 200);
 });

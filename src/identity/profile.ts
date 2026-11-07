@@ -1,3 +1,4 @@
+import { initialsOf } from './initials';
 import { auditStatement } from '../lib/audit';
 import { boundedString, isBirthday, isLocale } from '../lib/validate';
 import { isEmailAddress } from '../notify/email';
@@ -360,6 +361,7 @@ export interface PublicProfile {
   display_name: string | null;
   nickname: string | null;
   avatar_url: string | null;
+  initials: string;
   birthday_month_day: string | null;
   zodiac_name: string | null;
   life_path_number: number | null;
@@ -391,6 +393,7 @@ export function publicProfile(row: ProfileRow, avatarUrl: string | null, now: nu
     display_name: v.display_name === 'public' ? row.display_name : null,
     nickname: row.nickname,
     avatar_url: avatarUrl,
+    initials: initialsOf(v.display_name === 'public' ? (row.display_name ?? row.nickname) : row.nickname),
     birthday_month_day: v.birthday === 'public' && row.birthday ? row.birthday.slice(5) : null,
     zodiac_name: derived?.zodiac_name ?? null,
     life_path_number: derived?.life_path_number ?? null,

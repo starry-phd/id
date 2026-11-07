@@ -1,6 +1,8 @@
 import { html, raw } from 'hono/html';
 import { background } from '../auth/routes';
 import { mailSettings } from '../notify/email';
+import { initialsOf } from '../identity/initials';
+import { avatarBubble } from './member-nav';
 import { googlePhotoOf, importProviderAvatar, MAX_AVATAR_BYTES, r2Store, removeAvatar, setAvatar } from '../identity/avatars';
 import { type ProfileRow } from '../identity/members';
 import { confirmContactEmail, sendContactEmailVerification, type ConfirmResult } from '../identity/contact-email';
@@ -94,12 +96,12 @@ function eyeForm(group: VisibilityField, visibility: Record<VisibilityField, Vis
 
 function updatedLine(updates: Record<string, FieldUpdate>, field: string): Html {
   const u = updates[field];
-  return u ? html`<p class="muted updated">最後修改：${formatTime(u.updated_at)}（${SOURCE_LABELS[u.source] ?? u.source}）</p>` : html`<p class="muted updated"></p>`;
+  return u ? html`<p class="muted updated"></p>` : html`<p class="muted updated"></p>`;
 }
 
 function derivedCard(p: ProfileRow, visibility: Record<VisibilityField, Visibility>, version: number, minor: boolean): Html {
   const d = derivedOf(p.birthday);
-  if (!d) return html`<div class="card"><p class="muted">填寫生日後，這裡會顯示星座、天賦數、生命靈數與彩色九宮格。</p></div>`;
+  if (!d) return html`<div class="card"></div>`;
   const counts = new Map(d.grid.map((g) => [g.number, g.count]));
   return html`<div class="card">
 <p style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>由生日推算</strong>${eyeForm('derived', visibility, version, minor)}</p>
@@ -110,7 +112,7 @@ function derivedCard(p: ProfileRow, visibility: Record<VisibilityField, Visibili
       return html`<td style="${count > 0 ? `background:${NUMBER_COLORS[n]};color:#fff` : ''}"><strong>${n}</strong>${count > 1 ? html`<sup>×${count}</sup>` : ''}</td>`;
     })}</tr>`,
   )}</table>
-<p class="muted">連線：${d.lines.length > 0 ? d.lines.join('、') : '無'}。公開時只顯示星座與生命靈數（天賦數與九宮格會透露出生年，不會公開）。</p>
+
 </div>`;
 }
 
@@ -143,18 +145,18 @@ ${updatedLine(loaded.fieldUpdates, spec.field)}
     '個人資料',
     html`<h1>個人資料</h1>
 ${message ? html`<div class="banner ${message.danger ? 'danger' : ''}">${message.text}</div>` : ''}
-<p class="muted">所有繁星 App 共用這份資料。按 ✏️ 編輯，離開欄位會自動儲存；👁 設定其他會員能不能看到。</p>
+
 <style>.js .field-form{display:none}.js .field.editing .field-form{display:block}.js .field.editing .value{display:none}.grid9{width:auto;margin:8px 0}.grid9 td{width:56px;height:56px;text-align:center;border:1px solid var(--line);font-size:1.2rem}.eye button,.pencil{margin:0 0 0 8px;padding:4px 10px}</style>
-<div class="card" id="avatar-card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>頭像</strong><span class="muted">🌐 一律公開</span></div>
+<div class="card" id="avatar-card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>頭像</strong></div>
 <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px">
-${p.avatar_key ? html`<img id="avatar-now" src="/account/avatar-image?v=${p.version}" alt="目前的頭像" width="96" height="96" style="border-radius:50%;object-fit:cover">` : html`<div style="width:96px;height:96px;border-radius:50%;background:var(--line);display:flex;align-items:center;justify-content:center;font-size:2rem">${(p.nickname ?? p.display_name ?? '星').slice(0, 1)}</div>`}
+${p.avatar_key ? html`<img id="avatar-now" src="/account/avatar-image?v=${p.version}" alt="目前的頭像" width="96" height="96" style="border-radius:50%;object-fit:cover">` : avatarBubble({ initials: initialsOf(p.display_name ?? p.nickname), photo: null, size: 96, label: p.display_name ?? '' })}
 <div><label for="avatar-file" class="button secondary" style="background:transparent;color:var(--accent);margin:0">上傳並裁切頭像</label><input id="avatar-file" type="file" accept="image/png,image/jpeg,image/webp" hidden>
 <button type="button" class="secondary" id="avatar-google">使用我的 Google 頭像</button>${p.avatar_key ? html`<button type="button" class="secondary" id="avatar-remove">移除頭像</button>` : ''}
-<p class="muted" id="avatar-status" role="status" aria-live="polite">頭像一律公開，無法隱藏。沒有頭像時顯示暱稱（或姓名）的第一個字。</p></div></div>
+<p id="avatar-status" role="status" aria-live="polite"></p></div></div>
 <div id="avatar-crop" hidden style="margin-top:12px"><canvas id="avatar-canvas" width="256" height="256" style="width:256px;height:256px;max-width:100%;border-radius:12px;border:1px solid var(--line);touch-action:none;cursor:grab"></canvas>
-<label for="avatar-zoom" class="muted" style="font-weight:400">縮放（拖曳圖片可調整位置）</label><input id="avatar-zoom" type="range" min="1" max="4" step="0.01" value="1" style="width:256px;max-width:100%">
+<label for="avatar-zoom" style="font-weight:400">縮放</label><input id="avatar-zoom" type="range" min="1" max="4" step="0.01" value="1" style="width:256px;max-width:100%">
 <div><button type="button" id="avatar-save">儲存頭像</button><button type="button" class="secondary" id="avatar-cancel">取消</button></div></div>
-${updatedLine(loaded.fieldUpdates, 'avatar')}</div>
+</div>
 ${rows}
 <h2>生日資訊</h2>
 ${derivedCard(p, visibility, p.version, minor)}
