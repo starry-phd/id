@@ -7,7 +7,6 @@ import type { AppBindings } from '../env';
 import { consentRequired } from '../identity/members';
 import { consumeNonce, issueNonce, NONCE_TTL_MS } from '../identity/nonces';
 import { addPasskey, findPasskey, listPasskeys, MAX_PASSKEYS, removePasskey, touchPasskey } from '../identity/passkeys';
-import { isRecentLogin } from '../identity/roles';
 import { audit, auditStatement } from '../lib/audit';
 import { uuidv7 } from '../lib/crypto';
 import { base64urlDecode, base64urlEncode, fromUtf8, utf8 } from '../lib/encoding';
@@ -173,7 +172,6 @@ passkeyMeRoutes.openapi(registerOptionsRoute, async (c) => {
   const now = Date.now();
   const app = getApp(auth.appId);
   if (!app) return fail(c, 403, 'APP_UNAVAILABLE', 'This app is not available');
-  if (!isRecentLogin(auth.sessionCreatedAt, now)) return fail(c, 403, 'REAUTH_REQUIRED', 'Sign in again before adding a Passkey');
   const db = c.env.DB_IDENTITY;
   const [existing, profile] = await Promise.all([listPasskeys(db, auth.userId), db.prepare('SELECT display_name FROM profiles WHERE user_id = ?').bind(auth.userId).first<{ display_name: string | null }>()]);
   const nonce = await issueNonce(db, app.app_id, now);
@@ -212,7 +210,6 @@ passkeyMeRoutes.openapi(registerRoute, async (c) => {
   const now = Date.now();
   const app = getApp(auth.appId);
   if (!app) return fail(c, 403, 'APP_UNAVAILABLE', 'This app is not available');
-  if (!isRecentLogin(auth.sessionCreatedAt, now)) return fail(c, 403, 'REAUTH_REQUIRED', 'Sign in again before adding a Passkey');
   const body = c.req.valid('json');
   if (body.attestationObject.length > 8192 || !(await consumeChallenge(c, app, body.clientDataJSON, 'webauthn.create', now))) return fail(c, 400, 'BAD_REQUEST', 'This Passkey request is invalid or expired');
   const registered = await verifyRegistration(body.attestationObject, expectedFor(c, app));

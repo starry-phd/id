@@ -100,3 +100,8 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 3c27. 通用量子電池序號（2026-11-07，battery 0010）：量子電池序號可以不指定 App（`app_id` 為 NULL＝通用）：兌換的人在兌換頁自己選一款 App，入帳後固定在那一款（仍然不能跨 App 使用），同一人同一組序號只能兌換一次，不能換到別款 App 再領。網址頁 `/account/redeem/<序號>` 會出現 App 下拉選單；在帳號中心直接輸入通用序號時，沒選 App 會導到該頁（`redeemInvite` 回 `need_app`，這時不會扣次數）。產生器的 App 欄位留空＝通用；指定 App＝只能兌換到那一款。電池序號仍然不綁 App。商店規則不變（免費發送、不可販售、只在網頁兌換）。注意：App 的「清除測試資料」只清該 App 代碼綁定的序號兌換紀錄，通用序號的兌換紀錄不在其中。
 3d. 刻意保留的設計（不是漏做）：`account`（登入中樞）固定在 `config/apps.json`，不依賴資料庫登記；刪除帳號一律立即永久刪除（2026-11-07 起沒有 7 天寬限期，舊的待刪除程式已移除）。為了舊版 App 相容，`deletion_requested_at`／`deletion_purge_at` 欄位仍存在但永遠是 null，`DELETE /v1/me/deletion` 永遠回 409；Email 登入依業主決定不做。
 4. 業主外部事項：`docs/owner-setup.md`（Google Play 帳號類型、App Store 付費協議、GitHub 帳號整併等）。
+
+### 3c28 新增 Passkey 不再要求近期登入（2026-11-07）
+- `POST /v1/me/passkeys/options`、`POST /v1/me/passkeys` 與網頁帳號中心的新增 Passkey，不再檢查 10 分鐘內登入，不再回 `REAUTH_REQUIRED`。
+- 每位會員上限 10 把仍有效；加綁 Apple／Google 與合併帳號仍需近期登入（`isRecentLogin` 保留）。
+- 串接指令版本 `2026-11-07.11`。
