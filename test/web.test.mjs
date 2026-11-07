@@ -160,6 +160,9 @@ describe('web account center, support form and Admin Lite', () => {
   test('profile page: one field at a time, visibility switches and last-changed times (02.07-02.10)', async () => {
     const cookie = await webSignIn('profile-fields-web');
     const profilePage = await (await worker.call('/account/profile', get(cookie))).text();
+    assert.ok(!profilePage.includes('[object Object]'), 'no raw object printed on the page');
+    assert.match(profilePage, /🔋 加碼 <b id="bonus-x">/, 'the battery icon sits in front of the multiplier');
+    assert.match(profilePage, /#vis-all\{[^}]*flex-wrap:nowrap/, 'the two buttons and the multiplier stay on one row');
     assert.ok(profilePage.includes('id="nick-same"') && profilePage.includes('與姓名相同'), 'the nickname field offers "same as name"');
     assert.ok(!profilePage.includes('不公開') && !profilePage.includes('🙈'), 'the hidden state reads 隱藏 and uses the slashed eye, not 不公開');
     assert.ok(profilePage.includes('stroke="#e5484d"'), 'a red slash on the hidden eye');
