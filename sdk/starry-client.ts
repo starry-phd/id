@@ -518,7 +518,7 @@ export class StarryClient {
     return this.finishSignIn(result);
   }
 
-  /** Adds a Passkey to the signed-in member. 403 REAUTH_REQUIRED: ask them to sign in again first. */
+  /** Adds a Passkey to the signed-in member. */
   async registerPasskey(name?: string): Promise<void> {
     const adapter = this.passkeys();
     const options = await this.request<{ publicKey: Record<string, unknown> }>('POST', '/v1/me/passkeys/options');

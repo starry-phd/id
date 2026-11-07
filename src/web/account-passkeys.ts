@@ -4,7 +4,6 @@ import { consumeNonce, issueNonce } from '../identity/nonces';
 import { base64urlDecode, base64urlEncode, fromUtf8, utf8 } from '../lib/encoding';
 import { readClientData, verifyAssertion, verifyRegistration } from '../auth/webauthn';
 import { addPasskey, findPasskey, listPasskeys, MAX_PASSKEYS, removePasskey, touchPasskey } from '../identity/passkeys';
-import { isRecentLogin } from '../identity/roles';
 import { createWebSession, WEB_APP_ID, WEB_SESSION_ABSOLUTE_MS } from '../identity/web-sessions';
 import { errorBody } from '../lib/errors';
 import { readJsonObject } from '../lib/validate';
@@ -39,7 +38,6 @@ accountApp.post('/passkey/register-options', async (c) => {
   const requestId = c.get('requestId');
   if (!web || web.status !== 'active') return c.json(errorBody('UNAUTHORIZED', 'Sign in first', requestId), 401);
   const now = Date.now();
-  if (!isRecentLogin(web.createdAt, now)) return c.json(errorBody('REAUTH_REQUIRED', 'Sign in again before adding a passkey', requestId), 403);
   const db = c.env.DB_IDENTITY;
   const [existing, account] = await Promise.all([listPasskeys(db, web.userId), loadAccount(db, web.userId)]);
   const nonce = await issueNonce(db, WEB_APP_ID, now);
@@ -63,7 +61,6 @@ accountApp.post('/passkey/register', async (c) => {
   const requestId = c.get('requestId');
   if (!web || web.status !== 'active') return c.json(errorBody('UNAUTHORIZED', 'Sign in first', requestId), 401);
   const now = Date.now();
-  if (!isRecentLogin(web.createdAt, now)) return c.json(errorBody('REAUTH_REQUIRED', 'Sign in again before adding a passkey', requestId), 403);
   const body = await readJsonObject(c);
   const attestation = str(body?.attestationObject, 8192);
   if (!body || !attestation || !(await consumeChallenge(c, body.clientDataJSON, 'webauthn.create', now))) return c.json(errorBody('BAD_REQUEST', 'This passkey request is invalid or expired', requestId), 400);

@@ -7,8 +7,8 @@ const GUIDE_URL = 'https://raw.githubusercontent.com/starry-phd/id/main/docs/int
  * Version of the handoff text. Bump both whenever the text below changes (a unit test fails until you do),
  * so the Owner can tell at a glance whether the copy an App's AI received is the latest one.
  */
-export const HANDOFF_VERSION = '2026-11-07.10';
-export const HANDOFF_UPDATED = '2026-11-07 21:50（台灣時間）';
+export const HANDOFF_VERSION = '2026-11-07.11';
+export const HANDOFF_UPDATED = '2026-11-07 22:15（台灣時間）';
 
 function list(values: readonly string[]): string {
   return values.length === 0 ? '（無）' : values.join('、');
@@ -59,7 +59,7 @@ export function buildHandoff(app: AppEntry, origin: string, options: { battery: 
     '   - 網頁版：用 navigator.credentials.get / create，publicKey 直接用 options 回傳的內容（challenge 要從 base64url 轉成 ArrayBuffer，rpId 保持 id.starry.phd）；網頁來源已登記在 Starry ID 的 /.well-known/webauthn（相關來源），瀏覽器支援時可直接使用；先判斷 window.PublicKeyCredential 存在才顯示按鈕，不支援時只顯示 Apple／Google。',
     `   - Apple Team ID 已由 Starry ID 中央設定，所有 App 共用，你不用處理。業主要在 Admin Lite 的「編輯登記資料」為這款 App 登記 Android 簽章憑證 SHA-256 指紋（可以先留空、之後補填），Starry ID 會自動產生 Apple 與 Google 要求的網域驗證檔（${origin}/.well-known/apple-app-site-association、${origin}/.well-known/assetlinks.json）；指紋沒登記之前 Android 原生 Passkey 不會成功，Apple／Google 登入與網頁版不受影響，請不要對業主宣稱 Android Passkey 已可用。`,
     '   - 指紋要用「實際安裝在手機上的那個 APK」的簽章憑證：Google Play 上架版是 Play Console「應用程式簽署」的 App signing key certificate（不是 Upload key）；EAS 內部測試版或本機建置的 APK 簽章不同，要另外登記一組。請在回報中列出你的各種建置分別需要登記哪一組，並說明如何取得（例如 eas credentials 或 Play Console 路徑）。',
-    `   - 新增 Passkey（設定頁放「新增 Passkey」「我的 Passkey」）：POST ${origin}/v1/me/passkeys/options（帶 Access Token；需要 10 分鐘內登入過，否則回 403 REAUTH_REQUIRED，請會員重新登入）→ Passkey.create → POST ${origin}/v1/me/passkeys {clientDataJSON, attestationObject, name}。列出 GET /v1/me/passkeys，移除 DELETE /v1/me/passkeys/{id}。每位會員最多 10 把；Passkey 只是額外的登入方式，不能取代 Apple／Google，也不會建立新會員。`,
+    `   - 新增 Passkey（設定頁放「新增 Passkey」「我的 Passkey」）：POST ${origin}/v1/me/passkeys/options（帶 Access Token；不限登入多久，隨時可新增）→ Passkey.create → POST ${origin}/v1/me/passkeys {clientDataJSON, attestationObject, name}。列出 GET /v1/me/passkeys，移除 DELETE /v1/me/passkeys/{id}。每位會員最多 10 把；Passkey 只是額外的登入方式，不能取代 Apple／Google，也不會建立新會員。`,
     '   - 錯誤處理：使用者取消不要顯示錯誤；InvalidStateError（這支裝置已有這把 Passkey）請白話說明；找不到 Passkey 時引導改用 Apple 或 Google 登入。',
     '4. 會員身分只用 Starry 的 user_id（內部以 provider＋sub 辨識，不用 Email 或姓名合併）。App 後端用 GET /.well-known/jwks.json 驗證 Access Token。',
     '5. App 內必須提供串接說明第 4 節的帳號功能（登出、刪除帳號、同意條款等）。',

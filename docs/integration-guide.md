@@ -214,7 +214,7 @@ Passkey 屬於 Starry ID：relying party ID 是 Starry ID 網址的主機名稱�
 3. `POST /v1/auth/passkey`，body `{app_id, id, clientDataJSON, authenticatorData, signature, device_label?}`（全部 base64url）→ 與 Apple／Google 登入相同的回應（`access_token`、`refresh_token`、`user`、`consent_required`）。停權回 403 `ACCOUNT_SUSPENDED`；簽章、挑戰或來源不對回 401。
 
 **新增、列出、移除（需要登入）**
-- `POST /v1/me/passkeys/options` → 建立選項。需要 10 分鐘內登入過，否則 403 `REAUTH_REQUIRED`，請會員重新登入再試。
+- `POST /v1/me/passkeys/options` → 建立選項。不限登入多久，隨時可新增。
 - `POST /v1/me/passkeys`，body `{clientDataJSON, attestationObject, name?}` → 201。每位會員最多 10 把（409）。
 - `GET /v1/me/passkeys`、`DELETE /v1/me/passkeys/{id}`。
 
