@@ -24,7 +24,8 @@
         ]
       },
       "web_origins": [
-        "https://echo.starry.phd"
+        "https://echo.starry.phd",
+        "https://echo-api-staging.starry-phd.workers.dev"
       ],
       "return_urls": [
         "echostarry://auth/apple"
