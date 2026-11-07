@@ -1,7 +1,7 @@
 import { deleteCookie } from 'hono/cookie';
 import { html } from 'hono/html';
 import { getBalance, recentActivity } from '../battery/battery';
-import { redeemInvite } from '../battery/invites';
+import { codeInfo, normalizeCode, redeemInvite } from '../battery/invites';
 import { listQuantum } from '../battery/quantum';
 import { getNotices } from '../lib/notices';
 import { activeScopedNotices } from '../lib/scoped-notices';
@@ -45,7 +45,7 @@ accountApp.get('/', async (c) => {
   const passkeys = await listPasskeys(db, web.userId);
   const managedApps = await listAppStaffApps(db, web.userId);
   const supportApps = await listAppStaffApps(db, web.userId, 'support');
-  const inviteMsg = ({ ok: '兌換成功，已加入量子電池。', invalid: '邀請碼不正確、已停用或已過期。', already: '你已經兌換過這組邀請碼。', used_up: '這組邀請碼已被領完。' } as Record<string, string>)[c.req.query('invite') ?? ''] ?? '';
+  const inviteMsg = ({ ok: '兌換成功，已加入量子電池。', ok_battery: '兌換成功，已加入本月的電池額度。', invalid: '序號不正確、已停用或已過期。', already: '你已經兌換過這組序號。', used_up: '這組序號已被領完。', error: '暫時無法兌換，請稍後再試；序號沒有被用掉。' } as Record<string, string>)[c.req.query('invite') ?? ''] ?? '';
   const subscriptions = await memberSubscriptions(c.env.DB_BILLING, web.userId, now).catch(() => []);
   const signedInApps = [...new Set(sessions.map((s) => s.appId))].filter((a) => a !== WEB_APP_ID);
   const [battery, batteryActivity, quantum] = await Promise.all([getBalance(c.env.DB_BATTERY, web.userId, now), recentActivity(c.env.DB_BATTERY, web.userId, now, { limit: 10 }), listQuantum(c.env.DB_BATTERY, web.userId)]);
@@ -124,7 +124,7 @@ ${battery && batteryActivity
     : html`<p class="muted">最近 30 天沒有使用紀錄。</p>`}
   <h3>邀請碼</h3>
   ${inviteMsg ? html`<div class="banner">${inviteMsg}</div>` : ''}
-  <form method="post" action="/account/redeem"><label for="invite-code">輸入邀請碼，領取免費量子電池</label><input id="invite-code" name="code" maxlength="40" autocomplete="off" required><button type="submit">兌換</button></form>
+  <form method="post" action="/account/redeem"><label for="invite-code">輸入序號，領取免費電池或量子電池</label><input id="invite-code" name="code" maxlength="40" autocomplete="off" required><button type="submit">兌換</button></form>
   ${quantum.length > 0
     ? html`<h3>量子電池</h3><table><tr><th>App</th><th>剩餘</th></tr>${quantum.map((q) => html`<tr><td>${appLabel(q.app_id)}</td><td>${q.available}</td></tr>`)}</table><p class="muted">在該 App 內購買的加量包，只能在購買的那款 App 使用；每次先用免費 Battery，用完才使用量子電池，不會過期。</p>`
     : ''}
@@ -319,12 +319,31 @@ accountApp.post('/link/merge', async (c) => {
   return c.json({ ok: true, result: 'merged' });
 });
 
+/** The link form of a code: signs the member in when needed, shows what it gives, and redeems on one button press (a link preview never redeems). */
+accountApp.get('/redeem/:code', async (c) => {
+  const code = normalizeCode(c.req.param('code'));
+  const web = c.get('web');
+  if (!/^[A-Z0-9]{6,32}$/.test(code)) return c.redirect('/account', 303);
+  if (!web || web.status !== 'active') return c.redirect(`/account?next=${encodeURIComponent(`/account/redeem/${code}`)}`, 303);
+  const info = await codeInfo(c.env.DB_BATTERY, code, Date.now());
+  return c.html(
+    page(
+      c,
+      '兌換序號',
+      html`<h1>兌換序號</h1>
+${info ? html`<div class="card"><p>這組序號可領取：<strong>${info.units}</strong> 顆${info.kind === 'battery' ? '電池（全部 App 共用，只加本月額度）' : html`量子電池（只能在「${getApp(info.appId ?? '')?.name ?? info.appId}」使用）`}</p>
+<form method="post" action="/account/redeem"><input type="hidden" name="code" value="${code}"><button type="submit">兌換</button></form></div>` : html`<div class="banner danger">序號不正確、已停用、已過期或已被領完。</div>`}
+<p><a href="/account">回到帳號中心</a></p>`,
+    ),
+  );
+});
+
 accountApp.post('/redeem', async (c) => {
   const web = c.get('web');
   if (!web || web.status !== 'active') return c.redirect('/account', 303);
   const form = await readForm(c);
   const result = await redeemInvite(c.env.DB_BATTERY, web.userId, form.code ?? '', Date.now());
-  return c.redirect(`/account?invite=${result.ok ? 'ok' : result.reason}`, 303);
+  return c.redirect(`/account?invite=${result.ok ? (result.kind === 'battery' ? 'ok_battery' : 'ok') : result.reason}`, 303);
 });
 
 accountApp.post('/consent', async (c) => {
