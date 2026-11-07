@@ -105,3 +105,10 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 - `POST /v1/me/passkeys/options`、`POST /v1/me/passkeys` 與網頁帳號中心的新增 Passkey，不再檢查 10 分鐘內登入，不再回 `REAUTH_REQUIRED`。
 - 每位會員上限 10 把仍有效；加綁 Apple／Google 與合併帳號仍需近期登入（`isRecentLogin` 保留）。
 - 串接指令版本 `2026-11-07.11`。
+
+### 3c29 共用登入（Device SSO，2026-11-07）
+- migration 0029：`device_sso`（sso_id、user_id、token_hash、session_version、expires_at、revoked_at），`sessions.sso_id`。
+- `src/auth/sso.ts`：`POST /v1/auth/sso/start|exchange|status|logout`。start 需 Bearer；換會員時以 `previous_sso_token` 結束舊會員的 sso 與其所有 App 登入；同會員則沿用其他 App 登入。exchange 為該 App 建立一般 session（帶 sso_id）。logout 撤銷 sso 及所有該 sso 的 sessions。`logout-all`（session_version 遞增）使 sso 失效。
+- SDK：`StarryClientOptions.sharedStorage`、`syncDeviceSignIn()`；`signOut()` 會呼叫 sso/logout（登出所有 App）。無 `sharedStorage` 時行為不變。
+- 網頁帳號中心已移除「登出這款 App」按鈕（共用登入下無意義）；`/account/apps/:app/logout` 路由保留。
+- 串接指令版本 `2026-11-07.12`。

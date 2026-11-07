@@ -57,6 +57,12 @@ export interface StarryClientOptions {
   /** Web relay sign-in: leave the page for the URL. Defaults to location.assign. */
   navigate?: (url: string) => void;
   passkey?: PasskeyAdapter;
+  /**
+   * Storage shared by every Starry App on the device (iOS keychain access group, Android shared account).
+   * With it, signing in to any App signs in all of them, and signing out or switching member follows everywhere.
+   * Call syncDeviceSignIn() when the App comes to the foreground.
+   */
+  sharedStorage?: StarryStorage;
   /** Shown to the member in their device list, e.g. "iPhone 16". */
   deviceLabel?: string;
   now?: () => number;
@@ -391,6 +397,7 @@ export class StarryClient {
   /** App start: true when a stored session is still good (call before showing the sign-in screen). */
   async restore(): Promise<boolean> {
     try {
+      if (this.options.sharedStorage) return await this.syncDeviceSignIn();
       return (await this.getAccessToken()) !== null;
     } catch {
       // Offline: keep the session; calls that need the server will fail until the connection is back.
@@ -402,8 +409,78 @@ export class StarryClient {
     return this.accessToken !== null;
   }
 
+  private memberOfToken(token: string | null): string | null {
+    try {
+      const payload = JSON.parse(new TextDecoder().decode(base64urlDecode(String(token).split('.')[1] ?? ''))) as { sub?: string };
+      return typeof payload.sub === 'string' ? payload.sub : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Keeps this App in step with the device sign-on shared by all Starry Apps: signed out elsewhere → signed out here,
+   * another member elsewhere → switched here, signed in elsewhere → signed in here. Call at start and when the App
+   * returns to the foreground. Resolves true when a member is signed in afterwards. Offline keeps the current state.
+   */
+  async syncDeviceSignIn(): Promise<boolean> {
+    const shared = this.options.sharedStorage;
+    if (!shared) return (await this.getAccessToken()) !== null;
+    const ssoToken = await shared.get('starry.sso');
+    const hasOwn = (await this.options.storage.get(this.key('refresh'))) !== null;
+    if (!ssoToken) {
+      // Nobody is signed in on the device. An App that signed in before this feature adopts the session as the device's.
+      const token = hasOwn ? await this.getAccessToken() : null;
+      if (token) await this.startDeviceSignIn(token);
+      return token !== null;
+    }
+    let status: { active: boolean; user_id: string | null };
+    try {
+      status = await this.send('POST', '/v1/auth/sso/status', { body: { sso_token: ssoToken } });
+    } catch (error) {
+      if (error instanceof StarryError && error.status === 0) return hasOwn;
+      throw error;
+    }
+    if (!status.active) {
+      await shared.remove('starry.sso');
+      await this.clearSession();
+      return false;
+    }
+    if (hasOwn) {
+      const token = await this.getAccessToken();
+      if (token && this.memberOfToken(token) === status.user_id) return true;
+      await this.clearSession();
+    }
+    try {
+      const result = await this.send<SignInResult & { access_token: string; expires_in: number; refresh_token: string }>('POST', '/v1/auth/sso/exchange', {
+        body: { app_id: this.options.appId, sso_token: ssoToken, ...(this.options.deviceLabel ? { device_label: this.options.deviceLabel } : {}) },
+      });
+      await this.storeTokens(result);
+      this.emit('signed-in');
+      return true;
+    } catch (error) {
+      if (error instanceof StarryError && error.status === 0) return false;
+      if (error instanceof StarryError && error.status === 401) await shared.remove('starry.sso');
+      return false;
+    }
+  }
+
+  /** Tells the other Apps on this device who is signed in. Best effort: this App is already signed in either way. */
+  private async startDeviceSignIn(token: string): Promise<void> {
+    const shared = this.options.sharedStorage;
+    if (!shared) return;
+    try {
+      const previous = await shared.get('starry.sso');
+      const started = await this.send<{ sso_token: string }>('POST', '/v1/auth/sso/start', { token, body: previous ? { previous_sso_token: previous } : {} });
+      await shared.set('starry.sso', started.sso_token);
+    } catch {
+      // The other Apps will not follow until the next sign-in; this App works normally.
+    }
+  }
+
   private async finishSignIn(result: SignInResult & { access_token: string; expires_in: number; refresh_token: string }): Promise<SignInResult> {
     await this.storeTokens(result);
+    await this.startDeviceSignIn(result.access_token);
     this.emit('signed-in');
     return { user: result.user, consent_required: result.consent_required };
   }
@@ -609,7 +686,22 @@ export class StarryClient {
     } catch {
       // Already expired or offline: the local session is cleared below either way.
     }
+    await this.endDeviceSignIn();
     await this.clearSession();
+  }
+
+  /** With shared storage, signing out here signs out every Starry App on the device. */
+  private async endDeviceSignIn(): Promise<void> {
+    const shared = this.options.sharedStorage;
+    if (!shared) return;
+    const ssoToken = await shared.get('starry.sso');
+    await shared.remove('starry.sso');
+    if (!ssoToken) return;
+    try {
+      await this.send('POST', '/v1/auth/sso/logout', { body: { sso_token: ssoToken } });
+    } catch {
+      // Offline: the shared token is gone locally, and the server drops it when it expires or on the next logout-all.
+    }
   }
 
   /** Signs the member out of every device and every Starry App. */
@@ -617,6 +709,7 @@ export class StarryClient {
     try {
       await this.request('POST', '/v1/auth/logout-all');
     } finally {
+      await this.options.sharedStorage?.remove('starry.sso');
       await this.clearSession();
     }
   }

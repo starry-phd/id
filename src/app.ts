@@ -1,5 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { wellKnown } from './apps/well-known';
+import { ssoRoutes } from './auth/sso';
 import { passkeyAuthRoutes, passkeyMeRoutes } from './auth/passkey-api';
 import { HTTPException } from 'hono/http-exception';
 import { secureHeaders } from 'hono/secure-headers';
@@ -125,6 +126,7 @@ app.route('/v1/avatars', avatarRoutes);
 app.route('/v1/directory', directoryRoutes);
 app.route('/v1/billing', billingRoutes);
 app.route('/v1/auth/passkey', passkeyAuthRoutes);
+app.route('/v1/auth/sso', ssoRoutes);
 app.route('/v1/auth', authRoutes);
 app.route('/v1/me/battery', myBatteryRoutes);
 app.route('/v1/me/passkeys', passkeyMeRoutes);
