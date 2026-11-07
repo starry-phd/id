@@ -199,7 +199,7 @@ export function passkeyScript(c: WebContext, mode: 'register' | 'login' | 'stepu
     } catch (e) {
       const name = (e && e.name) || 'Error';
       const FRIENDLY = {
-        InvalidStateError: '這支裝置已經新增過這組 Passkey，不用再新增。',
+        InvalidStateError: '這支裝置已經有你的 Passkey（可能已從其他裝置同步過來），不用再新增，直接登出後用「使用 Passkey 登入」即可。',
         NotSupportedError: '這個瀏覽器或手機不支援 Passkey。請改用最新版 Chrome，並確認手機已設定螢幕鎖定與 Google 密碼管理工具。',
         SecurityError: '瀏覽器拒絕在這個網址建立 Passkey，請確認網址是 id.starry.phd。',
         AbortError: '操作被中斷，請再試一次。',
