@@ -40,7 +40,7 @@ app.use('*', async (c, next) => {
   const now = Date.now();
   await Promise.all([
     refreshDynamicApps(c.env.DB_IDENTITY, now),
-    refreshCentralTeamId(c.env.DB_IDENTITY, now, c.env.STARRY_APPLE_TEAM_ID),
+    c.env.DB_IDENTITY ? refreshCentralTeamId(c.env.DB_IDENTITY, now, c.env.STARRY_APPLE_TEAM_ID) : Promise.resolve(),
   ]);
   await next();
 });
