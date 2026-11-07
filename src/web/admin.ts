@@ -8,6 +8,7 @@ import { randomToken } from '../lib/crypto';
 import { revenueCatStatus, saveRevenueCatSecret } from '../billing/app-secrets';
 import { configToText, loadConfigOverrides, parseConfigText, saveConfigOverrides } from '../apps/status';
 import { buildHandoff } from '../apps/handoff';
+import { createInvite, listInvites, setInviteActive } from '../battery/invites';
 import { adjustQuantum, listQuantum, listQuantumProducts, removeQuantumProduct, saveQuantumProduct } from '../battery/quantum';
 import { appRegistry, getApp, type AppEntry, type AppStatus } from '../apps/registry';
 import { listAppStatusOverrides, setAppStatusOverride } from '../apps/status';
@@ -826,6 +827,7 @@ ${serviceKey
   : html`<p class="muted">${hasKey ? '已開通；金鑰只在建立或重新產生時顯示一次。' : '尚未開通。'}</p><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${regenerate}</div>`}
 </div>
 <p><a href="/admin/apps/${app.app_id}/quantum">量子電池（內購加量包）設定</a></p>
+<p><a href="/admin/apps/${app.app_id}/invites">邀請碼（送免費量子電池）</a></p>
 <p><a href="/admin/apps/${app.app_id}/config">遠端設定（App 啟動時讀取）</a></p>
 <p><a href="/admin/apps/${app.app_id}/revenuecat">RevenueCat 設定（Webhook 與 API 金鑰）</a></p>
 <p><a href="/admin/apps">回到 App 清單</a></p>`,
@@ -918,6 +920,69 @@ adminApp.post('/apps/:id/quantum/remove', async (c) => {
   await removeQuantumProduct(c.env.DB_BATTERY, app.app_id, productId);
   await auditStatement(c.env.DB_IDENTITY, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.quantum_product_removed', targetType: 'quantum_product', targetId: productId, appId: app.app_id, result: 'success', requestId: actor.requestId, retention: 'security' }, Date.now()).run();
   return quantumPage(c, actor, app, '已移除。');
+});
+
+async function invitesPage(c: WebContext, actor: StaffActor, app: AppEntry, message?: string): Promise<Response> {
+  const owner = actor.role === 'owner';
+  const codes = await listInvites(c.env.DB_BATTERY, app.app_id);
+  return c.html(
+    adminPage(
+      c,
+      '邀請碼',
+      html`<h1>${app.name} 的邀請碼</h1>
+${message ? html`<div class="banner">${message}</div>` : ''}
+<p class="muted">會員在帳號中心輸入邀請碼，可獲得這款 App 的免費量子電池（只能在這款 App 使用、不會過期）。每位會員同一組邀請碼只能使用一次。</p>
+<div class="card"><table><thead><tr><th>邀請碼</th><th>每人送</th><th>已用／上限</th><th>期限</th><th>狀態</th><th>備註</th><th></th></tr></thead><tbody>
+${codes.map((i) => html`<tr><td><code>${i.code}</code></td><td>${i.units}</td><td>${i.used}／${i.max_uses}</td><td>${i.expires_at ? new Date(i.expires_at + 8 * 3600_000).toISOString().slice(0, 10) : '無'}</td><td>${i.active ? '啟用' : '停用'}</td><td>${i.note ?? ''}</td><td>${owner ? html`<form method="post" action="/admin/apps/${app.app_id}/invites/toggle" class="inline"><input type="hidden" name="code" value="${i.code}"><input type="hidden" name="active" value="${i.active ? '0' : '1'}"><button type="submit">${i.active ? '停用' : '啟用'}</button></form>` : ''}</td></tr>`)}
+</tbody></table>${codes.length === 0 ? html`<p class="muted">還沒有邀請碼。</p>` : ''}</div>
+${owner
+  ? html`<h2>新增邀請碼</h2><div class="card"><form method="post" action="/admin/apps/${app.app_id}/invites">
+<label for="inv-code">邀請碼（留空會自動產生；6～32 個英文大寫或數字）</label><input id="inv-code" name="code" maxlength="32" autocomplete="off">
+<label for="inv-units">每人送幾顆量子電池（1～1000）</label><input id="inv-units" name="units" type="number" min="1" max="1000" step="1" value="10" required>
+<label for="inv-max">最多可被使用幾次（1～100000）</label><input id="inv-max" name="max_uses" type="number" min="1" max="100000" step="1" value="100" required>
+<label for="inv-exp">到期日（台灣時間，可留空＝不過期）</label><input id="inv-exp" name="expires" type="date">
+<label for="inv-note">備註（給自己看，可留空）</label><input id="inv-note" name="note" maxlength="100">
+<button type="submit">建立</button></form></div>`
+  : html`<p class="muted">只有 Owner 可以新增或停用。</p>`}
+<p><a href="/admin/apps/${app.app_id}/handoff">回到串接指令</a></p>`,
+    ),
+  );
+}
+
+adminApp.get('/apps/:id/invites', async (c) => {
+  const actor = await appAccess(c, c.req.param('id'));
+  if (actor instanceof Response) return actor;
+  const app = getApp(c.req.param('id'));
+  if (!app || app.app_id === WEB_APP_ID) return appsPage(c, '找不到此 App。');
+  return invitesPage(c, actor, app);
+});
+
+adminApp.post('/apps/:id/invites', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const app = getApp(c.req.param('id'));
+  if (!app || app.app_id === WEB_APP_ID) return appsPage(c, '找不到此 App。');
+  const form = await readForm(c);
+  const now = Date.now();
+  // The expiry date is the end of that day in Taiwan time (UTC+8).
+  const expiresAt = form.expires ? Date.parse(`${form.expires}T23:59:59+08:00`) : null;
+  if (expiresAt !== null && Number.isNaN(expiresAt)) return invitesPage(c, actor, app, '到期日格式不正確。');
+  const code = await createInvite(c.env.DB_BATTERY, { appId: app.app_id, code: form.code ?? '', units: Number(form.units), maxUses: Number(form.max_uses), expiresAt, note: form.note ?? '', actorUserId: actor.userId }, now);
+  if (!code) return invitesPage(c, actor, app, '建立失敗：邀請碼需為 6～32 個英文大寫或數字且不能重複，顆數 1～1000、次數 1～100000、到期日必須在未來。');
+  await auditStatement(c.env.DB_IDENTITY, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.invite_created', targetType: 'invite_code', targetId: code, appId: app.app_id, result: 'success', requestId: actor.requestId, retention: 'security' }, now).run();
+  return invitesPage(c, actor, app, `已建立邀請碼：${code}`);
+});
+
+adminApp.post('/apps/:id/invites/toggle', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const app = getApp(c.req.param('id'));
+  if (!app || app.app_id === WEB_APP_ID) return appsPage(c, '找不到此 App。');
+  const form = await readForm(c);
+  const code = (form.code ?? '').trim().slice(0, 32);
+  await setInviteActive(c.env.DB_BATTERY, app.app_id, code, form.active === '1');
+  await auditStatement(c.env.DB_IDENTITY, { actorType: 'admin', actorUserId: actor.userId, action: form.active === '1' ? 'admin.invite_enabled' : 'admin.invite_disabled', targetType: 'invite_code', targetId: code, appId: app.app_id, result: 'success', requestId: actor.requestId, retention: 'security' }, Date.now()).run();
+  return invitesPage(c, actor, app, '已更新。');
 });
 
 adminApp.post('/members/:id/quantum', async (c) => {

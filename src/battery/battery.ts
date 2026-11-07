@@ -1,4 +1,5 @@
 import { constantTimeEqual, randomToken, sha256Hex, uuidv7 } from '../lib/crypto';
+import { forgetInviteMembers } from './invites';
 import { forgetQuantumMembers, getQuantum } from './quantum';
 
 /**
@@ -494,6 +495,7 @@ export async function forgetBatteryMembers(db: D1Database, userIds: string[]): P
     ]);
   }
   await forgetQuantumMembers(db, userIds);
+  await forgetInviteMembers(db, userIds);
 }
 
 /** Daily: ledger kept one year, closed reservations 35 days. */
