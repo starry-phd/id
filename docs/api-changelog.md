@@ -8,6 +8,8 @@
 
 ## 2026-11-07
 
+向下相容的新增：App 內 Passkey。`POST /v1/auth/passkey/options`、`POST /v1/auth/passkey`（登入）；`POST /v1/me/passkeys/options`、`POST`／`GET /v1/me/passkeys`、`DELETE /v1/me/passkeys/{id}`（新增、列出、移除）。另外提供 `/.well-known/apple-app-site-association`、`/.well-known/assetlinks.json`、`/.well-known/webauthn`（非 `/v1`）。登記資料新增選填的 `ios_team_id`、`android_cert_sha256`。
+
 舊的「7 天刪除寬限期」程式已移除（正式資料庫確認沒有待刪除帳號）。對外格式不變：`deletion_requested_at`、`deletion_purge_at` 欄位保留但永遠是 `null`，`DELETE /v1/me/deletion` 保留並永遠回 409 `CONFLICT`（沒有可撤回的刪除）；不再回 403 `ACCOUNT_PENDING_DELETION`。
 
 `GET /v1/apps/{app_id}/config` 的 `min_version` 與 `config` 現在可由 Owner／Admin 在後台「遠端設定」覆寫（約 30 秒生效）；回應格式不變。

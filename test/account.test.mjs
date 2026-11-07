@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 import { authBindings, idTokenClaims, signJwt } from './auth-fixtures.mjs';
 import { startWorker } from './helpers.mjs';
+import { softPasskey } from './passkey-fixtures.mjs';
 
 const json = (body, headers = {}) => ({ method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) });
 const authed = (token, init = {}) => ({ ...init, headers: { ...(init.headers ?? {}), authorization: `Bearer ${token}` } });
@@ -52,6 +53,53 @@ describe('account lifecycle API', () => {
     assert.notEqual(fresh.user_id, row.user_id, 'signing in again creates a brand-new member');
     assert.notEqual(fresh.member_no, row.member_no, 'with a different member number');
     assert.equal((await worker.call('/v1/me/deletion', authed(again.access_token, { method: 'DELETE' }))).status, 409, 'nothing to cancel');
+  });
+
+  test('Passkeys work from inside Apps: add, sign in on another App and device, replay and wrong origins refused, remove', async () => {
+    const member = await signIn('google', 'passkey-app-user');
+    const host = 'https://api.test';
+    const opts = async (path, token, body = {}) => (await worker.call(path, token ? authed(token, json(body)) : json(body))).json();
+    const key = await softPasskey(host, 'api.test');
+
+    assert.equal((await worker.call('/v1/me/passkeys/options', json({}))).status, 401, 'sign-in required to add');
+    const creation = (await opts('/v1/me/passkeys/options', member.access_token)).publicKey;
+    assert.equal(creation.rp.id, 'api.test');
+    const added = await worker.call('/v1/me/passkeys', authed(member.access_token, json({ name: 'Pixel', ...key.register(creation.challenge) })));
+    assert.equal(added.status, 201, await added.clone().text());
+    assert.equal((await worker.call('/v1/me/passkeys', authed(member.access_token, json({ ...key.register(creation.challenge) })))).status, 400, 'a challenge works once');
+    const listed = await (await worker.call('/v1/me/passkeys', authed(member.access_token))).json();
+    assert.deepEqual(listed.passkeys.map((p) => [p.id, p.name]), [[key.id, 'Pixel']]);
+
+    const login = async (app, signer, origin) => {
+      const o = (await opts('/v1/auth/passkey/options', null, { app_id: app })).publicKey;
+      const assertion = await signer.sign(o.challenge);
+      void origin;
+      return worker.call('/v1/auth/passkey', json({ app_id: app, ...assertion, device_label: 'Pixel 9' }));
+    };
+    const ok = await login('echo', key);
+    assert.equal(ok.status, 200, await ok.clone().text());
+    const tokens = await ok.json();
+    assert.equal(tokens.user.user_id, member.user.user_id);
+    assert.equal(tokens.user.is_new, false);
+    assert.equal((await worker.call('/v1/me', authed(tokens.access_token))).status, 200, 'the Passkey session works like any other');
+
+    // The challenge belongs to the App that asked for it.
+    const forEcho = (await opts('/v1/auth/passkey/options', null, { app_id: 'echo' })).publicKey;
+    assert.equal((await worker.call('/v1/auth/passkey', json({ app_id: 'recordnote', ...(await key.sign(forEcho.challenge)) }))).status, 401, 'another App cannot use it');
+    assert.equal((await worker.call('/v1/auth/passkey', json({ app_id: 'nope', ...(await key.sign(forEcho.challenge)) }))).status, 400);
+
+    // An App web page signs with its own origin (related origins); an unlisted origin is refused.
+    const webKey = await softPasskey('https://echo.starry.phd', 'api.test');
+    await worker.call('/v1/me/passkeys', authed(member.access_token, json({ ...webKey.register((await opts('/v1/me/passkeys/options', member.access_token)).publicKey.challenge) })));
+    assert.equal((await login('echo', webKey)).status, 200, 'an App web origin is accepted');
+    const evil = await softPasskey('https://evil.example', 'api.test');
+    await worker.call('/v1/me/passkeys', authed(member.access_token, json({ ...evil.register((await opts('/v1/me/passkeys/options', member.access_token)).publicKey.challenge) })));
+    assert.equal((await login('echo', evil)).status, 401, 'an unlisted origin is refused');
+    assert.equal((await login('recordnote', webKey)).status, 401, 'echo\'s web origin is not recordnote\'s');
+
+    assert.equal((await worker.call(`/v1/me/passkeys/${key.id}`, authed(member.access_token, { method: 'DELETE' }))).status, 204);
+    assert.equal((await worker.call(`/v1/me/passkeys/${key.id}`, authed(member.access_token, { method: 'DELETE' }))).status, 404);
+    assert.equal((await login('echo', key)).status, 401, 'a removed Passkey cannot sign in');
   });
 
   test('a member links Apple to a Google account and can then sign in with either', async () => {
