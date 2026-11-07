@@ -2,7 +2,7 @@ import { html } from 'hono/html';
 import { definitionFromForm, listRegisteredAppIds, saveRegisteredApp, type AppForm } from '../apps/dynamic';
 import { buildHandoff } from '../apps/handoff';
 import { appRegistry, getApp, type AppEntry } from '../apps/registry';
-import { listAppStatusOverrides } from '../apps/status';
+import { APP_STAGES, listAppStages, listAppStatusOverrides, STAGE_LABELS } from '../apps/status';
 import { enableAppBattery, hasAppBatteryKey } from '../battery/battery';
 import { WEB_APP_ID } from '../identity/web-sessions';
 import { type Role, type StaffActor } from '../identity/roles';
@@ -12,6 +12,7 @@ import { adminApp, adminPage, staff } from './admin-lib';
 
 export async function appsPage(c: WebContext, message?: string): Promise<Response> {
   const overrides = await listAppStatusOverrides(c.env.DB_IDENTITY);
+  const stages = await listAppStages(c.env.DB_IDENTITY);
   const registered = await listRegisteredAppIds(c.env.DB_IDENTITY);
   return c.html(
     adminPage(
@@ -24,9 +25,11 @@ ${message ? html`<div class="banner">${message}</div>` : ''}
 ${appRegistry.values().filter((app) => app.app_id !== WEB_APP_ID).map((app) => {
   const o = overrides.get(app.app_id);
   const own = registered.has(app.app_id);
-  return html`<form method="post" action="/admin/apps/${app.app_id}/status" class="card">
+  return html`<form id="stage-${app.app_id}" method="post" action="/admin/apps/${app.app_id}/stage"></form><form method="post" action="/admin/apps/${app.app_id}/status" class="card">
 <p><strong>${app.name}</strong> <code>${app.app_id}</code>（${own ? '後台登記' : 'config/apps.json'}）<br>預設：${app.status}｜目前：<strong>${o?.status ?? app.status}</strong>${o?.reason ? html`（${o.reason}）` : ''}</p>
 <p><a href="/admin/apps/${app.app_id}/handoff">給開發 AI 的串接指令</a>${own ? html`&emsp;<a href="/admin/apps/${app.app_id}/edit">編輯登記資料</a>` : ''}</p>
+<p>階段：<strong>${STAGE_LABELS[stages.get(app.app_id) ?? 'dev']}</strong>
+<select name="stage_value" form="stage-${app.app_id}">${APP_STAGES.map((st) => html`<option value="${st}"${(stages.get(app.app_id) ?? 'dev') === st ? ' selected' : ''}>${STAGE_LABELS[st]}</option>`)}</select> <button type="submit" form="stage-${app.app_id}" class="secondary">改階段</button></p>
 <label>新狀態</label><select name="status"><option value="default">使用預設</option><option value="active">active</option><option value="paused">paused</option><option value="killed">killed</option></select>
 <label>原因（最多 200 字）</label><input name="reason" maxlength="200">
 <button type="submit">更新</button></form>`;

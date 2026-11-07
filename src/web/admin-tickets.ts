@@ -1,4 +1,4 @@
-import { html } from 'hono/html';
+import { html, raw } from 'hono/html';
 import { type StaffActor } from '../identity/roles';
 import { auditStatement } from '../lib/audit';
 import { mailSettings } from '../notify/email';
@@ -29,6 +29,15 @@ ${result.nextCursor ? html`<p class="pager"><a href="/admin/tickets?status=${sta
     ),
   );
 });
+
+/** Canned replies for common tickets; the staff member edits the text before sending. */
+export const REPLY_TEMPLATES: readonly { label: string; text: string }[] = [
+  { label: '已收到，正在處理', text: '您好，我們已收到您的來信，正在確認處理中，有進一步消息會再通知您。謝謝您的耐心等候。' },
+  { label: '需要更多資訊', text: '您好，為了協助您，請回覆以下資訊：使用的 App 與版本、手機型號與系統版本、問題發生的時間與畫面描述（有截圖更好）。謝謝您。' },
+  { label: '問題已解決', text: '您好，您回報的問題已經處理完成，請重新開啟 App 再試一次。如果仍有狀況，歡迎直接回覆這封信。' },
+  { label: '訂閱與退款說明', text: '您好，App 內的訂閱與購買由 Apple 或 Google 處理。請至 App Store 或 Google Play 的「訂閱／購買紀錄」取消訂閱或申請退款；退款成功後，我們的系統會自動更新您的權益。' },
+  { label: '帳號刪除說明', text: '您好，您可以在網頁版帳號中心（id.starry.phd/account）的「刪除帳號」立即刪除帳號。刪除後資料無法復原；刪除不會自動取消商店訂閱，請先到商店取消。' },
+];
 
 async function ticketPage(c: WebContext, actor: StaffActor, ticketId: string, message?: string): Promise<Response> {
   const db = c.env.DB_IDENTITY;
@@ -66,6 +75,7 @@ ${!canEmail
     ? html`<p class="muted">找不到可回覆的 Email（會員的登入方式沒有提供 Email）。</p>`
     : html`<form method="post" action="/admin/tickets/${t.ticket_id}/reply" class="card">
 <p class="muted">寄給：${recipient}（信中會附上原始訊息，回信會寄到客服信箱）</p>
+<label for="tpl">快速範本（選了會填入下方，可再修改）</label><select id="tpl"><option value="">不使用範本</option>${REPLY_TEMPLATES.map((t, i) => html`<option value="${i}">${t.label}</option>`)}</select>
 <label for="reply">回覆內容（最多 2000 字）</label><textarea id="reply" name="reply" maxlength="2000" rows="6" required></textarea>
 ${t.status === 'open' ? html`<label><input type="checkbox" name="close" value="yes" style="width:auto" checked> 寄出後結案</label>` : ''}
 <button type="submit">寄出回覆</button>
@@ -76,6 +86,14 @@ ${t.status === 'open' ? html`<label><input type="checkbox" name="close" value="y
 <input type="hidden" name="status" value="${t.status === 'open' ? 'closed' : 'open'}">
 <button type="submit">${t.status === 'open' ? '結案' : '重新開啟'}</button>
 </form>`,
+      html`<script nonce="${c.get('cspNonce')}">
+var TEMPLATES = ${raw(JSON.stringify(REPLY_TEMPLATES.map((t) => t.text)).split('<').join('\\u003c'))};
+var tpl = document.getElementById('tpl');
+if (tpl) tpl.addEventListener('change', function () {
+  var area = document.getElementById('reply');
+  if (tpl.value !== '' && area) area.value = TEMPLATES[Number(tpl.value)];
+});
+</script>`,
     ),
   );
 }
