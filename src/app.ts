@@ -112,6 +112,10 @@ app.use('/account/session', limitByIp('RL_WEB'));
 app.use('/account/link', limitByIp('RL_WEB'));
 app.use('/account/link/merge', limitByIp('RL_WEB'));
 app.use('/support', limitByIp('RL_WEB'));
+// Anyone can call these without being signed in (or could try codes in bulk): keep guessing and flooding slow.
+for (const path of ['/account/passkey/login-options', '/account/passkey/login', '/account/redeem', '/account/claim-owner', '/account/contact-email/verify', '/account/verify-email']) {
+  app.use(path, limitByIp('RL_WEB'));
+}
 app.use('/auth/*', limitByIp('RL_WEB'));
 
 app.route('/v1/apps', appRoutes);
