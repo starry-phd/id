@@ -30,7 +30,7 @@ import { base64urlDecode, base64urlEncode, fromUtf8, utf8 } from '../lib/encodin
 import { readClientData, verifyAssertion, verifyRegistration } from '../auth/webauthn';
 import { addPasskey, findPasskey, listPasskeys, MAX_PASSKEYS, removePasskey, touchPasskey } from '../identity/passkeys';
 
-import { claimOwner, hasRole, isRecentLogin, roleOf } from '../identity/roles';
+import { claimOwner, hasRole, isRecentLogin, listAppStaffApps, roleOf } from '../identity/roles';
 import { createWebSession, endWebSession, WEB_APP_ID, WEB_SESSION_ABSOLUTE_MS } from '../identity/web-sessions';
 import { errorBody } from '../lib/errors';
 import { open as unseal, seal } from '../lib/sealed';
@@ -349,6 +349,7 @@ accountApp.get('/', async (c) => {
   const linkable = app && !pending ? linkableProviders(c, app, account.identities.map((i) => i.provider)) : { google: null, apple: null };
   const sessions = pending ? [] : await listActiveSessions(db, web.userId, now);
   const passkeys = pending ? [] : await listPasskeys(db, web.userId);
+  const managedApps = pending ? [] : await listAppStaffApps(db, web.userId);
   const [battery, batteryActivity, quantum] = pending
     ? [null, null, []]
     : await Promise.all([getBalance(c.env.DB_BATTERY, web.userId, now), recentActivity(c.env.DB_BATTERY, web.userId, now, { limit: 10 }), listQuantum(c.env.DB_BATTERY, web.userId)]);
@@ -382,6 +383,7 @@ ${!pending && needsConsent
   <p class="muted">Email 由登入服務提供，只用於聯絡，無法在此修改。</p>
   ${linkable.google || linkable.apple ? html`<a class="button" href="/account/link">加綁${linkable.apple && linkable.google ? '其他' : linkable.apple ? ' Apple ' : ' Google '}登入方式</a>` : ''}
 </div>
+${managedApps.length > 0 ? html`<h2>我管理的 App</h2><div class="card"><ul>${managedApps.map((a) => html`<li>${appLabel(a)}：<a href="/admin/apps/${a}/config">遠端設定</a></li>`)}</ul></div>` : ''}
 ${pending
   ? ''
   : html`<h2>Passkey</h2>
