@@ -64,26 +64,30 @@ adminApp.get('/', async (c) => {
     adminPage(
       c,
       'Admin Lite',
-      html`<h1>Admin Lite</h1><p class="muted">你的角色：${ROLE_LABELS[actor.role]} ｜ <a href="/admin/notices">公告與維護模式</a> ｜ <a href="/admin/broadcast">全 App 推播</a></p>
-<div class="card" style="display:flex;gap:16px;flex-wrap:wrap">${lights.map((l: Light) => html`<div style="min-width:130px"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:middle;background:${l.color === 'green' ? '#2e9e4f' : l.color === 'yellow' ? '#e0a800' : '#d32f2f'}"></span> <strong>${l.label}</strong><br><span class="muted">${l.text}</span></div>`)}</div>
+      html`<h1>首頁</h1><p class="muted">你的角色：<span class="badge">${ROLE_LABELS[actor.role]}</span></p>
+<div class="stats">${lights.map((l: Light) => html`<div class="stat${l.color === 'red' ? ' warn' : ''}"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;background:${l.color === 'green' ? '#2e9e4f' : l.color === 'yellow' ? '#e0a800' : '#d32f2f'}"></span> <strong>${l.label}</strong><br><span class="muted">${l.text}</span></div>`)}</div>
 ${problems > 0 ? html`<div class="banner danger">有 ${problems} 項系統狀況需要注意，請看下方「系統狀態」。</div>` : ''}
-<div class="card"><p>會員總數：<strong>${count(members)}</strong>（近 24 小時新增 <strong>${count(today)}</strong>）</p><p>未結客服單：<strong>${count(open)}</strong></p></div>
-<h2>各 App 使用概況</h2>
-<div class="card"><table><thead><tr><th>App</th><th>階段</th><th>用過的會員</th><th>7 天內</th><th>30 天內</th><th>有效權益</th></tr></thead><tbody>
+<div class="stats">
+<a class="stat" href="/admin/members" style="text-decoration:none;color:inherit"><b>${count(members)}</b><span>會員總數</span></a>
+<div class="stat"><b>${count(today)}</b><span>近 24 小時新增</span></div>
+<a class="stat${count(open) > 0 ? ' warn' : ''}" href="/admin/tickets?status=open" style="text-decoration:none;color:inherit"><b>${count(open)}</b><span>未結客服單</span></a>
+</div>
+<div class="grid">
+<div class="card"><h2 style="margin-top:0">各 App 使用概況</h2><div class="tablewrap"><table><thead><tr><th>App</th><th>階段</th><th>用過的會員</th><th>7 天內</th><th>30 天內</th><th>有效權益</th></tr></thead><tbody>
 ${seen.results.map((r) => html`<tr><td><code>${r.app_id}</code></td><td>${STAGE_LABELS[stages.get(r.app_id) ?? 'dev']}</td><td>${r.total}</td><td>${r.week}</td><td>${r.month}</td><td>${subs.results.find((x) => x.app_id === r.app_id)?.n ?? 0}</td></tr>`)}
-</tbody></table>${seen.results.length === 0 ? html`<p class="muted">還沒有會員使用任何 App。</p>` : ''}<p class="muted">有效權益＝目前生效的訂閱或買斷（不含測試環境）。</p></div>
-<h2>近 24 小時各 App</h2>
-<div class="card"><table><thead><tr><th>App</th><th>活躍會員</th><th>Battery 用量</th></tr></thead><tbody>
+</tbody></table></div>${seen.results.length === 0 ? html`<p class="muted">還沒有會員使用任何 App。</p>` : ''}<p class="muted">有效權益＝目前生效的訂閱或買斷（不含測試環境）。</p></div>
+<div class="card"><h2 style="margin-top:0">近 24 小時各 App</h2><div class="tablewrap"><table><thead><tr><th>App</th><th>活躍會員</th><th>Battery 用量</th></tr></thead><tbody>
 ${activeRows.map((r) => {
   const u = usage.results.find((x) => x.app_id === r.app_id);
   return html`<tr><td><code>${r.app_id}</code></td><td>${r.n}</td><td>${u ? `${u.used}（${u.members} 人）` : '0'}</td></tr>`;
 })}
-</tbody></table>${activeRows.length === 0 ? html`<p class="muted">近 24 小時沒有活動。</p>` : ''}</div>
-<h2>系統狀態</h2>
-<div class="card"><table><thead><tr><th>排程</th><th>最近成功</th><th>狀況</th></tr></thead><tbody>
+</tbody></table></div>${activeRows.length === 0 ? html`<p class="muted">近 24 小時沒有活動。</p>` : ''}</div>
+<div class="card"><h2 style="margin-top:0">系統狀態 ${problems > 0 ? html`<span class="badge bad">需要注意</span>` : html`<span class="badge ok">正常</span>`}</h2>
+<details${problems > 0 ? ' open' : ''}><summary>排程與清除作業明細</summary><div class="tablewrap"><table><thead><tr><th>排程</th><th>最近成功</th><th>狀況</th></tr></thead><tbody>
 ${beats.map((b) => html`<tr><td>${b.job === 'minutely' ? '每分鐘' : '每日'}</td><td>${b.last_success_at ? formatTime(b.last_success_at) : '—'}</td><td>${stale(b) ? html`<strong>逾時未成功</strong>${b.last_error ? html`<br><span class="muted">${b.last_error}</span>` : ''}` : '正常'}</td></tr>`)}
-</tbody></table>
-<p>刪除帳號後的清除作業：等待重試 <strong>${backlog.waiting}</strong>，已放棄 <strong>${backlog.abandoned}</strong>${backlog.abandoned > 0 ? '（需要人工處理）' : ''}</p></div>`,
+</tbody></table></div>
+<p>刪除帳號後的清除作業：等待重試 <strong>${backlog.waiting}</strong>，已放棄 <strong>${backlog.abandoned}</strong>${backlog.abandoned > 0 ? '（需要人工處理）' : ''}</p></details></div>
+</div>`,
     ),
   );
 });

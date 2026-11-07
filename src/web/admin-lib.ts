@@ -3,7 +3,7 @@ import { html } from 'hono/html';
 import type { AppBindings } from '../env';
 import { hasRole, isAppStaff, listAppStaffApps, roleOf, type Role, type StaffActor, type StatusChangeResult } from '../identity/roles';
 import { passkeyScript } from './account-lib';
-import { page, sameOrigin, webContext, type Html, type WebContext } from './layout';
+import { page, sameOrigin, webContext, type AdminMenu, type Html, type WebContext } from './layout';
 
 /**
  * Spec S-ADM-01 Admin Lite: server-rendered, phone-friendly, Starry ID sign-in plus a
@@ -70,12 +70,19 @@ export function scopeAllows(actor: StaffActor, appId: string | null): boolean {
   return actor.appScope === undefined || (appId !== null && actor.appScope.includes(appId));
 }
 
-const nav = html`<p><a href="/admin/members">會員</a>&emsp;<a href="/admin/tickets">客服單</a>&emsp;<a href="/admin/battery">Battery</a>&emsp;<a href="/admin/apps">App</a>&emsp;<a href="/admin/revenue">營收</a>&emsp;<a href="/admin/audit">稽核紀錄</a></p>`;
+/** Everyday pages sit in the top bar; the rest are folded into "更多" (and every item folds into the burger on a phone). */
+const FULL_MENU: AdminMenu = {
+  primary: [['/admin', '首頁'], ['/admin/members', '會員'], ['/admin/tickets', '客服單'], ['/admin/apps', 'App'], ['/admin/battery', 'Battery']],
+  more: [['/admin/notices', '公告與維護'], ['/admin/broadcast', '全 App 推播'], ['/admin/apps/status', '整合狀態'], ['/admin/revenue', '營收'], ['/admin/audit', '稽核紀錄'], ['/admin/apps/new', '新增 App']],
+};
 
-const scopedNav = html`<p><a href="/admin/tickets">客服單</a>&emsp;<a href="/admin/members">會員</a>&emsp;<a href="/account">我的帳號</a></p>`;
+const SCOPED_MENU: AdminMenu = {
+  primary: [['/admin/tickets', '客服單'], ['/admin/members', '會員']],
+  more: [],
+};
 
 export function adminPage(c: WebContext, title: string, body: Html, scripts?: Html, actor?: StaffActor): Html {
-  return page(c, title, html`${actor?.appScope ? scopedNav : nav}${body}`, { admin: true, ...(scripts ? { scripts } : {}) });
+  return page(c, title, body, { admin: true, menu: actor?.appScope ? SCOPED_MENU : FULL_MENU, ...(scripts ? { scripts } : {}) });
 }
 
 /**
