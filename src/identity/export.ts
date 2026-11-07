@@ -12,7 +12,7 @@ export async function exportMemberData(env: { DB_IDENTITY: D1Database; DB_BATTER
     loadProfile(db, userId),
     db.prepare('SELECT provider, email, created_at, last_login_at FROM auth_identities WHERE user_id = ? ORDER BY created_at').bind(userId).all(),
     db.prepare('SELECT document, version, accepted_at, withdrawn_at FROM consents WHERE user_id = ? ORDER BY accepted_at').bind(userId).all(),
-    db.prepare('SELECT app_id, first_seen_at FROM member_apps WHERE user_id = ? ORDER BY first_seen_at').bind(userId).all(),
+    db.prepare('SELECT app_id, first_seen_at, last_seen_at FROM member_apps WHERE user_id = ? ORDER BY first_seen_at').bind(userId).all(),
     env.DB_BATTERY.prepare("SELECT created_at, kind, amount, app_id, task_type, task_label FROM battery_ledger WHERE user_id = ? ORDER BY created_at DESC LIMIT 1000").bind(userId).all(),
     env.DB_BATTERY.prepare('SELECT app_id, balance FROM quantum_accounts WHERE user_id = ? ORDER BY app_id').bind(userId).all(),
     env.DB_BATTERY.prepare('SELECT created_at, app_id, kind, amount, product_id, task_label FROM quantum_ledger WHERE user_id = ? ORDER BY created_at DESC LIMIT 1000').bind(userId).all(),

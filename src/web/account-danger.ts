@@ -4,18 +4,22 @@ import { cleanupAfterDeletion } from '../identity/erase';
 import { cancelDeletion, deleteMemberNow } from '../identity/lifecycle';
 import { claimOwner } from '../identity/roles';
 import { WEB_APP_ID } from '../identity/web-sessions';
-import { page, readForm, SESSION_COOKIE } from './layout';
+import { getApp } from '../apps/registry';
+import { formatTime, page, readForm, SESSION_COOKIE } from './layout';
 import { accountApp } from './account-lib';
 
-accountApp.get('/delete', (c) => {
+accountApp.get('/delete', async (c) => {
   const web = c.get('web');
   if (!web) return c.redirect('/account?next=/account/delete', 303);
   if (web.status !== 'active') return c.redirect('/account', 303);
+  const subs = await c.env.DB_BILLING.prepare("SELECT app_id, entitlement, expires_at, store FROM entitlements WHERE user_id = ? AND active = 1 AND (environment IS NULL OR environment != 'SANDBOX') ORDER BY app_id").bind(web.userId).all<{ app_id: string; entitlement: string; expires_at: number | null; store: string | null }>();
+  const subList = subs.results.filter((s) => s.expires_at === null || s.expires_at > Date.now());
   return c.html(
     page(
       c,
       '刪除帳號',
       html`<h1>刪除 Starry 帳號</h1>
+${subList.length > 0 ? html`<div class="banner danger"><strong>你目前還有生效中的訂閱或購買：</strong><ul>${subList.map((s) => html`<li>${getApp(s.app_id)?.name ?? s.app_id}：${s.entitlement}${s.store ? `（${s.store}）` : ''}${s.expires_at ? `，到期 ${formatTime(s.expires_at)}` : ''}</li>`)}</ul>刪除帳號<strong>不會</strong>取消商店的訂閱，請先到 App Store 或 Google Play 取消，否則會繼續扣款。</div>` : ''}
 <div class="card">
   <ul>
     <li>按下刪除後，帳號<strong>立即永久刪除</strong>，所有繁星 App 與裝置都會登出。</li>

@@ -178,7 +178,7 @@ async function signIn(c: Ctx, provider: Provider, body: z.infer<typeof SignInReq
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(sessionId, member.user_id, app.app_id, refresh.hash, member.session_version, deviceLabel, now, now, now + REFRESH_TTL_MS),
-    db.prepare('INSERT OR IGNORE INTO member_apps (user_id, app_id, first_seen_at) VALUES (?, ?, ?)').bind(member.user_id, app.app_id, now),
+    db.prepare('INSERT INTO member_apps (user_id, app_id, first_seen_at, last_seen_at) VALUES (?, ?, ?, ?) ON CONFLICT (user_id, app_id) DO UPDATE SET last_seen_at = excluded.last_seen_at').bind(member.user_id, app.app_id, now, now),
     auditStatement(db, { actorType: 'user', actorUserId: member.user_id, action: `auth.login.${provider}`, targetType: 'session', targetId: sessionId, appId: app.app_id, result: 'success', requestId, retention: 'security' }, now),
   ]);
   await rememberProviderPhoto(db, identity.subject, identity.picture);
@@ -283,6 +283,8 @@ authRoutes.openapi(refreshRoute, async (c) => {
     .bind(next.hash, now, now + REFRESH_TTL_MS, parsed.sessionId, row.refresh_token_hash)
     .run();
   if (rotated.meta.changes !== 1) return fail(c, 401, 'INVALID_REFRESH', 'Please sign in again');
+  // At most one write an hour per member and App.
+  await db.prepare('UPDATE member_apps SET last_seen_at = ? WHERE user_id = ? AND app_id = ? AND (last_seen_at IS NULL OR last_seen_at < ?)').bind(now, row.user_id, row.app_id, now - 3600_000).run();
   const tokens = await issueTokenPair(c.env, { userId: row.user_id, appId: row.app_id, sessionId: parsed.sessionId, sessionVersion: row.session_version, refreshToken: next.token }, now);
   return c.json(tokens, 200);
 });
