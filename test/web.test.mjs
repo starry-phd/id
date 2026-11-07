@@ -361,6 +361,15 @@ describe('web account center, support form and Admin Lite', () => {
     assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.battery_adjusted' AND target_id IN (?, ?)").bind(a, b).first('n'), 2);
     assert.match(await (await worker.call('/admin/members/bulk', bulk([['ids', a], ['action', 'suspend'], ['reason', '測試']]))).text(), /已處理 1 位/);
     assert.equal(await worker.db.prepare('SELECT status FROM users WHERE user_id = ?').bind(a).first('status'), 'suspended');
+    // Bulk notification (item 7): validated first; members without a device or not active are counted, not sent to.
+    assert.match(await (await worker.call('/admin/members/bulk', bulk([['ids', b], ['action', 'notify'], ['notify_title', '標題'], ['notify_body', '內容']]))).text(), /請選擇要發送的 App/);
+    assert.match(await (await worker.call('/admin/members/bulk', bulk([['ids', b], ['action', 'notify'], ['notify_app', 'echo'], ['notify_title', ''], ['notify_body', '內容']]))).text(), /標題需為 1～100 字/);
+    assert.match(await (await worker.call('/admin/members/bulk', bulk([['ids', b], ['action', 'notify'], ['notify_app', 'echo'], ['notify_title', '標題'], ['notify_body', 'x'.repeat(301)]]))).text(), /內容需為 1～300 字/);
+    const notified = await (await worker.call('/admin/members/bulk', bulk([['ids', a], ['ids', b], ['action', 'notify'], ['notify_app', 'echo'], ['notify_title', '維護通知'], ['notify_body', '今晚維護']]))).text();
+    assert.match(notified, /已送達 0 位（0 台裝置）/);
+    assert.match(notified, /沒有這款 App 的裝置 1 位、非正常狀態 1 位/);
+    assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.bulk_notify' AND app_id = 'echo'").first('n'), 1);
+    await worker.db.prepare('UPDATE users SET status = ? WHERE user_id = ?').bind('active', a).run();
 
     const save = await worker.call('/admin/apps/echo/config', form({ config: 'new_feature = true\nmin_version = 1.2.0' }, adminCookie));
     assert.match(await save.text(), /已儲存/);

@@ -46,6 +46,8 @@ export interface Env {
   /** Sender and support mailbox for system email, e.g. support@starry.phd for both sending and the support mailbox. */
   EMAIL_FROM?: string;
   SUPPORT_EMAIL?: string;
+  /** Optional Expo access token for the push service (only needed if Enhanced Push Security is on). */
+  EXPO_PUSH_ACCESS_TOKEN?: string;
   /** Sentry DSN (public key, set as a variable) for error monitoring; without it nothing is sent. */
   SENTRY_DSN?: string;
   /** Turnstile for the public support form (S-WEB-02); without the secret the form relies on rate limits. */
