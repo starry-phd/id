@@ -1,6 +1,7 @@
 import { html } from 'hono/html';
 import { appOverview } from '../apps/overview';
 import { definitionFromForm, listRegisteredAppIds, saveRegisteredApp, type AppForm } from '../apps/dynamic';
+import { listCatalog } from '../apps/catalog';
 import { buildHandoff, HANDOFF_UPDATED, HANDOFF_VERSION } from '../apps/handoff';
 import { appRegistry, getApp, type AppEntry } from '../apps/registry';
 import { APP_STAGES, listAppStages, listAppStatusOverrides, STAGE_LABELS } from '../apps/status';
@@ -144,7 +145,7 @@ adminApp.post('/apps/:id/edit', async (c) => {
 
 async function handoffPage(c: WebContext, role: Role, app: AppEntry, notice: string, serviceKey?: string): Promise<Response> {
   const hasKey = serviceKey !== undefined || (await hasAppBatteryKey(c.env.DB_BATTERY, app.app_id));
-  const text = buildHandoff(app, new URL(c.req.url).origin, { battery: hasKey });
+  const text = buildHandoff(app, new URL(c.req.url).origin, { battery: hasKey, products: await listCatalog(c.env.DB_IDENTITY, app.app_id) });
   const regenerate =
     role === 'owner'
       ? html`<form method="post" action="/admin/apps/${app.app_id}/battery-key" class="inline"><button type="submit">${hasKey ? '重新產生 Battery 服務金鑰' : '開通 Battery'}</button></form>`
@@ -168,6 +169,7 @@ ${serviceKey
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input id="battery-key" readonly value="${serviceKey}" style="flex:1;min-width:220px;font-family:monospace"><button type="button" data-copy="battery-key">複製金鑰</button>${regenerate}</div>`
   : html`<p class="muted">${hasKey ? '已開通；金鑰只在建立或重新產生時顯示一次。' : '尚未開通。'}</p><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${regenerate}</div>`}
 </div>
+<p><a href="/admin/apps/${app.app_id}/products">商品目錄（商店商品 ID 與權益）</a></p>
 <p><a href="/admin/apps/${app.app_id}/quantum">量子電池（內購加量包）設定</a></p>
 <p><a href="/admin/apps/${app.app_id}/invites">邀請碼（送免費量子電池）</a></p>
 <p><a href="/admin/apps/${app.app_id}/config">遠端設定（App 啟動時讀取）</a></p>

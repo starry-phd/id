@@ -1,3 +1,4 @@
+import { catalogHandoffLines, type CatalogProduct } from './catalog';
 import type { AppEntry } from './registry';
 
 const GUIDE_URL = 'https://raw.githubusercontent.com/starry-phd/id/main/docs/integration-guide.md';
@@ -6,8 +7,8 @@ const GUIDE_URL = 'https://raw.githubusercontent.com/starry-phd/id/main/docs/int
  * Version of the handoff text. Bump both whenever the text below changes (a unit test fails until you do),
  * so the Owner can tell at a glance whether the copy an App's AI received is the latest one.
  */
-export const HANDOFF_VERSION = '2026-11-07.5';
-export const HANDOFF_UPDATED = '2026-11-07 15:40（台灣時間）';
+export const HANDOFF_VERSION = '2026-11-07.6';
+export const HANDOFF_UPDATED = '2026-11-07 17:00（台灣時間）';
 
 function list(values: readonly string[]): string {
   return values.length === 0 ? '（無）' : values.join('、');
@@ -18,7 +19,7 @@ function list(values: readonly string[]): string {
  * already public (nothing secret) and tells that AI how to connect to Starry ID, GitHub and Cloudflare
  * without touching Starry ID's code or asking for new Apple/Google console work.
  */
-export function buildHandoff(app: AppEntry, origin: string, options: { battery: boolean } = { battery: false }): string {
+export function buildHandoff(app: AppEntry, origin: string, options: { battery: boolean; products?: readonly CatalogProduct[] } = { battery: false }): string {
   const id = app.app_id;
   const lines = [
     `【串接指令版本 ${HANDOFF_VERSION}｜更新時間 ${HANDOFF_UPDATED}】`,
@@ -60,7 +61,8 @@ export function buildHandoff(app: AppEntry, origin: string, options: { battery: 
     '   - 錯誤處理：使用者取消不要顯示錯誤；InvalidStateError（這支裝置已有這把 Passkey）請白話說明；找不到 Passkey 時引導改用 Apple 或 Google 登入。',
     '4. 會員身分只用 Starry 的 user_id（內部以 provider＋sub 辨識，不用 Email 或姓名合併）。App 後端用 GET /.well-known/jwks.json 驗證 Access Token。',
     '5. App 內必須提供串接說明第 4 節的帳號功能（登出、刪除帳號、同意條款等）。',
-    '6. 需要販售（RevenueCat）時，才依串接說明第 5 節處理；需要業主設定的項目，請列成清單回報給業主。',
+    '6. 需要販售（RevenueCat）時，才依串接說明第 5 節處理；需要業主設定的項目，請列成清單回報給業主。商店商品與權益名稱以業主登記的「商品目錄」為準，不要自己新增或改名：',
+    ...catalogHandoffLines(options.products ?? []).map((line) => `   ${line}`),
     ...(options.battery
       ? [
           `7. Starry Battery（會員共用的免費 AI 用量月額度）已為這款 App 開通：任務代碼一律以「${id}.」開頭（例如「${id}.ai」），自行命名即可，不需向 Starry ID 登記。`,
