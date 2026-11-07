@@ -1,6 +1,7 @@
 import { WEB_APP_ID } from '../identity/web-sessions';
 import { auditStatement } from '../lib/audit';
-import { getApp, isStaticApp, parseApp, setDynamicApps, type AppEntry } from './registry';
+import { loadBuiltinOverrides } from './builtin-overrides';
+import { appDefinition, getApp, isStaticApp, parseApp, setDynamicApps, type AppEntry } from './registry';
 
 /**
  * Apps the Owner registers in Admin Lite. Stored as the same JSON an entry of config/apps.json uses,
@@ -8,10 +9,12 @@ import { getApp, isStaticApp, parseApp, setDynamicApps, type AppEntry } from './
  * (the same window as the App status kill switch).
  */
 const CACHE_MS = 30 * 1000;
-let loadedAt = 0;
+/** After a failed read the database is left alone this long, so an outage does not add a failing query to every request. */
+const RETRY_MS = 10 * 1000;
+let nextLoadAt = 0;
 
 export function clearDynamicAppCache(): void {
-  loadedAt = 0;
+  nextLoadAt = 0;
 }
 
 interface Row {
@@ -21,7 +24,10 @@ interface Row {
 
 /** Loads registered Apps into the registry. A broken row or table never blocks the Apps in config/apps.json. */
 export async function refreshDynamicApps(db: D1Database, now: number): Promise<void> {
-  if (loadedAt !== 0 && now - loadedAt < CACHE_MS) return;
+  if (now < nextLoadAt) return;
+  // Set before reading: concurrent requests in this isolate share one read, and a failure backs off.
+  nextLoadAt = now + CACHE_MS;
+  await loadBuiltinOverrides(db);
   try {
     const rows = await db.prepare('SELECT app_id, definition FROM registered_apps ORDER BY app_id').all<Row>();
     const apps = new Map<string, AppEntry>();
@@ -34,8 +40,8 @@ export async function refreshDynamicApps(db: D1Database, now: number): Promise<v
       }
     }
     setDynamicApps(apps);
-    loadedAt = now;
   } catch (error) {
+    nextLoadAt = now + RETRY_MS;
     console.error(JSON.stringify({ level: 'error', event: 'registered_app.load_failed', message: error instanceof Error ? error.message : 'failed' }));
   }
 }
@@ -115,21 +121,7 @@ export function definitionFromForm(form: AppForm, options: { defaults?: boolean 
 }
 
 function serialize(app: AppEntry): string {
-  return JSON.stringify({
-    app_id: app.app_id,
-    name: app.name,
-    ios_bundle_id: app.ios_bundle_id,
-    android_package: app.android_package,
-    status: app.status,
-    scopes: app.scopes,
-    min_version: app.min_version,
-    config: app.config,
-    auth: { apple_audiences: app.auth.apple, google_audiences: app.auth.google },
-    web_origins: app.web_origins,
-    return_urls: app.return_urls,
-    ios_team_id: app.ios_team_id,
-    android_cert_sha256: app.android_cert_sha256,
-  });
+  return JSON.stringify(appDefinition(app));
 }
 
 export type SaveResult = 'created' | 'updated' | 'reserved' | 'exists' | 'not_found';
