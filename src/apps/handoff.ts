@@ -7,8 +7,8 @@ const GUIDE_URL = 'https://raw.githubusercontent.com/starry-phd/id/main/docs/int
  * Version of the handoff text. Bump both whenever the text below changes (a unit test fails until you do),
  * so the Owner can tell at a glance whether the copy an App's AI received is the latest one.
  */
-export const HANDOFF_VERSION = '2026-11-07.17';
-export const HANDOFF_UPDATED = '2026-11-08 01:45（台灣時間）';
+export const HANDOFF_VERSION = '2026-11-07.18';
+export const HANDOFF_UPDATED = '2026-11-08 01:25（台灣時間）';
 
 function list(values: readonly string[]): string {
   return values.length === 0 ? '（無）' : values.join('、');
@@ -64,7 +64,7 @@ export function buildHandoff(app: AppEntry, origin: string, options: { battery: 
     `   - 共用登入（單一登入，必做）：所有繁星 App 的登入狀態共用——在任一款 App 登入，同一支手機上的其他繁星 App 自動登入；登出或切換帳號，所有 App 都跟著登出或切換。做法：用 Starry SDK（sdk/starry-client.ts）建立 StarryClient 時傳入 sharedStorage。iPhone（必做）：所有繁星 App 一律使用同一個 Keychain 群組，名稱固定為 $(AppIdentifierPrefix)phd.starry.shared（業主不用在 Apple 後台另外設定，只要同一個 Apple 開發者帳號；你只要在這款 App 的專案設定 keychain-access-groups 加上這一個群組，Expo 在 app.json 的 ios.entitlements 設定，並用支援 access group 的鑰匙圈套件，例如 react-native-keychain 的 accessGroup 選項，把 sso_token 存進去，鍵名 starry.sso）。Android（選做，業主之後再決定，目前請略過，不要為此阻擋上架）：需要同簽章的共用通道。App 啟動與每次回到前景都呼叫 starry.syncDeviceSignIn()（restore() 已包含）。底層 API：登入後 POST ${origin}/v1/auth/sso/start（帶 Access Token，body 可帶 previous_sso_token）取得 sso_token 存進共用儲存；其他 App 用 POST ${origin}/v1/auth/sso/exchange {app_id:"${id}", sso_token} 換自己的登入；POST /v1/auth/sso/status {sso_token} 檢查是否已被登出或換人；登出用 POST /v1/auth/sso/logout {sso_token}（SDK 的 signOut() 已包含，會一併登出所有 App）。登出按鈕文字請寫「登出所有繁星 App」。`,
     `   - 網頁版也要共用登入（同一個瀏覽器內的所有繁星網頁版連動）：瀏覽器無法共用儲存，所以走 id.starry.phd。網頁版登入完成後呼叫 starry.shareWebSignIn({returnUrl})，讓 id.starry.phd 記住這個瀏覽器已登入；每次載入頁面（SDK 內建 5 分鐘節流）呼叫 starry.syncWebSignIn({returnUrl}) 詢問目前是誰；回到 returnUrl 時呼叫 starry.completeWebSsoCheck()（回傳 null 代表網址沒有結果，true／false 代表現在是否已登入）。returnUrl 必須是這款 App 已登記的網頁版來源底下的頁面（不能帶 #）。登出用 starry.signOutWebEverywhere({returnUrl})，會登出這個瀏覽器所有繁星網頁版。底層網址：${origin}/auth/sso/adopt、/auth/sso/check、/auth/sso/logout，以及 POST ${origin}/v1/auth/sso/web-code 與 /v1/auth/sso/web-exchange。限制：網頁版只在同一個瀏覽器內連動，手機 App 與網頁版之間不連動；網頁版在下一次載入頁面時才會跟上登出或換人。`,
     '4. 會員身分只用 Starry 的 user_id（內部以 provider＋sub 辨識，不用 Email 或姓名合併）。App 後端用 GET /.well-known/jwks.json 驗證 Access Token。',
-    '   - 會員頭像（所有繁星 App 一致）：用 GET /v1/me 的 profile.avatar_url（簽名網址，1 小時有效，每次進畫面重新取得）；avatar_url 為 null 時，在圓形裡顯示 profile.initials（姓與名各取第一個字，伺服器已算好，不要自己算）。頭像優先使用 Google 照片，會員可在 Starry 帳號中心自訂並裁切，所有 App 同步；App 內不要自己做頭像上傳或另存一份。會員的公開基本資料頁是 https://id.starry.phd/<會員編號>，邀請連結是 https://id.starry.phd/Invite/<會員編號>（Invite 後面有一個斜線）（會員編號用 GET /v1/me 的 member_no，格式是 2 個英文字母的國家代碼加 7 位數字，例如 TW0112342）。會員可以自己修改會員編號，修改後公開頁與邀請連結都會改變，所以 App 不可以把 member_no 當作資料的主鍵或檔案名稱，一律用 user_id（會員通行證的 sub）；每次要顯示或分享時重新讀 member_no。App 內若有「分享」入口請用原生分享功能表分享這個邀請連結。',
+    '   - 會員頭像（所有繁星 App 一致）：用 GET /v1/me 的 profile.avatar_url（簽名網址，1 小時有效，每次進畫面重新取得）；avatar_url 為 null 時，在圓形裡顯示 profile.initials（姓與名各取第一個字，伺服器已算好，不要自己算）。頭像優先使用 Google 照片，會員可在 Starry 帳號中心自訂並裁切，所有 App 同步；App 內不要自己做頭像上傳或另存一份。會員的公開基本資料頁是 https://id.starry.phd/<會員編號>，邀請連結是 https://id.starry.phd/Invite/<會員編號>（Invite 後面有一個斜線）（會員編號用 GET /v1/me 的 member_no，格式是 2 個大寫英文字母的國家代碼加 7～10 位數字（預設是 0 開頭的 7 位，不夠用時會加長），例如 TW0123456，App 不要假設固定長度）。會員可以自己修改會員編號，修改後公開頁與邀請連結都會改變，所以 App 不可以把 member_no 當作資料的主鍵或檔案名稱，一律用 user_id（會員通行證的 sub）；每次要顯示或分享時重新讀 member_no。App 內若有「分享」入口請用原生分享功能表分享這個邀請連結。',
     '5. App 內必須提供串接說明第 4 節的帳號功能（登出、刪除帳號、同意條款等）。',
     '   - 電池圖示（固定規範，所有繁星 App、網頁、通知一致）：只要畫面或文字提到電池，就要在前面放對應的圖示，普通電池用 🔋，量子電池用 ⚛️。格式是「🔋 10 顆普通電池」「⚛️ 3 顆量子電池」，數量很緊湊的地方只放「🔋 10」「⚛️ 3」。不要自己換成別的圖示。',
     `   - 客服入口：設定頁放「聯絡客服」，用系統瀏覽器開啟 ${origin}/support?app_id=${id}&app_version=<App 版本，例如 1.4.2 (88)>&device=<裝置型號，例如 iPhone 15 Pro>（值要先做網址編碼）。會員已登入網頁帳號中心時，客服單會自動帶上會員編號；版本與裝置只放這兩項，不要放其他個資或 Token。`,

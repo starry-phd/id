@@ -142,4 +142,4 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 - 組織網改為圓形頭像＋暱稱／姓名的樹狀圖（我在最上方），不顯示編號。
 - 電池圖示規範（`src/lib/battery-icons.ts`）：普通電池 🔋、量子電池 ⚛️，凡提到電池都要帶圖示；格式「🔋 10 顆普通電池」「⚛️ 3 顆量子電池」。已寫進串接指令。
 - Google 頭像匯入失敗時回傳原因代碼（`importProviderAvatarDetailed`）：`http_<狀態>`、`redirect_host`、`empty_or_large`、`save_*`、`error_*`；同時寫入日誌 `avatar.import_failed`。
-- 串接指令版本 `2026-11-07.17`。
+- 串接指令版本 `2026-11-07.18`（.18 更正會員編號長度為 7～10 位）。
