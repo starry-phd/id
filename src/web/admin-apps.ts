@@ -7,7 +7,8 @@ import { appRegistry, getApp, type AppEntry } from '../apps/registry';
 import { APP_STAGES, listAppStages, listAppStatusOverrides, STAGE_LABELS } from '../apps/status';
 import { enableAppBattery, hasAppBatteryKey } from '../battery/battery';
 import { WEB_APP_ID } from '../identity/web-sessions';
-import { type Role, type StaffActor } from '../identity/roles';
+import { hasRole, roleOf, type Role, type StaffActor } from '../identity/roles';
+import { revenueSummary } from '../billing/revenue';
 import { auditStatement } from '../lib/audit';
 import { readForm, type WebContext } from './layout';
 import { adminApp, adminPage, staff } from './admin-lib';
@@ -17,6 +18,10 @@ export async function appsPage(c: WebContext, message?: string): Promise<Respons
   const stages = await listAppStages(c.env.DB_IDENTITY);
   const registered = await listRegisteredAppIds(c.env.DB_IDENTITY);
   const stats = await appOverview({ identity: c.env.DB_IDENTITY, billing: c.env.DB_BILLING, battery: c.env.DB_BATTERY }, Date.now());
+  // Revenue is an Admin-and-above figure (same rule as /admin/revenue); support staff never see it on the cards.
+  const web = c.get('web');
+  const viewer = web ? await roleOf(c.env.DB_IDENTITY, c.env.OWNER_USER_IDS, web.userId) : null;
+  const revenue = hasRole(viewer, 'admin') ? new Map((await revenueSummary(c.env.DB_BILLING, Date.now() - 30 * 86400_000)).filter((r) => !r.sandbox).map((r) => [r.appId, r])) : null;
   return c.html(
     adminPage(
       c,
@@ -36,6 +41,7 @@ ${appRegistry.values().filter((app) => app.app_id !== WEB_APP_ID).map((app) => {
   return html`<form id="stage-${app.app_id}" method="post" action="/admin/apps/${app.app_id}/stage"></form><form method="post" action="/admin/apps/${app.app_id}/status" class="card">
 <p><strong>${app.name}</strong> <code>${app.app_id}</code>（${own ? '後台登記' : 'config/apps.json'}）<br>預設：${app.status}｜目前：<strong>${o?.status ?? app.status}</strong>${o?.reason ? html`（${o.reason}）` : ''}</p>
 <p>會員 <strong>${st?.members ?? 0}</strong>｜7 天內 <strong>${st?.week ?? 0}</strong>｜30 天內 <strong>${st?.month ?? 0}</strong>｜有效權益 <strong>${st?.entitlements ?? 0}</strong>｜本月 Battery <strong>${st?.batteryUsed ?? 0}</strong>${st?.batteryCap != null ? ` ／ 上限 ${st.batteryCap}` : ''}｜預設最低版本 <strong>${app.min_version ?? '0.0.0'}</strong>&emsp;${quick}</p>
+${revenue ? html`<p>近 30 天營收（估計，USD）<strong>${(revenue.get(app.app_id)?.revenueUsd ?? 0).toFixed(2)}</strong>｜退款 ${(revenue.get(app.app_id)?.refundedUsd ?? 0).toFixed(2)}｜新訂閱 ${revenue.get(app.app_id)?.newPurchases ?? 0}｜退訂 ${revenue.get(app.app_id)?.cancellations ?? 0}｜<a href="/admin/revenue">營收明細</a></p>` : ''}
 <p><a href="/admin/apps/${app.app_id}/handoff">給開發 AI 的串接指令</a>${own ? html`&emsp;<a href="/admin/apps/${app.app_id}/edit">編輯登記資料</a>` : ''}</p>
 <p>階段：<strong>${STAGE_LABELS[stages.get(app.app_id) ?? 'dev']}</strong>
 <select name="stage_value" form="stage-${app.app_id}">${APP_STAGES.map((st) => html`<option value="${st}"${(stages.get(app.app_id) ?? 'dev') === st ? ' selected' : ''}>${STAGE_LABELS[st]}</option>`)}</select> <button type="submit" form="stage-${app.app_id}" class="secondary">改階段</button></p>
