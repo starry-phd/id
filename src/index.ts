@@ -8,10 +8,10 @@ import { reconcileWithRevenueCat } from './billing/reconcile';
 import { quantumHook } from './battery/purchases';
 import { loadRevenueCatSecrets } from './billing/app-secrets';
 import { processPendingEvents, processRevenueCatDeletions } from './billing/revenuecat';
-import type { Env } from './env';
+import type { CleanupMessage, Env } from './env';
 import { reportError } from './lib/error-report';
 import { markFinished, markStarted, type JobName } from './lib/heartbeat';
-import { executeCleanup, runCleanupJobs } from './identity/cleanup-jobs';
+import { executeCleanup, runCleanupJobById, runCleanupJobs } from './identity/cleanup-jobs';
 import { runDailyMaintenance } from './identity/maintenance';
 import { assignMissingMemberNumbers } from './identity/member-number';
 
@@ -115,4 +115,19 @@ async function scheduled(controller: ScheduledController, env: Env): Promise<voi
   }
 }
 
-export default { fetch: app.fetch, scheduled };
+/** Queue consumer for deletion clean-up jobs (ADR 0009). Every message is acknowledged or explicitly retried. */
+async function queue(batch: MessageBatch<CleanupMessage>, env: Env): Promise<void> {
+  for (const message of batch.messages) {
+    const now = Date.now();
+    try {
+      const outcome = await runCleanupJobById(env.DB_IDENTITY, message.body.jobId, now, (kind, userId, payload) => executeCleanup(env, kind, userId, payload, now));
+      if (outcome.status === 'retry') message.retry({ delaySeconds: Math.ceil(outcome.delayMs / 1000) });
+      else message.ack();
+    } catch (error) {
+      console.error(JSON.stringify({ level: 'error', event: 'deletion.cleanup_queue', message: error instanceof Error ? error.message : 'failed' }));
+      message.retry({ delaySeconds: 60 });
+    }
+  }
+}
+
+export default { fetch: app.fetch, scheduled, queue };

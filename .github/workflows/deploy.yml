@@ -49,6 +49,12 @@ jobs:
           npx wrangler d1 migrations apply starry-identity-staging --remote --env staging
           npx wrangler d1 migrations apply starry-billing-staging --remote --env staging
           npx wrangler d1 migrations apply starry-battery-staging --remote --env staging
+      - name: Ensure queues (staging)
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          for q in starry-cleanup-staging starry-cleanup-dlq-staging; do
+            npx wrangler queues create "$q" 2>&1 | tee queue.log || grep -qi "already exists" queue.log
+          done
       - name: Deploy Worker (staging)
         id: deploy
         if: steps.gate.outputs.enabled == 'true'
@@ -94,6 +100,11 @@ jobs:
           npx wrangler d1 migrations apply starry-identity --remote
           npx wrangler d1 migrations apply starry-billing --remote
           npx wrangler d1 migrations apply starry-battery --remote
+      - name: Ensure queues (production)
+        run: |
+          for q in starry-cleanup starry-cleanup-dlq; do
+            npx wrangler queues create "$q" 2>&1 | tee queue.log || grep -qi "already exists" queue.log
+          done
       - name: Deploy Worker (production)
         id: deploy
         run: |

@@ -1,6 +1,10 @@
 import type { RateLimiter } from './lib/rate-limit';
 import type { EmailSender } from './notify/email';
 
+export interface CleanupMessage {
+  jobId: string;
+}
+
 export type StarryEnvironment = 'development' | 'staging' | 'production';
 
 /** Cloudflare bindings available to the platform Worker. */
@@ -53,6 +57,8 @@ export interface Env {
   RL_WEB?: RateLimiter;
   /** Per App service key (Battery, member directory): a larger bucket so one App cannot use up another's allowance. */
   RL_APP?: RateLimiter;
+  /** Queue for deletion clean-up retries (ADR 0009); optional, the minute schedule retries the same jobs without it. */
+  CLEANUP_QUEUE?: Queue<CleanupMessage>;
   /** Development only: provider JWKS and audiences used by local tests instead of Apple/Google. */
   AUTH_TEST_JWKS?: string;
   AUTH_TEST_AUDIENCES?: string;

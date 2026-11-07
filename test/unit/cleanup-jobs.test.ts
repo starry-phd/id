@@ -1,7 +1,7 @@
 // Unit tests for the deletion clean-up retry queue and the job heartbeats.
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { cleanupBacklog, enqueueCleanup, MAX_ATTEMPTS, retryDelayMs, runCleanupJobs } from '../../src/identity/cleanup-jobs';
+import { cleanupBacklog, enqueueCleanup, MAX_ATTEMPTS, retryDelayMs, runCleanupJobById, runCleanupJobs } from '../../src/identity/cleanup-jobs';
 import { markFinished, markStarted, readHeartbeats } from '../../src/lib/heartbeat';
 import { migratedDb } from '../support/sqlite-d1.mjs';
 
@@ -60,5 +60,33 @@ describe('job heartbeats', () => {
     assert.equal(beat?.last_success_at, NOW + 1);
     assert.equal(beat?.last_error_at, NOW + MIN + 1);
     assert.equal(beat?.last_error, 'reconcile: boom');
+  });
+});
+
+describe('queue consumer step', () => {
+  test('runs one job by id, retries with a delay, and ignores jobs that are gone', async () => {
+    const d = migratedDb() as unknown as D1Database;
+    const id = await enqueueCleanup(d, 'billing', 'u-3', null, NOW);
+    const failing = async () => {
+      throw new Error('down');
+    };
+    assert.deepEqual(await runCleanupJobById(d, id, NOW + MIN, failing), { status: 'retry', delayMs: retryDelayMs(1) });
+    assert.deepEqual(await cleanupBacklog(d), { waiting: 1, abandoned: 0 });
+    assert.deepEqual(await runCleanupJobById(d, id, NOW + 2 * MIN, async () => undefined), { status: 'done' });
+    assert.deepEqual(await runCleanupJobById(d, id, NOW + 3 * MIN, async () => undefined), { status: 'missing' });
+    assert.deepEqual(await cleanupBacklog(d), { waiting: 0, abandoned: 0 });
+  });
+
+  test('abandons a job after the last attempt and never runs it again', async () => {
+    const d = migratedDb() as unknown as D1Database;
+    const id = await enqueueCleanup(d, 'battery', 'u-4', null, NOW);
+    const failing = async () => {
+      throw new Error('down');
+    };
+    let last: unknown;
+    for (let i = 0; i < MAX_ATTEMPTS; i++) last = await runCleanupJobById(d, id, NOW + (i + 1) * MIN, failing);
+    assert.deepEqual(last, { status: 'abandoned' });
+    assert.deepEqual(await runCleanupJobById(d, id, NOW + 99 * MIN, async () => undefined), { status: 'missing' });
+    assert.deepEqual(await cleanupBacklog(d), { waiting: 0, abandoned: 1 });
   });
 });
