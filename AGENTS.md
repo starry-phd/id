@@ -69,4 +69,6 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 3. 使用 RevenueCat 的 App：業主依 `docs/owner-setup.md` 第 6 步設定 Webhook 與 API Key；設定後每日對帳自動涵蓋。
 3a. 量子電池（內購加量包）：Battery 全部免費；指定 App 可內購「量子電池」，只能在購買的 App 使用、不過期。Owner 在 `/admin/apps/<id>/quantum` 設定商店商品代碼對應顆數；扣款先免費後量子；RevenueCat 一次性商品入帳、客服退款扣回；帳號合併時移到保留帳號。商店規則：Google Play 虛擬貨幣僅限購買的 App 使用；Apple 3.1.1 購買的點數不得過期並需有還原機制。
 3b. 後台首頁（`/admin`）顯示近 24 小時各 App 活躍會員與 Battery 用量、排程心跳與刪除清除重試佇列；`sdk/starry-sdk.ts` 是 App 後端用的單檔 SDK。
+3c. 簽章金鑰輪替：Secret `ACCESS_TOKEN_PREVIOUS_JWKS` 放舊公鑰，輪替期間舊 Token 仍有效，步驟見 `docs/owner-setup.md`。
+3d. 刻意保留的設計（不是漏做）：echo／recordnote／account 留在 `config/apps.json`（資料庫故障時既有 App 仍可登入）；7 天刪除寬限期仍是現行對外行為（`deletion_purge_at` 欄位）；Passkey／Email 登入尚未實作（需要 WebAuthn 驗證與信件登入的產品決策，另開）。
 4. 業主外部事項：`docs/owner-setup.md`（Google Play 帳號類型、App Store 付費協議、GitHub 帳號整併等）。

@@ -102,7 +102,7 @@ app.openapi(jwksRoute, async (c) => {
   const key = await loadSigningKey(c.env);
   if (!key) return c.json(errorBody('AUTH_NOT_CONFIGURED', 'Signing key not configured', c.get('requestId')), 503);
   c.header('cache-control', 'public, max-age=3600');
-  return c.json({ keys: [{ ...key.publicJwk }] }, 200);
+  return c.json({ keys: [{ ...key.publicJwk }, ...key.retired.map((r) => ({ ...r.publicJwk }))] }, 200);
 });
 
 app.use('/v1/*', apiCors);

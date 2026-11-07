@@ -109,3 +109,9 @@ GitHub Ruleset「Protect main」（Active、Bypass 清單為空）：必須經 P
 3. 畫面上會出現 DSN（`https://…@….ingest.sentry.io/…`），複製傳給 Claude。DSN 是公開金鑰，可以直接貼在對話裡。
 4. Claude 把它寫進 `wrangler.jsonc` 的 `SENTRY_DSN` 並部署；之後伺服器錯誤與排程失敗會寄到你的 Sentry 信箱。
 
+
+## 簽章金鑰輪替（約每年一次，或懷疑外洩時）
+
+1. 產生一把新的 ES256 金鑰（kid 取新名字，例如 `2027-1`），把私密 JWK 存成 Worker Secret `ACCESS_TOKEN_PRIVATE_JWK`（金鑰不要給 AI、不要貼到對話）。
+2. 同時把**舊金鑰的公開部分**（kty、crv、x、y、kid，不含 d）放成 JSON 陣列，存到 Worker Secret `ACCESS_TOKEN_PREVIOUS_JWKS`。這樣已發出的 Access Token（最長 15 分鐘）仍然有效，使用者不會被登出，`/.well-known/jwks.json` 也會同時公布新舊公鑰。
+3. 等 1 小時後，刪除 `ACCESS_TOKEN_PREVIOUS_JWKS`。若懷疑舊金鑰外洩，第 2 步就不要設定，所有人需重新取得 Token（Refresh 仍可使用）。

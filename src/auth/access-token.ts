@@ -20,8 +20,12 @@ interface SigningKey {
   kid: string;
   privateKey: CryptoKey;
   publicKey: CryptoKey;
-  publicJwk: JsonWebKey & { kid: string; alg: 'ES256'; use: 'sig' };
+  publicJwk: PublicJwk;
+  /** Retired public keys still accepted for verification (and published) until their tokens have expired. */
+  retired: { kid: string; publicKey: CryptoKey; publicJwk: PublicJwk }[];
 }
+
+type PublicJwk = JsonWebKey & { kid: string; alg: 'ES256'; use: 'sig' };
 
 let loaded: SigningKey | null = null;
 const ALGORITHM = { name: 'ECDSA', namedCurve: 'P-256' } as const;
@@ -35,7 +39,8 @@ const SIGN = { name: 'ECDSA', hash: 'SHA-256' } as const;
 export async function loadSigningKey(env: Env): Promise<SigningKey | null> {
   const source = env.ACCESS_TOKEN_PRIVATE_JWK;
   if (!source) return null;
-  if (loaded?.source === source) return loaded;
+  const retiredSource = env.ACCESS_TOKEN_PREVIOUS_JWKS ?? '';
+  if (loaded?.source === source + '\n' + retiredSource) return loaded;
   try {
     const jwk = JSON.parse(source) as JsonWebKey & { kid?: unknown };
     if (jwk.kty !== 'EC' || jwk.crv !== 'P-256' || typeof jwk.d !== 'string' || typeof jwk.kid !== 'string') return null;
@@ -43,7 +48,20 @@ export async function loadSigningKey(env: Env): Promise<SigningKey | null> {
     const privateKey = await crypto.subtle.importKey('jwk', { kty: 'EC', crv: 'P-256', x: jwk.x, y: jwk.y, d: jwk.d }, ALGORITHM, false, ['sign']);
     const publicJwk = { kty: 'EC', crv: 'P-256', x: jwk.x, y: jwk.y, kid, alg: 'ES256', use: 'sig' } as const;
     const publicKey = await crypto.subtle.importKey('jwk', { kty: 'EC', crv: 'P-256', x: jwk.x, y: jwk.y }, ALGORITHM, false, ['verify']);
-    loaded = { source, kid, privateKey, publicKey, publicJwk: { ...publicJwk } };
+    // Key rotation: ACCESS_TOKEN_PREVIOUS_JWKS holds a JSON array of the retired PUBLIC keys (each with kid).
+    const retired: SigningKey['retired'] = [];
+    if (retiredSource) {
+      const list = JSON.parse(retiredSource) as (JsonWebKey & { kid?: unknown })[];
+      for (const old of list.slice(0, 3)) {
+        if (old.kty !== 'EC' || old.crv !== 'P-256' || typeof old.kid !== 'string' || old.kid === kid) continue;
+        retired.push({
+          kid: old.kid,
+          publicKey: await crypto.subtle.importKey('jwk', { kty: 'EC', crv: 'P-256', x: old.x, y: old.y }, ALGORITHM, false, ['verify']),
+          publicJwk: { kty: 'EC', crv: 'P-256', x: old.x, y: old.y, kid: old.kid, alg: 'ES256', use: 'sig' },
+        });
+      }
+    }
+    loaded = { source: source + '\n' + retiredSource, kid, privateKey, publicKey, publicJwk: { ...publicJwk }, retired };
     return loaded;
   } catch {
     return null;
@@ -81,8 +99,10 @@ export async function verifyAccessToken(key: SigningKey, env: Env, token: string
     if (parts.length !== 3) return null;
     const [headerPart, payloadPart, signaturePart] = parts as [string, string, string];
     const header = parseBase64urlJson(headerPart);
-    if (!header || header.alg !== 'ES256' || header.kid !== key.kid) return null;
-    const ok = await crypto.subtle.verify(SIGN, key.publicKey, toArrayBuffer(base64urlDecode(signaturePart)), toArrayBuffer(utf8(`${headerPart}.${payloadPart}`)));
+    if (!header || header.alg !== 'ES256') return null;
+    const verifyKey = header.kid === key.kid ? key.publicKey : key.retired.find((r) => r.kid === header.kid)?.publicKey;
+    if (!verifyKey) return null;
+    const ok = await crypto.subtle.verify(SIGN, verifyKey, toArrayBuffer(base64urlDecode(signaturePart)), toArrayBuffer(utf8(`${headerPart}.${payloadPart}`)));
     if (!ok) return null;
     const c = parseBase64urlJson(payloadPart);
     if (!c || c.iss !== tokenIssuer(env) || c.aud !== ACCESS_TOKEN_AUDIENCE) return null;
