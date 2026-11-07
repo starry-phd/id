@@ -88,7 +88,7 @@ describe('billing and battery migrations', () => {
 
   test('create every billing and battery table', async () => {
     assert.deepEqual(await tables(worker.billing), ['app_revenuecat', 'entitlement_grants', 'entitlements', 'rc_events', 'reconcile_state', 'revenuecat_deletions']);
-    assert.deepEqual(await tables(worker.battery), ['battery_accounts', 'battery_app_keys', 'battery_app_limits', 'battery_ledger', 'battery_policy', 'battery_reservations', 'invite_codes', 'invite_redemptions', 'quantum_accounts', 'quantum_ledger', 'quantum_products']);
+    assert.deepEqual(await tables(worker.battery), ['battery_accounts', 'battery_app_keys', 'battery_app_limits', 'battery_bonus', 'battery_ledger', 'battery_policy', 'battery_reservations', 'invite_codes', 'invite_redemptions', 'quantum_accounts', 'quantum_ledger', 'quantum_products']);
   });
 
   test('the battery policy starts with 10 a month and a 3-minute timeout', async () => {

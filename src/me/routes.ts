@@ -22,6 +22,7 @@ import { acceptConsents } from '../identity/members';
 import { sendContactEmailVerification } from '../identity/contact-email';
 import { randomMotto } from '../identity/mottos';
 import { roleOf } from '../identity/roles';
+import { syncBonus } from '../battery/bonus';
 import { derivedOf, effectiveVisibility, hasChanges, loadProfile, publicProfile, saveProfile, shownName, validateProfileInput, type FieldUpdate, type ProfileRow } from '../identity/profile';
 import { errorBody } from '../lib/errors';
 import { mailSettings } from '../notify/email';
@@ -196,6 +197,7 @@ meRoutes.openapi(profileRoute, async (c) => {
   if (!saved.written) {
     return c.json({ ...errorBody('VERSION_CONFLICT', 'The profile changed elsewhere; reload and try again', requestId), profile: await profileJson(c.env, current.row, current.fieldUpdates) }, 409);
   }
+  await syncBonus(c.env.DB_BATTERY, userId, current.row, now);
   if (saved.newContactEmail) {
     const pending = background(c, sendContactEmailVerification(c.env.DATA_ENCRYPTION_KEY, mailSettings(c.env, new URL(c.req.url).origin), userId, saved.newContactEmail, now));
     if (pending) await pending;

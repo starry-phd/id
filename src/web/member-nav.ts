@@ -1,6 +1,7 @@
 import { html } from 'hono/html';
 import { BATTERY_ICON } from '../lib/battery-icons';
 import { getBalance } from '../battery/battery';
+import { syncBonus } from '../battery/bonus';
 import { listQuantum } from '../battery/quantum';
 import { initialsOf } from '../identity/initials';
 import { shownName, type PrimaryName } from '../identity/profile';
@@ -27,10 +28,19 @@ export async function memberNav(c: WebContext): Promise<Html> {
   if (!web || web.status !== 'active') return html``;
   const db = c.env.DB_IDENTITY;
   const now = Date.now();
+  const profileQuery = db
+    .prepare('SELECT display_name, nickname, primary_name, avatar_key, visibility, birthday FROM profiles WHERE user_id = ?')
+    .bind(web.userId)
+    .first<{ display_name: string | null; nickname: string | null; primary_name: PrimaryName; avatar_key: string | null; visibility: string; birthday: string | null }>();
+  // The bonus multiplier is brought in line with the profile before the balance is read, so the count shown is current.
+  const batteryQuery = profileQuery.then(async (p) => {
+    if (p) await syncBonus(c.env.DB_BATTERY, web.userId, p, now);
+    return getBalance(c.env.DB_BATTERY, web.userId, now);
+  }).catch(() => null);
   const [profile, user, battery, quantum] = await Promise.all([
-    db.prepare('SELECT display_name, nickname, primary_name, avatar_key FROM profiles WHERE user_id = ?').bind(web.userId).first<{ display_name: string | null; nickname: string | null; primary_name: PrimaryName; avatar_key: string | null }>(),
+    profileQuery,
     db.prepare('SELECT member_no FROM users WHERE user_id = ?').bind(web.userId).first<{ member_no: string | null }>(),
-    getBalance(c.env.DB_BATTERY, web.userId, now).catch(() => null),
+    batteryQuery,
     listQuantum(c.env.DB_BATTERY, web.userId).catch(() => []),
   ]);
   const name = shownName(profile?.nickname, profile?.display_name, profile?.primary_name) ?? '我';
