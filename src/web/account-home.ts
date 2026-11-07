@@ -9,7 +9,7 @@ import type { Provider } from '../auth/provider-keys';
 import { isCategory, setPreferences } from '../notify/push';
 import { background, readProviderRequest, verifyProviderRequest } from '../auth/routes';
 import { rememberAppleToken } from '../identity/apple';
-import { listActiveSessions, logoutEverywhere, revokeOwnSession } from '../identity/devices';
+import { listActiveSessions, logoutEverywhere, revokeAppSessions, revokeOwnSession } from '../identity/devices';
 import { importProviderAvatar, r2Store, rememberProviderPhoto } from '../identity/avatars';
 import { linkIdentity, type LinkResult } from '../identity/link';
 import { completeMerge, findMergeCandidate, type MergeBlocker } from '../identity/merge';
@@ -18,6 +18,8 @@ import { derivedOf } from '../identity/profile';
 import { issueNonce } from '../identity/nonces';
 import { listPasskeys, MAX_PASSKEYS } from '../identity/passkeys';
 import { hasRole, isRecentLogin, listAppStaffApps, roleOf } from '../identity/roles';
+import { memberSubscriptions } from '../billing/revenuecat';
+import { getApp } from '../apps/registry';
 import { WEB_APP_ID } from '../identity/web-sessions';
 import { errorBody } from '../lib/errors';
 import { open as unseal, seal } from '../lib/sealed';
@@ -43,6 +45,8 @@ accountApp.get('/', async (c) => {
   const passkeys = await listPasskeys(db, web.userId);
   const managedApps = await listAppStaffApps(db, web.userId);
   const inviteMsg = ({ ok: '兌換成功，已加入量子電池。', invalid: '邀請碼不正確、已停用或已過期。', already: '你已經兌換過這組邀請碼。', used_up: '這組邀請碼已被領完。' } as Record<string, string>)[c.req.query('invite') ?? ''] ?? '';
+  const subscriptions = await memberSubscriptions(c.env.DB_BILLING, web.userId, now).catch(() => []);
+  const signedInApps = [...new Set(sessions.map((s) => s.appId))].filter((a) => a !== WEB_APP_ID);
   const [battery, batteryActivity, quantum] = await Promise.all([getBalance(c.env.DB_BATTERY, web.userId, now), recentActivity(c.env.DB_BATTERY, web.userId, now, { limit: 10 }), listQuantum(c.env.DB_BATTERY, web.userId)]);
   const notices = await getNotices(db);
   const timed = await activeScopedNotices(db, now).catch(() => []);
@@ -80,6 +84,12 @@ ${html`<h2>Passkey</h2>
     : html`<p class="muted">還沒有 Passkey。新增後可以用指紋、臉部或螢幕鎖直接登入，不必再透過 Apple 或 Google。</p>`}
   ${passkeys.length < MAX_PASSKEYS ? html`<button id="add-passkey" type="button">新增 Passkey</button><p id="passkey-error" class="danger" role="alert"></p>` : ''}
 </div>
+<h2>已登入的 App</h2>
+<div class="card">
+  ${signedInApps.length > 0
+    ? html`<ul>${signedInApps.map((a) => html`<li>${appLabel(a)}<form class="inline" method="post" action="/account/apps/${a}/logout"><button class="secondary" type="submit">登出這款 App</button></form></li>`)}</ul><p class="muted">只會登出這款 App 在你所有裝置上的登入，其他 App 和這個網頁不受影響；再次打開 App 需要重新登入。</p>`
+    : html`<p class="muted">目前沒有任何 App 在登入中。</p>`}
+</div>
 <h2>登入中的裝置</h2>
 <div class="card">
   <table>
@@ -93,6 +103,13 @@ ${html`<h2>Passkey</h2>
   <form method="post" action="/account/logout-all"><button class="secondary" type="submit">登出所有裝置</button></form>
   <p class="muted">「登出所有裝置」會讓所有繁星 App 與網頁立即登出，包括目前這個瀏覽器。手機遺失時請使用。</p>
 </div>`}
+<h2>我的訂閱與購買</h2>
+<div class="card">
+  ${subscriptions.length > 0
+    ? html`<table><tr><th>App</th><th>權益</th><th>到期</th><th>來源</th></tr>${subscriptions.map((x) => html`<tr><td>${appLabel(x.app_id)}</td><td>${x.entitlement}</td><td>${x.expires_at ? formatTime(x.expires_at) : '長期有效'}</td><td>${x.granted ? '客服補發' : x.store === 'APP_STORE' || x.store === 'MAC_APP_STORE' ? 'App Store' : x.store === 'PLAY_STORE' ? 'Google Play' : (x.store ?? '商店')}</td></tr>`)}</table>
+<p class="muted">要取消訂閱，請到 App Store 或 Google Play 的「訂閱」頁面；這裡只顯示目前生效中的項目。</p>`
+    : html`<p class="muted">目前沒有生效中的訂閱或購買。</p>`}
+</div>
 ${battery && batteryActivity
   ? html`<h2>Starry Battery</h2>
 <div class="card">
@@ -126,6 +143,16 @@ accountApp.post('/sessions/:id/revoke', async (c) => {
   if (sessionId === web.sessionId) return c.redirect('/account', 303);
   const revoked = await revokeOwnSession(c.env.DB_IDENTITY, { userId: web.userId, sessionId, appId: WEB_APP_ID, requestId: c.get('requestId') }, Date.now());
   return c.redirect(revoked ? '/account?notice=session_revoked' : '/account', 303);
+});
+
+/** POST /account/apps/:app/logout — ends every session of this member in one App; the web session stays. */
+accountApp.post('/apps/:app/logout', async (c) => {
+  const web = c.get('web');
+  if (!web || web.status !== 'active') return c.redirect('/account', 303);
+  const appId = c.req.param('app');
+  if (!getApp(appId)) return c.redirect('/account', 303);
+  const count = await revokeAppSessions(c.env.DB_IDENTITY, { userId: web.userId, requestId: c.get('requestId') }, appId, Date.now());
+  return c.redirect(count > 0 ? '/account?notice=app_logged_out' : '/account', 303);
 });
 
 /** POST /account/logout-all — ends every session in every Starry App, including this one (S-ID-05). */

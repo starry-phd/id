@@ -289,6 +289,7 @@ export function webDeviceLabel(c: WebContext): string {
 export const NOTICES: Record<string, string> = {
   linked: '已加綁新的登入方式。',
   session_revoked: '已登出該裝置。',
+  app_logged_out: '已登出該 App 的所有登入。',
   passkey_added: 'Passkey 已新增，下次可以直接用它登入。',
   passkey_removed: 'Passkey 已移除。',
   logged_out_everywhere: '已登出所有裝置與 App。',
