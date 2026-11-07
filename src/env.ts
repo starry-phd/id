@@ -19,6 +19,8 @@ export interface Env {
   TERMS_VERSION: string;
   PRIVACY_VERSION: string;
   /** Secret: ES256 private JWK (with kid) used to sign access tokens. */
+  /** Optional JSON array of retired public JWKs (with kid) still accepted after a signing key rotation. */
+  ACCESS_TOKEN_PREVIOUS_JWKS?: string;
   ACCESS_TOKEN_PRIVATE_JWK?: string;
   /** Secret: comma-separated member IDs that hold the Owner role (spec S-ID-10). */
   OWNER_USER_IDS?: string;
