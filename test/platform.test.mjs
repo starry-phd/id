@@ -29,7 +29,7 @@ describe('platform Worker', () => {
     const res = await worker.call('/v1/apps/echo/config');
     assert.equal(res.status, 200);
     const body = await res.json();
-    assert.deepEqual(Object.keys(body).sort(), ['app_id', 'config', 'min_version', 'status']);
+    assert.deepEqual(Object.keys(body).sort(), ['app_id', 'config', 'min_version', 'notices', 'status']);
     assert.equal(body.app_id, 'echo');
     assert.equal(body.status, 'active');
     assert.match(body.min_version, /^\d+\.\d+\.\d+$/);

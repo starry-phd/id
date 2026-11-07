@@ -1,4 +1,7 @@
 import { app } from './app';
+import { appRegistry } from './apps/registry';
+import { runSurgeGuard, sendSurgeAlerts } from './apps/surge';
+import { mailSettings } from './notify/email';
 import { refreshDynamicApps } from './apps/dynamic';
 import { batteryRetention, releaseExpired } from './battery/battery';
 import { reconcileWithRevenueCat } from './billing/reconcile';
@@ -44,6 +47,16 @@ async function minutely(env: Env, now: number): Promise<void> {
       async () => {
         const released = await releaseExpired(env.DB_BATTERY, now);
         if (released > 0) console.log(JSON.stringify({ level: 'info', event: 'battery.reservations_expired', released }));
+      },
+    ],
+    [
+      'surge-guard',
+      async () => {
+        const hits = await runSurgeGuard({ identity: env.DB_IDENTITY, battery: env.DB_BATTERY }, now);
+        if (hits.length === 0) return;
+        console.warn(JSON.stringify({ level: 'warn', event: 'apps.surge_paused', apps: hits }));
+        const mail = mailSettings(env, 'https://id.starry.phd');
+        if (mail) await sendSurgeAlerts(env.DB_IDENTITY, mail, env.OWNER_USER_IDS, hits.map((h) => ({ ...h, appName: appRegistry.get(h.appId)?.name ?? h.appId })));
       },
     ],
     [

@@ -110,13 +110,37 @@
           "config": {
             "type": "object",
             "additionalProperties": {}
+          },
+          "notices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                },
+                "starts_at": {
+                  "type": "integer"
+                },
+                "ends_at": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "message",
+                "starts_at",
+                "ends_at"
+              ]
+            },
+            "description": "Announcements running now for this App or for every App; show them in the App (epoch ms)."
           }
         },
         "required": [
           "app_id",
           "status",
           "min_version",
-          "config"
+          "config",
+          "notices"
         ]
       },
       "DirectoryMembers": {
