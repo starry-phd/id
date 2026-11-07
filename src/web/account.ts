@@ -174,7 +174,7 @@ function appleRedirectUri(c: WebContext): string {
 }
 
 /** Browser side of passkeys: talks to /account/passkey/* with navigator.credentials. */
-function passkeyScript(c: WebContext, mode: 'register' | 'login', next = '/account'): Html {
+export function passkeyScript(c: WebContext, mode: 'register' | 'login', next = '/account'): Html {
   const cspNonce = c.get('cspNonce');
   const target = mode === 'register' ? '#add-passkey' : '#passkey-login';
   return html`<script nonce="${cspNonce}">
@@ -184,8 +184,9 @@ function passkeyScript(c: WebContext, mode: 'register' | 'login', next = '/accou
   if (!window.PublicKeyCredential || !navigator.credentials) { button.style.display = 'none'; return; }
   const out = document.getElementById('passkey-error');
   const say = (t) => { if (out) out.textContent = t; };
-  const b2u = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  const u2b = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (ch) => ch.charCodeAt(0));
+  // No backslashes here: this text lives inside a TypeScript template literal.
+  const b2u = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).split('+').join('-').split('/').join('_').split('=').join('');
+  const u2b = (s) => Uint8Array.from(atob(s.split('-').join('+').split('_').join('/')), (ch) => ch.charCodeAt(0));
   const post = (path, body) => fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}) });
   button.addEventListener('click', async () => {
     button.disabled = true; say('');
