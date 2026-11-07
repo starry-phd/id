@@ -85,6 +85,8 @@ describe('referrals, the organization network and public profiles', () => {
     assert.ok(network.includes('otree') && network.includes('class="pn me"'), 'round chart with me on top');
     assert.ok(!network.includes(b.no) && !network.includes(c.no), 'member numbers are not shown in the chart');
     assert.match(network, /第 2 層 1 人/);
+    assert.match(network, /<button type="button" class="pbtn"[^>]*>.*?<span class="pname">John Smith<\/span><\/button>/s, 'the name sits on the bottom of the picture');
+    assert.ok(network.includes('--ln:3px solid'), 'thicker connecting lines');
     assert.ok(network.includes(`data-id="${b.userId}"`) && network.includes('id="pcard"'), 'every picture opens a pop-up');
     const card = await worker.call(`/account/network/card/${b.userId}`, get(a.cookie));
     assert.equal(card.status, 200, 'I can open a member below me');

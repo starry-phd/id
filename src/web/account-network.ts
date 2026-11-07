@@ -85,8 +85,8 @@ function levelLabel(i: number): string {
 
 /** One person in the chart: a round picture (photo, or the first letters of the name) with the name under it. Tapping the picture opens that member's public profile in a pop-up. */
 function chartNode(n: { name: string; initials: string; has_avatar: boolean; member_no: string | null }, userId: string, me = false): Html {
-  const bubble = avatarBubble({ initials: n.initials, photo: n.has_avatar && n.member_no ? avatarPath(n.member_no) : null, size: me ? 64 : 52, label: n.name });
-  return html`<span class="pn${me ? ' me' : ''}"><button type="button" class="pbtn" data-id="${userId}" aria-label="查看 ${n.name} 的基本資料">${bubble}</button><span class="pname">${n.name}</span></span>`;
+  const bubble = avatarBubble({ initials: n.initials, photo: n.has_avatar && n.member_no ? avatarPath(n.member_no) : null, size: me ? 88 : 72, label: n.name });
+  return html`<span class="pn${me ? ' me' : ''}"><button type="button" class="pbtn" data-id="${userId}" aria-label="查看 ${n.name} 的基本資料">${bubble}<span class="pname">${n.name}</span></button></span>`;
 }
 
 function renderTree(nodes: OrgNode[], parent: string): Html {
@@ -96,20 +96,21 @@ function renderTree(nodes: OrgNode[], parent: string): Html {
 }
 
 const CHART_STYLE = `
-.otree{overflow-x:auto;padding:8px 0 16px;text-align:center}.otree .chart{display:inline-block;min-width:100%}
-.otree ul{display:flex;justify-content:center;padding:20px 0 0;margin:0;list-style:none;position:relative}
-.otree li{position:relative;padding:20px 6px 0;text-align:center;list-style:none}
-.otree li::before,.otree li::after{content:'';position:absolute;top:0;right:50%;width:50%;height:20px;border-top:1px solid var(--line)}
-.otree li::after{right:auto;left:50%;border-left:1px solid var(--line)}
+.otree{--ln:3px solid #7b73d9;overflow-x:auto;padding:8px 0 16px;text-align:center}.otree .chart{display:inline-block;min-width:100%}
+.otree ul{display:flex;justify-content:center;padding:22px 0 0;margin:0;list-style:none;position:relative}
+.otree li{position:relative;padding:22px 6px 0;text-align:center;list-style:none}
+.otree li::before,.otree li::after{content:'';position:absolute;top:0;right:50%;width:50%;height:22px;border-top:var(--ln)}
+.otree li::after{right:auto;left:50%;border-left:var(--ln)}
 .otree li:only-child::before,.otree li:only-child::after{display:none}.otree li:only-child{padding-top:0}
 .otree li:first-child::before,.otree li:last-child::after{border:0}
-.otree li:last-child::before{border-right:1px solid var(--line);border-radius:0 6px 0 0}.otree li:first-child::after{border-radius:6px 0 0 0}
-.otree ul ul::before{content:'';position:absolute;top:0;left:50%;height:20px;border-left:1px solid var(--line)}
+.otree li:last-child::before{border-right:var(--ln);border-radius:0 8px 0 0}.otree li:first-child::after{border-radius:8px 0 0 0}
+.otree ul ul::before{content:'';position:absolute;top:0;left:50%;margin-left:-1.5px;height:22px;border-left:var(--ln)}
 .otree .root{padding:0;margin:0;display:block}.otree .root>li{padding-top:0}.otree .root>li::before,.otree .root>li::after{display:none}
-.pn{display:inline-flex;flex-direction:column;align-items:center;gap:4px;max-width:88px}
-.pn .avatar{border-radius:50%;object-fit:cover}.pn .pname{font-size:.78rem;line-height:1.2;max-width:88px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pn.me .pname{font-weight:700}
-.pbtn{all:unset;display:inline-block;border-radius:50%;cursor:pointer}.pbtn:focus-visible{outline:2px solid var(--accent,#8b7cf6);outline-offset:2px}
+.pn{display:inline-flex;flex-direction:column;align-items:center}
+.pn .avatar{border-radius:50%;object-fit:cover;display:block}
+.pbtn{all:unset;position:relative;display:inline-block;border-radius:50%;overflow:hidden;cursor:pointer;line-height:0}.pbtn:focus-visible{outline:2px solid var(--accent,#8b7cf6);outline-offset:2px}
+.pn .pname{position:absolute;left:0;right:0;bottom:0;box-sizing:border-box;padding:12px 8px 6px;background:linear-gradient(rgba(5,5,25,0),rgba(5,5,25,.88) 55%);color:#fff;font-size:.7rem;font-weight:600;line-height:1.1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pn.me .pname{font-size:.78rem;font-weight:800}
 #pcard{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px;background:rgba(5,5,25,.55)}#pcard[hidden]{display:none}
 #pcard .box{position:relative;width:min(420px,100%);max-height:86vh;overflow:auto;padding:22px 18px 18px;border-radius:20px;background:#1d1d52;border:1px solid var(--line);box-shadow:0 12px 50px rgba(0,0,0,.6);text-align:left}
 #pcard .x{position:absolute;top:8px;right:8px;margin:0;padding:4px 10px;font-size:1.1rem;line-height:1}
