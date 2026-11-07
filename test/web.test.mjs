@@ -305,6 +305,32 @@ describe('web account center, support form and Admin Lite', () => {
     assert.equal((await worker.call('/admin/tickets', get(adminCookie))).status, 200);
   });
 
+  test('Admin Lite bulk actions and remote config', async () => {
+    const adminCookie = await webSignIn('bulk-admin');
+    await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(await userIdOf('bulk-admin'), Date.now()).run();
+    await webSignIn('bulk-a');
+    await webSignIn('bulk-b');
+    const a = await userIdOf('bulk-a');
+    const b = await userIdOf('bulk-b');
+    const admin = await userIdOf('bulk-admin');
+    const bulk = (fields) => ({ method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded', origin: ORIGIN, cookie: adminCookie }, body: new URLSearchParams(fields).toString() });
+
+    assert.match(await (await worker.call('/admin/members', get(adminCookie))).text(), /name="ids"/);
+    assert.match(await (await worker.call('/admin/members/bulk', bulk([['action', 'suspend'], ['reason', 'x']]))).text(), /請先勾選/);
+    const done = await (await worker.call('/admin/members/bulk', bulk([['ids', a], ['ids', b], ['ids', admin], ['action', 'battery'], ['delta', '5'], ['reason', '活動贈送']]))).text();
+    assert.match(done, /已處理 2 位，略過 1 位/, 'the actor themself is skipped');
+    assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.battery_adjusted' AND target_id IN (?, ?)").bind(a, b).first('n'), 2);
+    assert.match(await (await worker.call('/admin/members/bulk', bulk([['ids', a], ['action', 'suspend'], ['reason', '測試']]))).text(), /已處理 1 位/);
+    assert.equal(await worker.db.prepare('SELECT status FROM users WHERE user_id = ?').bind(a).first('status'), 'suspended');
+
+    const save = await worker.call('/admin/apps/echo/config', form({ config: 'new_feature = true\nmin_version = 1.2.0' }, adminCookie));
+    assert.match(await save.text(), /已儲存/);
+    const config = await (await worker.call('/v1/apps/echo/config')).json();
+    assert.equal(config.min_version, '1.2.0');
+    assert.equal(config.config.new_feature, true);
+    assert.match(await (await worker.call('/admin/apps/echo/config', form({ config: 'Bad Name = 1' }, adminCookie))).text(), /只能用小寫英文/);
+  });
+
   test('Battery in Admin Lite: admins adjust a member, only the owner sets the monthly policy (S-BAT-02/05)', async () => {
     const memberCookie = await webSignIn('battery-member');
     const target = await userIdOf('battery-member');
@@ -327,7 +353,7 @@ describe('web account center, support form and Admin Lite', () => {
     assert.match(account, /本月剩餘 <strong>30<\/strong>/);
     assert.match(account, /客服調整/);
     assert.doesNotMatch(account, /補償/, 'members never see the staff reason');
-    assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.battery_adjusted'").first('n'), 1);
+    assert.equal(await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.battery_adjusted' AND target_id = ?").bind(target).first('n'), 1);
 
     const ownerCookie = await webSignIn('battery-owner');
     await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'owner', ?)").bind(await userIdOf('battery-owner'), Date.now()).run();

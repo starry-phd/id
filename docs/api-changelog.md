@@ -8,6 +8,8 @@
 
 ## 2026-11-07
 
+`GET /v1/apps/{app_id}/config` 的 `min_version` 與 `config` 現在可由 Owner／Admin 在後台「遠端設定」覆寫（約 30 秒生效）；回應格式不變。
+
 維護模式：Owner 開啟後，`POST /v1/battery/reservations` 回 503 `SERVICE_UNAVAILABLE`（新任務暫停；進行中的任務仍可 commit／release）。App 端請顯示「暫時無法使用 AI 功能」，稍後再試。
 
 向下相容的新增（App 每月上限）：`POST /v1/battery/reservations` 在 Owner 為該 App 設定每月 Battery 上限且已達上限時，回 409 `BATTERY_APP_CAP`（新增錯誤碼；App 端請當作「暫時無法使用 AI 功能」處理，不要重試）。
