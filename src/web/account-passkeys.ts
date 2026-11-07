@@ -104,6 +104,41 @@ accountApp.post('/passkey/login', async (c) => {
   return c.json({ ok: true });
 });
 
+/** Staff step-up: the signed-in member proves they hold one of their own passkeys; high-risk Admin Lite actions then run for 5 minutes. */
+accountApp.post('/passkey/stepup-options', async (c) => {
+  const web = c.get('web');
+  if (!web || web.status !== 'active') return c.json(errorBody('UNAUTHORIZED', 'Sign in first', c.get('requestId')), 401);
+  const nonce = await issueNonce(c.env.DB_IDENTITY, WEB_APP_ID, Date.now());
+  return c.json({ publicKey: { challenge: base64urlEncode(utf8(nonce)), rpId: relyingParty(c).rpId, userVerification: 'required', timeout: 120000, allowCredentials: [] } });
+});
+
+export const STEPUP_MS = 5 * 60 * 1000;
+
+accountApp.post('/passkey/stepup', async (c) => {
+  const requestId = c.get('requestId');
+  const web = c.get('web');
+  if (!web || web.status !== 'active') return c.json(errorBody('UNAUTHORIZED', 'Sign in first', requestId), 401);
+  const body = await readJsonObject(c);
+  const id = str(body?.id, 1024);
+  const authenticatorData = str(body?.authenticatorData, 2048);
+  const signature = str(body?.signature, 1024);
+  const clientDataJSON = str(body?.clientDataJSON, 4096);
+  const refuse = () => c.json(errorBody('UNAUTHORIZED', 'Passkey confirmation failed', requestId), 401);
+  if (!body || !id || !authenticatorData || !signature || !clientDataJSON) return c.json(errorBody('BAD_REQUEST', 'id, clientDataJSON, authenticatorData and signature are required', requestId), 400);
+  const now = Date.now();
+  if (!(await consumeChallenge(c, clientDataJSON, 'webauthn.get', now))) return refuse();
+  const db = c.env.DB_IDENTITY;
+  const stored = await findPasskey(db, id);
+  if (!stored || stored.user_id !== web.userId) return refuse();
+  const result = await verifyAssertion({ clientDataJSON, authenticatorData, signature }, stored.key, stored.sign_count, relyingParty(c));
+  if (!result.ok || !(await touchPasskey(db, id, stored.sign_count, result.signCount, now))) return refuse();
+  await db.batch([
+    db.prepare('DELETE FROM staff_stepups WHERE expires_at <= ?').bind(now),
+    db.prepare('INSERT INTO staff_stepups (session_id, user_id, expires_at) VALUES (?, ?, ?) ON CONFLICT (session_id) DO UPDATE SET expires_at = excluded.expires_at').bind(web.sessionId, web.userId, now + STEPUP_MS),
+  ]);
+  return c.json({ ok: true });
+});
+
 accountApp.post('/passkey/:id/remove', async (c) => {
   const web = c.get('web');
   if (!web || web.status !== 'active') return c.redirect('/account', 303);

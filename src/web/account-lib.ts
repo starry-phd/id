@@ -152,9 +152,9 @@ export function appleRedirectUri(c: WebContext): string {
 }
 
 /** Browser side of passkeys: talks to /account/passkey/* with navigator.credentials. */
-export function passkeyScript(c: WebContext, mode: 'register' | 'login', next = '/account'): Html {
+export function passkeyScript(c: WebContext, mode: 'register' | 'login' | 'stepup', next = '/account'): Html {
   const cspNonce = c.get('cspNonce');
-  const target = mode === 'register' ? '#add-passkey' : '#passkey-login';
+  const target = mode === 'register' ? '#add-passkey' : mode === 'stepup' ? '#stepup-passkey' : '#passkey-login';
   return html`<script nonce="${cspNonce}">
 (function () {
   const button = document.querySelector('${raw(target)}');
@@ -180,6 +180,15 @@ export function passkeyScript(c: WebContext, mode: 'register' | 'login', next = 
       const r = await post('/account/passkey/register', { name: (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || 'Passkey', clientDataJSON: b2u(cred.response.clientDataJSON), attestationObject: b2u(cred.response.attestationObject) });
       if (r.ok) { location.href = '/account?notice=passkey_added'; return; }
       say(r.status === 409 ? '這個 Passkey 已經新增過，或已達數量上限。' : '新增失敗，請再試一次。');`)
+        : mode === 'stepup'
+          ? raw(`const o = await post('/account/passkey/stepup-options');
+      if (!o.ok) { say('現在無法確認，請重新整理後再試。'); return; }
+      const opts = (await o.json()).publicKey;
+      opts.challenge = u2b(opts.challenge);
+      const cred = await navigator.credentials.get({ publicKey: opts });
+      const r = await post('/account/passkey/stepup', { id: cred.id, clientDataJSON: b2u(cred.response.clientDataJSON), authenticatorData: b2u(cred.response.authenticatorData), signature: b2u(cred.response.signature) });
+      if (r.ok) { document.getElementById('resubmit').submit(); return; }
+      say('確認失敗。請用你自己的 Passkey，或到帳號中心確認已新增。');`)
         : raw(`const o = await post('/account/passkey/login-options');
       const opts = (await o.json()).publicKey;
       opts.challenge = u2b(opts.challenge);

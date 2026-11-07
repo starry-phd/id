@@ -344,6 +344,42 @@ describe('web account center, support form and Admin Lite', () => {
     assert.match(await (await worker.call('/admin/apps/echo/config', form({ config: 'Bad Name = 1' }, adminCookie))).text(), /只能用小寫英文/);
   });
 
+  test('a staff member with a passkey must confirm high-risk actions with it first', async () => {
+    const adminCookie = await webSignIn('su-admin');
+    const adminId = await userIdOf('su-admin');
+    await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(adminId, Date.now()).run();
+    await webSignIn('su-victim');
+    const victim = await userIdOf('su-victim');
+    const json = (path, body, cookie = adminCookie) => worker.call(path, { method: 'POST', headers: { 'content-type': 'application/json', origin: ORIGIN, cookie }, body: JSON.stringify(body ?? {}) });
+    const adjust = () => worker.call(`/admin/members/${victim}/battery`, form({ delta: '2', reason: '測試二次確認' }, adminCookie));
+    const ledgerRows = async () => (await worker.battery.prepare("SELECT COUNT(*) AS n FROM battery_ledger WHERE user_id = ? AND kind = 'adjustment'").bind(victim).first()).n;
+
+    assert.doesNotMatch(await (await adjust()).text(), /需要二次確認/, 'no passkey, no step-up');
+    const before = await ledgerRows();
+
+    const key = await softPasskey(ORIGIN, 'api.test');
+    const options = (await (await json('/account/passkey/register-options')).json()).publicKey;
+    assert.equal((await json('/account/passkey/register', { name: 'Admin phone', ...key.register(options.challenge) })).status, 200);
+
+    const blocked = await adjust();
+    const blockedText = await blocked.text();
+    assert.match(blockedText, /需要二次確認/);
+    assert.match(blockedText, /name="delta" value="2"/, 'the original form is carried over');
+    assert.equal(await ledgerRows(), before, 'nothing changed before the confirmation');
+
+    const stranger = await softPasskey(ORIGIN, 'api.test');
+    const wrong = (await (await json('/account/passkey/stepup-options')).json()).publicKey;
+    assert.equal((await json('/account/passkey/stepup', await stranger.sign(wrong.challenge))).status, 401, 'an unregistered key cannot confirm');
+    const o = (await (await json('/account/passkey/stepup-options')).json()).publicKey;
+    assert.equal((await json('/account/passkey/stepup', await key.sign(o.challenge))).status, 200);
+
+    assert.doesNotMatch(await (await adjust()).text(), /需要二次確認/);
+    assert.equal(await ledgerRows(), before + 1, 'the confirmed action ran');
+    await worker.db.prepare('DELETE FROM staff_stepups').run();
+    assert.match(await (await adjust()).text(), /需要二次確認/, 'the confirmation expires');
+    await worker.db.prepare('DELETE FROM passkeys WHERE user_id = ?').bind(adminId).run();
+  });
+
   test('Admin sets an App stage, which shows on the App list and the dashboard', async () => {
     const adminCookie = await webSignIn('stage-admin');
     await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'admin', ?)").bind(await userIdOf('stage-admin'), Date.now()).run();

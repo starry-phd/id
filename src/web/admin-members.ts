@@ -15,7 +15,7 @@ import { auditStatement } from '../lib/audit';
 import { mailSettings, notifyStaffChange } from '../notify/email';
 import { CATEGORY_LABELS } from '../support/tickets';
 import { formatTime, readForm, type WebContext } from './layout';
-import { RESULT_TEXT, ROLE_LABELS, STATUS_LABELS, adminApp, adminPage, staff } from './admin-lib';
+import { RESULT_TEXT, ROLE_LABELS, STATUS_LABELS, adminApp, adminPage, staff, requireStepUp } from './admin-lib';
 
 adminApp.get('/', async (c) => {
   const actor = await staff(c, 'support');
@@ -285,6 +285,8 @@ const MAX_BULK = 50;
 adminApp.post('/members/bulk', async (c) => {
   const actor = await staff(c, 'admin');
   if (actor instanceof Response) return actor;
+  const stepUp = await requireStepUp(c, actor);
+  if (stepUp) return stepUp;
   const body = await c.req.parseBody({ all: true });
   const raw = body.ids;
   const ids = [...new Set((Array.isArray(raw) ? raw : raw ? [raw] : []).filter((v): v is string => typeof v === 'string' && /^[0-9a-f-]{36}$/.test(v)))];
@@ -340,6 +342,8 @@ adminApp.post('/members/:id/signout', async (c) => {
 adminApp.post('/members/:id/delete', async (c) => {
   const actor = await staff(c, 'owner');
   if (actor instanceof Response) return actor;
+  const stepUp = await requireStepUp(c, actor);
+  if (stepUp) return stepUp;
   const userId = c.req.param('id');
   const m = await findMemberSummary(c.env.DB_IDENTITY, null, c.env.OWNER_USER_IDS, userId, Date.now());
   if (!m) return memberPage(c, actor, userId);
@@ -373,6 +377,8 @@ adminApp.post('/members/:id/app-staff', async (c) => {
 adminApp.post('/members/:id/role', async (c) => {
   const actor = await staff(c, 'owner');
   if (actor instanceof Response) return actor;
+  const stepUp = await requireStepUp(c, actor);
+  if (stepUp) return stepUp;
   const value = (await readForm(c)).role;
   const role = value === 'admin' || value === 'support' ? value : value === 'none' ? null : undefined;
   if (role === undefined) return memberPage(c, actor, c.req.param('id'), '請選擇角色。');
@@ -383,6 +389,8 @@ adminApp.post('/members/:id/role', async (c) => {
 adminApp.post('/members/:id/battery', async (c) => {
   const actor = await staff(c, 'admin');
   if (actor instanceof Response) return actor;
+  const stepUp = await requireStepUp(c, actor);
+  if (stepUp) return stepUp;
   const userId = c.req.param('id');
   if (userId === actor.userId) return memberPage(c, actor, userId, '不能調整自己的 Battery。');
   const exists = await c.env.DB_IDENTITY.prepare('SELECT 1 AS ok FROM users WHERE user_id = ?').bind(userId).first();

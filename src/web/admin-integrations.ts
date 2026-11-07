@@ -8,7 +8,7 @@ import { WEB_APP_ID } from '../identity/web-sessions';
 import { type StaffActor } from '../identity/roles';
 import { auditStatement } from '../lib/audit';
 import { readForm, type WebContext } from './layout';
-import { adminApp, adminPage, appAccess, staff } from './admin-lib';
+import { adminApp, adminPage, appAccess, staff, requireStepUp } from './admin-lib';
 import { appsPage, enableBatteryAndShow } from './admin-apps';
 import { RC_STATE } from './admin-quantum';
 
@@ -129,6 +129,8 @@ adminApp.post('/apps/:id/config', async (c) => {
 adminApp.post('/apps/:id/battery-key', async (c) => {
   const actor = await staff(c, 'owner');
   if (actor instanceof Response) return actor;
+  const stepUp = await requireStepUp(c, actor);
+  if (stepUp) return stepUp;
   return enableBatteryAndShow(c, actor, c.req.param('id'), 'Battery 已開通，服務金鑰已更新（舊金鑰立即失效）。');
 });
 
