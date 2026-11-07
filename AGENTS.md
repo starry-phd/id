@@ -84,5 +84,6 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 3c. 簽章金鑰輪替：Secret `ACCESS_TOKEN_PREVIOUS_JWKS` 放舊公鑰，輪替期間舊 Token 仍有效，步驟見 `docs/owner-setup.md`。
 3c12. 背景佇列與 Service Binding（2026-11-07，ADR 0009）：刪帳清除失敗時，D1 的 `cleanup_jobs` 仍是唯一的真實記錄；另外送一則 `CLEANUP_QUEUE`（`starry-cleanup`，失敗進 `starry-cleanup-dlq`）讓重試更快，每分鐘排程照舊當備援，沒有佇列綁定也能運作。佇列由 Deploy workflow 的「Ensure queues」步驟建立（需要 API Token 有 Queues 編輯權限）。Service Binding 是給同帳號 App 後端的選用路徑，見整合指南第 14 節；Starry ID 本身不需改動。
 3c13. 商品目錄（2026-11-07）：`app_products`（`src/apps/catalog.ts`、`/admin/apps/<id>/products`，Owner 編輯、App 管理員可看）登記每款 App 的 iOS／Android 商品 ID 與權益名稱，內容自動寫進串接指令（無商品時串接指令會要求 AI 不要自己決定商品）；只是登記，不改變購買入帳行為，量子電池的「商品代碼 → 顆數」仍在量子電池設定頁。串接指令版本 2026-11-07.6。
+3c14. 客服強化（2026-11-07）：`/support?app_id=&app_version=&device=` 由 App 開啟，版本（40 字）與裝置（80 字）只保留英數與常見標點後存入 `support_tickets`；後台客服單列表可依 App 篩選（`?app=<app_id>` 或 `-` 代表未指定），詳情頁顯示版本、裝置與會員編號。後台首頁最上方有四盞紅綠燈（排程、刪除清除、客服單、App 狀態，`src/web/traffic-lights.ts`）；App 卡片顯示近 30 天營收（Admin 以上才看得到）。串接指令版本 2026-11-07.7。
 3d. 刻意保留的設計（不是漏做）：echo／recordnote／account 留在 `config/apps.json`（資料庫故障時既有 App 仍可登入）；刪除帳號一律立即永久刪除（2026-11-07 起沒有 7 天寬限期，舊的待刪除程式已移除）。為了舊版 App 相容，`deletion_requested_at`／`deletion_purge_at` 欄位仍存在但永遠是 null，`DELETE /v1/me/deletion` 永遠回 409；Email 登入依業主決定不做。
 4. 業主外部事項：`docs/owner-setup.md`（Google Play 帳號類型、App Store 付費協議、GitHub 帳號整併等）。

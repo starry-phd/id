@@ -7,8 +7,8 @@ const GUIDE_URL = 'https://raw.githubusercontent.com/starry-phd/id/main/docs/int
  * Version of the handoff text. Bump both whenever the text below changes (a unit test fails until you do),
  * so the Owner can tell at a glance whether the copy an App's AI received is the latest one.
  */
-export const HANDOFF_VERSION = '2026-11-07.6';
-export const HANDOFF_UPDATED = '2026-11-07 17:00（台灣時間）';
+export const HANDOFF_VERSION = '2026-11-07.7';
+export const HANDOFF_UPDATED = '2026-11-07 17:30（台灣時間）';
 
 function list(values: readonly string[]): string {
   return values.length === 0 ? '（無）' : values.join('、');
@@ -61,6 +61,7 @@ export function buildHandoff(app: AppEntry, origin: string, options: { battery: 
     '   - 錯誤處理：使用者取消不要顯示錯誤；InvalidStateError（這支裝置已有這把 Passkey）請白話說明；找不到 Passkey 時引導改用 Apple 或 Google 登入。',
     '4. 會員身分只用 Starry 的 user_id（內部以 provider＋sub 辨識，不用 Email 或姓名合併）。App 後端用 GET /.well-known/jwks.json 驗證 Access Token。',
     '5. App 內必須提供串接說明第 4 節的帳號功能（登出、刪除帳號、同意條款等）。',
+    `   - 客服入口：設定頁放「聯絡客服」，用系統瀏覽器開啟 ${origin}/support?app_id=${id}&app_version=<App 版本，例如 1.4.2 (88)>&device=<裝置型號，例如 iPhone 15 Pro>（值要先做網址編碼）。會員已登入網頁帳號中心時，客服單會自動帶上會員編號；版本與裝置只放這兩項，不要放其他個資或 Token。`,
     '6. 需要販售（RevenueCat）時，才依串接說明第 5 節處理；需要業主設定的項目，請列成清單回報給業主。商店商品與權益名稱以業主登記的「商品目錄」為準，不要自己新增或改名：',
     ...catalogHandoffLines(options.products ?? []).map((line) => `   ${line}`),
     ...(options.battery
@@ -98,8 +99,9 @@ export function buildHandoff(app: AppEntry, origin: string, options: { battery: 
     '6. 刪除帳號：立即永久刪除、沒有撤回期、不會自動取消商店訂閱；App 內說明文字要一致。',
     '7. 條款與隱私權政策有新版本：consent_required 為 true 時顯示同意流程。',
     '8. Passkey：登入頁（iOS、Android、網頁）要有「使用 Passkey 登入」，設定頁要能新增、列出、移除 Passkey，做法見「三、3」。其餘不需要實作：邀請碼（會員在 https://id.starry.phd/account 兌換，取得這款 App 的免費量子電池）、公告與維護的設定（業主在後台操作；App 只要照第 4 項顯示）、資料匯出、通知類別開關（會員在帳號中心設定）。',
-    `9. 後端跑在同一個 Cloudflare 帳號的 Worker 時，可以選用 Service Binding 內部直連 Starry ID（做法見串接說明第 14 節）：網址與標頭都不變，一定要帶 x-starry-app-key；這是選用的，不用也符合規範，改了要自行測試。`,
-    '10. 檢查完回報：每一項是「已符合」或「已補上（PR 連結）」，以及需要業主處理的事項。',
+    `9. 客服入口：設定頁要有「聯絡客服」按鈕，開啟 ${origin}/support?app_id=${id}&app_version=…&device=…（做法見「三、5」）。`,
+    `10. 後端跑在同一個 Cloudflare 帳號的 Worker 時，可以選用 Service Binding 內部直連 Starry ID（做法見串接說明第 14 節）：網址與標頭都不變，一定要帶 x-starry-app-key；這是選用的，不用也符合規範，改了要自行測試。`,
+    '11. 檢查完回報：每一項是「已符合」或「已補上（PR 連結）」，以及需要業主處理的事項。',
   ];
   return lines.filter((line, i) => !(line === '' && lines[i - 1] === '')).join('\n');
 }

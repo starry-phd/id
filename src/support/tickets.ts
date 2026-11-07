@@ -24,9 +24,18 @@ export interface NewTicket {
   appId: string | null;
   message: string;
   clientIp: string | null;
+  /** Optional context an App passes when it opens the support form. */
+  appVersion?: string | null;
+  device?: string | null;
 }
 
 export type CreateTicketResult = { ok: true; ticketId: string } | { ok: false; reason: 'invalid' | 'rate_limited' };
+
+/** Keeps a short plain-text label (version, device model): letters, digits and common punctuation only. */
+export function cleanContext(value: string | null | undefined, max: number): string | null {
+  const v = (value ?? '').replace(/[^\p{L}\p{N} .,_()+/:-]/gu, '').trim().slice(0, max);
+  return v === '' ? null : v;
+}
 
 export function isTicketCategory(value: unknown): value is TicketCategory {
   return typeof value === 'string' && (TICKET_CATEGORIES as readonly string[]).includes(value);
@@ -48,10 +57,10 @@ export async function createTicket(db: D1Database, input: NewTicket, now: number
   await db.batch([
     db
       .prepare(
-        `INSERT INTO support_tickets (ticket_id, created_at, user_id, contact_email, category, app_id, message, ip_hash, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO support_tickets (ticket_id, created_at, user_id, contact_email, category, app_id, message, ip_hash, updated_at, app_version, device)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
-      .bind(ticketId, now, input.userId, email, input.category, input.appId, message, ipHash, now),
+      .bind(ticketId, now, input.userId, email, input.category, input.appId, message, ipHash, now, cleanContext(input.appVersion, 40), cleanContext(input.device, 80)),
     auditStatement(db, { actorType: 'user', actorUserId: input.userId, action: `support.ticket_created.${input.category}`, targetType: 'ticket', targetId: ticketId, appId: input.appId, result: 'success', requestId, retention: 'general' }, now),
   ]);
   return { ok: true, ticketId };
@@ -68,20 +77,27 @@ export interface TicketRow {
   status: 'open' | 'closed';
   staff_note: string | null;
   closed_at: number | null;
+  app_version: string | null;
+  device: string | null;
 }
 
-const TICKET_COLUMNS = 'ticket_id, created_at, user_id, contact_email, category, app_id, message, status, staff_note, closed_at';
+const TICKET_COLUMNS = 'ticket_id, created_at, user_id, contact_email, category, app_id, message, status, staff_note, closed_at, app_version, device';
 
 /** Newest first, cursor = last ticket_id of the previous page. */
 export async function listTickets(
   db: D1Database,
-  options: { status: 'open' | 'closed'; cursor?: string | undefined; limit?: number | undefined },
+  options: { status: 'open' | 'closed'; cursor?: string | undefined; limit?: number | undefined; appId?: string | undefined },
 ): Promise<{ tickets: TicketRow[]; nextCursor: string | null }> {
   const limit = Math.min(Math.max(options.limit ?? 20, 1), 50);
   const cursor = options.cursor ?? 'ffffffff-ffff-ffff-ffff-ffffffffffff';
+  // appId: undefined = every App, '-' = tickets that name no App, otherwise that App only.
+  const filter = options.appId === undefined ? '' : options.appId === '-' ? ' AND app_id IS NULL' : ' AND app_id = ?';
+  const binds: (string | number)[] = [options.status, cursor];
+  if (options.appId !== undefined && options.appId !== '-') binds.push(options.appId);
+  binds.push(limit + 1);
   const rows = await db
-    .prepare(`SELECT ${TICKET_COLUMNS} FROM support_tickets WHERE status = ? AND ticket_id < ? ORDER BY ticket_id DESC LIMIT ?`)
-    .bind(options.status, cursor, limit + 1)
+    .prepare(`SELECT ${TICKET_COLUMNS} FROM support_tickets WHERE status = ? AND ticket_id < ?${filter} ORDER BY ticket_id DESC LIMIT ?`)
+    .bind(...binds)
     .all<TicketRow>();
   const tickets = rows.results.slice(0, limit);
   return { tickets, nextCursor: rows.results.length > limit ? (tickets[tickets.length - 1]?.ticket_id ?? null) : null };
