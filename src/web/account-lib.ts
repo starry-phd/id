@@ -197,7 +197,15 @@ export function passkeyScript(c: WebContext, mode: 'register' | 'login' | 'stepu
       if (r.ok) { location.href = ${JSON.stringify(next).replace(/</g, '\\u003c')}; return; }
       say(r.status === 403 ? '此帳號已停權，請聯絡客服。' : '登入失敗。請確認這個裝置已新增過 Passkey，或改用 Apple／Google 登入。');`)}
     } catch (e) {
-      if (!(e && e.name === 'NotAllowedError')) say('操作失敗，請再試一次。');
+      const name = (e && e.name) || 'Error';
+      const FRIENDLY = {
+        InvalidStateError: '這支裝置已經新增過這組 Passkey，不用再新增。',
+        NotSupportedError: '這個瀏覽器或手機不支援 Passkey。請改用最新版 Chrome，並確認手機已設定螢幕鎖定與 Google 密碼管理工具。',
+        SecurityError: '瀏覽器拒絕在這個網址建立 Passkey，請確認網址是 id.starry.phd。',
+        AbortError: '操作被中斷，請再試一次。',
+        UnknownError: '手機無法建立 Passkey，請確認已設定螢幕鎖定（指紋、臉部或 PIN）後再試。',
+      };
+      if (name !== 'NotAllowedError') say((FRIENDLY[name] || '操作失敗，請再試一次。') + '（錯誤代碼：' + name + (e && e.message ? '：' + String(e.message).slice(0, 80) : '') + '）');
     } finally {
       button.disabled = false;
     }
