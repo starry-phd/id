@@ -170,3 +170,25 @@ export async function claimOwner(db: D1Database, claimCode: string | undefined, 
   ]);
   return 'claimed';
 }
+
+/** App managers: scoped to specific Apps (remote config, read-only views). They have no global staff role. */
+export async function listAppStaffApps(db: D1Database, userId: string): Promise<string[]> {
+  return (await db.prepare('SELECT app_id FROM app_staff WHERE user_id = ? ORDER BY app_id').bind(userId).all<{ app_id: string }>()).results.map((r) => r.app_id);
+}
+
+export async function isAppStaff(db: D1Database, userId: string, appId: string): Promise<boolean> {
+  return (await db.prepare('SELECT 1 AS ok FROM app_staff WHERE user_id = ? AND app_id = ?').bind(userId, appId).first()) !== null;
+}
+
+export async function setAppStaff(db: D1Database, actor: StaffActor, userId: string, appId: string, grant: boolean, now: number): Promise<boolean> {
+  if (actor.role !== 'owner') return false;
+  const user = await db.prepare('SELECT 1 AS ok FROM users WHERE user_id = ?').bind(userId).first();
+  if (!user) return false;
+  await db.batch([
+    grant
+      ? db.prepare('INSERT OR IGNORE INTO app_staff (user_id, app_id, granted_at, granted_by) VALUES (?, ?, ?, ?)').bind(userId, appId, now, actor.userId)
+      : db.prepare('DELETE FROM app_staff WHERE user_id = ? AND app_id = ?').bind(userId, appId),
+    auditStatement(db, { actorType: 'admin', actorUserId: actor.userId, action: grant ? 'admin.app_staff_granted' : 'admin.app_staff_revoked', targetType: 'user', targetId: userId, appId, result: 'success', requestId: actor.requestId, retention: 'security' }, now),
+  ]);
+  return true;
+}

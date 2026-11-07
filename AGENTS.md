@@ -71,6 +71,7 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 3b. 後台首頁（`/admin`）顯示近 24 小時各 App 活躍會員與 Battery 用量、排程心跳與刪除清除重試佇列；`sdk/starry-sdk.ts` 是 App 後端用的單檔 SDK。
 3c0. Passkey（WebAuthn）：僅網頁會員中心（`/account/passkey/*`）。會員先用 Apple／Google 登入，再新增 Passkey，之後可直接用 Passkey 登入；只支援 ES256、attestation none、必須使用者驗證（UV）；挑戰值沿用單次 nonce；每人最多 10 把；手機 App 端尚未支援（需要 Associated Domains／assetlinks）。
 3c1. 後台批次操作（會員清單勾選 → 調整 Battery／停權／強制登出，一次最多 50 位）；遠端設定表單（`/admin/apps/<id>/config`，覆寫 App 的 config 與 min_version，約 30 秒生效）；RevenueCat 金鑰可在 `/admin/apps/<id>/revenuecat` 管理（加密保存）。
+3c2. App 管理員：Owner 在會員頁指派某會員管理指定 App（`app_staff`），僅能編輯該 App 的遠端設定並檢視量子電池商品；不能看會員資料或 RevenueCat 金鑰。
 3c. 簽章金鑰輪替：Secret `ACCESS_TOKEN_PREVIOUS_JWKS` 放舊公鑰，輪替期間舊 Token 仍有效，步驟見 `docs/owner-setup.md`。
 3d. 刻意保留的設計（不是漏做）：echo／recordnote／account 留在 `config/apps.json`（資料庫故障時既有 App 仍可登入）；7 天刪除寬限期仍是現行對外行為（`deletion_purge_at` 欄位）；Email 登入依業主決定不做。
 4. 業主外部事項：`docs/owner-setup.md`（Google Play 帳號類型、App Store 付費協議、GitHub 帳號整併等）。

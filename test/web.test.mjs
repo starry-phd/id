@@ -331,6 +331,25 @@ describe('web account center, support form and Admin Lite', () => {
     assert.match(await (await worker.call('/admin/apps/echo/config', form({ config: 'Bad Name = 1' }, adminCookie))).text(), /只能用小寫英文/);
   });
 
+  test('an App manager edits only their own App\'s remote config', async () => {
+    const owner = await webSignIn('am-owner');
+    await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'owner', ?)").bind(await userIdOf('am-owner'), Date.now()).run();
+    const manager = await webSignIn('am-manager');
+    const managerId = await userIdOf('am-manager');
+    assert.equal((await worker.call('/admin/apps/echo/config', get(manager))).status, 403, 'not assigned yet');
+    const assign = await worker.call(`/admin/members/${managerId}/app-staff`, form({ app_id: 'echo', grant: '1' }, owner));
+    assert.match(await assign.text(), /已更新 App 管理員/);
+    assert.equal((await worker.call('/admin/apps/echo/config', get(manager))).status, 200);
+    assert.match(await (await worker.call('/admin/apps/echo/config', form({ config: 'banner = "hi"' }, manager))).text(), /已儲存/);
+    assert.equal((await worker.call('/admin/apps/recordnote/config', get(manager))).status, 403, 'other Apps stay closed');
+    assert.equal((await worker.call('/admin/members', get(manager))).status, 403, 'no member data');
+    assert.equal((await worker.call('/admin/apps/echo/revenuecat/webhook', form({}, manager))).status, 403, 'no secrets');
+    assert.match(await (await worker.call('/account', get(manager))).text(), /我管理的 App/);
+    await worker.call(`/admin/members/${managerId}/app-staff`, form({ app_id: 'echo', grant: '0' }, owner));
+    assert.equal((await worker.call('/admin/apps/echo/config', get(manager))).status, 403, 'revoked');
+    await worker.db.prepare("DELETE FROM user_roles WHERE role = 'owner'").run(); // the owner-claim test needs a database without an owner
+  });
+
   test('Battery in Admin Lite: admins adjust a member, only the owner sets the monthly policy (S-BAT-02/05)', async () => {
     const memberCookie = await webSignIn('battery-member');
     const target = await userIdOf('battery-member');

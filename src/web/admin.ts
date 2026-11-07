@@ -19,7 +19,7 @@ import { WEB_APP_ID } from '../identity/web-sessions';
 import { cleanupAfterDeletion } from '../identity/erase';
 import { deleteMemberNow } from '../identity/lifecycle';
 import { findMemberSummary, searchMembers } from '../identity/member-search';
-import { hasRole, restoreMember, revokeAllSessions, roleOf, setStaffRole, suspendMember, type Role, type StaffActor, type StatusChangeResult } from '../identity/roles';
+import { hasRole, isAppStaff, listAppStaffApps, restoreMember, revokeAllSessions, roleOf, setAppStaff, setStaffRole, suspendMember, type Role, type StaffActor, type StatusChangeResult } from '../identity/roles';
 import { auditStatement } from '../lib/audit';
 import { mailSettings, notifyStaffChange } from '../notify/email';
 import { ATTACHMENT_EXTENSIONS, getAttachment, listAttachments } from '../support/attachments';
@@ -53,6 +53,21 @@ async function staff(c: WebContext, minimum: Role): Promise<StaffActor | Respons
     return c.html(page(c, '沒有權限', html`<h1>沒有權限</h1><p>此頁面需要 ${ROLE_LABELS[minimum]} 以上的角色。</p>`, { admin: true }), 403);
   }
   return { userId: web.userId, role, requestId: c.get('requestId') };
+}
+
+/**
+ * Access to one App's pages: Admin and Owner always; an App manager only for the Apps the Owner assigned.
+ * The App manager is treated as an Admin on those pages only.
+ */
+async function appAccess(c: WebContext, appId: string): Promise<StaffActor | Response> {
+  const web = c.get('web');
+  if (!web) return c.redirect(`/account?next=${encodeURIComponent(new URL(c.req.url).pathname)}`, 303);
+  if (web.status === 'active') {
+    const role = await roleOf(c.env.DB_IDENTITY, c.env.OWNER_USER_IDS, web.userId);
+    if (role && hasRole(role, 'admin')) return { userId: web.userId, role, requestId: c.get('requestId') };
+    if (await isAppStaff(c.env.DB_IDENTITY, web.userId, appId)) return { userId: web.userId, role: 'admin', requestId: c.get('requestId') };
+  }
+  return c.html(page(c, '沒有權限', html`<h1>沒有權限</h1><p>此頁面需要 Admin 以上的角色，或被指派為這款 App 的管理員。</p>`, { admin: true }), 403);
 }
 
 const nav = html`<p><a href="/admin/members">會員</a>&emsp;<a href="/admin/tickets">客服單</a>&emsp;<a href="/admin/battery">Battery</a>&emsp;<a href="/admin/apps">App</a>&emsp;<a href="/admin/audit">稽核紀錄</a></p>`;
@@ -207,6 +222,7 @@ async function memberPage(c: WebContext, actor: StaffActor, userId: string, mess
   await auditStatement(db, { actorType: 'admin', actorUserId: actor.userId, action: 'admin.member_viewed', targetType: 'user', targetId: m.user_id, result: 'success', requestId: actor.requestId, retention: 'general' }, now).run();
   const canModerate = hasRole(actor.role, 'admin') && m.role !== 'owner' && m.user_id !== actor.userId;
   const canAdjust = hasRole(actor.role, 'admin') && m.user_id !== actor.userId;
+  const appManaged = actor.role === 'owner' ? await listAppStaffApps(c.env.DB_IDENTITY, m.user_id) : [];
   const [balance, quantum, ledger, sessions, tickets] = await Promise.all([
     getBalance(c.env.DB_BATTERY, m.user_id, now),
     listQuantum(c.env.DB_BATTERY, m.user_id),
@@ -240,7 +256,8 @@ ${message ? html`<div class="banner">${message}</div>` : ''}
 <details><summary>內部 ID（UUID）</summary><p><code>${m.user_id}</code> ${copy(m.user_id, '複製')}</p></details>
 <p><a href="/admin/audit?member=${m.user_id}">查看此會員的稽核紀錄</a></p>
 </div>
-<h2>登入中的裝置</h2>
+<p class="muted">快速跳到：<a href="#devices">登入裝置</a> ｜ <a href="#tickets">客服單</a> ｜ <a href="#battery">Battery</a> ｜ <a href="#quantum">量子電池</a> ｜ <a href="#actions">管理動作</a></p>
+<h2 id="devices">登入中的裝置</h2>
 <div class="card">
 ${sessions.results.length > 0
   ? html`<table><thead><tr><th>App</th><th>裝置</th><th>登入</th><th>最近使用</th></tr></thead><tbody>
@@ -251,7 +268,7 @@ ${canModerate && sessions.results.length > 0
   ? html`<form method="post" action="/admin/members/${m.user_id}/signout"><button class="danger" type="submit">強制登出所有裝置</button></form>`
   : ''}
 </div>
-<h2>客服單</h2>
+<h2 id="tickets">客服單</h2>
 <div class="card">
 ${tickets.results.length > 0
   ? html`<table><thead><tr><th>時間</th><th>類別</th><th>狀態</th></tr></thead><tbody>
@@ -259,7 +276,7 @@ ${tickets.results.map((t) => html`<tr><td><a href="/admin/tickets/${t.ticket_id}
 </tbody></table>`
   : html`<p class="muted">沒有客服單。</p>`}
 </div>
-<h2>Starry Battery（${balance.period}）</h2>
+<h2 id="battery">Starry Battery（${balance.period}）</h2>
 <div class="card">
 <p>本月額度 <strong>${balance.allowance}</strong> 顆｜已使用 ${balance.used}｜預留中 ${balance.reserved}｜剩餘 <strong>${balance.remaining}</strong> 顆<br>
 <span class="muted">下次恢復：${formatTime(balance.resets_at)}</span></p>
@@ -273,7 +290,7 @@ ${canAdjust
 <label for="battery-reason">原因（必填，最多 200 字，會員看不到）</label><input id="battery-reason" name="reason" maxlength="200" required><button type="submit">調整</button>
 <p class="muted">調整後會寄通知信給會員，只說明額度被調整，不寫數字。</p></form>`
   : ''}
-<h2>量子電池（各 App 內購）</h2>
+<h2 id="quantum">量子電池（各 App 內購）</h2>
 ${quantum.length > 0
   ? html`<table><thead><tr><th>App</th><th>餘額</th><th>使用中</th></tr></thead><tbody>${quantum.map((q) => html`<tr><td><code>${q.app_id}</code></td><td>${q.balance}</td><td>${q.reserved}</td></tr>`)}</tbody></table>`
   : html`<p class="muted">沒有量子電池。</p>`}
@@ -284,7 +301,7 @@ ${canAdjust
   : ''}
 </div>
 ${canModerate && m.status === 'active'
-  ? html`<h2>停權</h2><form method="post" action="/admin/members/${m.user_id}/suspend" class="card"><label for="reason">原因（必填，最多 200 字，會員看不到）</label><input id="reason" name="reason" maxlength="200" required><button class="danger" type="submit">停權</button></form>`
+  ? html`<h2 id="actions">停權</h2><form method="post" action="/admin/members/${m.user_id}/suspend" class="card"><label for="reason">原因（必填，最多 200 字，會員看不到）</label><input id="reason" name="reason" maxlength="200" required><button class="danger" type="submit">停權</button></form>`
   : ''}
 ${canModerate && m.status === 'suspended'
   ? html`<h2>復權</h2><form method="post" action="/admin/members/${m.user_id}/restore" class="card"><p>復權後會員需要重新登入。</p><button type="submit">復權</button></form>`
@@ -292,6 +309,11 @@ ${canModerate && m.status === 'suspended'
 ${actor.role === 'owner' && m.role !== 'owner' && m.user_id !== actor.userId
   ? html`<h2>永久刪除會員</h2><form method="post" action="/admin/members/${m.user_id}/delete" class="card"><p>立即永久刪除這位會員的所有資料，無法復原；會員編號不會再發給任何人。</p>
 <label for="confirm">請輸入大寫英文 DELETE 以確認</label><input id="confirm" name="confirm" autocomplete="off" required><button class="danger" type="submit">永久刪除</button></form>`
+  : ''}
+${actor.role === 'owner' && m.user_id !== actor.userId
+  ? html`<h2 id="staff-apps">App 管理員</h2><div class="card"><p class="muted">被指派的人只能管理指定 App 的遠端設定，並檢視量子電池商品與 RevenueCat 狀態；看不到其他會員資料。</p>
+${appManaged.length > 0 ? html`<ul>${appManaged.map((a) => html`<li><code>${a}</code> <form class="inline" method="post" action="/admin/members/${m.user_id}/app-staff"><input type="hidden" name="app_id" value="${a}"><input type="hidden" name="grant" value="0"><button class="secondary" type="submit">取消</button></form></li>`)}</ul>` : html`<p class="muted">沒有指派任何 App。</p>`}
+<form method="post" action="/admin/members/${m.user_id}/app-staff"><label for="as-app">App 代碼</label><input id="as-app" name="app_id" maxlength="64" required><input type="hidden" name="grant" value="1"><button type="submit">指派為此 App 的管理員</button></form></div>`
   : ''}
 ${actor.role === 'owner' && m.role !== 'owner' && m.user_id !== actor.userId
   ? html`<h2>管理角色</h2><form method="post" action="/admin/members/${m.user_id}/role" class="card"><label for="role">角色</label>
@@ -385,6 +407,17 @@ adminApp.post('/members/:id/restore', async (c) => {
   if (actor instanceof Response) return actor;
   const result = await restoreMember(c.env.DB_IDENTITY, actor, c.req.param('id'), Date.now());
   return memberPage(c, actor, c.req.param('id'), RESULT_TEXT[result]);
+});
+
+adminApp.post('/members/:id/app-staff', async (c) => {
+  const actor = await staff(c, 'owner');
+  if (actor instanceof Response) return actor;
+  const userId = c.req.param('id');
+  const form = await readForm(c);
+  const appId = (form.app_id ?? '').trim();
+  if (userId === actor.userId || !getApp(appId) || appId === WEB_APP_ID) return memberPage(c, actor, userId, '請填寫有效的 App 代碼。');
+  const ok = await setAppStaff(c.env.DB_IDENTITY, actor, userId, appId, form.grant === '1', Date.now());
+  return memberPage(c, actor, userId, ok ? '已更新 App 管理員。' : '找不到此會員。');
 });
 
 adminApp.post('/members/:id/role', async (c) => {
@@ -855,7 +888,7 @@ ${owner
 }
 
 adminApp.get('/apps/:id/quantum', async (c) => {
-  const actor = await staff(c, 'admin');
+  const actor = await appAccess(c, c.req.param('id'));
   if (actor instanceof Response) return actor;
   const app = getApp(c.req.param('id'));
   if (!app || app.app_id === WEB_APP_ID) return appsPage(c, '找不到此 App。');
@@ -1002,14 +1035,14 @@ ${canEdit
 }
 
 adminApp.get('/apps/:id/config', async (c) => {
-  const actor = await staff(c, 'support');
+  const actor = await appAccess(c, c.req.param('id'));
   if (actor instanceof Response) return actor;
   const app = rcApp(c);
   return app ? configPage(c, actor, app) : appsPage(c, '找不到此 App。');
 });
 
 adminApp.post('/apps/:id/config', async (c) => {
-  const actor = await staff(c, 'admin');
+  const actor = await appAccess(c, c.req.param('id'));
   if (actor instanceof Response) return actor;
   const app = rcApp(c);
   if (!app) return appsPage(c, '找不到此 App。');
