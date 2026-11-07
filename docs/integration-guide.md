@@ -217,12 +217,13 @@ Google Client 由業主建立（步驟見 `docs/owner-setup.md` 第 11 步），
 1. **Battery 錯誤處理**：預留可能回 409 `BATTERY_APP_CAP`（這款 App 本月用量達上限）或 503 `SERVICE_UNAVAILABLE`（維護模式）；兩者都不得開始 AI 任務，並提示會員稍後再試（第 9 節）。
 2. **量子電池**：`GET /v1/me/battery` 多了 `quantum`；預留回應多了 `quantum_amount`、`quantum_charged`。先扣免費月額度，不足才扣這款 App 的量子電池，不過期、不跨 App。若這款 App 要販售，商品代碼與顆數由業主在後台設定，購買走 RevenueCat 一次性商品（`NON_RENEWING_PURCHASE`）（第 9 節）。
 3. **單檔 SDK**：App 後端可改用 `sdk/starry-sdk.ts` 取代自己寫的呼叫（附錄）。
-4. **啟動讀取遠端設定**：`GET /v1/apps/{app_id}/config` 回傳 `status`、`min_version` 與業主在後台設定的鍵值（內容公開，不放機密），可用來做開關與強制更新（第 1 節）。
+4. **啟動與回到前景時讀取遠端設定**：`GET /v1/apps/{app_id}/config` 回傳 `status`、`min_version`、業主在後台設定的鍵值（內容公開，不放機密）與 `notices`（業主發布的公告，可指定這款 App 與時段，有內容時在 App 內顯示，只當純文字）。`status` 為 `paused` 可能是業主手動維護，也可能是用量暴增保護自動暫停（這款 App 每小時 Battery 預留次數超過上限），處理方式相同：顯示維護畫面，恢復由業主決定（第 1 節）。
 5. **驗證 Token 的金鑰**：App 後端要快取 `GET /.well-known/jwks.json`，遇到不認得的 `kid` 時重新抓取；金鑰輪替期間新舊兩把會同時有效。
 6. **刪除帳號**：立即永久刪除、沒有撤回期、不會自動取消商店訂閱（第 4 節）。App 內的說明文字要一致。
 7. **隱私權政策與條款**：版本更新後，登入回應的 `consent_required` 為 true 時要顯示同意流程。
 8. **Passkey（2026-11-07 起，每款 App 都要有）**：登入頁（iOS、Android、網頁）提供「使用 Passkey 登入」，設定頁能新增、列出、移除 Passkey，做法見第 13 節。
-9. **不需要 App 處理的新功能**：邀請碼（會員在 `https://id.starry.phd/account` 輸入兌換，獲得這款 App 的免費量子電池）、公告與維護模式（由後台設定，App 照 `status` 顯示即可）、資料匯出。
+9. **選用：Service Binding**：後端跑在同一個 Cloudflare 帳號的 Worker 時，可改用內部直連（第 14 節）。
+10. **不需要 App 處理的新功能**：邀請碼（會員在 `https://id.starry.phd/account` 輸入兌換，獲得這款 App 的免費量子電池）、公告與維護的設定（由後台操作，App 照 `status` 與 `notices` 顯示即可）、資料匯出、通知類別開關（會員在帳號中心設定）。
 
 ## 13. Passkey（每款 App 的登入頁與設定頁）
 
