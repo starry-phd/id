@@ -38,7 +38,7 @@ Starry ID 會員與登入、App Registry、購買權益投影與每日對帳、S
 |---|---|---|
 | `/account` | 登入（Google／Apple 網頁登入）、個人資料、同意條款、刪除、登入中的裝置（登出單一裝置／所有裝置）、Starry Battery 額度與紀錄 | S-WEB-01、S-ID-05、S-BAT-04 |
 | `/account/profile` | 個人資料：每欄 ✏️ 編輯、自動儲存、👁 公開設定、最後修改時間、生日推算資訊與彩色九宮格、隨機座右銘；`/account/verify-email` 確認聯絡信箱 | S-ID-08 |
-| `/account/link` | 加綁另一種登入方式（需 10 分鐘內登入過）；Google、Apple 分開登入過時，確認後合併成同一個帳號 | S-ID-02 |
+| `/account/link` | 加綁另一種登入方式（需 10 分鐘內登入過；新增 Passkey 不受此限）；Google、Apple 分開登入過時，確認後合併成同一個帳號 | S-ID-02 |
 | `/privacy`、`/terms` | 隱私權政策（版本 2026-11-03.2）、服務條款（版本 2026-11-03） | S-WEB-01 |
 | `/support` | 客服與檢舉表單（訪客與會員；附件選填：PNG／JPEG／WebP／PDF ≤ 2 MB，以檔案內容判斷類型；設定 Turnstile 後啟用驗證） | S-WEB-02 |
 | `/admin` | Admin Lite：會員查詢（完整姓名與 Email、會員編號、Battery 額度、多條件篩選，開啟會員資料會留稽核紀錄）、強制登出、停權／復權、角色、Battery 人工調整（Admin）與每月額度／任務消耗設定（Owner）、客服單（含附件下載、Email 回覆）、App 登記與狀態（Owner 可在後台新增 App，並產生給開發 AI 的串接指令）、稽核、API 文件 | S-ADM-01、S-BAT-02/05 |
