@@ -53,7 +53,7 @@ export async function webApp(c: WebContext): Promise<AppEntry | null> {
 }
 
 function safeNext(value: string | undefined): string {
-  return value && /^\/(account|admin|Invite[A-Z]{2}\d{7})(\/[A-Za-z0-9/_-]*)?$/.test(value) ? value : '/account';
+  return value && /^\/(account|admin|Invite\/[A-Z]{2}\d{7,10})(\/[A-Za-z0-9/_-]*)?$/.test(value) ? value : '/account';
 }
 
 interface ProviderWidgetConfig {

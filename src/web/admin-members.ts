@@ -18,7 +18,8 @@ import { bulkPush } from '../notify/bulk';
 import { mailSettings, notifyStaffChange } from '../notify/email';
 import { CATEGORY_LABELS } from '../support/tickets';
 import { formatTime, readForm, type WebContext } from './layout';
-import { changeMemberNo } from '../identity/member-number';
+import { changeMemberNo, normalizeMemberNo } from '../identity/member-number';
+import { adminSetReferrer, referrerOf } from '../identity/referrals';
 import { RESULT_TEXT, ROLE_LABELS, STATUS_LABELS, adminApp, adminPage, staff, requireStepUp, supportAccess } from './admin-lib';
 import { scopedMemberPage, scopedMembersPage } from './admin-scoped';
 
@@ -217,6 +218,7 @@ export async function memberPage(c: WebContext, actor: StaffActor, userId: strin
       .bind(m.user_id)
       .all<{ ticket_id: string; created_at: number; category: string; status: string }>(),
   ]);
+  const referrer = await referrerOf(db, m.user_id);
   const copy = (text: string, label: string) => html`<button type="button" data-copy-text="${text}">${label}</button>`;
   const email = m.contact_email ?? m.emails.find((e) => e !== null) ?? null;
   return c.html(
@@ -307,8 +309,12 @@ ${canModerate && m.status === 'active'
 ${canModerate && m.status === 'suspended'
   ? html`<h2>復權</h2><form method="post" action="/admin/members/${m.user_id}/restore" class="card"><p>復權後會員需要重新登入。</p><button type="submit">復權</button></form>`
   : ''}
+${canAdjust
+  ? html`<h2>推薦人</h2><form method="post" action="/admin/members/${m.user_id}/referrer" class="card"><p>目前推薦人：${referrer ? html`<strong>${referrer.name}</strong>（<code>${referrer.member_no}</code>）` : '（沒有）'}。會員自己無法變更；這裡改了之後，此會員底下的整個組織會一起移動。不能改成自己或自己下線的人。需要 Passkey 驗證。</p>
+<label for="new-ref">新推薦人的會員編號（留空代表移除推薦人）</label><input id="new-ref" name="referrer_no" autocomplete="off" maxlength="12" value=""><button type="submit">變更推薦人</button></form>`
+  : ''}
 ${actor.role === 'owner'
-  ? html`<h2>修改會員編號</h2><form method="post" action="/admin/members/${m.user_id}/member-no" class="card"><p>格式：2 個英文字母的國家代碼加 7 位數字，例如 TW0112342。修改後此會員的公開個人頁與邀請連結會一起改變，舊連結失效；組織網不受影響。需要 Passkey 驗證。</p>
+  ? html`<h2>修改會員編號</h2><form method="post" action="/admin/members/${m.user_id}/member-no" class="card"><p>格式：2 個英文字母的國家代碼加 7～10 位數字，例如 TW0112342。修改後此會員的公開個人頁與邀請連結會一起改變，舊連結失效；組織網不受影響。需要 Passkey 驗證。</p>
 <label for="new-no">新的會員編號</label><input id="new-no" name="no" autocomplete="off" maxlength="9" required value="${m.member_no ?? ''}"><button type="submit">修改編號</button></form>`
   : ''}
 ${actor.role === 'owner' && m.role !== 'owner' && m.user_id !== actor.userId
@@ -438,8 +444,33 @@ adminApp.post('/members/:id/member-no', async (c) => {
   const result = await changeMemberNo(c.env.DB_IDENTITY, { userId: m.user_id, requested: (await readForm(c)).no ?? '', byAdminId: actor.userId, requestId: actor.requestId }, Date.now());
   const text = result.ok
     ? result.unchanged ? '編號沒有變更。' : `已將會員編號改為 ${result.memberNo}。`
-    : result.reason === 'invalid' ? '編號格式不正確：需要 2 個英文字母的國家代碼加 7 位數字。' : result.reason === 'taken' ? '這個編號已經有人使用。' : '找不到會員。';
+    : result.reason === 'invalid' ? '編號格式不正確：需要 2 個英文字母的國家代碼加 7～10 位數字。' : result.reason === 'taken' ? '這個編號已經有人使用。' : '找不到會員。';
   return memberPage(c, actor, userId, text);
+});
+
+adminApp.post('/members/:id/referrer', async (c) => {
+  const actor = await staff(c, 'admin');
+  if (actor instanceof Response) return actor;
+  const stepUp = await requireStepUp(c, actor);
+  if (stepUp) return stepUp;
+  const userId = c.req.param('id');
+  const m = await findMemberSummary(c.env.DB_IDENTITY, null, c.env.OWNER_USER_IDS, userId, Date.now());
+  if (!m) return memberPage(c, actor, userId);
+  if (m.user_id === actor.userId) return memberPage(c, actor, userId, RESULT_TEXT.not_allowed);
+  const typed = ((await readForm(c)).referrer_no ?? '').trim();
+  const no = typed === '' ? null : normalizeMemberNo(typed);
+  if (typed !== '' && !no) return memberPage(c, actor, userId, '會員編號格式不正確。');
+  const result = await adminSetReferrer(c.env.DB_IDENTITY, { staffId: actor.userId, userId: m.user_id, referrerNo: no, requestId: actor.requestId }, Date.now());
+  const text: Record<string, string> = {
+    changed: `已將推薦人改為 ${no ?? ''}。`,
+    cleared: '已移除推薦人。',
+    unchanged: '推薦人沒有變更。',
+    self: '不能把推薦人設成會員自己。',
+    cycle: '不能改成這位會員自己下線的人（會造成循環）。',
+    invalid: '找不到這個會員編號。',
+    not_found: '找不到會員。',
+  };
+  return memberPage(c, actor, userId, text[result]);
 });
 
 adminApp.post('/members/:id/restore', async (c) => {

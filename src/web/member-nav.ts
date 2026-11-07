@@ -1,4 +1,5 @@
 import { html } from 'hono/html';
+import { BATTERY_ICON } from '../lib/battery-icons';
 import { getBalance } from '../battery/battery';
 import { listQuantum } from '../battery/quantum';
 import { initialsOf } from '../identity/initials';
@@ -37,8 +38,8 @@ export async function memberNav(c: WebContext): Promise<Html> {
   const photo = profile?.avatar_key && user?.member_no ? '/account/avatar-image' : null;
   const quantumTotal = quantum.reduce((sum, q) => sum + q.available, 0);
   return html`<nav class="starnav" aria-label="主選單">
-  <a class="stat" href="/account#battery" title="電池">🔋 <b>${battery ? battery.remaining : '–'}</b></a>
-  <a class="stat" href="/account#battery" title="量子電池">⚛️ <b>${quantumTotal}</b></a>
+  <a class="stat" href="/account#battery" title="電池">${BATTERY_ICON.normal} <b>${battery ? battery.remaining : '–'}</b></a>
+  <a class="stat" href="/account#battery" title="量子電池">${BATTERY_ICON.quantum} <b>${quantumTotal}</b></a>
   <a class="me" href="/account"${on('/account')}>${avatarBubble({ initials: initialsOf(profile?.display_name ?? profile?.nickname), photo, label: name })}<span>${name}</span></a>
   <a href="/account/profile"${on('/account/profile')}>關於我</a>
   <a href="/account/referral"${on('/account/referral')}>推薦達人</a>
