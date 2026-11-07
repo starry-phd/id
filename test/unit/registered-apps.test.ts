@@ -109,6 +109,13 @@ describe('registering an App without a code change', () => {
     assert.equal(await appForStoredKey(db, second.serviceKey), 'clock');
   });
 
+  test('the handoff tells an already integrated App to only patch the differences', () => {
+    const text = buildHandoff(build(clock), 'https://id.starry.phd');
+    assert.ok(text.includes('已經串接過') && text.includes('六、已串接 App 的更新檢查清單'));
+    for (const word of ['BATTERY_APP_CAP', 'quantum_amount', 'starry-sdk.ts', 'min_version', 'kid']) assert.ok(text.includes(word), word);
+    assert.ok(!/sbk_[A-Za-z0-9]{8}/.test(text), 'still no key');
+  });
+
   test('the handoff mentions Battery only as set up or not yet set up, never with a key', () => {
     const app = build(clock);
     assert.ok(buildHandoff(app, 'https://id.starry.phd', { battery: true }).includes('clock.ai'));

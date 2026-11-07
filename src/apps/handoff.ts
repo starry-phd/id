@@ -14,7 +14,8 @@ function list(values: readonly string[]): string {
 export function buildHandoff(app: AppEntry, origin: string, options: { battery: boolean } = { battery: false }): string {
   const id = app.app_id;
   const lines = [
-    `你是繁星生態系新 App「${app.name}」的開發者 AI。Starry ID（繁星中央會員系統）已經替這款 App 登記完成，請照下面的資料串接。不需要、也不可以修改 Starry ID 的程式碼或設定。`,
+    `你是繁星生態系 App「${app.name}」的開發者 AI。Starry ID（繁星中央會員系統）已經替這款 App 登記完成，請照下面的資料串接。不需要、也不可以修改 Starry ID 的程式碼或設定。`,
+    '如果這款 App 已經串接過：不要重做。請直接跳到「六、已串接 App 的更新檢查清單」，逐項檢查現有程式，只補上缺少或過時的部分，開 PR 後回報差異。',
     '',
     '## 一、已登記的資料（都不是秘密）',
     `- app_id：${id}`,
@@ -65,6 +66,18 @@ export function buildHandoff(app: AppEntry, origin: string, options: { battery: 
     '- 已建立的 Repo 與 Worker 名稱、每個 PR 與 CI 結果。',
     `- 用 GET ${origin}/v1/apps/${id}/config 驗證的結果。`,
     '- 還需要業主處理的事項清單（只列確實需要業主的）。',
+    '',
+    '## 六、已串接 App 的更新檢查清單（2026-11-07）',
+    `以串接說明第 12 節為準（${GUIDE_URL}）。逐項檢查，已符合的略過，只補缺少或過時的：`,
+    '1. Battery 預留的錯誤處理：409 BATTERY_APP_CAP（這款 App 本月用量達上限）與 503 SERVICE_UNAVAILABLE（維護模式）都不得開始 AI 任務，並提示會員稍後再試。',
+    '2. 量子電池：GET /v1/me/battery 有 quantum 欄位；預留回應有 quantum_amount、quantum_charged；先扣免費月額度、不足才扣這款 App 的量子電池。要販售時商品與顆數由業主在後台設定，購買走 RevenueCat 一次性商品。',
+    '3. 改用單檔 SDK：https://raw.githubusercontent.com/starry-phd/id/main/sdk/starry-sdk.ts（取代自己寫的 Battery 與會員呼叫）。',
+    `4. 啟動時讀取 GET ${origin}/v1/apps/${id}/config：依 status 顯示維護或停用，低於 min_version 要求更新；其中的設定鍵值是公開內容，不放機密。`,
+    '5. 驗證 Token：快取 JWKS，遇到不認得的 kid 就重新抓取（金鑰輪替期間新舊並存）。',
+    '6. 刪除帳號：立即永久刪除、沒有撤回期、不會自動取消商店訂閱；App 內說明文字要一致。',
+    '7. 條款與隱私權政策有新版本：consent_required 為 true 時顯示同意流程。',
+    '8. 不需要實作：Passkey（只在網頁帳號中心）、邀請碼（會員在 https://id.starry.phd/account 兌換，取得這款 App 的免費量子電池）、公告與維護模式、資料匯出。',
+    '9. 檢查完回報：每一項是「已符合」或「已補上（PR 連結）」，以及需要業主處理的事項。',
   ];
   return lines.filter((line, i) => !(line === '' && lines[i - 1] === '')).join('\n');
 }

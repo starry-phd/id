@@ -89,6 +89,8 @@ Battery 是 Starry 會員共用的免費 AI 用量月額度（規格 S-BAT），
 2. App 後端預留：`POST /v1/battery/reservations`，標頭 `Authorization: Bearer <會員 Access Token>` 與 `x-starry-app-key: <服務金鑰>`，內容 `{"task_type": "echo.transcribe", "task_label": "語音轉文字", "units": 3, "idempotency_key": "<每個任務唯一>"}`。`units` 就是要預留的顆數（1–100），`task_label`（選填、最多 40 字）會顯示在會員的 Battery 紀錄。
    - 201：預留成功，取得 `reservation_id` 與 `expires_at`（預設 3 分鐘）。網路重試用同一個 `idempotency_key` 會拿到同一筆（200）。
    - 409 `BATTERY_INSUFFICIENT`：本月額度不足，回應附 `balance`，請 App 顯示剩餘額度與下次恢復日。
+   - 409 `BATTERY_APP_CAP`：這款 App 本月的用量已達 Starry 設定的上限，請提示稍後再試，不要開始 AI 任務。
+   - 503 `SERVICE_UNAVAILABLE`：Starry 在維護模式，新的 Battery 任務暫停（進行中的任務仍可 commit／release）；請提示稍後再試，不要開始 AI 任務。
 3. 執行 AI 任務。
 4. 成功：`POST /v1/battery/reservations/{id}/commit`（可帶 `{"units": 實際扣除顆數}`，不超過預留）；失敗或取消：`POST /v1/battery/reservations/{id}/release`。兩者只需服務金鑰，重送不會重複扣除。
 5. 逾時未確認的預留每分鐘自動歸還；逾時後才回來的結果 commit 會得到 409 `RESERVATION_EXPIRED`，不扣額度。
@@ -205,8 +207,21 @@ Google Client 由業主建立（步驟見 `docs/owner-setup.md` 第 11 步），
 
 - **會員資料欄位**（ADR 0006）：`profile` 新增聯絡 Email、手機、國家／省州／城市、座右銘、生日推算資訊（星座、天賦數、生命靈數、九宮格）、公開設定、各欄最後修改時間。`PATCH /v1/me/profile` 只送要改的欄位；顯示名稱為 null 時顯示「繁星會員」的做法不變。
 - **帳號合併**：加綁時若回 409 `IDENTITY_IN_USE` 且 `mergeable: true`，請詢問會員後帶 `merge_other_account: true` 重送（第 4 節）。
-- **隱私權政策** 版本為 `2026-11-03.2`；會員登入後 `consent_required` 為 true 時請顯示同意流程。
+- **隱私權政策** 版本請以 App 登入後的 `consent_required` 為準（目前 `2026-11-07.2`，條款 `2026-11-07`）；會員登入後 `consent_required` 為 true 時請顯示同意流程。
 - **交接 Issue**：舊 Repo 的 #220 已隨舊 Repo 刪除，starry-phd/id 的交接 Issue 是 [#2](https://github.com/starry-phd/id/issues/2)。
+
+## 12. 已串接的 App：更新檢查清單（2026-11-07）
+
+已經串接過的 App 不必重做。請對照下列項目，只補上缺少或過時的部分，開 PR 後回報：
+
+1. **Battery 錯誤處理**：預留可能回 409 `BATTERY_APP_CAP`（這款 App 本月用量達上限）或 503 `SERVICE_UNAVAILABLE`（維護模式）；兩者都不得開始 AI 任務，並提示會員稍後再試（第 9 節）。
+2. **量子電池**：`GET /v1/me/battery` 多了 `quantum`；預留回應多了 `quantum_amount`、`quantum_charged`。先扣免費月額度，不足才扣這款 App 的量子電池，不過期、不跨 App。若這款 App 要販售，商品代碼與顆數由業主在後台設定，購買走 RevenueCat 一次性商品（`NON_RENEWING_PURCHASE`）（第 9 節）。
+3. **單檔 SDK**：App 後端可改用 `sdk/starry-sdk.ts` 取代自己寫的呼叫（附錄）。
+4. **啟動讀取遠端設定**：`GET /v1/apps/{app_id}/config` 回傳 `status`、`min_version` 與業主在後台設定的鍵值（內容公開，不放機密），可用來做開關與強制更新（第 1 節）。
+5. **驗證 Token 的金鑰**：App 後端要快取 `GET /.well-known/jwks.json`，遇到不認得的 `kid` 時重新抓取；金鑰輪替期間新舊兩把會同時有效。
+6. **刪除帳號**：立即永久刪除、沒有撤回期、不會自動取消商店訂閱（第 4 節）。App 內的說明文字要一致。
+7. **隱私權政策與條款**：版本更新後，登入回應的 `consent_required` 為 true 時要顯示同意流程。
+8. **不需要 App 處理的新功能**：Passkey（只在網頁帳號中心）、邀請碼（會員在 `https://id.starry.phd/account` 輸入兌換，獲得這款 App 的免費量子電池）、公告與維護模式、資料匯出，App 不用實作；需要時導向網頁帳號中心即可。
 
 ## 附錄：Starry SDK（App 後端用）
 
