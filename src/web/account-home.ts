@@ -4,7 +4,9 @@ import { getBalance, recentActivity } from '../battery/battery';
 import { redeemInvite } from '../battery/invites';
 import { listQuantum } from '../battery/quantum';
 import { getNotices } from '../lib/notices';
+import { activeScopedNotices } from '../lib/scoped-notices';
 import type { Provider } from '../auth/provider-keys';
+import { isCategory, setPreferences } from '../notify/push';
 import { background, readProviderRequest, verifyProviderRequest } from '../auth/routes';
 import { rememberAppleToken } from '../identity/apple';
 import { listActiveSessions, logoutEverywhere, revokeOwnSession } from '../identity/devices';
@@ -43,9 +45,11 @@ accountApp.get('/', async (c) => {
   const inviteMsg = ({ ok: '兌換成功，已加入量子電池。', invalid: '邀請碼不正確、已停用或已過期。', already: '你已經兌換過這組邀請碼。', used_up: '這組邀請碼已被領完。' } as Record<string, string>)[c.req.query('invite') ?? ''] ?? '';
   const [battery, batteryActivity, quantum] = await Promise.all([getBalance(c.env.DB_BATTERY, web.userId, now), recentActivity(c.env.DB_BATTERY, web.userId, now, { limit: 10 }), listQuantum(c.env.DB_BATTERY, web.userId)]);
   const notices = await getNotices(db);
+  const timed = await activeScopedNotices(db, now).catch(() => []);
   const body = html`<h1>${p.display_name ?? '我的帳號'}</h1>
 ${notices.maintenance ? html`<div class="banner danger">系統維護中：${notices.maintenanceMessage || 'AI 功能暫時停用，帳號功能可正常使用。'}</div>` : ''}
 ${notices.announcement ? html`<div class="banner">${notices.announcement}</div>` : ''}
+${timed.map((n) => html`<div class="banner">${n.message}</div>`)}
 ${notice ? html`<div class="banner">${notice}</div>` : ''}
 ${needsConsent
   ? html`<div class="banner"><strong>請確認服務條款與隱私權政策</strong><br>請閱讀<a href="/terms">服務條款</a>與<a href="/privacy">隱私權政策</a>（版本 ${c.env.TERMS_VERSION}／${c.env.PRIVACY_VERSION}）。
@@ -107,6 +111,7 @@ ${battery && batteryActivity
     : ''}
 </div>`
   : ''}
+<p><a href="/account/notifications">通知設定</a></p>
 ${role && hasRole(role, 'support') ? html`<p><a class="button" href="/admin">進入 Admin Lite</a></p>` : ''}
 ${html`<h2>下載我的資料</h2><p class="muted">取得 Starry 保存的您的個人資料、登入方式、同意紀錄、使用過的 App 與電池紀錄（JSON 檔，不含密碼或憑證）。</p><a href="/account/export">下載我的資料</a>`}
 ${html`<h2>刪除帳號</h2><p class="muted">確認後立即永久刪除，無法復原。</p><a href="/account/delete">申請刪除帳號</a>`}`;
@@ -298,4 +303,49 @@ accountApp.post('/consent', async (c) => {
   if (!web || web.status !== 'active') return c.redirect('/account', 303);
   await acceptConsents(c.env.DB_IDENTITY, { userId: web.userId, termsVersion: c.env.TERMS_VERSION, privacyVersion: c.env.PRIVACY_VERSION, appId: WEB_APP_ID, requestId: c.get('requestId') }, Date.now());
   return c.redirect('/account', 303);
+});
+
+interface PreferenceRow {
+  app_id: string;
+  category: string;
+  enabled: number;
+}
+
+async function notificationsPage(c: WebContext, userId: string, message?: string): Promise<Response> {
+  const rows = await c.env.DB_IDENTITY.prepare('SELECT app_id, category, enabled FROM push_preferences WHERE user_id = ? ORDER BY app_id, category LIMIT 200').bind(userId).all<PreferenceRow>();
+  const form =
+    rows.results.length === 0
+      ? html`<p class="muted">目前沒有可調整的通知項目。App 開始傳送通知類別後，會出現在這裡。</p>`
+      : html`<form method="post" action="/account/notifications"><input type="hidden" name="n" value="${String(rows.results.length)}">
+${rows.results.map(
+  (r, i) => html`<input type="hidden" name="key_${String(i)}" value="${r.app_id}|${r.category}"><label><input type="checkbox" name="on_${String(i)}" value="1" ${r.enabled === 1 ? 'checked' : ''}> ${appLabel(r.app_id)}：${r.category}</label>`,
+)}
+<button type="submit">儲存</button></form>`;
+  return c.html(page(c, '通知設定', html`<h1>通知設定</h1>${message ? html`<div class="banner">${message}</div>` : ''}<div class="card">${form}</div><p><a href="/account">回到帳號中心</a></p>`));
+}
+
+accountApp.get('/notifications', async (c) => {
+  const web = c.get('web');
+  if (!web || web.status !== 'active') return c.redirect('/account', 303);
+  return notificationsPage(c, web.userId);
+});
+
+accountApp.post('/notifications', async (c) => {
+  const web = c.get('web');
+  if (!web || web.status !== 'active') return c.redirect('/account', 303);
+  const form = await readForm(c);
+  const count = Math.min(Number.parseInt(form.n ?? '0', 10) || 0, 200);
+  const byApp = new Map<string, Record<string, boolean>>();
+  for (let i = 0; i < count; i++) {
+    const [appId, category] = (form[`key_${i}`] ?? '').split('|');
+    if (!appId || !isCategory(category)) continue;
+    byApp.set(appId, { ...byApp.get(appId), [category]: form[`on_${i}`] === '1' });
+  }
+  const known = new Set((await c.env.DB_IDENTITY.prepare("SELECT app_id || '|' || category AS k FROM push_preferences WHERE user_id = ?").bind(web.userId).all<{ k: string }>()).results.map((r) => r.k));
+  const now = Date.now();
+  for (const [appId, choices] of byApp) {
+    const allowed = Object.fromEntries(Object.entries(choices).filter(([category]) => known.has(`${appId}|${category}`)));
+    await setPreferences(c.env.DB_IDENTITY, web.userId, appId, allowed, now);
+  }
+  return notificationsPage(c, web.userId, '已儲存。');
 });

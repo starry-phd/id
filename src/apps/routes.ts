@@ -1,6 +1,7 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import { apiRouter, errorResponses, json } from '../api/openapi';
 import { fail } from '../auth/routes';
+import { activeScopedNotices } from '../lib/scoped-notices';
 import { getApp } from './registry';
 import { withConfigOverrides, withEffectiveStatus } from './status';
 
@@ -21,6 +22,7 @@ const configRoute = createRoute({
           status: z.string().openapi({ example: 'active', description: 'active, paused or killed' }),
           min_version: z.string().openapi({ example: '1.0.0' }),
           config: z.record(z.string(), z.unknown()),
+          notices: z.array(z.object({ message: z.string(), starts_at: z.number().int(), ends_at: z.number().int() })).openapi({ description: 'Announcements running now for this App or for every App; show them in the App (epoch ms).' }),
         })
         .openapi('AppConfig'),
       'App configuration',
@@ -35,5 +37,6 @@ appRoutes.openapi(configRoute, async (c) => {
   if (!configured) return fail(c, 404, 'APP_NOT_FOUND', 'Unknown app');
   const now = Date.now();
   const app = await withConfigOverrides(c.env.DB_IDENTITY, await withEffectiveStatus(c.env.DB_IDENTITY, configured, now), now);
-  return c.json({ app_id: app.app_id, status: app.status, min_version: app.min_version, config: { ...app.config } }, 200);
+  const notices = await activeScopedNotices(c.env.DB_IDENTITY, now, app.app_id).catch(() => []);
+  return c.json({ app_id: app.app_id, status: app.status, min_version: app.min_version, config: { ...app.config }, notices: notices.map((n) => ({ message: n.message, starts_at: n.starts_at, ends_at: n.ends_at })) }, 200);
 });

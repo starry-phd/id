@@ -318,6 +318,14 @@ describe('web account center, support form and Admin Lite', () => {
     const revenue = await worker.call('/admin/revenue?days=90', get(adminCookie));
     assert.equal(revenue.status, 200);
     assert.match(await revenue.text(), /測試購買/);
+    const notices = await (await worker.call('/admin/notices', get(adminCookie))).text();
+    assert.match(notices, /指定 App 與時段的公告/);
+    assert.match(notices, /用量暴增自動暫停/);
+    assert.equal((await worker.call('/admin/notices/timed', form({ message: 'x', ends_at: '2099-01-01T00:00' }, adminCookie))).status, 403, 'only the owner posts timed notices');
+    assert.equal((await worker.call('/admin/notices/surge', form({ limit_echo: '5' }, adminCookie))).status, 403, 'only the owner sets the surge guard');
+    const toggles = await worker.call('/account/notifications', get(adminCookie));
+    assert.equal(toggles.status, 200);
+    assert.match(await toggles.text(), /通知設定/);
     const apps = await (await worker.call('/admin/apps', get(adminCookie))).text();
     assert.match(apps, /一鍵暫停/);
     assert.match(apps, /本月 Battery/);
