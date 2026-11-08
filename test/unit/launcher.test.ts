@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { migratedDb } from '../support/sqlite-d1.mjs';
-import { launcherItems, listLauncherRows, moveLauncher, parseLauncherInput, removeLauncherIcon, resetLauncher, saveLauncherIcon, saveLauncherText, sniffImage } from '../../src/apps/launcher';
+import { defaultWeb, launcherItems, listLauncherRows, moveLauncher, parseLauncherInput, removeLauncherIcon, resetLauncher, saveLauncherIcon, saveLauncherText, sniffImage } from '../../src/apps/launcher';
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0, 1, 2]);
 
@@ -59,4 +59,10 @@ test('order: moving swaps neighbours, edges do nothing, reset returns to default
     assert.deepEqual(after.slice(0, 2), [ids[1], ids[0]]);
     await resetLauncher(db, undefined, ids[0] as string);
   }
+});
+
+test('default web address prefers the starry.phd origin over preview workers.dev ones', () => {
+  assert.equal(defaultWeb(['https://recordnote-web-preview.starry-phd.workers.dev', 'https://recordnote.starry.phd']), 'https://recordnote.starry.phd');
+  assert.equal(defaultWeb(['https://x.example.com']), 'https://x.example.com');
+  assert.equal(defaultWeb([]), null);
 });

@@ -22,6 +22,11 @@ export interface LauncherItem {
   paused: boolean;
 }
 
+/** The App's public web address: a starry.phd origin first (workers.dev origins are previews and may be empty), else the first one. */
+export function defaultWeb(origins: readonly string[]): string | null {
+  return origins.find((o) => /^https:\/\/[a-z0-9-]+\.starry\.phd$/.test(o)) ?? origins[0] ?? null;
+}
+
 export const ICON_MAX_BYTES = 300 * 1024;
 const URL_MAX = 300;
 const HTTPS_URL = /^https:\/\/[^\s<>"']+$/;
@@ -44,7 +49,7 @@ export function launcherItems(rows: ReadonlyMap<string, LauncherRow>, includeKil
       appId: app.app_id,
       name: row?.name ?? app.name,
       iconKey: row?.icon_key ?? null,
-      web: row?.web_url ?? (app.app_id === 'account' ? '/account' : (app.web_origins[0] ?? null)),
+      web: row?.web_url ?? (app.app_id === 'account' ? '/account' : defaultWeb(app.web_origins)),
       play: row?.play_url ?? null,
       appstore: row?.appstore_url ?? null,
       summary: row?.summary ?? null,
