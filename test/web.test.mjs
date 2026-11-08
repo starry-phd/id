@@ -162,7 +162,7 @@ describe('web account center, support form and Admin Lite', () => {
     const profilePage = await (await worker.call('/account/profile', get(cookie))).text();
     assert.ok(!profilePage.includes('[object Object]'), 'no raw object printed on the page');
     assert.ok(profilePage.includes('id="app-launcher"') && profilePage.includes('繁星生態系'), 'main menu carries the 9-dot App launcher');
-    assert.ok(profilePage.indexOf('class="lc-tile"') > profilePage.indexOf('id="app-launcher"') && profilePage.includes('href="/account"'), 'launcher lists the account centre tile');
+    assert.ok(profilePage.indexOf('class="lc-row"') > profilePage.indexOf('id="app-launcher"') && profilePage.includes('href="/account"'), 'launcher lists the account centre row');
     assert.match(profilePage, /🔋 加碼 <b id="bonus-x">/, 'the battery icon sits in front of the multiplier');
     assert.match(profilePage, /#vis-all\{[^}]*flex-wrap:nowrap/, 'the two buttons and the multiplier stay on one row');
     assert.ok(profilePage.includes('id="nick-same"') && profilePage.includes('與姓名相同'), 'the nickname field offers "same as name"');
@@ -354,6 +354,8 @@ describe('web account center, support form and Admin Lite', () => {
     assert.match(notices, /用量暴增自動暫停/);
     assert.equal((await worker.call('/admin/notices/timed', form({ message: 'x', ends_at: '2099-01-01T00:00' }, adminCookie))).status, 403, 'only the owner posts timed notices');
     assert.equal((await worker.call('/admin/notices/surge', form({ limit_echo: '5' }, adminCookie))).status, 403, 'only the owner sets the surge guard');
+    assert.equal((await worker.call('/admin/launcher', get(adminCookie))).status, 403, 'only the owner edits the App launcher');
+    assert.equal((await worker.call('/admin/launcher/account', form({ name: 'x' }, adminCookie))).status, 403, 'only the owner saves the App launcher');
     const toggles = await worker.call('/account/notifications', get(adminCookie));
     assert.equal(toggles.status, 200);
     assert.match(await toggles.text(), /通知設定/);

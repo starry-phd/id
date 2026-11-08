@@ -73,7 +73,7 @@ export function scopeAllows(actor: StaffActor, appId: string | null): boolean {
 /** Everyday pages sit in the top bar; the rest are folded into "更多" (and every item folds into the burger on a phone). */
 const FULL_MENU: AdminMenu = {
   primary: [['/admin', '首頁'], ['/admin/members', '會員'], ['/admin/tickets', '客服單'], ['/admin/apps', 'App'], ['/admin/battery', '電池艙']],
-  more: [['/admin/notices', '公告與維護'], ['/admin/broadcast', '全 App 推播'], ['/admin/apps/status', '整合狀態'], ['/admin/revenue', '營收'], ['/admin/audit', '稽核紀錄'], ['/admin/apps/new', '新增 App']],
+  more: [['/admin/notices', '公告與維護'], ['/admin/broadcast', '全 App 推播'], ['/admin/apps/status', '整合狀態'], ['/admin/revenue', '營收'], ['/admin/audit', '稽核紀錄'], ['/admin/apps/new', '新增 App'], ['/admin/launcher', '九宮格 App']],
 };
 
 const SCOPED_MENU: AdminMenu = {
