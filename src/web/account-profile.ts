@@ -92,7 +92,7 @@ function fieldInput(spec: FieldSpec, p: ProfileRow): Html {
 }
 
 const GROUP_LABELS: Record<VisibilityField, string> = {
-  display_name: '姓名', avatar: '頭像', birthday: '生日', derived: '由生日推算', location: '國家／地區', phone: '手機', motto: '座右銘', contact_email: '主要聯絡 Email',
+  display_name: '姓名', avatar: '頭像', birthday: '生日', derived: '生命靈數', location: '國家／地區', phone: '手機', motto: '座右銘', contact_email: '主要聯絡 Email',
   occupation: '職業', website: '個人網站', bio: '自我介紹', languages: '使用語言', interests: '興趣', skills: '專長', education: '學歷',
 };
 
@@ -112,48 +112,48 @@ function updatedLine(updates: Record<string, FieldUpdate>, field: string): Html 
   return u ? html`<p class="muted updated"></p>` : html`<p class="muted updated"></p>`;
 }
 
+const RING = { black: '#0f172a', birthday: '#f5b400', zodiac: '#8b2fe0', talent: '#7ccf1b', life: '#e5303a' } as const;
+
+/** One cell of the 3×3 overview: the digit inside nested circles (black, yellow, purple, green); the total life number is a red triangle around it. */
+function chartCell(n: number, r: Rings): Html {
+  const rings: string[] = [
+    ...Array.from({ length: r.black }, () => RING.black),
+    ...(r.birthday ? [RING.birthday] : []),
+    ...(r.zodiac ? [RING.zodiac] : []),
+    ...Array.from({ length: r.talent }, () => RING.talent),
+  ];
+  if (rings.length === 0 && !r.life) return html`<td class="ln-cell ln-empty"><span class="ln-n">${n}</span></td>`;
+  let inner: Html = html`<span class="ln-n${rings.length === 0 ? ' ln-red' : ''}">${n}</span>`;
+  for (const color of rings) inner = html`<span class="ln-ring" style="border-color:${color}">${inner}</span>`;
+  if (r.life) inner = html`<span class="ln-tri"><svg viewBox="0 0 100 90" preserveAspectRatio="none" aria-hidden="true"><polygon points="50,5 96,85 4,85" fill="none" stroke="${RING.life}" stroke-width="5" stroke-linejoin="round"/></svg>${inner}</span>`;
+  return html`<td class="ln-cell">${inner}</td>`;
+}
+
 const CHART_COLS: readonly (readonly number[])[] = [
   [1, 4, 7],
   [2, 5, 8],
   [3, 6, 9],
 ];
 
-/** One cell of the 3×3 overview: the digit inside nested circles, black first, then yellow, purple, green, red. */
-function chartCell(n: number, r: Rings): Html {
-  const rings: string[] = [
-    ...Array.from({ length: r.black }, () => '#0f172a'),
-    ...(r.birthday ? ['#f5b400'] : []),
-    ...(r.zodiac ? ['#8b2fe0'] : []),
-    ...Array.from({ length: r.talent }, () => '#7ccf1b'),
-    ...(r.life ? ['#e5303a'] : []),
-  ];
-  if (rings.length === 0) return html`<td class="ln-cell ln-empty"><span class="ln-n">${n}</span></td>`;
-  const onlyRed = rings.length === 1 && r.life;
-  let inner: Html = html`<span class="ln-n${onlyRed ? ' ln-red' : ''}">${n}</span>`;
-  for (const color of rings) inner = html`<span class="ln-ring" style="border-color:${color}">${inner}</span>`;
-  return html`<td class="ln-cell">${inner}</td>`;
-}
-
-const LIFE_CHART_STYLE = `.ln-title{margin:18px 0 8px;font-size:1.05rem}.ln-card{background:#f6f8fb;color:#0f172a;border:1px solid #d6dde8;border-radius:24px;padding:16px}.ln-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;font-weight:800;font-size:1.1rem;padding-bottom:12px;border-bottom:2px solid #e2e8f0}.ln-head .sep{width:1px;height:22px;background:#cbd5e1}.ln-badge{display:inline-block;min-width:2.1em;text-align:center;padding:1px 8px;border-radius:10px;font-weight:800;border:2px solid}.ln-b-zodiac{background:#f3e8ff;border-color:#d8b4fe;color:#6b21a8}.ln-b-birthday{background:#fef3c7;border-color:#fcd34d;color:#92400e}.ln-b-talent{background:#d1fae5;border-color:#6ee7b7;color:#065f46}.ln-b-life{background:#dcfce7;border-color:#bbf7d0;color:#166534}.ln-grid{width:100%;border-collapse:separate;border-spacing:10px;margin:6px 0 0;table-layout:fixed}.ln-grid td{padding:0}.ln-cell{background:#fff;border:2px solid #cbd5e1;border-radius:22px;height:112px;text-align:center;vertical-align:middle;box-shadow:0 2px 4px rgba(15,23,42,.08)}.ln-empty{background:#f1f5f9;border-color:#eef2f7;box-shadow:none}.ln-empty .ln-n{color:#cbd5e1}.ln-ring{display:inline-flex;align-items:center;justify-content:center;padding:4px;border:3px solid;border-radius:50%;background:#fff}.ln-n{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:34px;font-size:1.7rem;font-weight:800;color:#0f172a;line-height:1}.ln-red{color:#e5303a}.ln-legend{border-top:2px solid #e2e8f0;margin-top:8px;padding-top:12px;display:flex;flex-wrap:wrap;gap:10px 16px;font-size:.95rem;color:#1e293b;line-height:1.4}.ln-legend>div{display:flex;align-items:center;gap:10px}.ln-dot{flex:none;width:26px;height:26px;border-radius:50%;border:3px solid}.ln-note{margin-top:10px;font-size:.85rem}`;
+const LIFE_CHART_STYLE = `.ln-top{display:flex;justify-content:flex-end;margin:0 0 6px}.ln-top form{margin:0}.ln-card{background:#f6f8fb;color:#0f172a;border:1px solid #d6dde8;border-radius:20px;padding:12px 14px}.ln-head{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;padding-bottom:10px;border-bottom:2px solid #e2e8f0}.ln-item{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1rem;white-space:nowrap}.ln-badge{display:inline-block;min-width:1.9em;text-align:center;padding:0 7px;border-radius:9px;font-weight:800;border:2px solid;line-height:1.5}.ln-b-zodiac{background:#f3e8ff;border-color:#d8b4fe}.ln-b-birthday{background:#fef3c7;border-color:#fcd34d}.ln-b-talent{background:#ecfccb;border-color:#bef264}.ln-b-life{background:#fee2e2;border-color:#fca5a5}.ln-grid{width:100%;border-collapse:collapse;margin:4px 0 0;table-layout:fixed}.ln-grid td{padding:5px 0}.ln-cell{text-align:center;vertical-align:middle}.ln-empty .ln-n{color:#cbd5e1}.ln-ring{display:inline-flex;align-items:center;justify-content:center;padding:2px;border:2.5px solid;border-radius:50%;background:#fff}.ln-n{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;font-size:1.3rem;font-weight:800;color:#0f172a;line-height:1}.ln-red{color:#e5303a}.ln-tri{position:relative;display:inline-flex;align-items:center;justify-content:center;padding:26px 24px 8px}.ln-tri svg{position:absolute;inset:0;width:100%;height:100%}.ln-tri>*{position:relative}.ln-legend{border-top:2px solid #e2e8f0;margin-top:4px;padding-top:8px;display:grid;grid-template-columns:1fr;gap:4px;font-size:.8rem;color:#1e293b;line-height:1.3}.ln-legend>div{display:flex;align-items:center;gap:8px}.ln-dot{flex:none;width:16px;height:16px;border-radius:50%;border:2.5px solid;box-sizing:border-box}.ln-dot-tri{flex:none;width:16px;text-align:center;color:#e5303a;font-size:.95rem;line-height:1}`;
 
 function derivedCard(p: ProfileRow, visibility: Record<VisibilityField, Visibility>, version: number, minor: boolean): Html {
   if (!p.birthday) return html`<div class="card"></div>`;
   const chart = lifeChartOf(p.birthday);
+  const item = (label: string, value: string | number, color: string, cls: string) => html`<div class="ln-item" style="color:${color}"><span>${label}</span><span class="ln-badge ${cls}">${value}</span></div>`;
   return html`<div class="card">
-<p style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>由生日推算</strong>${eyeForm('derived', visibility, version, minor)}</p>
 <style>${raw(LIFE_CHART_STYLE)}</style>
-<h3 class="ln-title">九宮格生命靈數速覽</h3>
+<div class="ln-top">${eyeForm('derived', visibility, version, minor)}</div>
 <div class="ln-card">
-<div class="ln-head"><span>星座：<span style="font-weight:900">${chart.zodiac_name}</span></span><span class="ln-badge ln-b-zodiac">${chart.zodiac_number}</span><span class="sep"></span><span>生日數：</span><span class="ln-badge ln-b-birthday">${chart.birthday_number}</span><span class="sep"></span><span>天賦數：</span><span class="ln-badge ln-b-talent">${chart.talent_numbers.length > 0 ? chart.talent_numbers.join('、') : '—'}</span><span>加總命數：</span><span class="ln-badge ln-b-life">${chart.life_number}</span></div>
+<div class="ln-head">${item('星座：' + chart.zodiac_name, chart.zodiac_number, RING.zodiac, 'ln-b-zodiac')}${item('生日數：', chart.birthday_number, RING.birthday, 'ln-b-birthday')}${item('天賦數：', chart.talent_numbers.length > 0 ? chart.talent_numbers.join('、') : '—', RING.talent, 'ln-b-talent')}${item('加總命數：', chart.life_number, RING.life, 'ln-b-life')}</div>
 <table class="ln-grid" aria-label="彩色九宮格">${CHART_COLS.map((row) => html`<tr>${row.map((n) => chartCell(n, chart.rings[n] as Rings))}</tr>`)}</table>
 <div class="ln-legend">
-<div><span class="ln-dot" style="border-color:#0f172a;background:#fff"></span><span>先天數生日數字（黑色線圈，出現幾次畫幾圈）</span></div>
-<div><span class="ln-dot" style="border-color:#f5b400;background:#fef3c7"></span><span>生日數（黃色圈線，出生日期相加至個位數）</span></div>
-<div><span class="ln-dot" style="border-color:#8b2fe0;background:#f3e8ff"></span><span>星座數（紫色圈線）</span></div>
-<div><span class="ln-dot" style="border-color:#7ccf1b;background:#d1fae5"></span><span>天賦數（亮綠圈線）</span></div>
-<div><span class="ln-dot" style="border-color:#e5303a;background:#fee2e2"></span><span>加總命數（紅色圓圈包圍數字）</span></div>
+<div><span class="ln-dot" style="border-color:${RING.black}"></span><span>先天數生日數字（黑色線圈，出現幾次畫幾圈）</span></div>
+<div><span class="ln-dot" style="border-color:${RING.birthday}"></span><span>生日數（黃色圈線，出生日期相加至個位數）</span></div>
+<div><span class="ln-dot" style="border-color:${RING.zodiac}"></span><span>星座數（紫色圈線）</span></div>
+<div><span class="ln-dot" style="border-color:${RING.talent}"></span><span>天賦數（亮綠圈線）</span></div>
+<div><span class="ln-dot-tri">▲</span><span>加總命數（紅色三角形包圍數字）</span></div>
 </div></div>
-<p class="muted ln-note">生命靈數即使設為「隱藏」，不會顯示給其他會員，但系統仍會用它做 AI 統計與分析（例如查看會員之間的合作優勢、個人占卜與生涯規劃功能），分析時會將結果上傳到雲端 AI 模型處理。</p>
 </div>`;
 }
 
@@ -223,7 +223,7 @@ ${memberNo ? html`<div class="card" id="mn-card" data-countries="${countries}" d
 <button type="submit" id="mn-save">儲存</button><button type="button" class="secondary" id="mn-random">🎲 隨機數字</button><button type="button" class="secondary" id="mn-cancel">取消</button>
 </form></div>` : ''}
 ${rows}
-<h2>生日資訊</h2>
+<h2>生命靈數</h2>
 ${derivedCard(p, visibility, p.version, minor)}
 <p><a href="/account">回到帳號中心</a></p>`,
     {
