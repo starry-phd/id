@@ -7,8 +7,8 @@ const GUIDE_URL = 'https://raw.githubusercontent.com/starry-phd/id/main/docs/int
  * Version of the handoff text. Bump both whenever the text below changes (a unit test fails until you do),
  * so the Owner can tell at a glance whether the copy an App's AI received is the latest one.
  */
-export const HANDOFF_VERSION = '2026-11-08.3';
-export const HANDOFF_UPDATED = '2026-11-08 03:10（台灣時間）';
+export const HANDOFF_VERSION = '2026-11-08.4';
+export const HANDOFF_UPDATED = '2026-11-08 18:10（台灣時間）';
 
 function list(values: readonly string[]): string {
   return values.length === 0 ? '（無）' : values.join('、');
@@ -66,6 +66,8 @@ export function buildHandoff(app: AppEntry, origin: string, options: { battery: 
     '4. 會員身分只用 Starry 的 user_id（內部以 provider＋sub 辨識，不用 Email 或姓名合併）。App 後端用 GET /.well-known/jwks.json 驗證 Access Token。',
     '   - 會員頭像（所有繁星 App 一致）：用 GET /v1/me 的 profile.avatar_url（簽名網址，1 小時有效，每次進畫面重新取得）；avatar_url 為 null 時，在圓形裡顯示 profile.initials（姓與名各取第一個字，伺服器已算好，不要自己算）。頭像圖片的快取請用 avatar_url 問號前面的路徑當 key，不要用 user_id：會員換頭像（包含改用 Google 頭像）後路徑一定會變，所以每次 App 回到前景或進畫面都要重新讀 GET /v1/me，路徑不同就重新下載並更新所有畫面。會員顯示的名字一律用 profile.shown_name（會員在帳號中心指定的「主要顯示名稱」，暱稱或姓名二選一，預設暱稱，伺服器已算好，不要自己組；排行榜用 /v1/directory/members 的 shown_name 也一樣），shown_name 為 null 時才顯示 initials。頭像優先使用 Google 照片，會員可在 Starry 帳號中心自訂並裁切，所有 App 同步；App 內不要自己做頭像上傳或另存一份。會員的公開基本資料頁是 https://id.starry.phd/<會員編號>，邀請連結是 https://id.starry.phd/Invite/<會員編號>（Invite 後面有一個斜線）（會員編號用 GET /v1/me 的 member_no，格式是 2 個大寫英文字母的國家代碼加 7～10 位數字（預設是 0 開頭的 7 位，不夠用時會加長），例如 TW0123456，App 不要假設固定長度）。會員可以自己修改會員編號，修改後公開頁與邀請連結都會改變，所以 App 不可以把 member_no 當作資料的主鍵或檔案名稱，一律用 user_id（會員通行證的 sub）；每次要顯示或分享時重新讀 member_no。App 內若有「分享」入口請用原生分享功能表分享這個邀請連結。',
     '5. App 內必須提供串接說明第 4 節的帳號功能（登出、刪除帳號、同意條款等）。',
+    `   - 會員資料頁（所有繁星 App 一致，不要在 App 內重做）：個人基本資料、生命靈數、推薦達人、組織網、App 列表，一律用「App 內的網頁視窗」開啟 Starry ID 的網頁（${origin}/account/profile、/account/network、/account/apps）：iOS 用 SFSafariViewController 或 WKWebView，Android 用 Chrome Custom Tabs 或 WebView，畫面留在 App 裡，不可把使用者丟到外部瀏覽器 App（登入與客服除外）；改版時各 App 不用跟著更新。`,
+    '   - 上架規範：App 的主要功能必須是原生畫面，網頁視窗只能用在上述會員資料頁；網頁視窗內不得販售數位商品，也不得引導到外部付款（付費一律走第 6 節 RevenueCat 與商店內購）。',
     '   - 電池圖示（固定規範，所有繁星 App、網頁、通知一致）：只要畫面或文字提到電池，就要在前面放對應的圖示，普通電池用 🔋，量子電池用 ⚛️。格式是「🔋 10 顆普通電池」「⚛️ 3 顆量子電池」，數量很緊湊的地方只放「🔋 10」「⚛️ 3」。不要自己換成別的圖示。',
     `   - 客服入口：設定頁放「聯絡客服」，用系統瀏覽器開啟 ${origin}/support?app_id=${id}&app_version=<App 版本，例如 1.4.2 (88)>&device=<裝置型號，例如 iPhone 15 Pro>（值要先做網址編碼）。會員已登入網頁帳號中心時，客服單會自動帶上會員編號；版本與裝置只放這兩項，不要放其他個資或 Token。`,
     '6. 需要販售（RevenueCat）時，才依串接說明第 5 節處理；需要業主設定的項目，請列成清單回報給業主。商店商品與權益名稱以業主登記的「商品目錄」為準，不要自己新增或改名：',
