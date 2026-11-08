@@ -73,15 +73,20 @@ table{width:100%;border-collapse:collapse;font-size:.92rem}th,td{text-align:left
 .launcher>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;color:var(--fg);user-select:none}
 .launcher>summary::-webkit-details-marker{display:none}
 .launcher>summary:hover,.launcher[open]>summary{background:rgba(127,127,160,.2)}
-.lc-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:60;width:min(320px,calc(100vw - 20px));max-height:70vh;overflow:auto;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:0 10px 32px rgba(0,0,0,.35)}
+.lc-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:60;width:min(340px,calc(100vw - 20px));max-height:70vh;overflow:auto;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:0 10px 32px rgba(0,0,0,.35)}
 .lc-title{font-size:.8rem;color:var(--muted);margin:0 4px 8px}
-.lc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.lc-tile{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:12px;color:var(--fg);text-decoration:none;text-align:center;min-width:0}
-a.lc-tile:hover{background:rgba(127,127,160,.2)}
-.lc-tile.off{opacity:.5}
-.lc-ico{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.2rem}
-.lc-name{font-size:.8rem;line-height:1.2;word-break:break-all}
-.lc-note{font-size:.7rem;color:var(--muted)}
+.lc-list{display:flex;flex-direction:column;gap:2px}
+.lc-row{display:flex;flex-direction:column;gap:4px;padding:8px 6px;border-radius:12px}
+.lc-row:hover{background:rgba(127,127,160,.15)}
+.lc-main{display:flex;align-items:center;gap:10px;color:var(--fg);text-decoration:none;min-width:0}
+.lc-main.off{opacity:.5}
+.lc-ico{width:44px;height:44px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.2rem;object-fit:cover}
+.lc-text{display:flex;flex-direction:column;min-width:0}
+.lc-name{font-weight:600;line-height:1.25}
+.lc-sum{font-size:.78rem;color:var(--muted);line-height:1.3}
+.lc-links{display:flex;flex-wrap:wrap;gap:6px;margin-left:54px}
+.lc-chip{font-size:.75rem;padding:3px 10px;border:1px solid var(--line);border-radius:999px;color:var(--accent);text-decoration:none;white-space:nowrap}
+.lc-note{font-size:.75rem;color:var(--muted)}
 .starnav .launcher{margin-left:auto}
 .topbar .launcher{order:0}
 `;
@@ -195,7 +200,7 @@ async function memberHeader(c: WebContext): Promise<Html> {
   return c.get('web') ? nav : html`<a class="guest-brand" href="/account">✦ Starry</a>`;
 }
 
-function adminHeader(c: WebContext, signedIn: boolean, menu: AdminMenu | undefined): Html {
+async function adminHeader(c: WebContext, signedIn: boolean, menu: AdminMenu | undefined): Promise<Html> {
   const path = new URL(c.req.url).pathname;
   const link = ([href, label]: [string, string]) => {
     const on = href === '/admin' ? path === '/admin' : path === href || path.startsWith(`${href}/`);
@@ -204,7 +209,7 @@ function adminHeader(c: WebContext, signedIn: boolean, menu: AdminMenu | undefin
   const m = menu ?? { primary: [], more: [] };
   return html`<header class="topbar">
   <a class="brand" href="/admin">Starry Admin</a>
-  ${appLauncher(c)}
+  ${await appLauncher(c)}
   <input type="checkbox" id="menu-toggle" class="menu-toggle" aria-label="開關選單">
   <label for="menu-toggle" class="burger" aria-hidden="true">☰</label>
   <div class="menu">

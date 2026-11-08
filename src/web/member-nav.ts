@@ -53,7 +53,7 @@ export async function memberNav(c: WebContext): Promise<Html> {
   <a href="/account/profile"${on('/account/profile')}>關於我</a>
   <a href="/account/referral"${on('/account/referral')}>推薦達人</a>
   <a href="/account/network"${on('/account/network')}>組織網</a>
-  ${appLauncher(c)}
+  ${await appLauncher(c)}
 </nav>`;
 }
 

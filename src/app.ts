@@ -1,3 +1,4 @@
+import { launcherIcons } from './web/launcher-icons';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { wellKnown } from './apps/well-known';
 import { ssoRoutes } from './auth/sso';
@@ -139,6 +140,7 @@ app.route('/v1/battery', batteryRoutes);
 app.route('/account', accountApp);
 app.route('/support', supportApp);
 app.route('/admin', adminApp);
+app.route('/app-icon', launcherIcons);
 app.route('/auth/sso', ssoRelay);
 app.route('/auth', loginRelay);
 app.route('/', publicPages);
