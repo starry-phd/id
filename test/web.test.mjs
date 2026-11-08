@@ -162,8 +162,11 @@ describe('web account center, support form and Admin Lite', () => {
     const profilePage = await (await worker.call('/account/profile', get(cookie))).text();
     assert.ok(!profilePage.includes('[object Object]'), 'no raw object printed on the page');
     assert.ok(profilePage.includes('class="launcher" href="/account/apps"'), 'main menu carries the 9-dot button linking to the Apps page');
+    assert.ok(profilePage.includes('id="vis-all-public"') && profilePage.includes('class="secondary" id="vis-all-public"'), 'the two bulk buttons share one style');
+    assert.ok(profilePage.includes('href="/account/profile" class="on" aria-current="page">關於我'), 'the current page is marked in the main menu');
     const appsPageHtml = await (await worker.call('/account/apps', get(cookie))).text();
     assert.ok(appsPageHtml.includes('繁星生態系') && appsPageHtml.includes('class="lc-row"') && appsPageHtml.includes('href="/account"'), 'Apps page lists the account centre');
+    assert.ok(appsPageHtml.includes('action="/account/logout"') && appsPageHtml.includes('切換帳號'), 'Apps page has log out and switch account on top');
     assert.ok(!appsPageHtml.includes('/admin/launcher'), 'non-owners get no edit button');
     assert.match(profilePage, /🔋 加碼 <b id="bonus-x">/, 'the battery icon sits in front of the multiplier');
     assert.match(profilePage, /#vis-all\{[^}]*flex-wrap:nowrap/, 'the two buttons and the multiplier stay on one row');

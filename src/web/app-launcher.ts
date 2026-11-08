@@ -21,8 +21,8 @@ const DOTS = html`<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="t
 )}</svg>`;
 
 /** The 9-dot button (a plain link to the Apps page, so it replaces the whole page like any other menu item). */
-export function appLauncher(): Html {
-  return html`<a class="launcher" href="${APPS_PATH}" aria-label="繁星 Apps" title="繁星 Apps">${DOTS}</a>`;
+export function appLauncher(on = false): Html {
+  return html`<a class="launcher${on ? ' on' : ''}"${on ? ' aria-current="page"' : ''} href="${APPS_PATH}" aria-label="繁星 Apps" title="繁星 Apps">${DOTS}</a>`;
 }
 
 function row(i: LauncherItem): Html {

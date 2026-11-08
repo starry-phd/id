@@ -10,7 +10,7 @@ import { randomMotto } from '../identity/mottos';
 import { randomNickname } from '../identity/nicknames';
 import { syncBonus } from '../battery/bonus';
 import { BATTERY_ICON } from '../lib/battery-icons';
-import { bonusX10, formatBonus, noBonusNote, NO_BONUS_EMPTY, NO_BONUS_UNVERIFIED, BONUS_FIELDS, groupContent, isPrimaryName, setPrimaryName, ageOn, derivedOf, EDITABLE_FIELDS, effectiveVisibility, GRID_LAYOUT, hasChanges, loadProfile, saveProfile, validateProfileInput, VISIBILITY_FIELDS, type EditableField, type FieldUpdate, type Visibility, type VisibilityField } from '../identity/profile';
+import { bonusX10, formatBonus, noBonusNote, NO_BONUS_EMPTY, NO_BONUS_UNVERIFIED, BONUS_FIELDS, groupContent, isPrimaryName, setPrimaryName, ageOn, EDITABLE_FIELDS, effectiveVisibility, lifeChartOf, hasChanges, loadProfile, saveProfile, validateProfileInput, VISIBILITY_FIELDS, type EditableField, type FieldUpdate, type Rings, type Visibility, type VisibilityField } from '../identity/profile';
 import { WEB_APP_ID } from '../identity/web-sessions';
 import { formatTime, page, readForm, type Html, type WebContext } from './layout';
 import { LOCALES, accountApp } from './account-lib';
@@ -62,7 +62,6 @@ const PROFILE_FIELDS: readonly FieldSpec[] = [
 ];
 
 const SOURCE_LABELS: Record<string, string> = { member: '本人', staff: '客服人員' };
-const NUMBER_COLORS = ['', '#e5484d', '#f76b15', '#e2a336', '#30a46c', '#0090ff', '#3e63dd', '#8e4ec6', '#d6409f', '#ad7f58'];
 
 function displayValue(p: ProfileRow, field: EditableField): string {
   switch (field) {
@@ -113,20 +112,48 @@ function updatedLine(updates: Record<string, FieldUpdate>, field: string): Html 
   return u ? html`<p class="muted updated"></p>` : html`<p class="muted updated"></p>`;
 }
 
+const CHART_COLS: readonly (readonly number[])[] = [
+  [1, 4, 7],
+  [2, 5, 8],
+  [3, 6, 9],
+];
+
+/** One cell of the 3×3 overview: the digit inside nested circles, black first, then yellow, purple, green, red. */
+function chartCell(n: number, r: Rings): Html {
+  const rings: string[] = [
+    ...Array.from({ length: r.black }, () => '#0f172a'),
+    ...(r.birthday ? ['#f5b400'] : []),
+    ...(r.zodiac ? ['#8b2fe0'] : []),
+    ...Array.from({ length: r.talent }, () => '#7ccf1b'),
+    ...(r.life ? ['#e5303a'] : []),
+  ];
+  if (rings.length === 0) return html`<td class="ln-cell ln-empty"><span class="ln-n">${n}</span></td>`;
+  const onlyRed = rings.length === 1 && r.life;
+  let inner: Html = html`<span class="ln-n${onlyRed ? ' ln-red' : ''}">${n}</span>`;
+  for (const color of rings) inner = html`<span class="ln-ring" style="border-color:${color}">${inner}</span>`;
+  return html`<td class="ln-cell">${inner}</td>`;
+}
+
+const LIFE_CHART_STYLE = `.ln-title{margin:18px 0 8px;font-size:1.05rem}.ln-card{background:#f6f8fb;color:#0f172a;border:1px solid #d6dde8;border-radius:24px;padding:16px}.ln-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;font-weight:800;font-size:1.1rem;padding-bottom:12px;border-bottom:2px solid #e2e8f0}.ln-head .sep{width:1px;height:22px;background:#cbd5e1}.ln-badge{display:inline-block;min-width:2.1em;text-align:center;padding:1px 8px;border-radius:10px;font-weight:800;border:2px solid}.ln-b-zodiac{background:#f3e8ff;border-color:#d8b4fe;color:#6b21a8}.ln-b-birthday{background:#fef3c7;border-color:#fcd34d;color:#92400e}.ln-b-talent{background:#d1fae5;border-color:#6ee7b7;color:#065f46}.ln-b-life{background:#dcfce7;border-color:#bbf7d0;color:#166534}.ln-grid{width:100%;border-collapse:separate;border-spacing:10px;margin:6px 0 0;table-layout:fixed}.ln-grid td{padding:0}.ln-cell{background:#fff;border:2px solid #cbd5e1;border-radius:22px;height:112px;text-align:center;vertical-align:middle;box-shadow:0 2px 4px rgba(15,23,42,.08)}.ln-empty{background:#f1f5f9;border-color:#eef2f7;box-shadow:none}.ln-empty .ln-n{color:#cbd5e1}.ln-ring{display:inline-flex;align-items:center;justify-content:center;padding:4px;border:3px solid;border-radius:50%;background:#fff}.ln-n{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:34px;font-size:1.7rem;font-weight:800;color:#0f172a;line-height:1}.ln-red{color:#e5303a}.ln-legend{border-top:2px solid #e2e8f0;margin-top:8px;padding-top:12px;display:flex;flex-wrap:wrap;gap:10px 16px;font-size:.95rem;color:#1e293b;line-height:1.4}.ln-legend>div{display:flex;align-items:center;gap:10px}.ln-dot{flex:none;width:26px;height:26px;border-radius:50%;border:3px solid}.ln-note{margin-top:10px;font-size:.85rem}`;
+
 function derivedCard(p: ProfileRow, visibility: Record<VisibilityField, Visibility>, version: number, minor: boolean): Html {
-  const d = derivedOf(p.birthday);
-  if (!d) return html`<div class="card"></div>`;
-  const counts = new Map(d.grid.map((g) => [g.number, g.count]));
+  if (!p.birthday) return html`<div class="card"></div>`;
+  const chart = lifeChartOf(p.birthday);
   return html`<div class="card">
 <p style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>由生日推算</strong>${eyeForm('derived', visibility, version, minor)}</p>
-<p>星座：<strong>${d.zodiac_name}</strong><br>天賦數：<strong>${d.talent_numbers.length > 0 ? d.talent_numbers.join('、') : '—'}</strong><br>生命靈數：<strong>${d.life_path_number}</strong></p>
-<table class="grid9" aria-label="彩色九宮格">${GRID_LAYOUT.map(
-    (row) => html`<tr>${row.map((n) => {
-      const count = counts.get(n) ?? 0;
-      return html`<td style="${count > 0 ? `background:${NUMBER_COLORS[n]};color:#fff` : ''}"><strong>${n}</strong>${count > 1 ? html`<sup>×${count}</sup>` : ''}</td>`;
-    })}</tr>`,
-  )}</table>
-
+<style>${raw(LIFE_CHART_STYLE)}</style>
+<h3 class="ln-title">九宮格生命靈數速覽</h3>
+<div class="ln-card">
+<div class="ln-head"><span>星座：<span style="font-weight:900">${chart.zodiac_name}</span></span><span class="ln-badge ln-b-zodiac">${chart.zodiac_number}</span><span class="sep"></span><span>生日數：</span><span class="ln-badge ln-b-birthday">${chart.birthday_number}</span><span class="sep"></span><span>天賦數：</span><span class="ln-badge ln-b-talent">${chart.talent_numbers.length > 0 ? chart.talent_numbers.join('、') : '—'}</span><span>加總命數：</span><span class="ln-badge ln-b-life">${chart.life_number}</span></div>
+<table class="ln-grid" aria-label="彩色九宮格">${CHART_COLS.map((row) => html`<tr>${row.map((n) => chartCell(n, chart.rings[n] as Rings))}</tr>`)}</table>
+<div class="ln-legend">
+<div><span class="ln-dot" style="border-color:#0f172a;background:#fff"></span><span>先天數生日數字（黑色線圈，出現幾次畫幾圈）</span></div>
+<div><span class="ln-dot" style="border-color:#f5b400;background:#fef3c7"></span><span>生日數（黃色圈線，出生日期相加至個位數）</span></div>
+<div><span class="ln-dot" style="border-color:#8b2fe0;background:#f3e8ff"></span><span>星座數（紫色圈線）</span></div>
+<div><span class="ln-dot" style="border-color:#7ccf1b;background:#d1fae5"></span><span>天賦數（亮綠圈線）</span></div>
+<div><span class="ln-dot" style="border-color:#e5303a;background:#fee2e2"></span><span>加總命數（紅色圓圈包圍數字）</span></div>
+</div></div>
+<p class="muted ln-note">生命靈數即使設為「隱藏」，不會顯示給其他會員，但系統仍會用它做 AI 統計與分析（例如查看會員之間的合作優勢、個人占卜與生涯規劃功能），分析時會將結果上傳到雲端 AI 模型處理。</p>
 </div>`;
 }
 
@@ -171,12 +198,13 @@ ${updatedLine(loaded.fieldUpdates, spec.field)}
 ${message ? html`<div class="banner ${message.danger ? 'danger' : ''}">${message.text}</div>` : ''}
 
 <div id="vis-toast" hidden role="status" aria-live="assertive"><div class="vt"></div></div>
-<div id="vis-all"><button type="button" id="vis-all-public" hidden>${eyeIcon(false)} 全部公開</button><div id="bonus" role="status" aria-live="polite">${BATTERY_ICON.normal} 加碼 <b id="bonus-x">${formatBonus(bonusX10(p, now))}</b> 倍</div><button type="button" class="secondary" id="vis-all-private" hidden>${eyeIcon(true)} 全部隱藏</button></div>
+<div id="vis-all"><button type="button" class="secondary" id="vis-all-public" hidden>${eyeIcon(false)} 全部公開</button><div id="bonus" role="status" aria-live="polite">${BATTERY_ICON.normal} 加碼 <b id="bonus-x">${formatBonus(bonusX10(p, now))}</b> 倍</div><button type="button" class="secondary" id="vis-all-private" hidden>${eyeIcon(true)} 全部隱藏</button></div>
 <style>#vis-all{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:6px;margin:12px 0}#vis-all button{margin:0;flex:none;white-space:nowrap;font-size:clamp(.78rem,3.4vw,1rem);padding:8px clamp(6px,2.4vw,14px)}#bonus{flex:1 1 0;min-width:0;white-space:nowrap;text-align:center;color:#3ddc84;font-size:clamp(.95rem,4.4vw,1.55rem);font-weight:800;line-height:1.2;text-shadow:0 0 14px rgba(61,220,132,.45);transition:transform .2s}#bonus b{font-size:1.1em}#bonus.bump{transform:scale(1.12)}#vis-toast{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(5,5,25,.45)}#vis-toast[hidden]{display:none}#vis-toast .vt{max-width:86vw;padding:26px 34px;border-radius:22px;background:#1d1d52;border:2px solid var(--accent,#8b7cf6);box-shadow:0 12px 50px rgba(0,0,0,.6);font-size:1.7rem;font-weight:700;text-align:center;line-height:1.4}.js .field-form{display:none}.js .field.editing .field-form{display:block}.js .field.editing .value{display:none}.grid9{width:auto;margin:8px 0}.grid9 td{width:56px;height:56px;text-align:center;border:1px solid var(--line);font-size:1.2rem}.eye button,.pencil,.crown button{margin:0 0 0 8px;padding:4px 10px}.eye button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:5.6em}.eyei{width:1.15em;height:1.15em;flex:none}#vis-all button{display:inline-flex;align-items:center;gap:4px}#vis-toast .vt .eyei{width:1.1em;height:1.1em;vertical-align:-.15em}.same-name{display:flex;align-items:center;gap:8px;margin:8px 0;font-weight:400}.same-name input{width:auto;margin:0}.crown{display:inline}</style>
 <div class="card" id="avatar-card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><strong>頭像</strong></div>
-<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px">
+<style>.av-row{display:flex;gap:16px;align-items:center;margin-top:8px}.av-btns{flex:1 1 0;min-width:0;display:grid;gap:8px}.av-btns .button,.av-btns button{display:block;box-sizing:border-box;width:100%;margin:0;padding:10px 8px;text-align:center;font-size:.95rem;line-height:1.25;background:transparent;color:var(--accent)}.av-btns #avatar-status{margin:0}</style>
+<div class="av-row">
 ${p.avatar_key ? html`<img id="avatar-now" src="/account/avatar-image?v=${encodeURIComponent(p.avatar_key.split('/').pop() ?? '')}" alt="目前的頭像" width="96" height="96" style="border-radius:50%;object-fit:cover">` : avatarBubble({ initials: initialsOf(p.display_name ?? p.nickname), photo: null, size: 96, label: p.display_name ?? '' })}
-<div><label for="avatar-file" class="button secondary" style="background:transparent;color:var(--accent);margin:0">上傳並裁切頭像</label><input id="avatar-file" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+<div class="av-btns"><label for="avatar-file" class="button secondary">上傳並裁切頭像</label><input id="avatar-file" type="file" accept="image/png,image/jpeg,image/webp" hidden>
 <button type="button" class="secondary" id="avatar-google">使用我的 Google 頭像</button>${p.avatar_key ? html`<button type="button" class="secondary" id="avatar-remove">移除頭像</button>` : ''}
 <p id="avatar-status" role="status" aria-live="polite"></p></div></div>
 <div id="avatar-crop" hidden style="margin-top:12px"><canvas id="avatar-canvas" width="256" height="256" style="width:256px;height:256px;max-width:100%;border-radius:12px;border:1px solid var(--line);touch-action:none;cursor:grab"></canvas>

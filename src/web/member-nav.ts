@@ -1,11 +1,11 @@
-import { html } from 'hono/html';
+import { html, raw } from 'hono/html';
 import { BATTERY_ICON } from '../lib/battery-icons';
 import { getBalance } from '../battery/battery';
 import { syncBonus } from '../battery/bonus';
 import { listQuantum } from '../battery/quantum';
 import { initialsOf } from '../identity/initials';
 import { PROFILE_SQL, shownName, type ProfileRow } from '../identity/profile';
-import { appLauncher } from './app-launcher';
+import { APPS_PATH, appLauncher } from './app-launcher';
 import type { Html, WebContext } from './layout';
 
 /** The little round picture: the member's photo, or the first letters of family and given name. */
@@ -43,7 +43,7 @@ export async function memberNav(c: WebContext): Promise<Html> {
   ]);
   const name = shownName(profile?.nickname, profile?.display_name, profile?.primary_name) ?? '我';
   const path = new URL(c.req.url).pathname;
-  const on = (href: string) => (path === href || (href !== '/account' && path.startsWith(`${href}/`)) ? ' class="on" aria-current="page"' : '');
+  const on = (href: string) => (path === href || (href !== '/account' && path.startsWith(`${href}/`)) ? raw(' class="on" aria-current="page"') : raw(''));
   const photo = profile?.avatar_key && user?.member_no ? `/account/avatar-image?v=${encodeURIComponent(profile.avatar_key.split('/').pop() ?? '')}` : null;
   const quantumTotal = quantum.reduce((sum, q) => sum + q.available, 0);
   return html`<nav class="starnav" aria-label="主選單">
@@ -53,7 +53,7 @@ export async function memberNav(c: WebContext): Promise<Html> {
   <a href="/account/profile"${on('/account/profile')}>關於我</a>
   <a href="/account/referral"${on('/account/referral')}>推薦達人</a>
   <a href="/account/network"${on('/account/network')}>組織網</a>
-  ${appLauncher()}
+  ${appLauncher(path === APPS_PATH)}
 </nav>`;
 }
 
