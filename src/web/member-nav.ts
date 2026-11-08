@@ -5,6 +5,7 @@ import { syncBonus } from '../battery/bonus';
 import { listQuantum } from '../battery/quantum';
 import { initialsOf } from '../identity/initials';
 import { PROFILE_SQL, shownName, type ProfileRow } from '../identity/profile';
+import { appLauncher } from './app-launcher';
 import type { Html, WebContext } from './layout';
 
 /** The little round picture: the member's photo, or the first letters of family and given name. */
@@ -52,6 +53,7 @@ export async function memberNav(c: WebContext): Promise<Html> {
   <a href="/account/profile"${on('/account/profile')}>關於我</a>
   <a href="/account/referral"${on('/account/referral')}>推薦達人</a>
   <a href="/account/network"${on('/account/network')}>組織網</a>
+  ${appLauncher(c)}
 </nav>`;
 }
 

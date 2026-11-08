@@ -1,3 +1,4 @@
+import { appLauncher } from './app-launcher';
 import type { Context, MiddlewareHandler } from 'hono';
 import { getCookie } from 'hono/cookie';
 import { html, raw } from 'hono/html';
@@ -68,6 +69,21 @@ button,.button{display:inline-block;font:inherit;padding:10px 16px;border-radius
 button.secondary,.button.secondary{background:transparent;color:var(--accent)}button.danger,.button.danger{background:var(--danger);border-color:var(--danger);color:#fff}
 table{width:100%;border-collapse:collapse;font-size:.92rem}th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top;word-break:break-word}
 .pager{margin-top:12px}.inline{display:inline}code{font-size:.85em}
+.launcher{position:relative;display:inline-block}
+.launcher>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;color:var(--fg);user-select:none}
+.launcher>summary::-webkit-details-marker{display:none}
+.launcher>summary:hover,.launcher[open]>summary{background:rgba(127,127,160,.2)}
+.lc-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:60;width:min(320px,calc(100vw - 20px));max-height:70vh;overflow:auto;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:0 10px 32px rgba(0,0,0,.35)}
+.lc-title{font-size:.8rem;color:var(--muted);margin:0 4px 8px}
+.lc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.lc-tile{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:12px;color:var(--fg);text-decoration:none;text-align:center;min-width:0}
+a.lc-tile:hover{background:rgba(127,127,160,.2)}
+.lc-tile.off{opacity:.5}
+.lc-ico{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.2rem}
+.lc-name{font-size:.8rem;line-height:1.2;word-break:break-all}
+.lc-note{font-size:.7rem;color:var(--muted)}
+.starnav .launcher{margin-left:auto}
+.topbar .launcher{order:0}
 `;
 
 
@@ -188,6 +204,7 @@ function adminHeader(c: WebContext, signedIn: boolean, menu: AdminMenu | undefin
   const m = menu ?? { primary: [], more: [] };
   return html`<header class="topbar">
   <a class="brand" href="/admin">Starry Admin</a>
+  ${appLauncher(c)}
   <input type="checkbox" id="menu-toggle" class="menu-toggle" aria-label="開關選單">
   <label for="menu-toggle" class="burger" aria-hidden="true">☰</label>
   <div class="menu">
