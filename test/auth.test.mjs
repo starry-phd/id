@@ -296,6 +296,47 @@ describe('Starry ID sign-in, sessions and profile', () => {
     assert.equal(fragment(await worker.call(`/auth/sso/check?${query({ nonce: sha256Hex(n2) })}`, { redirect: 'manual', headers: cookie })).get('sso_none'), '1');
   });
 
+  test('an App opens the member block and member pages in its web view without a second sign-in', async () => {
+    const a = await signInOk('google', 'web-link-sub');
+    const link = (body, token = a.access_token) => worker.call('/v1/me/web-link', json(body, { authorization: `Bearer ${token}` }));
+    assert.equal((await worker.call('/v1/me/web-link', json({ page: 'card' }))).status, 401, 'needs the App sign-in');
+    assert.equal((await link({ page: 'admin' })).status, 400, 'only the fixed member pages');
+    const first = await link({ page: 'card' });
+    assert.equal(first.status, 200);
+    const { url, expires_in } = await first.json();
+    assert.equal(expires_in, 120);
+    assert.match(url, /^https:\/\/[^/]+\/auth\/app-open\?c=/);
+    const path = url.slice(new URL(url).origin.length);
+    const open = await worker.call(path, { redirect: 'manual' });
+    assert.equal(open.status, 302);
+    assert.equal(open.headers.get('location'), '/account/card?app=echo');
+    assert.equal(open.headers.get('cache-control'), 'no-store');
+    const setCookie = open.headers.get('set-cookie') ?? '';
+    assert.match(setCookie, /__Host-starry_session=/);
+    assert.match(setCookie, /HttpOnly/i);
+    const cookie = { cookie: `__Host-starry_session=${/__Host-starry_session=([^;]+)/.exec(setCookie)[1]}` };
+    const card = await worker.call('/account/card?app=echo', { headers: cookie });
+    assert.equal(card.status, 200);
+    const text = await card.text();
+    assert.match(text, /🔋/);
+    assert.match(text, /⚛️/);
+    assert.match(text, /Passkey <b>0<\/b>/);
+    assert.doesNotMatch(text, /共用月額度|恢復|預留/, 'no battery explanation on the standard block');
+    assert.doesNotMatch(text, /class="starnav"/, 'no site menu inside the App');
+    assert.equal((await worker.call('/account/card', { redirect: 'manual' })).status, 303, 'signed out: sent to sign-in');
+    // The code works once, only for the member and App it was made for, and not after logout-all.
+    assert.equal((await worker.call(path, { redirect: 'manual' })).status, 400);
+    assert.equal((await worker.call('/auth/app-open?c=v1.forged.code', { redirect: 'manual' })).status, 400);
+    const profile = await (await link({ page: 'profile' })).json();
+    const second = await worker.call(profile.url.slice(new URL(profile.url).origin.length), { redirect: 'manual' });
+    assert.equal(second.headers.get('location'), '/account/profile');
+    const late = await (await link({ page: 'network' })).json();
+    assert.equal((await worker.call('/v1/auth/logout-all', authed(a.access_token, { method: 'POST' }))).status, 204);
+    assert.equal((await worker.call(late.url.slice(new URL(late.url).origin.length), { redirect: 'manual' })).status, 400);
+    const audited = await worker.db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'web.login.app' AND result = 'success'").first();
+    assert.equal(audited.n, 2);
+  });
+
   test('a suspended member cannot use existing tokens or sign in', async () => {
     const session = await signInOk('google', 'suspend-sub');
     await worker.db.prepare("UPDATE users SET status = 'suspended' WHERE user_id = ?").bind(session.user.user_id).run();

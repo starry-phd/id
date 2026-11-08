@@ -42,6 +42,7 @@ App 啟動時呼叫 `GET /v1/apps/{app_id}/config`：
 | 個人資料 | `GET /v1/me`；`PATCH /v1/me/profile` 帶 `If-Match: "<version>"`，409 時以回應中的最新資料提示使用者 |
 | 頭像 | App 裁切成正方形、壓縮到 256 KB 內，`PUT /v1/me/avatar`（`Content-Type: image/webp`）；顯示用 `profile.avatar_url`（1 小時有效，需要時重新取 `/v1/me`）；沒有頭像時顯示名稱第一個字 |
 | 加綁登入方式 | 重新取 nonce 並以另一個供應商登入取得 ID Token，`POST /v1/me/identities/{provider}`。若回 409 `IDENTITY_IN_USE` 且 `mergeable: true`，代表會員之前用這個登入方式另外建立過 Starry 帳號：向會員說明「另一個帳號會被刪除、只保留目前帳號」，同意後帶 `"merge_other_account": true` 重送即合併（回 201 `merged: true`）。`merge_blocked` 有值時（有購買紀錄、管理人員、已停權、另有登入方式）請引導聯絡客服 |
+| 會員區塊與會員資料頁（2026-11-09） | `POST /v1/me/web-link {"page":"card"｜"profile"｜"referral"｜"network"｜"apps"}` 回傳 `{url, expires_in}`：用 App 內網頁視窗載入，已自動帶入登入（單次、2 分鐘）。`card` 是設定頁最上方的標準會員區塊（頭像、名稱、編號、🔋⚛️、Passkey 數），由 Starry ID 畫，App 不重畫、不加字；其下依序是原生按鈕「會員中心」「聯絡客服」「登出所有繁星 App」「永久刪除中央帳號」，再來是「我的 Passkey」與 App 自己的設定 |
 | 登出 | 先 `DELETE /v1/me/push-tokens`，再 `POST /v1/auth/logout`，最後 RevenueCat `logOut()` |
 | 登出所有裝置 | `POST /v1/auth/logout-all` |
 | 會員在帳號中心按「登出所有裝置」，或在任一款 App 登出（共用登入） | 所有 App 的 Refresh Token 立即失效；App 下次刷新收到 401 或 `syncDeviceSignIn()` 回報已登出時，請回到登入畫面（見 13.5） |
@@ -202,6 +203,7 @@ Google Client 由業主建立（步驟見 `docs/owner-setup.md` 第 11 步），
 8. **Passkey（2026-11-07 起，每款 App 都要有）**：登入頁（iOS、Android、網頁）提供「使用 Passkey 登入」，設定頁能新增、列出、移除 Passkey，做法見第 13 節。
 9. **客服入口**：設定頁放「聯絡客服」，用系統瀏覽器開啟 `https://id.starry.phd/support?app_id=<app_id>&app_version=<版本>&device=<裝置型號>`（值先做網址編碼）；客服單會帶上 App、版本與裝置，登入過網頁帳號中心的會員另帶會員編號。只放版本與裝置，不放其他個資或 Token。
 10. **選用：Service Binding**：後端跑在同一個 Cloudflare 帳號的 Worker 時，可改用內部直連（第 14 節）。
+12. **設定頁固定版型（2026-11-09）**：最上方用 `web-link`（`page=card`）載入的會員區塊，依序四顆原生按鈕與「我的 Passkey」（第 4 節）；移除自己畫的頭像、名稱、編號與電池說明，電池其他地方只用緊湊格式「🔋 19」「⚛️ 15」。會員資料頁一律先呼叫 `web-link` 再開啟，不要直接開網址。
 11. **不需要 App 處理的新功能**：序號與邀請碼（業主在後台「電池艙」產生；會員只在網頁 `https://id.starry.phd/account` 或點兌換網址兌換，獲得免費電池或這款 App 的免費量子電池。App 內不要放序號輸入畫面或兌換連結，序號不可販售——App Store 3.1.1 與 Google Play 付款政策）、公告與維護的設定（由後台操作，App 照 `status` 與 `notices` 顯示即可）、資料匯出、通知類別開關（會員在帳號中心設定）。
 
 ## 13. Passkey（每款 App 的登入頁與設定頁）

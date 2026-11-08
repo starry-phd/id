@@ -114,6 +114,7 @@ details.fold>summary::-webkit-details-marker{display:none}
 details.fold>summary::after{content:"＋";float:right;color:var(--accent)}
 details.fold[open]>summary::after{content:"－"}
 .hero{display:flex;align-items:center;gap:16px;margin:8px 0 16px}.hero h1{margin:0}
+.cardline{margin:8px 0;font-size:1.1rem}
 .statrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:12px 0}
 .statbox{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-align:center}
 .statbox b{display:block;font-size:1.6rem}.statbox span{color:var(--muted);font-size:.9rem}
@@ -169,7 +170,7 @@ export interface AdminMenu {
   more: [string, string][];
 }
 
-export function page(c: WebContext, title: string, body: Html, options: { scripts?: Html; admin?: boolean; menu?: AdminMenu } = {}): Html {
+export function page(c: WebContext, title: string, body: Html, options: { scripts?: Html; admin?: boolean; menu?: AdminMenu; embed?: boolean } = {}): Html {
   const signedIn = c.get('web') !== null;
   return html`<!doctype html>
 <html lang="zh-Hant-TW">
@@ -181,10 +182,10 @@ export function page(c: WebContext, title: string, body: Html, options: { script
 <style>${raw(STYLE + (options.admin ? ADMIN_STYLE : MEMBER_STYLE))}</style>
 </head>
 <body class="${options.admin ? 'admin' : ''}">
-${options.admin ? adminHeader(c, signedIn, options.menu) : memberHeader(c)}
+${options.embed ? '' : options.admin ? adminHeader(c, signedIn, options.menu) : memberHeader(c)}
 <main>
 ${body}
-<p class="muted" style="margin-top:48px"><a href="/privacy">隱私權政策</a>&emsp;<a href="/terms">服務條款</a>&emsp;<a href="/support">客服與檢舉</a></p>
+${options.embed ? '' : html`<p class="muted" style="margin-top:48px"><a href="/privacy">隱私權政策</a>&emsp;<a href="/terms">服務條款</a>&emsp;<a href="/support">客服與檢舉</a></p>`}
 </main>
 ${options.scripts ?? ''}
 </body>
