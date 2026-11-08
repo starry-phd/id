@@ -174,9 +174,9 @@ npm run dev        # wrangler dev（staging 設定，本機 D1）
 - 組織網：名稱疊在圓形頭像下方（漸層底），頭像放大（一般 72、自己 88），連線加粗為 3px。
 
 ### 3c39 App 九宮格撥號盤（2026-11-08）
-- 主選單最右側（會員頁）與管理端頁首漢堡選單左側，新增 Google 風格九點按鈕（`src/web/app-launcher.ts`，`<details>` 面板，點外面或按 Esc 關閉）。
+- 主選單最右側（會員頁）與管理端頁首漢堡選單左側，新增 Google 風格九點按鈕（`src/web/app-launcher.ts`）；點擊是連到整頁 `/account/apps`（取代整個頁面，不是浮動視窗）。
 - 面板列出「帳號中心」加上登錄表所有 App（不含 killed）；圖示為名稱首字的色圓；點擊開啟該 App 的第一個網頁來源（web_origins）；暫停或無網頁版者灰階不可點。
-- 面板改為清單：圖示、名稱、簡易說明，下方有「網頁／Google Play／App Store」按鈕。
+- 頁面為清單：圖示、名稱、簡易說明，下方有「網頁／Google Play／App Store」按鈕。
 - Owner 在 `/admin/launcher`（更多 → 九宮格 App）編輯：上傳圖示（PNG/JPG/WebP ≤300KB，存 AVATARS 桶 `app-icons/`，以魔術位元組驗證，公開路徑 `/app-icon/:id`）、名稱、三種連結（只收 https）、簡易說明（≤60 字）、↑↓ 排序、還原預設。資料表 `app_launcher`（migration 0033），欄位空白＝用登錄表預設。
 - 不影響串接指令，故不改 HANDOFF 版本。
 
