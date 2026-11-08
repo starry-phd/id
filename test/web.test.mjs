@@ -164,6 +164,7 @@ describe('web account center, support form and Admin Lite', () => {
     assert.ok(profilePage.includes('class="launcher" href="/account/apps"'), 'main menu carries the 9-dot button linking to the Apps page');
     const appsPageHtml = await (await worker.call('/account/apps', get(cookie))).text();
     assert.ok(appsPageHtml.includes('繁星生態系') && appsPageHtml.includes('class="lc-row"') && appsPageHtml.includes('href="/account"'), 'Apps page lists the account centre');
+    assert.ok(!appsPageHtml.includes('/admin/launcher'), 'non-owners get no edit button');
     assert.match(profilePage, /🔋 加碼 <b id="bonus-x">/, 'the battery icon sits in front of the multiplier');
     assert.match(profilePage, /#vis-all\{[^}]*flex-wrap:nowrap/, 'the two buttons and the multiplier stay on one row');
     assert.ok(profilePage.includes('id="nick-same"') && profilePage.includes('與姓名相同'), 'the nickname field offers "same as name"');

@@ -34,7 +34,7 @@ export async function appsPage(c: WebContext, message?: string): Promise<Respons
       html`<h1>App</h1>
 ${message ? html`<div class="banner">${message}</div>` : ''}
 ${invalid.length > 0 ? html`<div class="banner danger">這些 App 的登記資料目前無法通過檢查：${invalid.join('、')}。系統暫時沿用上一次正常的版本，請到「編輯登記資料」修正後儲存。</div>` : ''}
-<div class="actions"><a class="button" href="/admin/apps/new">新增 App</a><a class="button secondary" href="/admin/apps/status">整合狀態總覽</a></div>
+<div class="actions"><a class="button" href="/admin/apps/new">新增 App</a><a class="button secondary" href="/admin/apps/status">整合狀態總覽</a><a class="button secondary" href="/admin/launcher">九宮格 App</a></div>
 <p class="muted">所有 App 都登記在資料庫，不必改程式碼，30 秒內生效。paused：App 顯示維護中；killed：停用此 App 的登入與服務，不影響其他 App。</p>
 <div class="grid">${appRegistry.values().filter((app) => app.app_id !== WEB_APP_ID).map((app) => {
   const o = overrides.get(app.app_id);
