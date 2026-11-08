@@ -3,6 +3,7 @@ import './account-home';
 import './account-profile';
 import './account-network';
 import './account-apps';
+import './account-card';
 import './account-passkeys';
 import './account-danger';
 
