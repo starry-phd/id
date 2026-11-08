@@ -325,6 +325,57 @@ export function numerologyOf(birthday: string): Numerology {
   };
 }
 
+export interface Rings {
+  /** Black circles: how often the digit appears in the birth date (YYYYMMDD). */
+  black: number;
+  /** Yellow: the birthday number (day of month added down to one digit). */
+  birthday: boolean;
+  /** Purple: the zodiac number. */
+  zodiac: boolean;
+  /** Bright green circles: how often the digit appears in the talent numbers. */
+  talent: number;
+  /** Red: the total life number (the final single digit). */
+  life: boolean;
+}
+
+export interface LifeChart {
+  zodiac_name: string;
+  zodiac_number: number;
+  birthday_number: number;
+  talent_numbers: number[];
+  life_number: number;
+  rings: Record<number, Rings>;
+}
+
+const ZODIAC_ORDER = ['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces'];
+
+const toDigit = (n: number): number => {
+  let v = n;
+  while (v >= 10) v = digitSum(v);
+  return v;
+};
+
+/** The picture behind the life-number overview: which digit of the 3×3 grid carries which circles. */
+export function lifeChartOf(birthday: string): LifeChart {
+  const z = zodiacOf(birthday);
+  const n = numerologyOf(birthday);
+  const zodiacNumber = toDigit(ZODIAC_ORDER.indexOf(z.key) + 1);
+  const birthdayNumber = toDigit(Number(birthday.slice(8, 10)));
+  const rings: Record<number, Rings> = {};
+  for (let d = 1; d <= 9; d++) rings[d] = { black: 0, birthday: d === birthdayNumber, zodiac: d === zodiacNumber, talent: 0, life: d === n.life_path_number };
+  for (const ch of birthday.replace(/-/g, '')) {
+    const d = Number(ch);
+    if (d >= 1) (rings[d] as Rings).black += 1;
+  }
+  for (const t of n.talent_numbers) {
+    for (const ch of String(t)) {
+      const d = Number(ch);
+      if (d >= 1) (rings[d] as Rings).talent += 1;
+    }
+  }
+  return { zodiac_name: z.name, zodiac_number: zodiacNumber, birthday_number: birthdayNumber, talent_numbers: n.talent_numbers, life_number: n.life_path_number, rings };
+}
+
 export interface Derived extends Numerology {
   zodiac: string;
   zodiac_name: string;

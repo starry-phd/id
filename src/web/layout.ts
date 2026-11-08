@@ -71,6 +71,7 @@ table{width:100%;border-collapse:collapse;font-size:.92rem}th,td{text-align:left
 .pager{margin-top:12px}.inline{display:inline}code{font-size:.85em}
 .launcher{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;color:var(--fg);text-decoration:none}
 .launcher:hover{background:rgba(127,127,160,.2)}
+.launcher.on{background:var(--accent);color:#0b0720}
 .lc-list{display:flex;flex-direction:column;gap:2px;padding:8px}
 .lc-row{display:flex;flex-direction:column;gap:4px;padding:8px 6px;border-radius:12px}
 .lc-row:hover{background:rgba(127,127,160,.15)}
@@ -100,7 +101,8 @@ input,select,textarea{background:rgba(9,7,30,.7)}
 main{max-width:760px}
 .starnav{position:sticky;top:0;z-index:30;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 6px;padding:8px 10px;background:rgba(9,7,30,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .starnav a{color:var(--fg);text-decoration:none;padding:6px 12px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;flex:0 0 auto}
-.starnav a:hover,.starnav a.on{background:rgba(167,139,250,.2)}
+.starnav a:hover{background:rgba(167,139,250,.2)}
+.starnav a.on{background:var(--accent);color:#0b0720;font-weight:700;box-shadow:0 0 0 2px rgba(167,139,250,.45)}
 .starnav .stat{border:1px solid var(--line)}.starnav .me{font-weight:600}
 @media (min-width:700px){.starnav{padding:10px 24px}}
 .badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.82rem;border:1px solid var(--line);background:rgba(9,7,30,.5)}
@@ -200,7 +202,7 @@ async function adminHeader(c: WebContext, signedIn: boolean, menu: AdminMenu | u
   const path = new URL(c.req.url).pathname;
   const link = ([href, label]: [string, string]) => {
     const on = href === '/admin' ? path === '/admin' : path === href || path.startsWith(`${href}/`);
-    return html`<a href="${href}"${on ? ' class="on" aria-current="page"' : ''}>${label}</a>`;
+    return html`<a href="${href}"${on ? raw(' class="on" aria-current="page"') : ''}>${label}</a>`;
   };
   const m = menu ?? { primary: [], more: [] };
   return html`<header class="topbar">
