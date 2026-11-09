@@ -14,6 +14,7 @@
     "test": "npm run build && node --test --test-force-exit --test-timeout=60000 \"test/*.test.mjs\" && npm run test:unit",
     "check": "npm run typecheck && npm run lint && npm test",
     "dev": "wrangler dev --env staging",
+    "handoff:stamp": "node scripts/stamp-handoff.mjs",
     "test:unit": "tsx --import ./test/support/shipped-apps.ts --test --test-force-exit --test-timeout=60000 \"test/unit/*.test.ts\"",
     "openapi": "tsx scripts/export-openapi.ts",
     "loadtest": "npm run build && node scripts/load-test.mjs"

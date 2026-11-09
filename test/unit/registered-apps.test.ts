@@ -158,10 +158,18 @@ describe('registering an App without a code change', () => {
   test('the handoff shows its version, and changing the text requires a new version', () => {
     const text = buildHandoff(build(clock), 'https://id.starry.phd', { battery: true });
     assert.ok(text.startsWith(`【串接指令版本 ${HANDOFF_VERSION}｜更新時間 ${HANDOFF_UPDATED}】`));
-    // When this fails you changed the handoff text: bump HANDOFF_VERSION and HANDOFF_UPDATED in src/apps/handoff.ts,
-    // then paste the new hash here.
+    // When this fails you changed the handoff text: run `npm run handoff:stamp` (real Taiwan time, next version, new hash).
+    // Never type the version, the time or the hash by hand.
     const hash = createHash('sha256').update(text).digest('hex').slice(0, 16);
-    assert.equal(`${HANDOFF_VERSION}:${hash}`, '2026-11-09.3:2b1c05c30fbebc68');
+    assert.equal(`${HANDOFF_VERSION}:${hash}`, '2026-11-09.4:a122196c19021271');
+  });
+
+  test('the handoff time is real: Taiwan time in the agreed format, never in the future, same day as the version', () => {
+    const m = /^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2})（台灣時間）$/.exec(HANDOFF_UPDATED);
+    assert.ok(m, `HANDOFF_UPDATED has the wrong format: ${HANDOFF_UPDATED}`);
+    assert.ok(HANDOFF_VERSION.startsWith(`${m[1]}.`), 'the version day must be the stamped day');
+    const stamped = Date.parse(`${m[1]}T${m[2]}:${m[3]}:00+08:00`);
+    assert.ok(stamped <= Date.now() + 2 * 60_000, `HANDOFF_UPDATED ${HANDOFF_UPDATED} is in the future: it was typed by hand. Run npm run handoff:stamp`);
   });
 
   test('the handoff mentions Battery only as set up or not yet set up, never with a key', () => {
