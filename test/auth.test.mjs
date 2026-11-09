@@ -337,6 +337,26 @@ describe('Starry ID sign-in, sessions and profile', () => {
     assert.equal(audited.n, 2);
   });
 
+  test('the owner reads the newest handoff from the App’s own /admin page; everyone else is refused', async () => {
+    const o = await signInOk('google', 'handoff-owner-sub');
+    const m = await signInOk('google', 'handoff-member-sub');
+    const read = (token, query = '') => worker.call(`/v1/apps/echo/handoff${query}`, authed(token));
+    assert.equal((await worker.call('/v1/apps/echo/handoff')).status, 401, 'needs the App sign-in');
+    assert.equal((await read(m.access_token)).status, 403, 'a normal member is refused by the backend');
+    await worker.db.prepare("INSERT INTO user_roles (user_id, role, granted_at) VALUES (?, 'owner', ?)").bind(o.user.user_id, Date.now()).run();
+    assert.equal((await worker.call('/v1/apps/account/handoff', authed(o.access_token))).status, 403, 'only the App’s own session');
+    assert.equal((await read(o.access_token, '?integrated=bad')).status, 400);
+    const old = await (await read(o.access_token, '?integrated=2026-01-01.1')).json();
+    assert.equal(old.up_to_date, false);
+    assert.equal(old.integrated, '2026-01-01.1');
+    assert.match(old.text, /只補差異/);
+
+    const row = await worker.db.prepare("SELECT integrated_version FROM app_handoff_reports WHERE app_id = 'echo'").first();
+    assert.equal(row.integrated_version, '2026-01-01.1');
+    const now = await (await read(o.access_token, `?integrated=${old.version}`)).json();
+    assert.equal(now.up_to_date, true);
+  });
+
   test('電池消耗明細 opens from the App through web-link and lists only the member’s own activity', async () => {
     const a = await signInOk('google', 'battery-history-sub');
     const res = await worker.call('/v1/me/web-link', json({ page: 'battery' }, { authorization: `Bearer ${a.access_token}` }));

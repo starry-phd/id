@@ -114,7 +114,22 @@ export interface Me {
   public_profile: Record<string, unknown>;
   identities: { provider: string; email: string | null; email_is_private_relay: boolean }[];
   consent: { terms_version: string; privacy_version: string; required: boolean };
+  /** 'owner' | 'admin' | 'support' | null — decided by the central system, never by an email address in the App. */
+  staff_role?: 'owner' | 'admin' | 'support' | null;
   [key: string]: unknown;
+}
+
+/** GET /v1/apps/{appId}/handoff — the newest central integration instructions for this App (owner only). */
+export interface LatestHandoff {
+  app_id: string;
+  version: string;
+  updated: string;
+  /** Your recorded version (the `integrated` you sent), or null. */
+  integrated: string | null;
+  /** True when `integrated` equals `version`: nothing to upgrade. */
+  up_to_date: boolean;
+  /** The full instruction text to give the App's AI. When upgrading, the AI must patch ONLY the differences. */
+  text: string;
 }
 
 export type AuthEvent = 'signed-in' | 'signed-out';
@@ -608,6 +623,16 @@ export class StarryClient {
     await this.request('POST', '/v1/me/passkeys', { ...attestation, ...(name ? { name } : {}) });
   }
 
+  /**
+   * Owner only (staff_role 'owner'), for the App's own /admin page. Pass the handoff version this App was last built
+   * to; the central system records it. When `up_to_date` is false, give `text` to the App's AI and have it patch ONLY
+   * what differs from the version already integrated — never rewrite what already works.
+   */
+  getLatestHandoff(integratedVersion?: string): Promise<LatestHandoff> {
+    const query = integratedVersion ? `?integrated=${encodeURIComponent(integratedVersion)}` : '';
+    return this.request<LatestHandoff>('GET', `/v1/apps/${encodeURIComponent(this.options.appId)}/handoff${query}`);
+  }
+
   async listPasskeys(): Promise<{ id: string; name: string; created_at: number; last_used_at: number | null }[]> {
     return (await this.request<{ passkeys: { id: string; name: string; created_at: number; last_used_at: number | null }[] }>('GET', '/v1/me/passkeys')).passkeys;
   }
@@ -841,6 +866,7 @@ export type SettingsButtonId =
   | 'share-invite' // share https://id.starry.phd/Invite/<member_no>
   | 'member-center' // POST /v1/me/web-link {page:'profile'} in an in-App web view
   | 'support' // https://id.starry.phd/support?app_id=…&app_version=…&device=… in the system browser
+  | 'admin' // open this App's own /admin page (route inside the App; shown to the central owner only)
   | 'sign-out-all' // signOut(): signs out every Starry App on this device
   | 'delete-account' // the App's DELETE confirmation flow (danger)
   | 'add-passkey';
@@ -849,6 +875,10 @@ export interface SettingsButton {
   id: SettingsButtonId;
   label: string;
   danger?: boolean;
+  /** Draw the button with an inverse fill (solid background, white text) instead of an outline. */
+  inverse?: boolean;
+  /** Icon name: 'gear' = ⚙ (gear) drawn before the label. */
+  icon?: 'gear';
 }
 
 export interface SettingsBlock {
@@ -865,7 +895,7 @@ export interface SettingsBlock {
 }
 
 export interface SettingsInput {
-  me: Pick<Me, 'member_no' | 'profile'> | null;
+  me: Pick<Me, 'member_no' | 'profile' | 'staff_role'> | null;
   /** GET /v1/me/battery: `balance.remaining` and `quantum.available` (this App's ⚛️); null while not loaded. */
   battery: { balance: { remaining: number }; quantum: { available: number } } | null;
   passkeys: { id: string; name: string }[];
@@ -897,6 +927,8 @@ export function starrySettingsBlocks(input: SettingsInput): SettingsBlock[] {
         { id: 'share-invite', label: '分享邀請連結' },
         { id: 'member-center', label: '會員中心' },
         { id: 'support', label: '聯絡客服' },
+        // Only the central owner (me.staff_role === 'owner') gets this button; it opens the App's own /admin page.
+        ...(input.me?.staff_role === 'owner' ? [{ id: 'admin' as const, label: 'Admin 專區', icon: 'gear' as const, inverse: true }] : []),
         { id: 'sign-out-all', label: '登出所有繁星 App' },
         { id: 'delete-account', label: '永久刪除中央帳號', danger: true },
       ],

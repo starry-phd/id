@@ -161,7 +161,7 @@ describe('registering an App without a code change', () => {
     // When this fails you changed the handoff text: run `npm run handoff:stamp` (real Taiwan time, next version, new hash).
     // Never type the version, the time or the hash by hand.
     const hash = createHash('sha256').update(text).digest('hex').slice(0, 16);
-    assert.equal(`${HANDOFF_VERSION}:${hash}`, '2026-11-09.4:a122196c19021271');
+    assert.equal(`${HANDOFF_VERSION}:${hash}`, '2026-11-09.6:7369dc82b4207177');
   });
 
   test('the handoff time is real: Taiwan time in the agreed format, never in the future, same day as the version', () => {

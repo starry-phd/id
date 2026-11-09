@@ -7,8 +7,8 @@ const GUIDE_URL = 'https://raw.githubusercontent.com/starry-phd/id/main/docs/int
  * Version of the handoff text. Bump both whenever the text below changes (a unit test fails until you do),
  * so the Owner can tell at a glance whether the copy an App's AI received is the latest one.
  */
-export const HANDOFF_VERSION = '2026-11-09.4';
-export const HANDOFF_UPDATED = '2026-11-09 09:58（台灣時間）';
+export const HANDOFF_VERSION = '2026-11-09.6';
+export const HANDOFF_UPDATED = '2026-11-09 10:40（台灣時間）';
 
 function list(values: readonly string[]): string {
   return values.length === 0 ? '（無）' : values.join('、');
@@ -25,6 +25,8 @@ export function buildHandoff(app: AppEntry, origin: string, options: { battery: 
     `【串接指令版本 ${HANDOFF_VERSION}｜更新時間 ${HANDOFF_UPDATED}】`,
     `你是繁星生態系 App「${app.name}」的開發者 AI。Starry ID（繁星中央會員系統）已經替這款 App 登記完成，請照下面的資料串接。不需要、也不可以修改 Starry ID 的程式碼或設定。`,
     '如果這款 App 已經串接過：不要重做。請直接跳到「六、已串接 App 的更新檢查清單」，逐項檢查現有程式，只補上缺少或過時的部分，開 PR 後回報差異。',
+    '',
+    '【最重要的規則：每次更新，只補差異】已經串接過的 App 拿到新版串接指令時，禁止整份重做或重寫。先比對現有程式與新版指令，只改缺少或過時的部分；已經正常運作的程式一行都不要動。回報時只列「差異」：補了哪幾項、沒動哪些。',
     '',
     '## 一、已登記的資料（都不是秘密）',
     `- app_id：${id}`,
@@ -68,6 +70,8 @@ export function buildHandoff(app: AppEntry, origin: string, options: { battery: 
     '5. App 內必須提供串接說明第 4 節的帳號功能（登出、刪除帳號、同意條款等）。',
     '   - 設定頁（固定規範，所有繁星 App 完全一致，手機與網頁版相同）：整頁由上到下只有三個區塊，之後才是這款 App 自己的設定，三個區塊依序是「繁星電池艙」「我的中央會員」「我的 Passkey」。文字、順序與按鈕一律用官方 SDK（sdk/starry-client.ts）的 starrySettingsBlocks() 回傳的內容來畫，不可自己寫文字、改字或換順序。禁止加任何小字備註、括號說明、說明段落，也不要放「重新整理」「重新查詢」按鈕。',
     `   - 資料自動更新與按鈕動作：每次進入設定頁、App 回到前景時，自動重新讀 GET /v1/me、GET /v1/me/battery 與 Passkey 列表（頭像網址 1 小時有效）。頭像：profile.avatar_url 不是 null 就顯示照片，是 null 就顯示 initials 圓形縮寫，不要顯示任何「沒有頭像」的文字。按鈕：「電池消耗明細」＝POST ${origin}/v1/me/web-link {"page":"battery"}、「會員中心」＝{"page":"profile"}，兩者都用 App 內網頁視窗載入回傳的 url（單次、2 分鐘，已自動帶入登入，每次點擊重新要一個）；其他會員資料頁（referral、network、apps）同樣先呼叫 web-link；「公開基本資料」「分享邀請連結」用會員編號組網址；「聯絡客服」見下方客服入口；「登出所有繁星 App」「永久刪除中央帳號」依串接說明第 4 節。網頁版不可用 iframe 內嵌 Starry ID 頁面（會被拒絕），所以一律用 SDK 的內容自己畫。`,
+    '   - Admin 專區（超級管理員專用，所有繁星 App 一致）：只有 GET /v1/me 回傳 staff_role 為 "owner" 時，才在「我的中央會員」區塊顯示「Admin 專區」按鈕（starrySettingsBlocks() 已自動處理：⚙ 齒輪圖示、反向填色、排在「聯絡客服」之後）。不可以用電子郵件判斷是不是管理員，一律看 staff_role。按鈕開啟這款 App 自己內部的管理員頁面，網址一律是 /admin（網頁版是 /admin 路徑；原生 App 是 App 內的 /admin 畫面），單獨管理這款 App 自己的功能。所有管理員專屬功能（管理、審核、查詢、設定、除錯、串接指令）一律集中在 /admin 這一頁，禁止散落在其他頁面或其他網址；現有 App 若已有散落各處的管理員功能，更新時要搬進 /admin（只搬移、不重寫功能），原位置移除入口。進入 /admin 時前端先看 staff_role，但真正的權限一定要在後端每個管理 API 再驗證一次（隱藏按鈕不算權限）。',
+    '   - /admin 頁最上方固定放一張「串接指令」卡片：呼叫 starryClient.getLatestHandoff(目前採用的版本)（GET /v1/apps/{appId}/handoff?integrated=<版本>，只有 owner 能呼叫），顯示「目前採用版本」與「中央最新版本」；兩者相同顯示「已是最新」；不同就顯示「有新版」並提供「複製最新串接指令」按鈕，把回傳的 text 複製給這款 App 的 AI。卡片上要固定寫一行：「更新時請 AI 只補差異，不要整份重做」。「目前採用的版本」就是你這次完成所依據的串接指令版本（寫成 App 內一個常數，每次依新版指令更新完才改它）。',
     '   - 網頁版網址（所有繁星 App 網頁版一致，必做）：每一頁都要有自己的網址路徑（例如 /、/settings、/books、/search，有內容的頁面如 /courses/<id>），用 History API（pushState 與 popstate）切換頁面；重新整理、複製網址、分享網址、瀏覽器上一頁與下一頁都必須停留在同一頁，不可回到首頁，也不可把「目前頁面」只存在記憶體狀態。伺服端對所有不是檔案的路徑都回傳同一份 index.html（SPA fallback），網址不存在才顯示 404 與回首頁連結。需要登入的頁面：未登入時先記下目前路徑，登入完成後導回原本那一頁（回傳網址必須在已登記的網頁來源底下）。',
     `   - 會員資料頁（所有繁星 App 一致，不要在 App 內重做）：個人基本資料、生命靈數、推薦達人、組織網、App 列表，一律用「App 內的網頁視窗」開啟 Starry ID 的網頁（用 web-link 取得已登入的網址，page 分別是 profile、referral、network、apps）：iOS 用 SFSafariViewController 或 WKWebView，Android 用 Chrome Custom Tabs 或 WebView，畫面留在 App 裡，不可把使用者丟到外部瀏覽器 App（登入與客服除外）；改版時各 App 不用跟著更新。`,
     '   - 上架規範：App 的主要功能必須是原生畫面，網頁視窗只能用在上述會員資料頁；網頁視窗內不得販售數位商品，也不得引導到外部付款（付費一律走第 6 節 RevenueCat 與商店內購）。',
@@ -112,7 +116,8 @@ export function buildHandoff(app: AppEntry, origin: string, options: { battery: 
     '8. Passkey：登入頁（iOS、Android、網頁）要有「使用 Passkey 登入」，設定頁要能新增、列出、移除 Passkey，做法見「三、3」。電池加碼：會員在網頁帳號中心把越多基本資料欄位設為公開，免費電池的獲得倍數越高（預設 1.0 倍，每公開一個「有填內容」的欄位 +0.1 倍，空白欄位設為公開也不加成），由中央即時套用在每月免費電池與免費電池序號；App 一律照 /v1/me/battery 這類中央回傳的餘額顯示與扣款，不要自己乘倍數、也不要在 App 內做公開欄位的獎勵畫面。其餘不需要實作：序號與邀請碼（業主在後台「電池艙」產生；會員只在網頁 https://id.starry.phd/account 或點兌換網址兌換，取得免費電池或這款 App 的免費量子電池。App 內不要放序號輸入畫面，也不要連到兌換頁或提示會員去兌換，序號也不可販售，這是 App Store 與 Google Play 的內購規則）、公告與維護的設定（業主在後台操作；App 只要照第 4 項顯示）、資料匯出、通知類別開關（會員在帳號中心設定）。',
     `9. 設定頁改成固定版型（三、5）：只有「繁星電池艙」「我的中央會員」「我的 Passkey」三個區塊，都用 starrySettingsBlocks() 的內容畫，移除其他說明、小字、重新整理按鈕與自己畫的區塊；會員資料頁用 web-link 開啟。網頁版每一頁要有自己的網址，重新整理不回首頁（三、5「網頁版網址」）。客服入口：設定頁要有「聯絡客服」按鈕，開啟 ${origin}/support?app_id=${id}&app_version=…&device=…（做法見「三、5」）。`,
     `10. 後端跑在同一個 Cloudflare 帳號的 Worker 時，可以選用 Service Binding 內部直連 Starry ID（做法見串接說明第 14 節）：網址與標頭都不變，一定要帶 x-starry-app-key；這是選用的，不用也符合規範，改了要自行測試。`,
-    '11. 檢查完回報：每一項是「已符合」或「已補上（PR 連結）」，以及需要業主處理的事項。',
+    '11. Admin 專區（三、5）：所有管理員功能集中在 /admin 一頁，散落在其他頁面的要搬進來；owner 才看得到「Admin 專區」按鈕，開啟 App 自己的 /admin 頁，頁面最上方有「串接指令」卡片（版本檢查＋複製最新指令＋「只補差異」提示），後端每個管理 API 都驗證 owner。',
+    '12. 檢查完回報：每一項是「已符合」或「已補上（PR 連結）」，以及需要業主處理的事項。更新一律只補差異，不要重做已正常的部分。',
   ];
   return lines.filter((line, i) => !(line === '' && lines[i - 1] === '')).join('\n');
 }
