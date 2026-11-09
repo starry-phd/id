@@ -7,8 +7,8 @@ const GUIDE_URL = 'https://raw.githubusercontent.com/starry-phd/id/main/docs/int
  * Version of the handoff text. Bump both whenever the text below changes (a unit test fails until you do),
  * so the Owner can tell at a glance whether the copy an App's AI received is the latest one.
  */
-export const HANDOFF_VERSION = '2026-11-09.1';
-export const HANDOFF_UPDATED = '2026-11-09 07:50（台灣時間）';
+export const HANDOFF_VERSION = '2026-11-09.2';
+export const HANDOFF_UPDATED = '2026-11-09 10:30（台灣時間）';
 
 function list(values: readonly string[]): string {
   return values.length === 0 ? '（無）' : values.join('、');
@@ -66,8 +66,9 @@ export function buildHandoff(app: AppEntry, origin: string, options: { battery: 
     '4. 會員身分只用 Starry 的 user_id（內部以 provider＋sub 辨識，不用 Email 或姓名合併）。App 後端用 GET /.well-known/jwks.json 驗證 Access Token。',
     '   - 會員頭像（所有繁星 App 一致）：用 GET /v1/me 的 profile.avatar_url（簽名網址，1 小時有效，每次進畫面重新取得）；avatar_url 為 null 時，在圓形裡顯示 profile.initials（姓與名各取第一個字，伺服器已算好，不要自己算）。頭像圖片的快取請用 avatar_url 問號前面的路徑當 key，不要用 user_id：會員換頭像（包含改用 Google 頭像）後路徑一定會變，所以每次 App 回到前景或進畫面都要重新讀 GET /v1/me，路徑不同就重新下載並更新所有畫面。會員顯示的名字一律用 profile.shown_name（會員在帳號中心指定的「主要顯示名稱」，暱稱或姓名二選一，預設暱稱，伺服器已算好，不要自己組；排行榜用 /v1/directory/members 的 shown_name 也一樣），shown_name 為 null 時才顯示 initials。頭像優先使用 Google 照片，會員可在 Starry 帳號中心自訂並裁切，所有 App 同步；App 內不要自己做頭像上傳或另存一份。會員的公開基本資料頁是 https://id.starry.phd/<會員編號>，邀請連結是 https://id.starry.phd/Invite/<會員編號>（Invite 後面有一個斜線）（會員編號用 GET /v1/me 的 member_no，格式是 2 個大寫英文字母的國家代碼加 7～10 位數字（預設是 0 開頭的 7 位，不夠用時會加長），例如 TW0123456，App 不要假設固定長度）。會員可以自己修改會員編號，修改後公開頁與邀請連結都會改變，所以 App 不可以把 member_no 當作資料的主鍵或檔案名稱，一律用 user_id（會員通行證的 sub）；每次要顯示或分享時重新讀 member_no。App 內若有「分享」入口請用原生分享功能表分享這個邀請連結。',
     '5. App 內必須提供串接說明第 4 節的帳號功能（登出、刪除帳號、同意條款等）。',
-    `   - 設定頁的會員區塊（固定規範，所有繁星 App 完全一致，不可自畫、不可加字）：設定頁最上方是「會員區塊」，由 Starry ID 網頁畫出頭像、名稱、會員編號、🔋與⚛️數量、Passkey 把數。取得方式：POST ${origin}/v1/me/web-link {"page":"card"}（帶 Access Token）回傳 {url, expires_in}，立刻用「App 內嵌的網頁視窗」（iOS WKWebView、Android WebView，開啟 JavaScript）載入這個 url，直接顯示成設定頁最上方的一塊，高度依內容自適應；url 只能用一次、2 分鐘內有效，已自動帶入登入，不用再登入一次，每次進設定頁都重新要一個。這個區塊不要自己用原生元件重畫，不要在旁邊加任何電池說明（共用額度、恢復日期、預留等細節一律不寫）。`,
-    `   - 設定頁固定順序（所有繁星 App 一致，由上到下）：(1) 會員區塊（上一點）；(2) 四顆原生按鈕，依序「會員中心」（POST ${origin}/v1/me/web-link {"page":"profile"} 取得 url，用 App 內網頁視窗開啟）、「聯絡客服」（見下方客服入口，用系統瀏覽器）、「登出所有繁星 App」、「永久刪除中央帳號」（紅色）；(3)「我的 Passkey」（新增、列出、移除，做法見「三、3」）；(4) 這款 App 自己的設定。標題與按鈕文字照上面寫的，不要改字、不要換順序。其他會員資料頁（page 為 referral、network、apps）同樣先呼叫 web-link 再開啟，不要直接開網址，否則會要求會員重新登入。`,
+    '   - 設定頁（固定規範，所有繁星 App 完全一致，手機與網頁版相同）：整頁由上到下只有三個區塊，之後才是這款 App 自己的設定，三個區塊依序是「繁星電池艙」「我的中央會員」「我的 Passkey」。文字、順序與按鈕一律用官方 SDK（sdk/starry-client.ts）的 starrySettingsBlocks() 回傳的內容來畫，不可自己寫文字、改字或換順序。禁止加任何小字備註、括號說明、說明段落，也不要放「重新整理」「重新查詢」按鈕。',
+    `   - 資料自動更新與按鈕動作：每次進入設定頁、App 回到前景時，自動重新讀 GET /v1/me、GET /v1/me/battery 與 Passkey 列表（頭像網址 1 小時有效）。頭像：profile.avatar_url 不是 null 就顯示照片，是 null 就顯示 initials 圓形縮寫，不要顯示任何「沒有頭像」的文字。按鈕：「電池消耗明細」＝POST ${origin}/v1/me/web-link {"page":"battery"}、「會員中心」＝{"page":"profile"}，兩者都用 App 內網頁視窗載入回傳的 url（單次、2 分鐘，已自動帶入登入，每次點擊重新要一個）；其他會員資料頁（referral、network、apps）同樣先呼叫 web-link；「公開基本資料」「分享邀請連結」用會員編號組網址；「聯絡客服」見下方客服入口；「登出所有繁星 App」「永久刪除中央帳號」依串接說明第 4 節。網頁版不可用 iframe 內嵌 Starry ID 頁面（會被拒絕），所以一律用 SDK 的內容自己畫。`,
+    '   - 網頁版網址（所有繁星 App 網頁版一致，必做）：每一頁都要有自己的網址路徑（例如 /、/settings、/books、/search，有內容的頁面如 /courses/<id>），用 History API（pushState 與 popstate）切換頁面；重新整理、複製網址、分享網址、瀏覽器上一頁與下一頁都必須停留在同一頁，不可回到首頁，也不可把「目前頁面」只存在記憶體狀態。伺服端對所有不是檔案的路徑都回傳同一份 index.html（SPA fallback），網址不存在才顯示 404 與回首頁連結。需要登入的頁面：未登入時先記下目前路徑，登入完成後導回原本那一頁（回傳網址必須在已登記的網頁來源底下）。',
     `   - 會員資料頁（所有繁星 App 一致，不要在 App 內重做）：個人基本資料、生命靈數、推薦達人、組織網、App 列表，一律用「App 內的網頁視窗」開啟 Starry ID 的網頁（用 web-link 取得已登入的網址，page 分別是 profile、referral、network、apps）：iOS 用 SFSafariViewController 或 WKWebView，Android 用 Chrome Custom Tabs 或 WebView，畫面留在 App 裡，不可把使用者丟到外部瀏覽器 App（登入與客服除外）；改版時各 App 不用跟著更新。`,
     '   - 上架規範：App 的主要功能必須是原生畫面，網頁視窗只能用在上述會員資料頁；網頁視窗內不得販售數位商品，也不得引導到外部付款（付費一律走第 6 節 RevenueCat 與商店內購）。',
     '   - 電池圖示（固定規範，所有繁星 App、網頁、通知一致）：只要畫面或文字提到電池，就要在前面放對應的圖示，普通電池用 🔋，量子電池用 ⚛️。格式是「🔋 10 顆普通電池」「⚛️ 3 顆量子電池」，數量很緊湊的地方只放「🔋 10」「⚛️ 3」。不要自己換成別的圖示。',
@@ -109,7 +110,7 @@ export function buildHandoff(app: AppEntry, origin: string, options: { battery: 
     '6. 刪除帳號：立即永久刪除、沒有撤回期、不會自動取消商店訂閱；App 內說明文字要一致。',
     '7. 條款與隱私權政策有新版本：consent_required 為 true 時顯示同意流程。',
     '8. Passkey：登入頁（iOS、Android、網頁）要有「使用 Passkey 登入」，設定頁要能新增、列出、移除 Passkey，做法見「三、3」。電池加碼：會員在網頁帳號中心把越多基本資料欄位設為公開，免費電池的獲得倍數越高（預設 1.0 倍，每公開一個「有填內容」的欄位 +0.1 倍，空白欄位設為公開也不加成），由中央即時套用在每月免費電池與免費電池序號；App 一律照 /v1/me/battery 這類中央回傳的餘額顯示與扣款，不要自己乘倍數、也不要在 App 內做公開欄位的獎勵畫面。其餘不需要實作：序號與邀請碼（業主在後台「電池艙」產生；會員只在網頁 https://id.starry.phd/account 或點兌換網址兌換，取得免費電池或這款 App 的免費量子電池。App 內不要放序號輸入畫面，也不要連到兌換頁或提示會員去兌換，序號也不可販售，這是 App Store 與 Google Play 的內購規則）、公告與維護的設定（業主在後台操作；App 只要照第 4 項顯示）、資料匯出、通知類別開關（會員在帳號中心設定）。',
-    `9. 設定頁改成固定版型：最上方是 web-link（page=card）載入的會員區塊，其下依序四顆原生按鈕與「我的 Passkey」，做法見「三、5」的「設定頁的會員區塊」與「設定頁固定順序」；原本自己畫的頭像、名稱、編號、電池說明區塊一律移除。客服入口：設定頁要有「聯絡客服」按鈕，開啟 ${origin}/support?app_id=${id}&app_version=…&device=…（做法見「三、5」）。`,
+    `9. 設定頁改成固定版型（三、5）：只有「繁星電池艙」「我的中央會員」「我的 Passkey」三個區塊，都用 starrySettingsBlocks() 的內容畫，移除其他說明、小字、重新整理按鈕與自己畫的區塊；會員資料頁用 web-link 開啟。網頁版每一頁要有自己的網址，重新整理不回首頁（三、5「網頁版網址」）。客服入口：設定頁要有「聯絡客服」按鈕，開啟 ${origin}/support?app_id=${id}&app_version=…&device=…（做法見「三、5」）。`,
     `10. 後端跑在同一個 Cloudflare 帳號的 Worker 時，可以選用 Service Binding 內部直連 Starry ID（做法見串接說明第 14 節）：網址與標頭都不變，一定要帶 x-starry-app-key；這是選用的，不用也符合規範，改了要自行測試。`,
     '11. 檢查完回報：每一項是「已符合」或「已補上（PR 連結）」，以及需要業主處理的事項。',
   ];

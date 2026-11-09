@@ -827,3 +827,86 @@ export class StarryClient {
     await this.clearSession();
   }
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Settings page (all Starry Apps look and read the same). The wording, order and buttons live HERE, once; an App only
+// draws the blocks it gets back and maps each button id to its action. Do not add, reword or reorder anything, and do
+// not add small print, parentheses, refresh buttons or explanations. Data refreshes by itself: call me(), the battery
+// call and listPasskeys() every time the page is shown and when the App returns to the foreground.
+// ---------------------------------------------------------------------------------------------------------------------
+
+export type SettingsButtonId =
+  | 'battery-history' // open POST /v1/me/web-link {page:'battery'} in an in-App web view
+  | 'public-profile' // the member's public page: https://id.starry.phd/<member_no>
+  | 'share-invite' // share https://id.starry.phd/Invite/<member_no>
+  | 'member-center' // POST /v1/me/web-link {page:'profile'} in an in-App web view
+  | 'support' // https://id.starry.phd/support?app_id=…&app_version=…&device=… in the system browser
+  | 'sign-out-all' // signOut(): signs out every Starry App on this device
+  | 'delete-account' // the App's DELETE confirmation flow (danger)
+  | 'add-passkey';
+
+export interface SettingsButton {
+  id: SettingsButtonId;
+  label: string;
+  danger?: boolean;
+}
+
+export interface SettingsBlock {
+  id: 'battery' | 'member' | 'passkey';
+  title: string;
+  /** member block only: the picture is `avatar.url` when it is not null, otherwise the `avatar.initials` bubble. */
+  avatar?: { url: string | null; initials: string };
+  /** member block only: the main display name. */
+  name?: string;
+  lines: string[];
+  /** passkey block only: one row per Passkey, each with a 「移除」 button that removes `id`. */
+  passkeys?: { id: string; name: string; removeLabel: string }[];
+  buttons: SettingsButton[];
+}
+
+export interface SettingsInput {
+  me: Pick<Me, 'member_no' | 'profile'> | null;
+  /** GET /v1/me/battery: `balance.remaining` and `quantum.available` (this App's ⚛️); null while not loaded. */
+  battery: { balance: { remaining: number }; quantum: { available: number } } | null;
+  passkeys: { id: string; name: string }[];
+}
+
+export const MAX_SETTINGS_PASSKEYS = 10;
+
+/** The three fixed blocks of every App's settings page, top to bottom: 繁星電池艙, 我的中央會員, 我的 Passkey. */
+export function starrySettingsBlocks(input: SettingsInput): SettingsBlock[] {
+  const profile = (input.me?.profile ?? {}) as { shown_name?: unknown; initials?: unknown; avatar_url?: unknown };
+  const text = (v: unknown) => (typeof v === 'string' ? v : '');
+  const initials = text(profile.initials);
+  const memberNo = input.me?.member_no ?? '';
+  return [
+    {
+      id: 'battery',
+      title: '繁星電池艙',
+      lines: [`🔋 ${input.battery ? input.battery.balance.remaining : '–'} 顆普通電池`, `⚛️ ${input.battery ? input.battery.quantum.available : '–'} 顆量子電池`],
+      buttons: [{ id: 'battery-history', label: '電池消耗明細' }],
+    },
+    {
+      id: 'member',
+      title: '我的中央會員',
+      avatar: { url: text(profile.avatar_url) || null, initials },
+      name: text(profile.shown_name) || initials || '星友',
+      lines: memberNo ? [`會員編號：${memberNo}`] : [],
+      buttons: [
+        { id: 'public-profile', label: '公開基本資料' },
+        { id: 'share-invite', label: '分享邀請連結' },
+        { id: 'member-center', label: '會員中心' },
+        { id: 'support', label: '聯絡客服' },
+        { id: 'sign-out-all', label: '登出所有繁星 App' },
+        { id: 'delete-account', label: '永久刪除中央帳號', danger: true },
+      ],
+    },
+    {
+      id: 'passkey',
+      title: '我的 Passkey',
+      lines: [],
+      passkeys: input.passkeys.map((k) => ({ id: k.id, name: k.name, removeLabel: '移除' })),
+      buttons: input.passkeys.length < MAX_SETTINGS_PASSKEYS ? [{ id: 'add-passkey', label: '新增 Passkey' }] : [],
+    },
+  ];
+}

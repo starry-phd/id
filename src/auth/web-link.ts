@@ -15,7 +15,7 @@ export const webLinkRoutes = apiRouter();
 
 export const WEB_LINK_CONTEXT = 'app-web-link-v1';
 export const WEB_LINK_TTL_MS = 2 * 60 * 1000;
-export const WEB_LINK_PAGES = ['card', 'profile', 'referral', 'network', 'apps'] as const;
+export const WEB_LINK_PAGES = ['card', 'profile', 'referral', 'network', 'apps', 'battery'] as const;
 export type WebLinkPage = (typeof WEB_LINK_PAGES)[number];
 
 const route = createRoute({
@@ -28,7 +28,7 @@ const route = createRoute({
   request: {
     body: jsonBody(
       z.object({
-        page: z.enum(WEB_LINK_PAGES).openapi({ description: '`card` is the standard member block of the settings page; the others are the member pages.', example: 'card' }),
+        page: z.enum(WEB_LINK_PAGES).openapi({ description: 'Member pages in the App’s web view. `battery` is 電池消耗明細; `card` is the older embedded member block (no longer required by the handoff).', example: 'card' }),
       }),
     ),
   },

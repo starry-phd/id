@@ -3687,9 +3687,10 @@
                       "profile",
                       "referral",
                       "network",
-                      "apps"
+                      "apps",
+                      "battery"
                     ],
-                    "description": "`card` is the standard member block of the settings page; the others are the member pages.",
+                    "description": "Member pages in the App’s web view. `battery` is 電池消耗明細; `card` is the older embedded member block (no longer required by the handoff).",
                     "example": "card"
                   }
                 },
