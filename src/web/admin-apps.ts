@@ -182,6 +182,8 @@ async function handoffPage(c: WebContext, role: Role, app: AppEntry, notice: str
     role === 'owner'
       ? html`<form method="post" action="/admin/apps/${app.app_id}/battery-key" class="inline"><button type="submit">${hasKey ? '重新產生 Battery 服務金鑰' : '開通 Battery'}</button></form>`
       : '';
+  const reported = await c.env.DB_IDENTITY.prepare('SELECT integrated_version, reported_at FROM app_handoff_reports WHERE app_id = ?').bind(app.app_id).first<{ integrated_version: string; reported_at: number }>();
+  const adopted = reported ? (reported.integrated_version === HANDOFF_VERSION ? `${reported.integrated_version}（已是最新）` : `${reported.integrated_version}（待升級，只補差異）`) : '尚未回報（App 的 /admin 頁第一次開啟後會回報）';
   const nonce = c.get('cspNonce');
   return c.html(
     adminPage(
@@ -190,6 +192,7 @@ async function handoffPage(c: WebContext, role: Role, app: AppEntry, notice: str
       html`<h1>${app.name} 的串接指令</h1>
 ${notice ? html`<div class="banner">${notice}</div>` : ''}
 <div class="card" style="text-align:center"><p class="muted" style="margin:0">目前的串接指令版本</p><p style="font-size:2em;font-weight:bold;margin:4px 0">${HANDOFF_VERSION}</p><p style="font-size:1.2em;margin:0">更新時間：${HANDOFF_UPDATED}</p><p class="muted" style="margin:6px 0 0">AI 回報的版本號碼和這裡一樣，就是最新版；不一樣就請它重新使用下面這份指令。</p></div>
+<p class="muted">這款 App 回報採用的版本：${adopted}</p>
 <h2>① 給 AI 的</h2>
 <div class="card"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:space-between"><strong>給開發 AI 的串接指令</strong><button type="button" data-copy="handoff-text">複製給AI指令（不含金鑰）</button></div>
 <p class="muted">整段貼給負責開發這款 App 的 AI。內容只有已登記的公開資料，<strong>沒有任何金鑰</strong>；請不要把下面「給你自己的」那一塊貼給 AI。</p>

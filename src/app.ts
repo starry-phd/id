@@ -12,6 +12,7 @@ import { avatarRoutes } from './apps/avatar-route';
 import { directoryRoutes } from './apps/directory';
 import { refreshDynamicApps } from './apps/dynamic';
 import { appRoutes } from './apps/routes';
+import { handoffRoutes } from './apps/handoff-route';
 import { loadSigningKey } from './auth/access-token';
 import { authRoutes } from './auth/routes';
 import { batteryRoutes, myBatteryRoutes } from './battery/routes';
@@ -126,6 +127,7 @@ for (const path of ['/account/passkey/login-options', '/account/passkey/login', 
 app.use('/auth/*', limitByIp('RL_WEB'));
 
 app.route('/v1/apps', appRoutes);
+app.route('/v1/apps', handoffRoutes);
 app.route('/v1/avatars', avatarRoutes);
 app.route('/v1/directory', directoryRoutes);
 app.route('/v1/billing', billingRoutes);

@@ -18,7 +18,7 @@ describe('identity migrations', () => {
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'")
       .all();
     const names = results.map((r) => r.name).sort();
-    assert.deepEqual(names, ['app_config_overrides', 'app_launcher', 'app_products', 'app_staff', 'app_stages', 'app_status_overrides', 'app_surge_limits', 'apple_revocations', 'apple_tokens', 'audit_log', 'auth_identities', 'auth_nonces', 'cleanup_jobs', 'consents', 'device_sso', 'job_heartbeats', 'member_apps', 'member_no_changes', 'notify_broadcast_chunks', 'notify_broadcasts', 'passkeys', 'profile_field_updates', 'profiles', 'push_preferences', 'push_tokens', 'r2_deletions', 'referrals', 'registered_apps', 'scoped_notices', 'sessions', 'staff_stepups', 'support_attachments', 'support_ticket_replies', 'support_tickets', 'system_notices', 'user_roles', 'users']);
+    assert.deepEqual(names, ['app_config_overrides', 'app_handoff_reports', 'app_launcher', 'app_products', 'app_staff', 'app_stages', 'app_status_overrides', 'app_surge_limits', 'apple_revocations', 'apple_tokens', 'audit_log', 'auth_identities', 'auth_nonces', 'cleanup_jobs', 'consents', 'device_sso', 'job_heartbeats', 'member_apps', 'member_no_changes', 'notify_broadcast_chunks', 'notify_broadcasts', 'passkeys', 'profile_field_updates', 'profiles', 'push_preferences', 'push_tokens', 'r2_deletions', 'referrals', 'registered_apps', 'scoped_notices', 'sessions', 'staff_stepups', 'support_attachments', 'support_ticket_replies', 'support_tickets', 'system_notices', 'user_roles', 'users']);
   });
 
   test('an identity cannot point at a missing member', async () => {

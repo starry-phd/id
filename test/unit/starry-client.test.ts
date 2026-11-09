@@ -417,6 +417,17 @@ describe('settings page blocks', () => {
     assert.doesNotMatch(all, /重新整理|重新查詢/);
   });
 
+  test('Admin 專區 button appears only for the central owner, after 聯絡客服, gear icon and inverse fill', () => {
+    const labels = (role: 'owner' | 'admin' | null | undefined) =>
+      starrySettingsBlocks({ me: { ...me, staff_role: role }, battery: null, passkeys: [] })[1]?.buttons.map((b) => b.label);
+    assert.ok(!labels(null)?.includes('Admin 專區'));
+    assert.ok(!labels('admin')?.includes('Admin 專區'));
+    assert.ok(!labels(undefined)?.includes('Admin 專區'));
+    const owner = starrySettingsBlocks({ me: { ...me, staff_role: 'owner' }, battery: null, passkeys: [] })[1]?.buttons ?? [];
+    assert.deepEqual(owner.map((b) => b.label), ['公開基本資料', '分享邀請連結', '會員中心', '聯絡客服', 'Admin 專區', '登出所有繁星 App', '永久刪除中央帳號']);
+    assert.deepEqual(owner[4], { id: 'admin', label: 'Admin 專區', icon: 'gear', inverse: true });
+  });
+
   test('not loaded yet, no member number, no photo, ten Passkeys', () => {
     const blocks = starrySettingsBlocks({ me: null, battery: null, passkeys: Array.from({ length: 10 }, (_, i) => ({ id: `p${i}`, name: 'k' })) });
     assert.deepEqual(blocks[0]?.lines, ['🔋 – 顆普通電池', '⚛️ – 顆量子電池']);
