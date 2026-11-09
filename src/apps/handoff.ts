@@ -7,8 +7,8 @@ const GUIDE_URL = 'https://raw.githubusercontent.com/starry-phd/id/main/docs/int
  * Version of the handoff text. Bump both whenever the text below changes (a unit test fails until you do),
  * so the Owner can tell at a glance whether the copy an App's AI received is the latest one.
  */
-export const HANDOFF_VERSION = '2026-11-09.3';
-export const HANDOFF_UPDATED = '2026-11-09 11:00（台灣時間）';
+export const HANDOFF_VERSION = '2026-11-09.4';
+export const HANDOFF_UPDATED = '2026-11-09 09:58（台灣時間）';
 
 function list(values: readonly string[]): string {
   return values.length === 0 ? '（無）' : values.join('、');
