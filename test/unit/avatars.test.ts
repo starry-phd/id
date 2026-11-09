@@ -1,7 +1,7 @@
 // Unit tests for avatar storage and signed avatar URLs (S-ID-08).
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { importProviderAvatar, isAvatarKey, isProviderPhotoUrl, MAX_AVATAR_BYTES, removeAvatar, setAvatar, signedAvatarPath, sniffImage, verifyAvatarSignature, type ObjectStore } from '../../src/identity/avatars';
+import { avatarUrlFor, importProviderAvatar, isAvatarKey, isProviderPhotoUrl, MAX_AVATAR_BYTES, removeAvatar, setAvatar, signedAvatarPath, sniffImage, verifyAvatarSignature, type ObjectStore } from '../../src/identity/avatars';
 import { findOrCreateMember } from '../../src/identity/members';
 import { migratedDb } from '../support/sqlite-d1.mjs';
 
@@ -141,5 +141,14 @@ describe('Google photo import reports why it failed', () => {
     );
     assert.equal(redirected, null);
     assert.equal(calls, 2);
+  });
+});
+
+describe('avatar_url form', () => {
+  test('production puts the Starry ID origin in front, staging keeps a path', () => {
+    assert.equal(avatarUrlFor('https://id.starry.phd', '/v1/avatars/a/b.png?exp=1&sig=x'), 'https://id.starry.phd/v1/avatars/a/b.png?exp=1&sig=x');
+    assert.equal(avatarUrlFor('https://id.starry.phd/', '/v1/avatars/a/b.png'), 'https://id.starry.phd/v1/avatars/a/b.png');
+    assert.equal(avatarUrlFor(undefined, '/v1/avatars/a/b.png'), '/v1/avatars/a/b.png');
+    assert.equal(avatarUrlFor('', '/v1/avatars/a/b.png'), '/v1/avatars/a/b.png');
   });
 });
