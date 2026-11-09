@@ -161,7 +161,7 @@ describe('registering an App without a code change', () => {
     // When this fails you changed the handoff text: bump HANDOFF_VERSION and HANDOFF_UPDATED in src/apps/handoff.ts,
     // then paste the new hash here.
     const hash = createHash('sha256').update(text).digest('hex').slice(0, 16);
-    assert.equal(`${HANDOFF_VERSION}:${hash}`, '2026-11-09.1:06687d5e455d30f6');
+    assert.equal(`${HANDOFF_VERSION}:${hash}`, '2026-11-09.2:631510e9f68c2795');
   });
 
   test('the handoff mentions Battery only as set up or not yet set up, never with a key', () => {

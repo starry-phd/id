@@ -4,6 +4,7 @@ import './account-profile';
 import './account-network';
 import './account-apps';
 import './account-card';
+import './account-battery';
 import './account-passkeys';
 import './account-danger';
 

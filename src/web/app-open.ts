@@ -23,6 +23,7 @@ const PAGES: Record<WebLinkPage, string> = {
   referral: '/account/referral',
   network: '/account/network',
   apps: '/account/apps',
+  battery: '/account/battery',
 };
 
 interface Claims {
@@ -44,7 +45,7 @@ export function landingPath(claims: Claims): string | null {
   const to = claims.to as WebLinkPage;
   const base = PAGES[to];
   if (!base || typeof claims.a !== 'string') return null;
-  if (to !== 'card') return base;
+  if (to !== 'card' && to !== 'battery') return base;
   return `${base}?${new URLSearchParams({ app: claims.a }).toString()}`;
 }
 

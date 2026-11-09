@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { describe, test } from 'node:test';
-import { base64urlDecode, base64urlEncode, compareVersions, memoryStorage, parseRelayResult, StarryClient, StarryError, type PasskeyAdapter, type StarryClientOptions } from '../../sdk/starry-client';
+import { starrySettingsBlocks, base64urlDecode, base64urlEncode, compareVersions, memoryStorage, parseRelayResult, StarryClient, StarryError, type PasskeyAdapter, type StarryClientOptions } from '../../sdk/starry-client';
 
 const BASE = 'https://id.test';
 const NOW = Date.UTC(2026, 11, 1, 12, 0, 0);
@@ -394,5 +394,34 @@ describe('web single sign-on', () => {
     assert.match(c.went.at(-1) ?? '', /\/auth\/sso\/adopt\?app_id=clock&c=c1&return=/);
     assert.equal(await c.client.completeWebSsoCheck(back('sso_none=1&state=')), false);
     assert.equal(c.client.signedIn, false);
+  });
+});
+
+describe('settings page blocks', () => {
+  const me = { member_no: 'TW0067527', profile: { shown_name: '繁星管理員', initials: '繁星', avatar_url: null } };
+  test('three fixed blocks in order, with the agreed wording and buttons', () => {
+    const blocks = starrySettingsBlocks({ me, battery: { balance: { remaining: 19 }, quantum: { available: 15 } }, passkeys: [{ id: 'p1', name: 'macOS' }] });
+    assert.deepEqual(blocks.map((b) => b.id), ['battery', 'member', 'passkey']);
+    assert.deepEqual(blocks[0], { id: 'battery', title: '繁星電池艙', lines: ['🔋 19 顆普通電池', '⚛️ 15 顆量子電池'], buttons: [{ id: 'battery-history', label: '電池消耗明細' }] });
+    assert.equal(blocks[1]?.title, '我的中央會員');
+    assert.equal(blocks[1]?.name, '繁星管理員');
+    assert.deepEqual(blocks[1]?.avatar, { url: null, initials: '繁星' });
+    assert.deepEqual(blocks[1]?.lines, ['會員編號：TW0067527']);
+    assert.deepEqual(blocks[1]?.buttons.map((b) => b.label), ['公開基本資料', '分享邀請連結', '會員中心', '聯絡客服', '登出所有繁星 App', '永久刪除中央帳號']);
+    assert.equal(blocks[1]?.buttons.at(-1)?.danger, true);
+    assert.deepEqual(blocks[2]?.passkeys, [{ id: 'p1', name: 'macOS', removeLabel: '移除' }]);
+    assert.deepEqual(blocks[2]?.buttons, [{ id: 'add-passkey', label: '新增 Passkey' }]);
+    // Nothing explanatory anywhere: no parentheses and no refresh button.
+    const all = JSON.stringify(blocks);
+    assert.doesNotMatch(all, /[（(]/);
+    assert.doesNotMatch(all, /重新整理|重新查詢/);
+  });
+
+  test('not loaded yet, no member number, no photo, ten Passkeys', () => {
+    const blocks = starrySettingsBlocks({ me: null, battery: null, passkeys: Array.from({ length: 10 }, (_, i) => ({ id: `p${i}`, name: 'k' })) });
+    assert.deepEqual(blocks[0]?.lines, ['🔋 – 顆普通電池', '⚛️ – 顆量子電池']);
+    assert.equal(blocks[1]?.name, '星友');
+    assert.deepEqual(blocks[1]?.lines, []);
+    assert.deepEqual(blocks[2]?.buttons, []);
   });
 });

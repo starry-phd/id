@@ -337,6 +337,23 @@ describe('Starry ID sign-in, sessions and profile', () => {
     assert.equal(audited.n, 2);
   });
 
+  test('電池消耗明細 opens from the App through web-link and lists only the member’s own activity', async () => {
+    const a = await signInOk('google', 'battery-history-sub');
+    const res = await worker.call('/v1/me/web-link', json({ page: 'battery' }, { authorization: `Bearer ${a.access_token}` }));
+    assert.equal(res.status, 200);
+    const { url } = await res.json();
+    const open = await worker.call(url.slice(new URL(url).origin.length), { redirect: 'manual' });
+    assert.equal(open.status, 302);
+    assert.equal(open.headers.get('location'), '/account/battery?app=echo');
+    const cookie = { cookie: `__Host-starry_session=${/__Host-starry_session=([^;]+)/.exec(open.headers.get('set-cookie') ?? '')[1]}` };
+    const page = await worker.call('/account/battery?app=echo', { headers: cookie });
+    assert.equal(page.status, 200);
+    const text = await page.text();
+    assert.match(text, /電池消耗明細/);
+    assert.match(text, /沒有紀錄/);
+    assert.equal((await worker.call('/account/battery', { redirect: 'manual' })).status, 303, 'signed out: sent to sign-in');
+  });
+
   test('a suspended member cannot use existing tokens or sign in', async () => {
     const session = await signInOk('google', 'suspend-sub');
     await worker.db.prepare("UPDATE users SET status = 'suspended' WHERE user_id = ?").bind(session.user.user_id).run();
