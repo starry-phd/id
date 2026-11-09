@@ -12,7 +12,7 @@ import { activeEntitlements } from '../billing/revenuecat';
 import type { AppBindings } from '../env';
 import { rememberAppleToken } from '../identity/apple';
 import { initialsOf } from '../identity/initials';
-import { importProviderAvatar, MAX_AVATAR_BYTES, r2Store, rememberProviderPhoto, removeAvatar, setAvatar, signedAvatarPath } from '../identity/avatars';
+import { avatarUrlFor, importProviderAvatar, MAX_AVATAR_BYTES, r2Store, rememberProviderPhoto, removeAvatar, setAvatar, signedAvatarPath } from '../identity/avatars';
 import { seedProfileFromGoogle } from '../identity/google-seed';
 import { cleanupAfterDeletion } from '../identity/erase';
 import { deleteMemberNow } from '../identity/lifecycle';
@@ -31,8 +31,8 @@ import type { Context } from 'hono';
 
 export const meRoutes = apiRouter();
 
-async function avatarUrlOf(env: { DATA_ENCRYPTION_KEY?: string }, p: ProfileRow, now: number): Promise<string | null> {
-  return p.avatar_key && env.DATA_ENCRYPTION_KEY ? signedAvatarPath(env.DATA_ENCRYPTION_KEY, p.avatar_key, now) : null;
+async function avatarUrlOf(env: { DATA_ENCRYPTION_KEY?: string; AVATAR_URL_ORIGIN?: string }, p: ProfileRow, now: number): Promise<string | null> {
+  return p.avatar_key && env.DATA_ENCRYPTION_KEY ? avatarUrlFor(env.AVATAR_URL_ORIGIN, await signedAvatarPath(env.DATA_ENCRYPTION_KEY, p.avatar_key, now)) : null;
 }
 
 /** The member's own profile (S-ID-08, 02.01-02.10); avatar_url is a signed path valid for one hour. */

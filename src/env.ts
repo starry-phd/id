@@ -17,6 +17,8 @@ export type StarryEnvironment = 'development' | 'staging' | 'production';
 /** Cloudflare bindings available to the platform Worker. */
 export interface Env {
   STARRY_ENV: StarryEnvironment;
+  /** Production only: origin put in front of avatar_url so Apps get a full https URL (staging and local keep a path). */
+  AVATAR_URL_ORIGIN?: string;
   DB_IDENTITY: D1Database;
   /** RevenueCat entitlement projection (S-BIL-04). */
   DB_BILLING: D1Database;

@@ -2,7 +2,7 @@ import { createRoute, z } from '@hono/zod-openapi';
 import { apiRouter, errorResponses, json, jsonBody } from '../api/openapi';
 import { fail } from '../auth/routes';
 import { callingApp, INVALID, UNCONFIGURED } from '../battery/routes';
-import { signedAvatarPath } from '../identity/avatars';
+import { avatarUrlFor, signedAvatarPath } from '../identity/avatars';
 import { PROFILE_SQL, publicProfile, type ProfileRow } from '../identity/profile';
 
 /**
@@ -62,7 +62,7 @@ directoryRoutes.openapi(membersRoute, async (c) => {
     const profile = await db.prepare(PROFILE_SQL).bind(row.user_id).first<ProfileRow>();
     if (!profile) continue;
     const key = c.env.DATA_ENCRYPTION_KEY;
-    const avatar = profile.avatar_key && key ? await signedAvatarPath(key, profile.avatar_key, now) : null;
+    const avatar = profile.avatar_key && key ? avatarUrlFor(c.env.AVATAR_URL_ORIGIN, await signedAvatarPath(key, profile.avatar_key, now)) : null;
     const shown = publicProfile(profile, avatar, now);
     members.push({ user_id: row.user_id, member_no: row.member_no, shown_name: shown.shown_name, nickname: shown.nickname, display_name: shown.display_name, avatar_url: shown.avatar_url, initials: shown.initials });
   }

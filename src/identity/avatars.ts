@@ -92,6 +92,15 @@ export async function signedAvatarPath(secret: string, key: string, nowMs: numbe
   return `/v1/avatars/${key.slice('avatars/'.length)}?exp=${exp}&sig=${await hmac(secret, `${key}:${exp}`)}`;
 }
 
+/**
+ * What Apps receive as avatar_url. Production sets AVATAR_URL_ORIGIN so it is a full https URL (every App can load it
+ * as is; a bare path made Apps that expect a full URL show initials). Without it (staging, local) it stays a path
+ * that starts with "/", which Apps resolve against the Starry ID address.
+ */
+export function avatarUrlFor(origin: string | undefined, path: string): string {
+  return origin ? `${origin.replace(/\/+$/, '')}${path}` : path;
+}
+
 export async function verifyAvatarSignature(secret: string, key: string, exp: string | undefined, sig: string | undefined, nowMs: number): Promise<boolean> {
   if (!exp || !sig || !/^\d{1,12}$/.test(exp) || Number(exp) < Math.floor(nowMs / 1000) || !isAvatarKey(key)) return false;
   return constantTimeEqual(await hmac(secret, `${key}:${exp}`), sig);
